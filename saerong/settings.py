@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # thrid apps
     "django_extensions",
     "template_partials",
+    "django_htmx",
     # local apps
     "core",
     "psychotest",
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 if DEBUG:
