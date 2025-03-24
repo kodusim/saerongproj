@@ -9,17 +9,55 @@
         
         <div class="card-body">
             {% if result %}
-            <h1 class="text-center mb-4">{{ result.title }}</h1>
-            
-            <div class="card mb-4">
-                <div class="card-body">
-                    <p class="lead">{{ result.description|linebreaks }}</p>
+                <h1 class="text-center mb-4">{{ result.title }}</h1>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <p class="lead">{{ result.description|linebreaks }}</p>
+                    </div>
                 </div>
-            </div>
+                
+                {% if result_data.method == 'sum' %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">당신의 점수: <strong>{{ result_data.score }}</strong></p>
+                    </div>
+                {% elif result_data.method == 'category' %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">당신의 유형: <strong>{{ result_data.category }}</strong></p>
+                        {% if result_data.category_scores %}
+                            <hr>
+                            <h5>카테고리별 점수:</h5>
+                            <ul class="mb-0">
+                                {% for category, score in result_data.category_scores.items %}
+                                    <li>{{ category }}: {{ score }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- 소셜 공유 버튼 -->
+                <div class="share-buttons mt-4">
+                    <h5>결과 공유하기</h5>
+                    <div class="d-flex gap-2">
+                        <a href="https://twitter.com/intent/tweet?text={{ result.title|urlencode }}&url={{ request.build_absolute_uri }}" 
+                           class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-twitter"></i> 트위터
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}" 
+                           class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-facebook"></i> 페이스북
+                        </a>
+                        <button class="btn btn-outline-secondary" 
+                                onclick="navigator.clipboard.writeText('{{ request.build_absolute_uri }}'); alert('링크가 복사되었습니다.')">
+                            <i class="bi bi-clipboard"></i> 링크 복사
+                        </button>
+                    </div>
+                </div>
             {% else %}
-            <div class="alert alert-info">
-                이 테스트에 대한 결과가 아직 등록되지 않았습니다.
-            </div>
+                <div class="alert alert-info">
+                    이 테스트에 대한 결과가 아직 등록되지 않았습니다.
+                </div>
             {% endif %}
             
             <div class="d-flex justify-content-between mt-4">

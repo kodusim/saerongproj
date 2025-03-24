@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h4 mb-0">{{ test.title }}</h2>
+        </div>
+        
+        <div class="card-body">
+            <div id="question-container">
+                <div class="mb-4">
+                    <h4>질문 {{ current_index }} / {{ total_questions }}</h4>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ progress }}%;" 
+                             aria-valuenow="{{ progress }}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                            {{ progress }}%
+                        </div>
+                    </div>
+                    
+                    <div class="question">
+                        <h3 class="mb-4">{{ question.text }}</h3>
+                        <form hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
+                              hx-target="#question-container" 
+                              hx-swap="outerHTML">
+                            {% for option in question.options.all %}
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" 
+                                       name="answer" id="option_{{ option.id }}" 
+                                       value="{{ option.id }}" required>
+                                <label class="form-check-label" for="option_{{ option.id }}">
+                                    {{ option.text }}
+                                </label>
+                            </div>
+                            {% empty %}
+                            <div class="alert alert-warning">
+                                이 질문에 대한 선택지가 없습니다.
+                            </div>
+                            {% endfor %}
+                            <input type="hidden" name="current_index" value="{{ current_index }}">
+                            
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-primary">다음</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
