@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 페이지 제목 -->
+    <div class="mb-4">
+        <h1>모든 심리 테스트</h1>
+        <p class="lead">다양한 심리 테스트를 선택해보세요</p>
+    </div>
+    
+    <!-- 테스트 필터링 기능 (향후 구현) -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">필터:</span>
+                            <a href="#" class="btn btn-sm btn-outline-secondary mx-1">인기순</a>
+                            <a href="#" class="btn btn-sm btn-outline-secondary mx-1">최신순</a>
+                        </div>
+                        <div>
+                            <input type="text" class="form-control" placeholder="테스트 검색...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 테스트 목록 -->
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for test in tests %}
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ test.title }}</h5>
+                    <p class="card-text">{{ test.description|truncatewords:20 }}</p>
+                    <a href="{% url 'psychotest:test_detail' test.id %}" class="btn btn-primary">테스트 시작하기</a>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">작성일: {{ test.created_at|date:"Y-m-d" }}</small>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                아직 등록된 테스트가 없습니다.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 페이지 하단 네비게이션 -->
+    <div class="mt-4 d-flex justify-content-between">
+        <a href="{% url 'core:root' %}" class="btn btn-secondary">
+            메인으로 돌아가기
+        </a>
+        
+        <!-- 페이지네이션 (향후 구현) -->
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">이전</a>
+                </li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item">
+                    <a class="page-link" href="#">다음</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}

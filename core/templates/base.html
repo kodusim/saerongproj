@@ -7,18 +7,59 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>장고 프로젝트</title>
+    <title>새롱 - 심리테스트</title>
     <link rel="stylesheet" href="{% static 'bootstrap/5.3.3/css/bootstrap.min.css' %}" />
     {% component_css_dependencies %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
-<h1>장고 프로젝트</h1>
+<!-- 네비게이션 바 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'core:root' %}">새롱</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'core:root' %}">홈</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'psychotest:test_list' %}">테스트 목록</a>
+                </li>
+                <!-- 추가 메뉴 항목 (향후 구현) -->
+                <li class="nav-item">
+                    <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">인기 테스트</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">카테고리</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">로그인</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">회원가입</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 
-{% block content %}{% endblock %}
+<!-- 메인 콘텐츠 -->
+<div class="container-fluid mt-3">
+    {% block content %}{% endblock %}
+</div>
 
-<hr/>
-&copy; 새롱
+<!-- 푸터 -->
+<footer class="bg-light py-4 mt-5">
+    <div class="container text-center">
+        <p class="mb-0">&copy; 2025 새롱 - 모든 권리 보유</p>
+    </div>
+</footer>
 
 {% if debug %}
     <script src="{% static 'htmx/1.9.11/htmx.js' %}"></script>
