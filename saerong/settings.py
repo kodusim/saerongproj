@@ -28,6 +28,11 @@ DEBUG = env.bool("DEBUG", default=True)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
+COMPONENTS = {
+     # 0.67 미만 버전과 동일한 동작을 맞추기 위한 설정 (강의에서는 0.61 버전)
+     "slot_context_behavior": "allow_override",  # 디폴트: "prefer_root"
+ }
+
 
 # Application definition
 
@@ -37,12 +42,16 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
+    "django_components.safer_staticfiles",
     # thrid apps
+    "crispy_forms",
+    "crispy_bootstrap5",
+    "django_components",
     "django_extensions",
     "template_partials",
     "django_htmx",
     # local apps
+    "accounts",
     "core",
     "psychotest",
 ]
@@ -73,7 +82,9 @@ ROOT_URLCONF = "saerong.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "core" / "src-django-components",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -99,6 +110,7 @@ DATABASES = {
     }
 }
 
+AUTH_USER_MODEL = "accounts.User"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -136,6 +148,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+STATICFILES_DIRS = [
+    BASE_DIR / "core" / "src-django-components",
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -145,5 +161,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
  # django-debug-toolbar
  # https://django-debug-toolbar.readthedocs.io/en/latest/installation.html
- 
+
+# django-components
+ #  - context variable를 resolve하는 방식이 변경
+ #    https://github.com/EmilStenstrom/django-components/?tab=readme-ov-file#isolate-components-slots
+
+
 INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
+
+# django-crispy-forms
+ 
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+ 
+CRISPY_TEMPLATE_PACK = "bootstrap5"
