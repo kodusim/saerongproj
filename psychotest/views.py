@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.contrib import messages
 from .models import Test, Question, Option, Result, Category
+from django.http import HttpResponse
 
 
 def test_list(request):
@@ -31,6 +32,10 @@ def take_test(request, test_id):
             del request.session['test_answers'][str(test_id)]
             request.session.modified = True
     
+    if 'test_answers' not in request.session:
+        request.session['test_answers'] = {}
+    request.session.modified = True
+    
     if test.view_style == 'one':
         # 한 질문씩 보여주기
         first_question = questions.first()
@@ -55,8 +60,6 @@ def take_test(request, test_id):
                     answers[str(question.id)] = option_id
             
             # 세션에 답변 저장
-            if 'test_answers' not in request.session:
-                request.session['test_answers'] = {}
             request.session['test_answers'][str(test_id)] = answers
             request.session.modified = True
             
@@ -100,16 +103,34 @@ def answer_question(request, test_id, question_id):
             next_index = current_index + 1
             progress = int((next_index / total_questions) * 100)
             
-            return render(request, 'psychotest/question_single.html', {
-                'test': test,
-                'question': next_question,
-                'current_index': next_index,
-                'total_questions': total_questions,
-                'progress': progress
-            })
+            # HTMX 요청인 경우 부분 템플릿만 반환
+            if request.headers.get('HX-Request'):
+                return render(request, 'psychotest/partials/question.html', {
+                    'test': test,
+                    'question': next_question,
+                    'current_index': next_index,
+                    'total_questions': total_questions,
+                    'progress': progress
+                })
+            else:
+                # 일반 요청인 경우 전체 페이지 반환
+                return render(request, 'psychotest/question_single.html', {
+                    'test': test,
+                    'question': next_question,
+                    'current_index': next_index,
+                    'total_questions': total_questions,
+                    'progress': progress
+                })
         else:
             # 결과 계산 및 리다이렉트
-            return redirect('psychotest:calculate_result', test_id=test.id)
+            # HTMX 요청인 경우 HX-Redirect 헤더 사용
+            if request.headers.get('HX-Request'):
+                from django.urls import reverse
+                response = HttpResponse()
+                response['HX-Redirect'] = reverse('psychotest:calculate_result', args=[test_id])
+                return response
+            else:
+                return redirect('psychotest:calculate_result', test_id=test.id)
 
 
 def calculate_result(request, test_id):
@@ -225,5 +246,9 @@ def test_result(request, test_id):
         'result': result,
         'result_data': result_data
     }
+        # 결과 표시 후 필요 없는 테스트 답변 데이터 정리
+    if 'test_answers' in request.session and str(test_id) in request.session['test_answers']:
+        del request.session['test_answers'][str(test_id)]
+        request.session.modified = True
     
     return render(request, 'psychotest/test_result.html', context)
