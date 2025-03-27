@@ -174,3 +174,19 @@ INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
  
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}

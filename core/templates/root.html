@@ -12,10 +12,12 @@
     <!-- 최신 테스트 섹션 -->
     <div class="card mb-5">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">최신 테스트</h2>
+            <h2 class="h4 mb-0">최신 테스트 (데이터베이스 테스트 수: {{ test_count }})</h2>
             <a href="{% url 'psychotest:test_list' %}" class="btn btn-outline-primary">더보기</a>
         </div>
         <div class="card-body">
+            <!-- 디버깅 -->
+            <p class="text-info">로드된 테스트 수: {{ recent_tests|length }}</p>
             <div class="row row-cols-1 row-cols-md-3 g-4">
                 {% for test in recent_tests %}
                 <div class="col">
