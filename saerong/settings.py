@@ -9,12 +9,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = Env()
  
-ENV_PATH = BASE_DIR / ".env"
-if ENV_PATH.exists():
-    with ENV_PATH.open(encoding="utf-8") as f:
-         env.read_env(f, overwrite=True)
+ENV_PATH = env.str("ENV_PATH", default=str(BASE_DIR / ".env"))
+env_path = Path(ENV_PATH)
+if env_path.exists():
+    with env_path.open(encoding="utf-8") as f:
+        env.read_env(f, overwrite=True)
 else:
-     print("not found:", ENV_PATH, file=sys.stderr)
+    print("not found:", ENV_PATH, file=sys.stderr)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
