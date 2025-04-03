@@ -9,11 +9,12 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>새롱 - 심리테스트</title>
     <link rel="stylesheet" href="{% static 'bootstrap/5.3.3/css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}" />
     {% component_css_dependencies %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
-<!-- 네비게이션 바 -->
+<!-- 네비게이션 바 (전체 너비) -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
         <a class="navbar-brand" href="{% url 'core:root' %}">새롱</a>
@@ -49,12 +50,17 @@
     </div>
 </nav>
 
-<!-- 메인 콘텐츠 -->
-<div class="container-fluid mt-3">
-    {% block content %}{% endblock %}
+<!-- 중앙 콘텐츠 영역 (500px 고정) -->
+<div class="saerong-content-wrapper">
+    <div class="saerong-content-container">
+        <!-- 메인 콘텐츠 -->
+        <div class="container-fluid mt-3">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
 </div>
 
-<!-- 푸터 -->
+<!-- 푸터 (전체 너비) -->
 <footer class="bg-light py-4 mt-5">
     <div class="container text-center">
         <p class="mb-0">&copy; 2025 새롱 - 모든 권리 보유</p>

@@ -1,0 +1,37 @@
+/* 중앙 콘텐츠 컨테이너 */
+.saerong-content-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 500px;
+    margin: 0 auto;
+  }
+  
+  .saerong-content-container {
+    width: 500px; /* 고정 폭 500px */
+    background-color: #ffffff;
+    position: relative;
+  }
+  
+  /* 모바일 화면에서는 전체 너비로 표시 */
+  @media (max-width: 500px) {
+    .saerong-content-container {
+      width: 100%;
+    }
+  }
+  
+  /* 콘텐츠 영역 내 컨테이너 패딩 조정 */
+  .saerong-content-container .container,
+  .saerong-content-container .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  /* 네비게이션 바는 전체 너비 사용 */
+  .navbar {
+    width: 500px;
+  }
+  
+  /* 푸터도 전체 너비 사용 */
+  footer {
+    width: 500px;
+  }
