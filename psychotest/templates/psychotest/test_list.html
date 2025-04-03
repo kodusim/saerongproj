@@ -29,18 +29,29 @@
     </div>
     
     <!-- 테스트 목록 -->
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="row row-cols-2 row-cols-md-3 g-3 mb-4">
         {% for test in tests %}
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ test.title }}</h5>
-                    <p class="card-text">{{ test.description|truncatewords:20 }}</p>
-                    <a href="{% url 'psychotest:test_detail' test.id %}" class="btn btn-primary">테스트 시작하기</a>
-                </div>
-                <div class="card-footer">
-                    <small class="text-muted">작성일: {{ test.created_at|date:"Y-m-d" }}</small>
-                </div>
+            <div class="card h-100 shadow-sm">
+                <a href="{% url 'psychotest:take_test' test.id %}" class="text-decoration-none text-reset">
+                    <div class="card-body text-center p-3">
+                        {% if test.image %}
+                        <img src="{{ test.image.url }}" alt="{{ test.title }}" class="img-fluid mb-2" style="max-height: 150px; object-fit: contain;">
+                        {% else %}
+                        <div class="bg-light text-center py-4 mb-2">
+                            <p class="mb-0">110x150</p>
+                            <p class="mb-0">이미지</p>
+                        </div>
+                        {% endif %}
+                        <h5 class="card-title mb-1">{{ test.title }}</h5>
+                        <p class="card-text small text-muted mb-1">{{ test.description|truncatechars:30 }}</p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                조회수: {{ test.view_count }}
+                            </small>
+                        </p>
+                    </div>
+                </a>
             </div>
         </div>
         {% empty %}

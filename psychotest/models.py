@@ -31,12 +31,19 @@ class Test(models.Model):
         ('all', '모든 질문 한번에'),
         ('one', '한 질문씩'),
     ], default='all')
+    image = models.ImageField("테스트 이미지", upload_to="test_images/", null=True, blank=True, 
+                              help_text="권장 크기: 110x150")
+    view_count = models.PositiveIntegerField("조회수", default=0)
     
     def __str__(self):
         return self.title
     
     def get_absolute_url(self):
         return reverse('psychotest:test_detail', args=[self.id])
+    
+    def increase_view_count(self):
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
 
 
 class Question(models.Model):

@@ -14,6 +14,8 @@ def test_list(request):
 def test_detail(request, test_id):
     """테스트 상세 페이지"""
     test = get_object_or_404(Test, id=test_id)
+    # 조회수 증가
+    test.increase_view_count()
     return render(request, 'psychotest/test_detail.html', {'test': test})
 
 
