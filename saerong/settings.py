@@ -29,7 +29,7 @@ SECRET_KEY = env.str(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=True)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "43.200.27.174"])
 
 COMPONENTS = {
      # 0.67 미만 버전과 동일한 동작을 맞추기 위한 설정 (강의에서는 0.61 버전)
