@@ -11,6 +11,12 @@
             {% if result %}
                 <h1 class="text-center mb-4">{{ result.title }}</h1>
                 
+                {% if result.image %}
+                <div class="text-center mb-4">
+                    <img src="{{ result.image.url }}" alt="{{ result.title }}" class="img-fluid rounded" style="max-width: 400px;">
+                </div>
+                {% endif %}
+                
                 <div class="card mb-4">
                     <div class="card-body">
                         <p class="lead">{{ result.description|linebreaks }}</p>
@@ -20,19 +26,6 @@
                 {% if result_data.method == 'sum' %}
                     <div class="alert alert-info">
                         <p class="mb-0">당신의 점수: <strong>{{ result_data.score }}</strong></p>
-                    </div>
-                {% elif result_data.method == 'category' %}
-                    <div class="alert alert-info">
-                        <p class="mb-0">당신의 유형: <strong>{{ result_data.category }}</strong></p>
-                        {% if result_data.category_scores %}
-                            <hr>
-                            <h5>카테고리별 점수:</h5>
-                            <ul class="mb-0">
-                                {% for category, score in result_data.category_scores.items %}
-                                    <li>{{ category }}: {{ score }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
                     </div>
                 {% endif %}
                 

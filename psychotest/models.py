@@ -80,6 +80,10 @@ class Result(models.Model):
     max_score = models.IntegerField("최대 점수", null=True, blank=True)
     category = models.CharField("카테고리", max_length=50, blank=True, null=True,
                               help_text="카테고리 계산 방식에서 사용되는 카테고리 값")
+    image = models.ImageField("결과 이미지", upload_to="result_images/", null=True, blank=True, 
+                         help_text="권장 크기: 400x400")
     
     def __str__(self):
         return f"{self.test.title} - {self.title}"
+    
+
