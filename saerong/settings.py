@@ -107,9 +107,13 @@ WSGI_APPLICATION = "saerong.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'saerong',
+        'USER': 'saerong_user',
+        'PASSWORD': '16qjsqkqh16*',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -198,3 +202,14 @@ LOGGING = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'mediafiles'
+
+# 기존
+CSP_FRAME_ANCESTORS = env.list("CSP_FRAME_ANCESTORS", default=[])
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'"] + CSP_FRAME_ANCESTORS
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"] + CSP_FRAME_ANCESTORS
+CSP_IMG_SRC = ["'self'", "data:"] + CSP_FRAME_ANCESTORS
+
+# 추가
+if not CSP_FRAME_ANCESTORS:
+    CSP_FRAME_ANCESTORS = ["'self'"]
