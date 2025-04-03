@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django_components.safer_staticfiles",
+    "django.contrib.staticfiles",
     # thrid apps
     "crispy_forms",
     "crispy_bootstrap5",
