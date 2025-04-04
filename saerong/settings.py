@@ -10,7 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
  
 ENV_PATH = env.str("ENV_PATH", default=str(BASE_DIR / ".env"))
+
 env_path = Path(ENV_PATH)
+
 if env_path.exists():
     with env_path.open(encoding="utf-8") as f:
         env.read_env(f, overwrite=True)
@@ -105,6 +107,8 @@ TEMPLATES = [
     },
 ]
 
+DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+
 WSGI_APPLICATION = "saerong.wsgi.application"
 
 
@@ -112,14 +116,7 @@ WSGI_APPLICATION = "saerong.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'saerong',
-        'USER': 'saerong_user',
-        'PASSWORD': '16qjsqkqh16*',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': env.db(default=DEFAULT_DATABASE_URL)
 }
 
 AUTH_USER_MODEL = "accounts.User"
@@ -158,13 +155,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
-
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = env.str("STATIC_URL", default="static/")
+STATIC_ROOT = env.str("STATIC_ROOT", default=BASE_DIR / "staticfiles")
 
 STATICFILES_DIRS = [
     BASE_DIR / "core" / "src-django-components",
 ]
+
+# django-components 설정을 위해 정의
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
+
+# Media files
+
+MEDIA_URL = env.str("MEDIA_URL", default="media/")
+
+MEDIA_ROOT = env.str("MEDIA_ROOT", default=BASE_DIR / "mediafiles")
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -204,9 +214,6 @@ LOGGING = {
         },
     },
 }
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
 # 기존
 CSP_FRAME_ANCESTORS = env.list("CSP_FRAME_ANCESTORS", default=[])
