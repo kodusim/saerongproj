@@ -34,7 +34,7 @@ DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = [
     'localhost', 
     '127.0.0.1', 
-    '43.200.27.174',  # 서버 IP 
+    '15.164.130.99',  # 서버 IP 
     'saerong.com', 
     'www.saerong.com'  # www 도메인 추가
 ]
@@ -116,7 +116,10 @@ WSGI_APPLICATION = "saerong.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db(default=DEFAULT_DATABASE_URL)
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 AUTH_USER_MODEL = "accounts.User"
