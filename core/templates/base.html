@@ -1,3 +1,4 @@
+<!-- base.html -->
 {% load component_tags static %}
 
 <!doctype html>
@@ -9,6 +10,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>새롱 - 심리테스트</title>
     <link rel="stylesheet" href="{% static 'bootstrap/5.3.3/css/bootstrap.min.css' %}" />
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <style>
         @font-face {
             font-family: 'Cafe24Ohsquare';
@@ -30,10 +32,100 @@
             background-color: #fff;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             min-height: 100vh;
+            position: relative;
         }
         
-        .navbar {
+        .header-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .logo-center {
+            text-align: center;
+        }
+        
+        .nav-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            font-size: 1.5rem;
+            color: #333;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .side-nav {
+            position: fixed;
+            top: 0;
+            right: -250px;
+            width: 250px;
+            height: 100vh;
+            background-color: #fff;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+        
+        .side-nav.open {
+            right: 0;
+        }
+        
+        .nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        
+        .nav-overlay.open {
+            display: block;
+        }
+        
+        .side-nav .nav-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .side-nav .nav-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .side-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .side-nav li {
+            padding: 10px 20px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        
+        .side-nav a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+            font-size: 1.1rem;
         }
         
         .container, .container-fluid {
@@ -43,8 +135,65 @@
             padding-right: 15px;
         }
         
+        /* 스크롤 가능한 카드 영역 */
+        .scrollable-cards {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .scrollable-cards::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .test-card {
+            flex: 0 0 auto;
+            width: 140px;
+            margin-right: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .test-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+        }
+        
+        .test-card .card-body {
+            padding: 8px;
+        }
+        
+        .test-card .card-title {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            height: 40px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        
+        .section-header h2 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        
         footer {
             width: 100%;
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            margin-top: auto;
         }
         
         @media (max-width: 500px) {
@@ -58,52 +207,41 @@
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
 <div class="site-wrapper">
-    <!-- 네비게이션 바 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'core:root' %}">새롱</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:root' %}">홈</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'psychotest:test_list' %}">테스트 목록</a>
-                    </li>
-                    <!-- 추가 메뉴 항목 (향후 구현) -->
-                    <li class="nav-item">
-                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">인기 테스트</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">카테고리</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">로그인</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">회원가입</a>
-                    </li>
-                </ul>
-            </div>
+    <!-- 헤더 (로고 중앙, 메뉴 오른쪽) -->
+    <header class="header-container">
+        <div class="logo-center">
+            <img src="{% static 'images/logo.png' %}" alt="새롱" height="35" onerror="this.src='https://via.placeholder.com/150x50?text=새롱';this.onerror='';">
         </div>
+        <button class="nav-toggle" id="navToggle">
+            <span>☰</span>
+        </button>
+    </header>
+    
+    <!-- 사이드 네비게이션 -->
+    <div class="nav-overlay" id="navOverlay"></div>
+    <nav class="side-nav" id="sideNav">
+        <div class="nav-header">
+            <h5>메뉴</h5>
+            <button class="nav-close" id="navClose">×</button>
+        </div>
+        <ul>
+            <li><a href="{% url 'core:root' %}">홈</a></li>
+            <li><a href="{% url 'psychotest:test_list' %}">테스트 목록</a></li>
+            <li><a href="#">인기 테스트</a></li>
+            <li><a href="#">카테고리</a></li>
+            <li><a href="#">로그인</a></li>
+            <li><a href="#">회원가입</a></li>
+        </ul>
     </nav>
 
     <!-- 메인 콘텐츠 -->
-    <div class="container mt-3">
+    <main>
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
     <!-- 푸터 -->
-    <footer class="bg-light py-4 mt-5">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2025 새롱 - 모든 권리 보유</p>
-        </div>
+    <footer>
+        <p class="mb-0">&copy; 2025 새롱 - 모든 권리 보유</p>
     </footer>
 </div>
 
@@ -116,6 +254,39 @@
 {% component_js_dependencies %}
 <script src="{% static 'htmx/ext/hx-get-with-timestamp.js' %}"></script>
 <script src="{% static "toast-messages.js" %}"></script>
+
+<script>
+    // 사이드 네비게이션 스크립트
+    document.addEventListener('DOMContentLoaded', function() {
+        const navToggle = document.getElementById('navToggle');
+        const navClose = document.getElementById('navClose');
+        const sideNav = document.getElementById('sideNav');
+        const navOverlay = document.getElementById('navOverlay');
+        
+        // 네비게이션 열기
+        navToggle.addEventListener('click', function() {
+            sideNav.classList.add('open');
+            navOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+        });
+        
+        // 네비게이션 닫기
+        function closeNav() {
+            sideNav.classList.remove('open');
+            navOverlay.classList.remove('open');
+            document.body.style.overflow = ''; // 배경 스크롤 복원
+        }
+        
+        navClose.addEventListener('click', closeNav);
+        navOverlay.addEventListener('click', closeNav);
+        
+        // 메뉴 항목 클릭 시 네비게이션 닫기
+        const navLinks = sideNav.querySelectorAll('a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', closeNav);
+        });
+    });
+</script>
 
 </body>
 </html>
