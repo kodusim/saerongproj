@@ -198,6 +198,22 @@
             margin-top: auto;
         }
         
+        /* 사이드 광고 스타일 */
+        .side-ad {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+        }
+        
+        /* 화면이 특정 크기보다 작을 때는 광고 숨김 */
+        @media (max-width: 1100px) {
+            .side-ad {
+                display: none;
+            }
+        }
+        
         @media (max-width: 500px) {
             .site-wrapper, .container, .container-fluid {
                 width: 100%;
@@ -207,6 +223,15 @@
     {% component_css_dependencies %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+<!-- 우측 사이드 광고 영역 -->
+<div class="side-ad">
+    <ins class="kakao_ad_area" style="display:none;"
+    data-ad-unit = "DAN-ZqLNaNRQWUQ7Qqgz"
+    data-ad-width = "160"
+    data-ad-height = "600"></ins>
+    <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+</div>
 
 <div class="site-wrapper">
     <!-- 헤더 (로고 중앙, 메뉴 오른쪽) -->
@@ -287,8 +312,32 @@
         navLinks.forEach(link => {
             link.addEventListener('click', closeNav);
         });
+        
+        // 광고 위치 동적 계산
+        const siteWrapper = document.querySelector('.site-wrapper');
+        const sideAd = document.querySelector('.side-ad');
+        
+        function positionAd() {
+            if (window.innerWidth > 1100) {
+                const siteRect = siteWrapper.getBoundingClientRect();
+                const rightEdge = siteRect.right;
+                const screenWidth = window.innerWidth;
+                
+                // 메인 콘텐츠 오른쪽과 화면 오른쪽 사이의 중간 위치
+                const adLeftPosition = rightEdge + (screenWidth - rightEdge - 160) / 2;
+                
+                sideAd.style.left = adLeftPosition + 'px';
+                sideAd.style.right = 'auto';
+                sideAd.style.display = 'block';
+            } else {
+                sideAd.style.display = 'none';
+            }
+        }
+        
+        // 초기 위치 설정
+        positionAd();
+        
+        // 창 크기가 변경될 때마다 위치 재설정
+        window.addEventListener('resize', positionAd);
     });
 </script>
-
-</body>
-</html>
