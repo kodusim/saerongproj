@@ -3,27 +3,47 @@
 {% block content %}
 <div class="container mt-4">
     <div class="card mb-4">
-        <div class="card-body">
-            <h1 class="card-title">{{ test.title }}</h1>
-            <p class="text-muted">
-                <small>작성일: {{ test.created_at|date:"Y-m-d" }}</small>
-            </p>
+        <div class="card-body p-0">
+            <!-- 테스트 메인 이미지 - 클릭 시 테스트 시작 -->
+            <a href="{% url 'psychotest:take_test' test.id %}" class="text-decoration-none">
+                {% if test.image %}
+                <img src="{{ test.image.url }}" class="img-fluid w-100" alt="{{ test.title }}">
+                {% else %}
+                <div class="text-center py-5 bg-light">
+                    <h2>{{ test.title }}</h2>
+                    <p class="lead">테스트 이미지가 없습니다</p>
+                </div>
+                {% endif %}
+            </a>
             
-            <div class="card-text mb-4">
-                {{ test.description|linebreaks }}
-            </div>
-            
-            <div class="text-center mt-4">
-                <a href="{% url 'psychotest:take_test' test.id %}" class="btn btn-primary btn-lg">
-                    테스트 시작하기
-                </a>
+            <!-- 테스트 설명 (선택적으로 표시) -->
+            <div class="p-3">
+                <h1 class="card-title h4">{{ test.title }}</h1>
+                <p class="text-muted small">
+                    <small>작성일: {{ test.created_at|date:"Y-m-d" }} | 조회수: {{ test.view_count }}</small>
+                </p>
+                
+                <div class="card-text mb-2">
+                    {{ test.description|linebreaks }}
+                </div>
             </div>
         </div>
     </div>
     
-    <div class="d-flex justify-content-between">
-        <a href="{% url 'psychotest:test_list' %}" class="btn btn-secondary">
-            목록으로 돌아가기
+    <!-- 하단 버튼 영역 -->
+    <div class="d-flex justify-content-between mt-3 mb-4">
+        <a href="{% url 'core:root' %}" class="btn btn-outline-secondary btn-lg flex-grow-1 me-2">
+            메인으로
+        </a>
+        <a href="{% url 'psychotest:test_list' %}" class="btn btn-outline-primary btn-lg flex-grow-1">
+            다른 테스트
+        </a>
+    </div>
+    
+    <!-- 테스트 시작 버튼 -->
+    <div class="text-center mt-2 mb-4">
+        <a href="{% url 'psychotest:take_test' test.id %}" class="btn btn-primary btn-lg w-100">
+            테스트 시작하기
         </a>
     </div>
 </div>

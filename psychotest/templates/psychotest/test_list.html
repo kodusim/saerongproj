@@ -33,7 +33,7 @@
         {% for test in tests %}
         <div class="col">
             <div class="card h-100 shadow-sm">
-                <a href="{% url 'psychotest:take_test' test.id %}" class="text-decoration-none text-reset">
+                <a href="{% url 'psychotest:test_intro' test.id %}" class="text-decoration-none text-reset">
                     <div class="card-body text-center p-3">
                         {% if test.image %}
                         <img src="{{ test.image.url }}" alt="{{ test.title }}" class="img-fluid mb-2" style="max-height: 150px; object-fit: contain;">

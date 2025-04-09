@@ -49,7 +49,7 @@
     <div class="scrollable-cards">
         {% for test in popular_tests %}
         <div class="test-card">
-            <a href="{% url 'psychotest:take_test' test.id %}" class="text-decoration-none text-reset">
+            <a href="{% url 'psychotest:test_intro' test.id %}" class="text-decoration-none text-reset">
                 {% if test.image %}
                 <img src="{{ test.image.url }}" class="card-img-top" alt="{{ test.title }}">
                 {% else %}

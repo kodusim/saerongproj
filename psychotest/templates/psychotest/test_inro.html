@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <!-- 테스트 메인 이미지 -->
+            {% if test.intro_image %}
+            <img src="{{ test.intro_image.url }}" class="img-fluid w-100" alt="{{ test.title }}">
+            {% elif test.image %}
+            <img src="{{ test.image.url }}" class="img-fluid w-100" alt="{{ test.title }}">
+            {% else %}
+            <div class="text-center py-5 bg-light">
+                <h2>{{ test.title }}</h2>
+                <p class="lead">테스트 이미지가 없습니다</p>
+            </div>
+            {% endif %}
+            
+            <!-- 테스트 설명 -->
+            <div class="p-3">
+                <h1 class="card-title h4 mb-3">{{ test.title }}</h1>
+                
+                <div class="card-text mb-4">
+                    {{ test.description|linebreaks }}
+                </div>
+                
+                <!-- 테스트 시작 버튼 -->
+                <div class="text-center mt-4">
+                    <a href="{% url 'psychotest:take_test' test.id %}" class="btn btn-primary btn-lg px-5">
+                        시작하기
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 하단 버튼 영역 -->
+    <div class="d-flex justify-content-between mb-4">
+        <a href="{% url 'core:root' %}" class="btn btn-outline-secondary flex-grow-1 me-2">
+            메인으로
+        </a>
+        <a href="{% url 'psychotest:test_list' %}" class="btn btn-outline-primary flex-grow-1">
+            다른 테스트
+        </a>
+    </div>
+</div>
+{% endblock %}

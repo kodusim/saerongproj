@@ -34,6 +34,9 @@ class Test(models.Model):
     image = models.ImageField("테스트 이미지", upload_to="test_images/", null=True, blank=True, 
                               help_text="권장 크기: 110x150")
     view_count = models.PositiveIntegerField("조회수", default=0)
+    # Test 모델 내에 추가
+    intro_image = models.ImageField("인트로 이미지", upload_to="test_intro_images/", null=True, blank=True,
+                                help_text="권장 크기: 500x500")
     
     def __str__(self):
         return self.title
