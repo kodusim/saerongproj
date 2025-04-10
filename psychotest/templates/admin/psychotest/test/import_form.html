@@ -1,0 +1,76 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div>
+            <fieldset class="module aligned">
+                <div class="form-row">
+                    <div class="fieldBox">
+                        {{ form.file.label_tag }}
+                        {{ form.file }}
+                        {% if form.file.help_text %}
+                        <div class="help">{{ form.file.help_text|safe }}</div>
+                        {% endif %}
+                        {{ form.file.errors }}
+                    </div>
+                </div>
+            </fieldset>
+            
+            <div class="submit-row">
+                <input type="submit" value="{% trans 'Import' %}" class="default" name="_import">
+            </div>
+        </div>
+    </form>
+    
+    <div class="help-text">
+        <h2>{% trans "엑셀 파일 형식 안내" %}</h2>
+        <p>{% trans "엑셀 파일에는 다음과 같은 시트가 포함되어야 합니다:" %}</p>
+        <ul>
+            <li>{% trans "테스트 (필수): 테스트 정보" %}</li>
+            <li>{% trans "질문 (필수): 질문 목록" %}</li>
+            <li>{% trans "선택지 (필수): 각 질문의 선택지와 점수" %}</li>
+            <li>{% trans "결과 (필수): 테스트 결과" %}</li>
+        </ul>
+        <p>{% trans "각 시트의 열 구조는 다음과 같습니다:" %}</p>
+        <h3>{% trans "테스트 시트" %}</h3>
+        <ul>
+            <li>{% trans "A열: 제목 (필수)" %}</li>
+            <li>{% trans "B열: 설명 (필수)" %}</li>
+            <li>{% trans "C열: 카테고리 ID (선택, 숫자)" %}</li>
+            <li>{% trans "D열: 계산 방식 ('sum'/'category'/'pattern', 기본값: 'sum')" %}</li>
+            <li>{% trans "E열: 보기 방식 ('all'/'one', 기본값: 'all')" %}</li>
+        </ul>
+        <h3>{% trans "질문 시트" %}</h3>
+        <ul>
+            <li>{% trans "A열: 테스트 ID (엑셀 파일에 테스트가 여러 개 있을 경우, 숫자 1부터 시작)" %}</li>
+            <li>{% trans "B열: 질문 텍스트 (필수)" %}</li>
+            <li>{% trans "C열: 순서 (선택, 숫자)" %}</li>
+        </ul>
+        <h3>{% trans "선택지 시트" %}</h3>
+        <ul>
+            <li>{% trans "A열: 질문 ID (엑셀 파일에 기록된 순서, 숫자 1부터 시작)" %}</li>
+            <li>{% trans "B열: 선택지 텍스트 (필수)" %}</li>
+            <li>{% trans "C열: 점수 (선택, 숫자)" %}</li>
+            <li>{% trans "D열: 카테고리 점수 (선택, JSON 형식 예: {'A': 2, 'B': 1})" %}</li>
+        </ul>
+        <h3>{% trans "결과 시트" %}</h3>
+        <ul>
+            <li>{% trans "A열: 테스트 ID (엑셀 파일에 테스트가 여러 개 있을 경우, 숫자 1부터 시작)" %}</li>
+            <li>{% trans "B열: 결과 제목 (필수)" %}</li>
+            <li>{% trans "C열: 결과 설명 (필수)" %}</li>
+            <li>{% trans "D열: 최소 점수 (점수 합산 방식인 경우, 숫자)" %}</li>
+            <li>{% trans "E열: 최대 점수 (점수 합산 방식인 경우, 숫자)" %}</li>
+            <li>{% trans "F열: 카테고리 (카테고리 점수 방식인 경우, 문자열)" %}</li>
+        </ul>
+        
+        <p>{% trans "샘플 엑셀 파일은 여기서 다운로드할 수 있습니다: " %} <a href="{% url 'admin:psychotest_test_changelist' %}">{% trans "샘플 다운로드" %}</a></p>
+    </div>
+</div>
+{% endblock %}

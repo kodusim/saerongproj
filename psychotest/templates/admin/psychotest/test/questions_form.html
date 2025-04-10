@@ -1,0 +1,308 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+<style>
+    .option-container {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 4px;
+    }
+    .question-container {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+    }
+    .add-option-btn {
+        margin-top: 10px;
+    }
+    .remove-option-btn, .remove-question-btn {
+        color: #ba2121;
+        cursor: pointer;
+        float: right;
+    }
+    .category-scores-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    
+    <div class="module aligned">
+        <div class="form-row">
+            <div>
+                <p>{% trans "테스트:" %} <strong>{{ test.title }}</strong></p>
+                <p>{% trans "계산 방식:" %} 
+                    <strong>
+                        {% if test.calculation_method == 'sum' %}
+                            {% trans "점수 합산" %}
+                        {% elif test.calculation_method == 'category' %}
+                            {% trans "카테고리 점수" %}
+                        {% else %}
+                            {% trans "패턴 매칭" %}
+                        {% endif %}
+                    </strong>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div id="questions-container">
+            {{ formset.management_form }}
+            
+            {% for form in formset.forms %}
+                <div class="question-container" data-question-index="{{ forloop.counter0 }}">
+                    <div class="remove-question-btn" data-index="{{ forloop.counter0 }}">❌</div>
+                    <h3>{% trans "질문" %} {{ forloop.counter }}</h3>
+                    
+                    {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+                    
+                    <div class="form-row">
+                        <div class="fieldBox">
+                            {{ form.text.label_tag }}
+                            {{ form.text }}
+                            {{ form.text.errors }}
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="fieldBox">
+                            {{ form.order.label_tag }}
+                            {{ form.order }}
+                            {{ form.order.errors }}
+                        </div>
+                    </div>
+                    
+                    {% if formset.can_delete %}
+                        <div class="form-row">
+                            <div class="fieldBox">
+                                {{ form.DELETE.label_tag }}
+                                {{ form.DELETE }}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <h4>{% trans "선택지" %}</h4>
+                    <div class="options-container" data-question-index="{{ forloop.counter0 }}">
+                        {% with question_id=form.instance.id %}
+                            {% if question_id %}
+                                {% for option in form.instance.options.all %}
+                                    <div class="option-container" data-option-id="{{ option.id }}">
+                                        <div class="remove-option-btn" data-option-id="{{ option.id }}">❌</div>
+                                        <div class="form-row">
+                                            <div class="fieldBox">
+                                                <label>{% trans "선택지 텍스트" %}:</label>
+                                                <input type="text" name="option_{{ option.id }}_text" value="{{ option.text }}" class="vTextField" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="fieldBox">
+                                                <label>{% trans "점수" %}:</label>
+                                                <input type="number" name="option_{{ option.id }}_score" value="{{ option.score }}" class="vIntegerField">
+                                            </div>
+                                        </div>
+                                        {% if test.calculation_method == 'category' %}
+                                            <div class="form-row category-scores-row">
+                                                <div class="fieldBox">
+                                                    <label>{% trans "카테고리별 점수" %}:</label>
+                                                    <input type="hidden" name="option_{{ option.id }}_category_scores" value="{{ option.category_scores|default:'{}' }}" id="option_{{ option.id }}_category_scores">
+                                                    <div class="category-scores-grid">
+                                                        {% for category in categories %}
+                                                            <div>
+                                                                <label>{{ category.name }}:</label>
+                                                                <input type="number" name="option_{{ option.id }}_category_{{ category.id }}" 
+                                                                       value="{{ option.category_scores|get_category_score:category.name }}" 
+                                                                       class="vIntegerField category-score-input" 
+                                                                       data-option-id="{{ option.id }}"
+                                                                       data-category="{{ category.name }}">
+                                                            </div>
+                                                        {% empty %}
+                                                            <p>{% trans "등록된 카테고리가 없습니다." %}</p>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <!-- 새 선택지 템플릿 (JavaScript에서 사용) -->
+                        <div class="new-option-template" style="display:none;">
+                            <div class="option-container" data-option-new="true">
+                                <div class="remove-option-btn">❌</div>
+                                <div class="form-row">
+                                    <div class="fieldBox">
+                                        <label>{% trans "선택지 텍스트" %}:</label>
+                                        <input type="text" name="new_option_QUESTION_INDEX_OPTION_INDEX_text" class="vTextField" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="fieldBox">
+                                        <label>{% trans "점수" %}:</label>
+                                        <input type="number" name="new_option_QUESTION_INDEX_OPTION_INDEX_score" value="0" class="vIntegerField">
+                                    </div>
+                                </div>
+                                {% if test.calculation_method == 'category' %}
+                                    <div class="form-row category-scores-row">
+                                        <div class="fieldBox">
+                                            <label>{% trans "카테고리별 점수" %}:</label>
+                                            <input type="hidden" name="new_option_QUESTION_INDEX_OPTION_INDEX_category_scores" value="{}" id="new_option_QUESTION_INDEX_OPTION_INDEX_category_scores">
+                                            <div class="category-scores-grid">
+                                                {% for category in categories %}
+                                                    <div>
+                                                        <label>{{ category.name }}:</label>
+                                                        <input type="number" name="new_option_QUESTION_INDEX_OPTION_INDEX_category_{{ category.id }}" 
+                                                               value="0" 
+                                                               class="vIntegerField category-score-input"
+                                                               data-option-new="true"
+                                                               data-category="{{ category.name }}">
+                                                    </div>
+                                                {% empty %}
+                                                    <p>{% trans "등록된 카테고리가 없습니다." %}</p>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="button add-option-btn" data-question-index="{{ forloop.counter0 }}">{% trans "선택지 추가" %}</button>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="submit-row">
+            <a href="{% url 'admin:psychotest_test_change' test.id %}" class="button">{% trans "취소" %}</a>
+            <input type="submit" class="default" value="{% trans '저장' %}">
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const questionsContainer = document.getElementById('questions-container');
+        
+        // 카테고리 점수 입력 이벤트 처리
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('category-score-input')) {
+                updateCategoryScores(e.target);
+            }
+        });
+        
+        // 선택지 추가 버튼 클릭 처리
+        document.querySelectorAll('.add-option-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const questionIndex = this.dataset.questionIndex;
+                addOption(questionIndex);
+            });
+        });
+        
+        // 선택지 삭제 버튼 클릭 처리 (이벤트 위임)
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-option-btn')) {
+                if (confirm('{% trans "이 선택지를 삭제하시겠습니까?" %}')) {
+                    const optionContainer = e.target.closest('.option-container');
+                    const optionId = e.target.dataset.optionId;
+                    
+                    if (optionId) {
+                        // 기존 선택지 삭제 - 삭제 필드 추가
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'delete_option_' + optionId;
+                        input.value = 'true';
+                        questionsContainer.appendChild(input);
+                    }
+                    
+                    optionContainer.remove();
+                }
+            } else if (e.target.classList.contains('remove-question-btn')) {
+                if (confirm('{% trans "이 질문을 삭제하시겠습니까?" %}')) {
+                    const index = e.target.dataset.index;
+                    const deleteCheckbox = document.querySelector(`#id_form-${index}-DELETE`);
+                    
+                    if (deleteCheckbox) {
+                        deleteCheckbox.checked = true;
+                        // 질문 컨테이너 숨기기
+                        const questionContainer = e.target.closest('.question-container');
+                        questionContainer.style.display = 'none';
+                    }
+                }
+            }
+        });
+        
+        // 새 선택지 추가
+        function addOption(questionIndex) {
+            const optionsContainer = document.querySelector(`.options-container[data-question-index="${questionIndex}"]`);
+            const template = document.querySelector('.new-option-template').innerHTML;
+            const optionCount = document.querySelectorAll(`[name^="new_option_${questionIndex}_"]`).length / 2; // 텍스트와 점수 필드로 나누어 계산
+            
+            // 템플릿의 인덱스 대체
+            const newOptionHTML = template
+                .replace(/QUESTION_INDEX/g, questionIndex)
+                .replace(/OPTION_INDEX/g, optionCount);
+            
+            optionsContainer.insertAdjacentHTML('beforeend', newOptionHTML);
+        }
+        
+        // 카테고리 점수 업데이트
+        function updateCategoryScores(input) {
+            let optionId, isNew = false;
+            
+            if (input.dataset.optionNew) {
+                // 새 선택지
+                isNew = true;
+                const nameParts = input.name.split('_');
+                const questionIndex = nameParts[2];
+                const optionIndex = nameParts[3];
+                optionId = `new_option_${questionIndex}_${optionIndex}`;
+            } else {
+                // 기존 선택지
+                optionId = input.dataset.optionId;
+            }
+            
+            const hiddenInput = document.getElementById(`${isNew ? optionId + '_' : 'option_' + optionId + '_'}category_scores`);
+            if (!hiddenInput) return;
+            
+            // 현재 JSON 가져오기
+            let categoryScores = {};
+            try {
+                categoryScores = JSON.parse(hiddenInput.value || '{}');
+            } catch (e) {
+                categoryScores = {};
+            }
+            
+            // 카테고리 점수 업데이트
+            const category = input.dataset.category;
+            const score = parseInt(input.value) || 0;
+            
+            if (score !== 0) {
+                categoryScores[category] = score;
+            } else {
+                delete categoryScores[category];
+            }
+            
+            // 업데이트된 JSON 저장
+            hiddenInput.value = JSON.stringify(categoryScores);
+        }
+    });
+</script>
+{% endblock %}

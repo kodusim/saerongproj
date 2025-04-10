@@ -1,0 +1,53 @@
+{% load i18n %}
+<div class="category-score-widget">
+    <input type="hidden" name="{{ widget.name }}" value="{{ widget.value }}" id="{{ widget.attrs.id }}">
+    
+    <div class="category-score-grid">
+        <table class="table category-score-table">
+            <thead>
+                <tr>
+                    <th>{% trans "카테고리" %}</th>
+                    <th>{% trans "점수" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in widget.category_scores %}
+                <tr>
+                    <td>{{ category.name }}</td>
+                    <td>
+                        <input type="number" 
+                               name="{{ widget.name }}_category_{{ category.id }}" 
+                               value="{{ category.score }}" 
+                               class="category-score-input"
+                               min="-10" max="10">
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2">{% trans "등록된 카테고리가 없습니다." %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="help-text">{% trans "해당 선택지가 각 카테고리에 부여하는 점수를 입력하세요. 점수가 0인 카테고리는 저장되지 않습니다." %}</p>
+</div>
+
+<style>
+    .category-score-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .category-score-table th, .category-score-table td {
+        padding: 8px;
+        border: 1px solid #ddd;
+    }
+    .category-score-input {
+        width: 60px;
+    }
+    .help-text {
+        color: #666;
+        font-size: 0.8em;
+        margin-top: 5px;
+    }
+</style>
