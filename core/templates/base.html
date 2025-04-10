@@ -8,6 +8,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>새롱 - 심리테스트</title>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
      crossorigin="anonymous"></script>
@@ -221,6 +222,17 @@
         @media (max-width: 500px) {
             .site-wrapper, .container, .container-fluid {
                 width: 100%;
+                max-width: 100%;
+                padding-left: 10px;
+                padding-right: 10px;
+                box-sizing: border-box;
+                overflow-x: hidden;
+            }
+            
+            /* 이미지 관련 추가 스타일 */
+            img.img-fluid {
+                max-width: 100%;
+                height: auto;
             }
         }
     </style>

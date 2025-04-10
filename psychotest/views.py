@@ -249,12 +249,33 @@ def test_result(request, test_id):
     if result_id:
         result = get_object_or_404(Result, id=result_id)
     
+    # 이미지 크기 측정 (선택적)
+    image_dimensions = {}
+    if result and result.image:
+        try:
+            from PIL import Image
+            from django.conf import settings
+            import os
+            
+            img_path = os.path.join(settings.MEDIA_ROOT, result.image.name)
+            with Image.open(img_path) as img:
+                image_dimensions = {
+                    'width': img.width,
+                    'height': img.height,
+                    'ratio': img.height / img.width
+                }
+        except Exception as e:
+            # 오류 시 기본값 설정
+            image_dimensions = {'width': 500, 'height': 705, 'ratio': 1.41}
+    
     context = {
         'test': test,
         'result': result,
-        'result_data': result_data
+        'result_data': result_data,
+        'image_dimensions': image_dimensions
     }
-        # 결과 표시 후 필요 없는 테스트 답변 데이터 정리
+    
+    # 결과 표시 후 필요 없는 테스트 답변 데이터 정리
     if 'test_answers' in request.session and str(test_id) in request.session['test_answers']:
         del request.session['test_answers'][str(test_id)]
         request.session.modified = True

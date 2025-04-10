@@ -12,11 +12,16 @@
                 <h1 class="text-center mb-4">{{ result.title }}</h1>
                 
                 {% if result.image %}
-                <div class="text-center mb-4">
-                    <img src="{{ result.image.url }}" alt="{{ result.title }}" class="img-fluid rounded" style="max-width: 400px;">
+                <div class="result-scrollable-container">
+                    <div class="result-image-container">
+                        <img src="{{ result.image.url }}" 
+                            alt="{{ result.title }}" 
+                            class="result-image">
+                    </div>
                 </div>
                 {% endif %}
-                
+            {% endif %}
+                    
                 <div class="card mb-4">
                     <div class="card-body">
                         <p class="lead">{{ result.description|linebreaks }}</p>
@@ -71,3 +76,42 @@
     </div>
 </div>
 {% endblock %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 결과 이미지 요소
+        var resultImage = document.querySelector('.result-image');
+        
+        if (resultImage) {
+            // 이미지 로드 완료 시 처리
+            resultImage.onload = function() {
+                adjustImageDisplay(this);
+            };
+            
+            // 화면 크기 변경 시 처리
+            window.addEventListener('resize', function() {
+                adjustImageDisplay(resultImage);
+            });
+            
+            // 이미지 표시 조정 함수
+            function adjustImageDisplay(imgElement) {
+                var windowWidth = window.innerWidth;
+                var containerWidth = imgElement.parentElement.offsetWidth;
+                
+                // 원본 이미지 비율 유지
+                if (windowWidth <= 500) {
+                    // 모바일 환경
+                    if (imgElement.naturalHeight > window.innerHeight * 0.8) {
+                        // 이미지가 너무 길 경우
+                        imgElement.parentElement.parentElement.classList.add('result-scrollable-container');
+                    } else {
+                        imgElement.parentElement.parentElement.classList.remove('result-scrollable-container');
+                    }
+                } else {
+                    // 데스크톱 환경에서는 스크롤 제거
+                    imgElement.parentElement.parentElement.classList.remove('result-scrollable-container');
+                }
+            }
+        }
+    });
+    </script>
