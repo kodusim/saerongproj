@@ -41,13 +41,18 @@ class ResultForm(forms.ModelForm):
         super(ResultForm, self).__init__(*args, **kwargs)
         # 테스트의 계산 방식에 따라 필드 표시 여부 조정
         instance = kwargs.get('instance')
-        if instance:
+        
+        # 필드가 존재하는지 먼저 확인
+        if instance and instance.test:
             test = instance.test
             if test.calculation_method == 'category':
-                self.fields['min_score'].widget = forms.HiddenInput()
-                self.fields['max_score'].widget = forms.HiddenInput()
+                if 'min_score' in self.fields:
+                    self.fields['min_score'].widget = forms.HiddenInput()
+                if 'max_score' in self.fields:
+                    self.fields['max_score'].widget = forms.HiddenInput()
             elif test.calculation_method == 'sum':
-                self.fields['category'].widget = forms.HiddenInput()
+                if 'category' in self.fields:
+                    self.fields['category'].widget = forms.HiddenInput()
                 
 # 인라인 폼셋 정의
 OptionFormSet = inlineformset_factory(

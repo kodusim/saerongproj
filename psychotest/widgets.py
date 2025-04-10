@@ -11,30 +11,37 @@ class CategoryScoreWidget(Widget):
     
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
+        
+        # 기본값 설정 - value가 None인 경우를 처리
+        category_scores_dict = {}
+        
         # JSON 형식의 값을 파싱
-        if value and isinstance(value, str):
-            try:
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                value = {}
-        elif value and isinstance(value, dict):
-            value = value
-        else:
-            value = {}
+        if value:
+            if isinstance(value, str):
+                try:
+                    category_scores_dict = json.loads(value)
+                except json.JSONDecodeError:
+                    category_scores_dict = {}
+            elif isinstance(value, dict):
+                category_scores_dict = value
             
         # 모든 카테고리 가져오기
         categories = Category.objects.all()
         category_scores = []
         
         for category in categories:
+            score = 0
+            if category_scores_dict and category.name in category_scores_dict:
+                score = category_scores_dict[category.name]
+                
             category_scores.append({
                 'id': category.id,
                 'name': category.name,
-                'score': value.get(category.name, 0)
+                'score': score
             })
         
         context['widget']['category_scores'] = category_scores
-        context['widget']['value'] = json.dumps(value) if value else '{}'
+        context['widget']['value'] = json.dumps(category_scores_dict)
         return context
     
     def render(self, name, value, attrs=None, renderer=None):

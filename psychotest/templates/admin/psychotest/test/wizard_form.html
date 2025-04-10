@@ -489,6 +489,13 @@
         // 새 결과 추가
         function addResult() {
             const resultsContainer = document.getElementById('results-container');
+            // 현재 선택된 계산 방식 가져오기
+            const calculationMethod = document.getElementById('id_calculation_method').value;
+            
+            // 계산 방식에 따라 표시할 필드 결정
+            const showScoreFields = calculationMethod !== 'category';
+            const showCategoryFields = calculationMethod === 'category';
+            
             const resultTemplate = `
                 <div class="result-container" data-result-index="${resultCount}">
                     <h3>{% trans "결과" %} ${resultCount + 1}</h3>
@@ -504,19 +511,19 @@
                             <textarea name="results[${resultCount}][description]" class="vLargeTextField" rows="4" required></textarea>
                         </div>
                     </div>
-                    <div class="form-row score-range-row" style="${calcMethodSelect.value !== 'category' ? 'block' : 'none'}">
+                    <div class="form-row score-range-row" style="display: ${showScoreFields ? 'block' : 'none'}">
                         <div class="fieldBox">
                             <label>{% trans "최소 점수" %}:</label>
                             <input type="number" name="results[${resultCount}][min_score]" class="vIntegerField" value="0">
                         </div>
                     </div>
-                    <div class="form-row score-range-row" style="${calcMethodSelect.value !== 'category' ? 'block' : 'none'}">
+                    <div class="form-row score-range-row" style="display: ${showScoreFields ? 'block' : 'none'}">
                         <div class="fieldBox">
                             <label>{% trans "최대 점수" %}:</label>
                             <input type="number" name="results[${resultCount}][max_score]" class="vIntegerField" value="100">
                         </div>
                     </div>
-                    <div class="form-row category-row" style="${calcMethodSelect.value === 'category' ? 'block' : 'none'}">
+                    <div class="form-row category-row" style="display: ${showCategoryFields ? 'block' : 'none'}">
                         <div class="fieldBox">
                             <label>{% trans "카테고리" %}:</label>
                             <input type="text" name="results[${resultCount}][category]" class="vTextField">
@@ -566,14 +573,19 @@
             const formData = new FormData(this);
             
             // AJAX로 폼 제출
-            fetch('{% url "admin:psychotest_test_add" %}', {
+            fetch('{% url "admin:psychotest_test_wizard" %}', { // URL 변경: add에서 wizard로
                 method: 'POST',
                 body: formData,
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('서버 응답 오류: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert("{% trans '테스트가 성공적으로 생성되었습니다.' %}");
@@ -584,7 +596,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("{% trans '오류가 발생했습니다.' %}");
+                alert("{% trans '오류가 발생했습니다: ' %}" + error.message);
             });
         });
     });
