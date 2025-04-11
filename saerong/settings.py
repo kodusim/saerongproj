@@ -228,3 +228,5 @@ CSP_IMG_SRC = ["'self'", "data:"] + CSP_FRAME_ANCESTORS
 # 추가
 if not CSP_FRAME_ANCESTORS:
     CSP_FRAME_ANCESTORS = ["'self'"]
+
+KAKAO_JAVASCRIPT_KEY = env.str("3fd3d8be1d733c63de14e57eeff76d66", default="")

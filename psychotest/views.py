@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.contrib import messages
 from .models import Test, Question, Option, Result, Category
 from django.http import HttpResponse
-
+from django.conf import settings
 
 def test_list(request):
     """테스트 목록 페이지"""
@@ -268,11 +268,15 @@ def test_result(request, test_id):
             # 오류 시 기본값 설정
             image_dimensions = {'width': 500, 'height': 705, 'ratio': 1.41}
     
+    from django.conf import settings
+    kakao_api_key = getattr(settings, '3fd3d8be1d733c63de14e57eeff76d66', '')
+
     context = {
         'test': test,
         'result': result,
         'result_data': result_data,
-        'image_dimensions': image_dimensions
+        'image_dimensions': image_dimensions,
+        'kakao_api_key': kakao_api_key  # 컨텍스트에 API 키 추가
     }
     
     # 결과 표시 후 필요 없는 테스트 답변 데이터 정리
