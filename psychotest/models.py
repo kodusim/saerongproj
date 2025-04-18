@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+import uuid
 
 
 class Category(models.Model):
@@ -88,5 +89,32 @@ class Result(models.Model):
     
     def __str__(self):
         return f"{self.test.title} - {self.title}"
+    
+class SharedTestResult(models.Model):
+    """사용자 테스트 결과를 저장하고 공유하기 위한 모델"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name="shared_results")
+    result = models.ForeignKey(Result, on_delete=models.CASCADE, related_name="shared_instances")
+    score = models.IntegerField("점수", null=True, blank=True)
+    category = models.CharField("카테고리", max_length=50, null=True, blank=True)
+    category_scores = models.JSONField("카테고리별 점수", null=True, blank=True)
+    calculation_method = models.CharField("계산 방식", max_length=20, choices=[
+        ('sum', '점수 합산'),
+        ('category', '카테고리 점수'),
+        ('pattern', '패턴 매칭'),
+    ], default='sum')
+    created_at = models.DateTimeField("생성일", auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "공유된 테스트 결과"
+        verbose_name_plural = "공유된 테스트 결과들"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.test.title} - {self.result.title} ({self.created_at.strftime('%Y-%m-%d')})"
+    
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('psychotest:shared_result', args=[str(self.id)])
     
 

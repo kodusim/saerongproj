@@ -11,4 +11,5 @@ urlpatterns = [
     path('tests/<int:test_id>/calculate/', views.calculate_result, name='calculate_result'),  # 결과 계산
     path('tests/<int:test_id>/result/', views.test_result, name='test_result'),  # 테스트 결과
     path('tests/<int:test_id>/intro/', views.test_intro, name='test_intro'),  #메인 이미지
+    path('shared-results/<uuid:result_id>/', views.shared_result, name='shared_result'),  # 공유된 결과 페이지 (새로 추가)
 ]

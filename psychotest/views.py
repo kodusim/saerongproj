@@ -1,8 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.contrib import messages
-from .models import Test, Question, Option, Result, Category
-from django.http import HttpResponse
+from .models import Test, Question, Option, Result, Category, SharedTestResult
 from django.conf import settings
 
 def test_list(request):
@@ -182,6 +181,16 @@ def calculate_result(request, test_id):
             'method': 'sum'
         }
         
+        # 공유 가능한 영구 결과 생성
+        if result:
+            shared_result = SharedTestResult.objects.create(
+                test=test,
+                result=result,
+                score=total_score,
+                calculation_method='sum'
+            )
+            request.session['shared_result_id'] = str(shared_result.id)
+        
     elif test.calculation_method == 'category':
         # 카테고리 점수 방식
         category_scores = {}
@@ -218,6 +227,17 @@ def calculate_result(request, test_id):
             'category_scores': category_scores,
             'method': 'category'
         }
+        
+        # 공유 가능한 영구 결과 생성
+        if result:
+            shared_result = SharedTestResult.objects.create(
+                test=test,
+                result=result,
+                category=max_category,
+                category_scores=category_scores,
+                calculation_method='category'
+            )
+            request.session['shared_result_id'] = str(shared_result.id)
     
     else:  # pattern 방식은 추후 구현
         # 기본 결과 선택
@@ -227,6 +247,15 @@ def calculate_result(request, test_id):
             'result_id': result.id if result else None,
             'method': 'pattern'
         }
+        
+        # 공유 가능한 영구 결과 생성
+        if result:
+            shared_result = SharedTestResult.objects.create(
+                test=test,
+                result=result,
+                calculation_method='pattern'
+            )
+            request.session['shared_result_id'] = str(shared_result.id)
     
     request.session.modified = True
     
@@ -236,6 +265,16 @@ def calculate_result(request, test_id):
 def test_result(request, test_id):
     """테스트 결과 페이지"""
     test = get_object_or_404(Test, id=test_id)
+    
+    # 세션에서 공유 결과 ID 확인
+    shared_result_id = request.session.get('shared_result_id')
+    shared_result = None
+    
+    if shared_result_id:
+        try:
+            shared_result = SharedTestResult.objects.get(id=shared_result_id)
+        except (SharedTestResult.DoesNotExist, ValueError):
+            pass
     
     # 세션에서 결과 데이터 가져오기
     result_data = request.session.get('test_result', {})
@@ -254,7 +293,6 @@ def test_result(request, test_id):
     if result and result.image:
         try:
             from PIL import Image
-            from django.conf import settings
             import os
             
             img_path = os.path.join(settings.MEDIA_ROOT, result.image.name)
@@ -268,8 +306,7 @@ def test_result(request, test_id):
             # 오류 시 기본값 설정
             image_dimensions = {'width': 500, 'height': 705, 'ratio': 1.41}
     
-    # 수정된 부분: 올바른 방식으로 설정에서 카카오 API 키 가져오기
-    from django.conf import settings
+    # 카카오 API 키 가져오기
     kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
 
     context = {
@@ -277,12 +314,63 @@ def test_result(request, test_id):
         'result': result,
         'result_data': result_data,
         'image_dimensions': image_dimensions,
-        'kakao_api_key': kakao_api_key
+        'kakao_api_key': kakao_api_key,
+        'shared_result': shared_result,  # 추가: 공유 가능한 결과 객체
     }
     
     # 결과 표시 후 필요 없는 테스트 답변 데이터 정리
     if 'test_answers' in request.session and str(test_id) in request.session['test_answers']:
         del request.session['test_answers'][str(test_id)]
         request.session.modified = True
+    
+    return render(request, 'psychotest/test_result.html', context)
+
+
+def shared_result(request, result_id):
+    """공유된 테스트 결과 페이지"""
+    shared_result = get_object_or_404(SharedTestResult, id=result_id)
+    test = shared_result.test
+    result = shared_result.result
+    
+    # 이미지 크기 측정 (선택적)
+    image_dimensions = {}
+    if result and result.image:
+        try:
+            from PIL import Image
+            import os
+            
+            img_path = os.path.join(settings.MEDIA_ROOT, result.image.name)
+            with Image.open(img_path) as img:
+                image_dimensions = {
+                    'width': img.width,
+                    'height': img.height,
+                    'ratio': img.height / img.width
+                }
+        except Exception as e:
+            # 오류 시 기본값 설정
+            image_dimensions = {'width': 500, 'height': 705, 'ratio': 1.41}
+    
+    # 카카오 API 키 가져오기
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    # 결과 데이터 구성
+    result_data = {
+        'test_id': test.id,
+        'result_id': result.id,
+        'score': shared_result.score,
+        'category': shared_result.category,
+        'category_scores': shared_result.category_scores,
+        'method': shared_result.calculation_method
+    }
+    
+    context = {
+        'test': test,
+        'result': result,
+        'result_data': result_data,
+        'image_dimensions': image_dimensions,
+        'kakao_api_key': kakao_api_key,
+        'shared_result': shared_result,
+        'is_shared_view': True,  # 공유된 결과 페이지임을 표시
+    }
     
     return render(request, 'psychotest/test_result.html', context)

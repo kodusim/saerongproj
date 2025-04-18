@@ -6,8 +6,7 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django import forms
 from django.template.response import TemplateResponse
-
-from .models import Category, Test, Question, Option, Result
+from .models import Category, Test, Question, Option, Result, SharedTestResult
 from .forms import OptionForm, QuestionForm, ResultForm
 from .utils.import_handler import TestImportHandler
 from .utils.test_wizard import TestWizardHandler
@@ -525,9 +524,31 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.tests.count()
     tests_count.short_description = '테스트 수'
 
+class SharedTestResultAdmin(admin.ModelAdmin):
+    """공유된 테스트 결과 관리자"""
+    list_display = ['id', 'test', 'result', 'calculation_method', 'created_at']
+    list_filter = ['test', 'calculation_method', 'created_at']
+    search_fields = ['test__title', 'result__title']
+    readonly_fields = ['id', 'created_at']
+    fieldsets = (
+        (None, {
+            'fields': ('id', 'test', 'result')
+        }),
+        ('결과 정보', {
+            'fields': ('calculation_method', 'score', 'category', 'category_scores')
+        }),
+        ('메타데이터', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """공유된 결과는 시스템에 의해 자동 생성되므로 관리자에서 직접 추가하지 않음"""
+
 # 관리자 페이지에 등록
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Test, TestAdmin)
 admin.site.register(Question, QuestionAdmin)
 admin.site.register(Option, OptionAdmin)
 admin.site.register(Result, ResultAdmin)
+admin.site.register(SharedTestResult, SharedTestResultAdmin)

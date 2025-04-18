@@ -18,34 +18,70 @@
         display: block;
     }
     
-    /* 버튼 스타일 */
-    .share-buttons ul {
+    /* 공유 버튼 스타일 */
+    .share-section {
+        padding: 20px 0;
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .share-title {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+    
+    .share-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .share-button {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s;
+        border: none;
         padding: 0;
     }
     
-    .share-buttons button {
-        white-space: nowrap;
-        min-width: 90px;
+    .share-button:hover {
+        transform: scale(1.05);
+    }
+    
+    .share-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .more-test-link {
+        display: block;
+        margin-top: 15px;
+        text-decoration: underline;
+        color: #333;
+        font-size: 14px;
     }
     
     @media (max-width: 500px) {
-        .result-image-container {
-            width: 100%;
+        .share-buttons {
+            gap: 12px;
         }
         
-        .navigation-buttons a {
-            flex: 1 0 48%;
-        }
-        
-        .share-buttons ul {
-            justify-content: center;
-        }
-        
-        .share-buttons li {
-            margin-bottom: 8px;
+        .share-button, .share-icon {
+            width: 45px;
+            height: 45px;
         }
     }
 </style>
+
 <div class="container p-0">
     <div class="result-content">
         {% if result %}
@@ -62,30 +98,35 @@
                 <p class="mt-3">{{ result.description|linebreaks }}</p>
             </div>
             
-            <!-- 소셜 공유 버튼 -->
-            <div class="share-buttons mt-4">
-                <h5 class="text-center mb-3">결과 공유하기</h5>
-                <ul class="d-flex gap-2 list-unstyled justify-content-center flex-wrap">
-                    <li><button id="kakao-share-btn" class="btn btn-warning" aria-label="KakaoTalk">
-                        <img src="{% static 'images/kakao_icon.png' %}" width="18" height="18" alt="Kakao" 
-                            onerror="this.src='https://developers.kakao.com/assets/img/about/logos/channel/icon_channel.png';this.onerror=''"> 카카오톡
-                    </button></li>
-                    <li><button id="facebook-share-btn" class="btn btn-outline-primary" aria-label="facebook">
-                        <i class="bi bi-facebook"></i> 페이스북
-                    </button></li>
-                    <li><button id="twitter-share-btn" class="btn btn-outline-primary" aria-label="twitter">
-                        <i class="bi bi-twitter"></i> X
-                    </button></li>
-                    <li><button id="naver-share-btn" class="btn btn-success" aria-label="naver">
-                        <span class="text-white">N</span> 네이버
-                    </button></li>
-                    <li><button id="band-share-btn" class="btn btn-danger" aria-label="band">
-                        B 밴드
-                    </button></li>
-                    <li><button id="link-copy-btn" class="btn btn-outline-secondary" aria-label="copy link">
-                        <i class="bi bi-clipboard"></i> 링크 복사
-                    </button></li>
-                </ul>
+            <!-- 공유 섹션 -->
+            <div class="share-section">
+                <div class="share-title">친구에게 공유하기</div>
+                <div class="share-buttons">
+                    <!-- 링크 복사 -->
+                    <button class="share-button" id="link-copy-btn" style="background-color: #e9e9e9;">
+                        <img src="{% static 'images/share_icon.png' %}" alt="공유" class="share-icon"
+                            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyNSIgY3k9IjI1IiByPSIyNSIgZmlsbD0iI2U5ZTllOSIvPjxwYXRoIGQ9Ik0yOCAzMkwyMSAxOE0yMSAzMkwyOCAxOE0yMSAyNUgzNU0xNSAyNUgyMCIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==';this.onerror='';">
+                    </button>
+                    
+                    <!-- 페이스북 -->
+                    <button class="share-button" id="facebook-share-btn" style="background-color: #1877F2;">
+                        <img src="{% static 'images/facebook_icon.png' %}" alt="Facebook" class="share-icon"
+                            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyNSIgY3k9IjI1IiByPSIyNSIgZmlsbD0iIzE4NzdGMiIvPjxwYXRoIGQ9Ik0yNi41MzEgMzUuOTM3VjI1LjE2N0gyOS43OEwzMC4yMTkgMjEuMzVIMjYuNTNWMTguOTQ4QzI2LjUzIDE3LjgyNiAyNi44MzcgMTcuMDY2IDI4LjQ2NiAxNy4wNjZIMzAuMzQ0VjEzLjY2N0MyOS45OSAxMy42MTggMjguNjA5IDEzLjUgMjcuMDQgMTMuNUMyMy43OTIgMTMuNSAyMS41OTQgMTUuNDk1IDIxLjU5NCAxOC41NjNWMjEuMzVIMTguMzQ0VjI1LjE2N0gyMS41OTRWMzUuOTM3SDI2LjUzMVoiIGZpbGw9IndoaXRlIi8+PC9zdmc+';this.onerror='';">
+                    </button>
+                    
+                    <!-- 트위터(X) -->
+                    <button class="share-button" id="twitter-share-btn" style="background-color: #000000;">
+                        <img src="{% static 'images/twitter_x_icon.png' %}" alt="X" class="share-icon"
+                            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyNSIgY3k9IjI1IiByPSIyNSIgZmlsbD0iIzAwMDAwMCIvPjxwYXRoIGQ9Ik0yOC45MjIgMjFIMzEuOTM0TDI0LjUyNSAyOS4xOTZMMzMgNDBoMjYuMjQ2TDI0LjcyMSAyOS43OTdMMTcgMjFoMi44MjZMMjcuMTA3IDI4LjU5TDI4LjkyMiAyMVpNMzAuMDcgMjIuNDNIMjguNjkyTDIxLjI5NSAzOC4wNTlIMjIuNjdMMzAuMDcgMjIuNDNaIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==';this.onerror='';">
+                    </button>
+                    
+                    <!-- 카카오톡 -->
+                    <button class="share-button" id="kakao-share-btn" style="background-color: #FEE500;">
+                        <img src="{% static 'images/kakao_icon.png' %}" alt="KakaoTalk" class="share-icon"
+                            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyNSIgY3k9IjI1IiByPSIyNSIgZmlsbD0iI0ZFRTUwMCIvPjxwYXRoIGQ9Ik0yNS40NjIgMTRDMTkuMzEgMTQgMTQuMzA4IDE3Ljk0NSAxNC4zMDggMjIuODI4QzE0LjMwOCAyNS45NzYgMTYuNTY5IDI4LjcxOSAyMCAzMC4yNjNMMTguOTc0IDMzLjc1OUMyMi43MTIgMzIuMTg3IDI1LjcxOCAzMC45MzYgMjcuNTM4IDI5LjcxM0MzMi41MTMgMjkuNzE1IDM2LjYxNSAyNS4wMDEgMzYuNjE1IDIyLjgyOEMzNi42MTUgMTcuOTQ1IDMxLjYxMiAxNCAyNS40NjIgMTRaTTIwLjc1OCAyMi40ODJIMTkuNDk5VjI1LjI3NEgxOC4wMjRWMTkuODQ4SDE5LjQ5OVYyMS4xMzdIMjAuNzU4VjE5Ljg0OEgyMi4yMzNWMjUuMjc0SDIwLjc1OFYyMi40ODJaTTIzLjA5OSAyMS4wMDhIMjEuNDIzVjE5Ljg0OEgyNi4yOTdWMjEuMDA4SDI0LjYwMlYyNS4yNzRIMjMuMDk5VjIxLjAwOFpNMjkuNDM1IDI1LjI3NEgyNy45NDZMMjYuMzE0IDIzLjM5MlYyNS4yNzRIMjQuODM3VjE5Ljg0OEgyNi4zMTRWMjEuNjE0TDI3LjkxNiAxOS44NDhIMjkuNDA2TDI3LjUwOCAyMS44NEwyOS40MzUgMjUuMjc0Wk0zMi40NzggMjIuODk0QzMyLjQ3OCAyMi4wMDUgMzEuNzkzIDIxLjAzNyAzMC43MDYgMjEuMDM3SDMwLjA5M1YyNC43MzdIMzAuNjIzQzMxLjY0NCAyNC43MzcgMzIuNDc4IDIzLjgzOSAzMi40NzggMjIuODk0VjIyLjg5NFpNMzIuNDc4IDIyLjg5NEMzMi40NzggMjAuODggMzEuMDk4IDE5Ljg0OCAyOS44ODggMTkuODQ4SDI4LjYyVjI1LjI3NFYyNS4yNzRIMjkuODg4QzMxLjA5OCAyNS4yNzQgMzIuNDc4IDI0LjkwOCAzMi40NzggMjIuODk0VjIyLjg5NFoiIGZpbGw9ImJsYWNrIi8+PC9zdmc+';this.onerror='';">
+                    </button>
+                </div>
+                <a href="{% url 'psychotest:test_list' %}" class="more-test-link">더 많은 심리테스트 보러가기</a>
             </div>
             
             <div class="navigation-buttons d-flex flex-wrap gap-2 justify-content-between mt-4">
@@ -94,12 +135,6 @@
                 </a>
                 <a href="{% url 'psychotest:take_test' test.id %}" class="btn btn-primary">
                     다시 테스트하기
-                </a>
-            </div>
-            
-            <div class="mt-3 text-center">
-                <a href="{% url 'psychotest:test_list' %}" class="btn btn-outline-primary w-100">
-                    다른 테스트 보기
                 </a>
             </div>
         {% else %}
@@ -118,12 +153,20 @@ crossorigin="anonymous"></script>
 <!-- 공유 기능 스크립트 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 절대 URL 생성 - 현재 페이지의 전체 URL
-    const currentUrl = window.location.href.split('#')[0];
+    // 공유할 URL 설정 - 공유된 결과 링크 사용
+    {% if shared_result %}
+        // 공유 가능한 결과 URL 사용
+        const sharedUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "psychotest:shared_result" shared_result.id %}';
+        const shareUrl = sharedUrl;
+    {% else %}
+        // 공유된 결과가 없는 경우 현재 페이지의 URL 사용 (기존 방식)
+        const shareUrl = window.location.href.split('#')[0];
+    {% endif %}
+    
     const testUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "psychotest:take_test" test.id %}';
     
     // URL과 공유 메시지 설정
-    const encodedCurrentUrl = encodeURIComponent(currentUrl);
+    const encodedShareUrl = encodeURIComponent(shareUrl);
     const encodedTestUrl = encodeURIComponent(testUrl);
     const title = "{{ test.title }} - {{ result.title }}";
     const message = encodeURIComponent(title);
@@ -133,22 +176,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 페이스북 공유
     document.getElementById('facebook-share-btn').addEventListener('click', function() {
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedCurrentUrl}`, 'facebook', features);
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl}`, 'facebook', features);
     });
 
     // 트위터(X) 공유
     document.getElementById('twitter-share-btn').addEventListener('click', function() {
-        window.open(`https://twitter.com/intent/tweet?url=${encodedCurrentUrl}&text=${message}`, 'twitter', features);
-    });
-
-    // 네이버 공유
-    document.getElementById('naver-share-btn').addEventListener('click', function() {
-        window.open(`https://share.naver.com/web/shareView?url=${encodedCurrentUrl}&title=${message}`, 'naver', features);
-    });
-
-    // 밴드 공유
-    document.getElementById('band-share-btn').addEventListener('click', function() {
-        window.open(`https://band.us/plugin/share?body=${message}&route=${encodedCurrentUrl}`, 'band', features);
+        window.open(`https://twitter.com/intent/tweet?url=${encodedShareUrl}&text=${message}`, 'twitter', features);
     });
 
     // 카카오톡 공유
@@ -164,16 +197,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     description: description,
                     imageUrl: {% if result.image %}'{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}'{% else %}''{% endif %},
                     link: {
-                        mobileWebUrl: currentUrl,
-                        webUrl: currentUrl
+                        mobileWebUrl: shareUrl,
+                        webUrl: shareUrl
                     }
                 },
                 buttons: [
                     {
                         title: '결과 확인하기',
                         link: {
-                            mobileWebUrl: currentUrl,
-                            webUrl: currentUrl
+                            mobileWebUrl: shareUrl,
+                            webUrl: shareUrl
                         }
                     },
                     {
@@ -196,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 링크 복사
     document.getElementById('link-copy-btn').addEventListener('click', function() {
         try {
-            navigator.clipboard.writeText(currentUrl).then(function() {
+            navigator.clipboard.writeText(shareUrl).then(function() {
                 alert('링크가 복사되었습니다.');
             }).catch(function(err) {
                 fallbackCopy();
@@ -208,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 클립보드 API 지원하지 않는 브라우저를 위한 대체 방법
         function fallbackCopy() {
             const textarea = document.createElement('textarea');
-            textarea.value = currentUrl;
+            textarea.value = shareUrl;
             textarea.style.position = 'fixed';
             document.body.appendChild(textarea);
             textarea.focus();
