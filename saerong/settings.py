@@ -80,6 +80,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "core.middleware.SocialSharingCSPMiddleware",  # 새 미들웨어 추가
 ]
 
 if DEBUG:
@@ -229,4 +230,8 @@ CSP_IMG_SRC = ["'self'", "data:"] + CSP_FRAME_ANCESTORS
 if not CSP_FRAME_ANCESTORS:
     CSP_FRAME_ANCESTORS = ["'self'"]
 
-KAKAO_JAVASCRIPT_KEY = env.str("3fd3d8be1d733c63de14e57eeff76d66", default="")
+KAKAO_JAVASCRIPT_KEY = env.str("KAKAO_JAVASCRIPT_KEY", default="3fd3d8be1d733c63de14e57eeff76d66")
+# CSP 설정 업데이트 - 소셜 미디어 도메인 추가
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "https://t1.kakaocdn.net", "https://developers.kakao.com"] + CSP_FRAME_ANCESTORS
+CSP_IMG_SRC = ["'self'", "data:", "https://developers.kakao.com", "https://*.kakao.com"] + CSP_FRAME_ANCESTORS
+CSP_CONNECT_SRC = ["'self'", "https://*.kakao.com"]

@@ -57,9 +57,14 @@
             </div>
             {% endif %}
             
+            <div class="result-text mt-4 mb-4">
+                <h3 class="text-center">{{ result.title }}</h3>
+                <p class="mt-3">{{ result.description|linebreaks }}</p>
+            </div>
+            
             <!-- 소셜 공유 버튼 -->
-            <div class="share-buttons mt-3">
-                <h5 class="text-center mb-2">결과 공유하기</h5>
+            <div class="share-buttons mt-4">
+                <h5 class="text-center mb-3">결과 공유하기</h5>
                 <ul class="d-flex gap-2 list-unstyled justify-content-center flex-wrap">
                     <li><button id="kakao-share-btn" class="btn btn-warning" aria-label="KakaoTalk">
                         <img src="{% static 'images/kakao_icon.png' %}" width="18" height="18" alt="Kakao" 
@@ -83,7 +88,7 @@
                 </ul>
             </div>
             
-            <div class="navigation-buttons d-flex flex-wrap gap-2 justify-content-between mt-3">
+            <div class="navigation-buttons d-flex flex-wrap gap-2 justify-content-between mt-4">
                 <a href="{% url 'psychotest:test_detail' test.id %}" class="btn btn-secondary">
                     테스트 정보로 돌아가기
                 </a>
@@ -113,62 +118,69 @@ crossorigin="anonymous"></script>
 <!-- 공유 기능 스크립트 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 절대 URL 생성 - 현재 페이지의 전체 URL
+    const currentUrl = window.location.href.split('#')[0];
+    const testUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "psychotest:take_test" test.id %}';
+    
     // URL과 공유 메시지 설정
-    const url = window.location.href.replace('#', '');
-    const encodedUrl = encodeURIComponent(url);
+    const encodedCurrentUrl = encodeURIComponent(currentUrl);
+    const encodedTestUrl = encodeURIComponent(testUrl);
     const title = "{{ test.title }} - {{ result.title }}";
     const message = encodeURIComponent(title);
+    const description = "{{ result.description|truncatechars:50|escapejs }}";
+    
     const features = 'width=600, height=700, resizable=no';
 
     // 페이스북 공유
     document.getElementById('facebook-share-btn').addEventListener('click', function() {
-        window.open(`http://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, 'facebook', features);
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedCurrentUrl}`, 'facebook', features);
     });
 
     // 트위터(X) 공유
     document.getElementById('twitter-share-btn').addEventListener('click', function() {
-        window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${message}`, 'twitter', features);
+        window.open(`https://twitter.com/intent/tweet?url=${encodedCurrentUrl}&text=${message}`, 'twitter', features);
     });
 
     // 네이버 공유
     document.getElementById('naver-share-btn').addEventListener('click', function() {
-        window.open(`https://share.naver.com/web/shareView?url=${encodedUrl}&title=${message}`, 'naver', features);
+        window.open(`https://share.naver.com/web/shareView?url=${encodedCurrentUrl}&title=${message}`, 'naver', features);
     });
 
     // 밴드 공유
     document.getElementById('band-share-btn').addEventListener('click', function() {
-        window.open(`https://band.us/plugin/share?body=${message}&route=${encodedUrl}`, 'band', features);
+        window.open(`https://band.us/plugin/share?body=${message}&route=${encodedCurrentUrl}`, 'band', features);
     });
 
     // 카카오톡 공유
     try {
         Kakao.init('{{ kakao_api_key }}'); // 관리자 페이지에서 설정한 카카오 API 키
+        console.log('Kakao init success:', Kakao.isInitialized());
 
         document.getElementById('kakao-share-btn').addEventListener('click', function() {
             Kakao.Share.sendDefault({
                 objectType: 'feed',
                 content: {
                     title: title,
-                    description: '{{ result.description|truncatechars:50|escapejs }}',
-                    imageUrl: {% if result.image %}'{{ result.image.url }}'{% else %}''{% endif %},
+                    description: description,
+                    imageUrl: {% if result.image %}'{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}'{% else %}''{% endif %},
                     link: {
-                        mobileWebUrl: url,
-                        webUrl: url
+                        mobileWebUrl: currentUrl,
+                        webUrl: currentUrl
                     }
                 },
                 buttons: [
                     {
                         title: '결과 확인하기',
                         link: {
-                            mobileWebUrl: url,
-                            webUrl: url
+                            mobileWebUrl: currentUrl,
+                            webUrl: currentUrl
                         }
                     },
                     {
                         title: '테스트 하기',
                         link: {
-                            mobileWebUrl: '{{ request.build_absolute_uri|urldecode }}{% url "psychotest:take_test" test.id %}',
-                            webUrl: '{{ request.build_absolute_uri|urldecode }}{% url "psychotest:take_test" test.id %}'
+                            mobileWebUrl: testUrl,
+                            webUrl: testUrl
                         }
                     }
                 ]
@@ -177,20 +189,26 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {
         console.error('카카오톡 공유 초기화 실패:', e);
         document.getElementById('kakao-share-btn').addEventListener('click', function() {
-            alert('카카오톡 공유 기능을 초기화하는데 실패했습니다.');
+            alert('카카오톡 공유 기능을 초기화하는데 실패했습니다: ' + e.message);
         });
     }
 
     // 링크 복사
     document.getElementById('link-copy-btn').addEventListener('click', function() {
         try {
-            navigator.clipboard.writeText(url).then(function() {
+            navigator.clipboard.writeText(currentUrl).then(function() {
                 alert('링크가 복사되었습니다.');
+            }).catch(function(err) {
+                fallbackCopy();
             });
         } catch (e) {
-            // 클립보드 API를 지원하지 않는 브라우저를 위한 대체 방법
+            fallbackCopy();
+        }
+        
+        // 클립보드 API 지원하지 않는 브라우저를 위한 대체 방법
+        function fallbackCopy() {
             const textarea = document.createElement('textarea');
-            textarea.value = url;
+            textarea.value = currentUrl;
             textarea.style.position = 'fixed';
             document.body.appendChild(textarea);
             textarea.focus();
@@ -208,6 +226,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-
-
 {% endblock %}
