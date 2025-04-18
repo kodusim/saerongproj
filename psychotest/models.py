@@ -91,6 +91,12 @@ class Result(models.Model):
                               help_text="카테고리 계산 방식에서 사용되는 카테고리 값")
     image = models.ImageField("결과 이미지", upload_to="result_images/", null=True, blank=True, 
                          help_text="권장 크기: 400x400")
+    sub_image = models.ImageField("결과 보조 이미지", upload_to="result_sub_images/", 
+                         null=True, blank=True, 
+                         help_text="권장 크기: 500x300px, 결과 설명 대신 표시됩니다.")
+    background_color = models.CharField("배경색", max_length=20, 
+                                default="#FFFFFF", 
+                                help_text="예: #FFFFFF, rgb(255,255,255), mintcream 등")
     
     def __str__(self):
         return f"{self.test.title} - {self.title}"

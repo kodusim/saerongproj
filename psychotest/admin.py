@@ -517,28 +517,31 @@ class OptionAdmin(admin.ModelAdmin):
         }),
     )
 
+# psychotest/admin.py에서 ResultAdmin 클래스 수정
 class ResultAdmin(admin.ModelAdmin):
-    list_display = ['title', 'test', 'min_score', 'max_score', 'category']
+    list_display = ['title', 'test', 'min_score', 'max_score', 'category', 'background_color']
     list_filter = ['test']
     search_fields = ['title', 'description']
     form = ResultForm
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('test')
     
     def get_fieldsets(self, request, obj=None):
         """테스트 계산 방식에 따라 필드 변경"""
         if obj and obj.test and obj.test.calculation_method == 'category':
             return (
                 (None, {
-                    'fields': ('test', 'title', 'description', 'category', 'image')
+                    'fields': ('test', 'title', 'description', 'category')
+                }),
+                ('디자인', {
+                    'fields': ('image', 'sub_image', 'background_color')
                 }),
             )
         elif obj and obj.test and obj.test.calculation_method == 'sum':
             return (
                 (None, {
-                    'fields': ('test', 'title', 'description', 'min_score', 'max_score', 'image')
+                    'fields': ('test', 'title', 'description', 'min_score', 'max_score')
+                }),
+                ('디자인', {
+                    'fields': ('image', 'sub_image', 'background_color')
                 }),
             )
         else:
@@ -552,8 +555,8 @@ class ResultAdmin(admin.ModelAdmin):
                 ('카테고리 (카테고리 점수 방식)', {
                     'fields': ('category',),
                 }),
-                ('이미지', {
-                    'fields': ('image',),
+                ('디자인', {
+                    'fields': ('image', 'sub_image', 'background_color'),
                 }),
             )
 

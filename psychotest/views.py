@@ -266,27 +266,39 @@ def test_result(request, test_id):
     """테스트 결과 페이지"""
     test = get_object_or_404(Test, id=test_id)
     
-    # 세션에서 공유 결과 ID 확인
-    shared_result_id = request.session.get('shared_result_id')
-    shared_result = None
-    
-    if shared_result_id:
-        try:
-            shared_result = SharedTestResult.objects.get(id=shared_result_id)
-        except (SharedTestResult.DoesNotExist, ValueError):
-            pass
-    
-    # 세션에서 결과 데이터 가져오기
-    result_data = request.session.get('test_result', {})
-    
-    if not result_data or int(result_data.get('test_id', 0)) != test.id:
-        messages.warning(request, "테스트 결과가 없습니다. 테스트를 다시 진행해주세요.")
-        return redirect('psychotest:take_test', test_id=test.id)
-    
-    result_id = result_data.get('result_id')
+    # URL 파라미터로 특정 결과 ID가 전달되었는지 확인
+    result_id = request.GET.get('result_id')
     result = None
+    
     if result_id:
-        result = get_object_or_404(Result, id=result_id)
+        # 특정 결과 ID가 전달된 경우, 해당 결과를 표시
+        try:
+            result = Result.objects.get(id=result_id, test=test)
+        except Result.DoesNotExist:
+            messages.error(request, "요청한 결과를 찾을 수 없습니다.")
+    else:
+        # 세션에서 공유 결과 ID 확인
+        shared_result_id = request.session.get('shared_result_id')
+        shared_result = None
+        
+        if shared_result_id:
+            try:
+                shared_result = SharedTestResult.objects.get(id=shared_result_id)
+                result = shared_result.result
+            except (SharedTestResult.DoesNotExist, ValueError):
+                pass
+        
+        # 세션에서 결과 데이터 가져오기
+        if not result:
+            result_data = request.session.get('test_result', {})
+            
+            if not result_data or int(result_data.get('test_id', 0)) != test.id:
+                messages.warning(request, "테스트 결과가 없습니다. 테스트를 다시 진행해주세요.")
+                return redirect('psychotest:take_test', test_id=test.id)
+            
+            result_id = result_data.get('result_id')
+            if result_id:
+                result = get_object_or_404(Result, id=result_id)
     
     # 이미지 크기 측정 (선택적)
     image_dimensions = {}
@@ -308,14 +320,17 @@ def test_result(request, test_id):
     
     # 카카오 API 키 가져오기
     kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    # 해당 테스트의 모든 결과 가져오기 (모달용)
+    all_results = Result.objects.filter(test=test)
 
     context = {
         'test': test,
         'result': result,
-        'result_data': result_data,
+        'all_results': all_results,
         'image_dimensions': image_dimensions,
         'kakao_api_key': kakao_api_key,
-        'shared_result': shared_result,  # 추가: 공유 가능한 결과 객체
+        'shared_result': shared_result if 'shared_result' in locals() else None,
     }
     
     # 결과 표시 후 필요 없는 테스트 답변 데이터 정리
