@@ -253,7 +253,9 @@
     <!-- 헤더 (로고 중앙, 메뉴 오른쪽) -->
     <header class="header-container">
         <div class="logo-center">
-            <img src="{% static 'images/logo.png' %}" alt="새롱" height="35" onerror="this.src='https://via.placeholder.com/150x50?text=새롱';this.onerror='';">
+            <a href="{% url 'core:root' %}">
+                <img src="{% static 'images/logo.png' %}" alt="새롱" height="35" onerror="this.src='https://via.placeholder.com/150x50?text=새롱';this.onerror='';">
+            </a>    
         </div>
         <button class="nav-toggle" id="navToggle">
             <span>☰</span>
