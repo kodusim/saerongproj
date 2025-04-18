@@ -73,3 +73,47 @@
     </div>
 </div>
 {% endblock %}
+
+{% block footer %}
+<div class="company-info">
+    <div class="company-details">
+        <p>팜하니 | 대표 전상기</p>
+        <p>주소: 대전광역시 유성구 탑립로 49, 지하 1층(탑립동)</p>
+        <p>사업자번호 | 405-63-00627 | <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=4056300627" target="_blank" class="biz-link">사업자정보확인</a></p>
+        <p class="copyright">Copyright © FARMHONEY Co.,Ltd</p>
+    </div>
+</div>
+
+<style>
+    .company-info {
+        padding: 15px 10px;
+        font-size: 0.8rem;
+        color: #666;
+        text-align: left;
+        border-top: 1px solid #eee;
+        margin-top: 20px;
+    }
+    
+    .company-details {
+        max-width: 500px;
+        margin: 0 auto;
+        text-align: left;
+    }
+    
+    .company-info p {
+        margin-bottom: 8px;
+        font-weight: normal;
+        font-family: Arial, sans-serif;
+    }
+    
+    .biz-link {
+        color: #666;
+        text-decoration: underline;
+    }
+    
+    .copyright {
+        margin-top: 8px;
+        font-weight: normal;
+    }
+</style>
+{% endblock %}
