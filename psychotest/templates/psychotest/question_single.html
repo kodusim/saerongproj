@@ -75,7 +75,7 @@
         font-size: 1.5rem;
     }
     
-    /* 선택지 버튼 스타일링 */
+    /* 새로운 구름 스타일 선택지 */
     .options-container {
         display: flex;
         flex-direction: column;
@@ -85,29 +85,40 @@
         padding: 0 30px; /* 좌우 여백 추가 */
     }
 
-    .option-button {
-        background-color: white;
-        border: 2px solid #000;
+    /* 구름 스타일의 버튼 */
+    .cloud-button {
+        background: linear-gradient(to right, #f0f8ff, #e6f7ff, #ccf2ff);
+        color: #333;
+        border: none;
         border-radius: 30px;
         padding: 15px 30px;
         font-size: 1rem;
         text-align: center;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(204, 242, 255, 0.4);
         max-width: 440px; /* 선택지 최대 폭 제한 */
         margin: 0 auto; /* 가운데 정렬 */
         width: 100%;
+        font-weight: bold;
     }
-    
-    .option-button:hover {
-        background-color: #f0f0f0;
+
+    .cloud-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(204, 242, 255, 0.6);
+        background: linear-gradient(to right, #e6f7ff, #ccf2ff, #b3eaff);
+    }
+
+    .cloud-button:active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(204, 242, 255, 0.5);
     }
     
     /* 선택지 개수에 따른 높이 조정 */
-    .options-container.options-2 .option-button { height: 60px; }
-    .options-container.options-3 .option-button { height: 50px; }
-    .options-container.options-4 .option-button { height: 45px; }
-    .options-container.options-5 .option-button { height: 40px; }
+    .options-container.options-2 .cloud-button { height: 60px; }
+    .options-container.options-3 .cloud-button { height: 50px; }
+    .options-container.options-4 .cloud-button { height: 45px; }
+    .options-container.options-5 .cloud-button { height: 40px; }
 </style>
 
 <div class="container p-0">

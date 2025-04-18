@@ -30,7 +30,7 @@
             {% csrf_token %}
             <div class="options-container options-{{ question.options.all|length }}">
                 {% for option in question.options.all %}
-                <button type="button" class="option-button" 
+                <button type="button" class="option-button cloud-button" 
                         onclick="selectOption('{{ option.id }}')">
                     {{ option.text }}
                 </button>

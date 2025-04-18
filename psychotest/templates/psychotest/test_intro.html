@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 푸터 내용 교체
         footerContainer.innerHTML = '';
         
-        // 버튼 생성
+        // 버튼 생성 - 색상은 원래대로 유지하고 입체감만 추가
         var testButton = document.createElement('a');
         testButton.href = "{% url 'psychotest:test_list' %}";
         testButton.textContent = '다른 테스트';
@@ -73,11 +73,36 @@ document.addEventListener('DOMContentLoaded', function() {
         testButton.style.padding = '12px 20px';
         testButton.style.fontSize = '18px';
         testButton.style.fontWeight = 'bold';
-        testButton.style.backgroundColor = '#000000';
-        testButton.style.color = '#ffffff';
         testButton.style.textAlign = 'center';
-        testButton.style.border = '2px solid #ffffff';
+        testButton.style.backgroundColor = '#000000'; // 기존 색상 유지
+        testButton.style.color = '#ffffff'; // 기존 색상 유지
+        testButton.style.border = '2px solid #ffffff'; // 기존 테두리 유지
         testButton.style.textDecoration = 'none';
+        
+        // 입체감을 위한 그림자 효과 추가
+        testButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.3)';
+        testButton.style.transition = 'all 0.2s ease';
+        
+        // 호버 효과 추가
+        testButton.onmouseover = function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4)';
+        };
+        
+        testButton.onmouseout = function() {
+            this.style.transform = '';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.3)';
+        };
+        
+        testButton.onmousedown = function() {
+            this.style.transform = 'translateY(-1px)';
+            this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.2)';
+        };
+        
+        testButton.onmouseup = function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4)';
+        };
         
         footerContainer.appendChild(testButton);
     }
