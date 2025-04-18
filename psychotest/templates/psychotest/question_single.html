@@ -13,10 +13,8 @@
     
     /* 게이지 바 스타일링 수정 */
     .progress-container {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
+        position: relative; /* absolute 대신 relative 사용 */
+        margin: 15px auto;  /* 상단과 이미지 사이 간격 */
         z-index: 10;
         width: calc(100% - 20px);
         max-width: 480px;
@@ -52,15 +50,15 @@
         width: 100%;
         max-width: 500px;
         height: auto;
-        max-height: 60vh; /* 뷰포트 높이의 60%로 제한 */
-        aspect-ratio: 5/6; /* 500:600 비율 유지 */
+        aspect-ratio: 5/6;  /* 비율 유지 */
+        margin-top: 10px;   /* 게이지 바와의 간격 */
         background-color: #ffe600;
         overflow: hidden;
         display: flex;
         justify-content: center;
         align-items: center;
-        margin: 0 auto;
     }
+
     
     .question-image {
         width: 100%;
@@ -73,17 +71,16 @@
         width: 100%;
         max-width: 500px;
         height: auto;
-        max-height: 60vh;
         aspect-ratio: 5/6;
+        margin-top: 10px;   /* 게이지 바와의 간격 */
         display: flex;
         justify-content: center;
         align-items: center;
         text-align: center;
         background-color: #ffe600;
         font-size: 1.5rem;
-        padding: 15px;
+        padding: 20px;
         box-sizing: border-box;
-        margin: 0 auto;
     }
     
     /* 새로운 구름 스타일 선택지 */
