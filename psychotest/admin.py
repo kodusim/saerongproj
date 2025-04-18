@@ -70,9 +70,15 @@ class TestAdmin(admin.ModelAdmin):
     list_display = ['title', 'category', 'created_at', 'calculation_method', 'view_style', 'view_count', 'show_thumbnail', 'questions_count', 'results_count']
     list_filter = ['category', 'calculation_method', 'view_style']
     search_fields = ['title', 'description']
-    readonly_fields = ['image_preview', 'intro_image_preview']
+    readonly_fields = ['image_preview', 'intro_image_preview', 'gauge_character_preview']
     actions = ['copy_test']
-    
+
+    def gauge_character_preview(self, obj):
+        if obj.gauge_character:
+            return format_html('<img src="{}" width="30" height="30" />', obj.gauge_character.url)
+        return "No Image"
+    gauge_character_preview.short_description = '게이지 캐릭터 미리보기'
+
     def show_thumbnail(self, obj):
         if obj.image:
             return format_html('<img src="{}" width="50" height="50" />', obj.image.url)
@@ -150,7 +156,8 @@ class TestAdmin(admin.ModelAdmin):
             'fields': ('title', 'description', 'category', 'calculation_method', 'view_style')
         }),
         ('이미지', {
-            'fields': ('image', 'image_preview', 'intro_image', 'intro_image_preview'),
+            'fields': ('image', 'image_preview', 'intro_image', 'intro_image_preview', 
+                      'gauge_character', 'gauge_character_preview'),
         }),
         ('통계', {
             'fields': ('view_count',),
@@ -339,9 +346,9 @@ class TestAdmin(admin.ModelAdmin):
             for obj in formset.deleted_objects:
                 obj.delete()
             
-            # 기존 선택지 업데이트
+            # 기존 선택지 및 이미지 업데이트
             for question in test.questions.all():
-                # 각 질문의 선택지 업데이트
+                # 각 질문의 선택지 업데이트 (기존 코드)
                 for option in question.options.all():
                     option_text_key = f'option_{option.id}_text'
                     option_score_key = f'option_{option.id}_score'
@@ -363,6 +370,17 @@ class TestAdmin(admin.ModelAdmin):
                             option.category_scores = category_scores
                         
                         option.save()
+                
+                # 이미지 처리 추가
+                image_key = f'question_{question.id}_image'
+                image_clear_key = f'question_{question.id}_image_clear'
+                
+                if image_key in request.FILES:
+                    question.image = request.FILES[image_key]
+                    question.save()
+                elif image_clear_key in request.POST:
+                    question.image = None
+                    question.save()
     
     def _process_new_questions(self, request, test):
         """새 질문 추가 처리"""
@@ -436,16 +454,36 @@ class TestAdmin(admin.ModelAdmin):
         extra_context['show_import_button'] = True
         return super().changelist_view(request, extra_context)
     
-
 class QuestionAdmin(admin.ModelAdmin):
     inlines = [OptionInline]
-    list_display = ['text', 'test', 'order', 'options_count']
+    list_display = ['text', 'test', 'order', 'options_count', 'has_image']
     list_filter = ['test']
     search_fields = ['text']
+    readonly_fields = ['image_preview']
     
     def options_count(self, obj):
         return obj.options.count()
     options_count.short_description = '선택지 수'
+    
+    def has_image(self, obj):
+        return bool(obj.image)
+    has_image.boolean = True
+    has_image.short_description = '이미지 있음'
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="300" />', obj.image.url)
+        return "이미지 없음"
+    image_preview.short_description = '이미지 미리보기'
+    
+    fieldsets = (
+        (None, {
+            'fields': ('test', 'text', 'order')
+        }),
+        ('이미지', {
+            'fields': ('image', 'image_preview'),
+        }),
+    )
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -473,6 +511,9 @@ class OptionAdmin(admin.ModelAdmin):
         ('카테고리별 점수 (고급)', {
             'classes': ('collapse',),
             'fields': ('category_scores',),
+        }),
+        ('이미지', {
+        'fields': ('image', 'image_preview'),
         }),
     )
 

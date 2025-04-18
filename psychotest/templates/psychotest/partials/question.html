@@ -1,40 +1,53 @@
+{% load static %}
 <div id="question-container">
-    <div class="mb-4">
-        <h4>질문 {{ current_index }} / {{ total_questions }}</h4>
-        <div class="progress mb-3">
-            <div class="progress-bar" role="progressbar" 
-                 style="width: {{ progress }}%;" 
-                 aria-valuenow="{{ progress }}" 
-                 aria-valuemin="0" aria-valuemax="100">
-                {{ progress }}%
-            </div>
+    <!-- 진행 바 - 이미지 위에 위치 -->
+    <div class="progress-container">
+        <div class="progress-track">
+            <div class="progress-bar" style="width: {{ progress }}%;"></div>
         </div>
+        {% if test.gauge_character %}
+            <img src="{{ test.gauge_character.url }}" class="progress-character" style="left: calc({{ progress }}% - 15px);">
+        {% else %}
+            <img src="{% static 'images/default-character.png' %}" class="progress-character" style="left: calc({{ progress }}% - 15px);">
+        {% endif %}
+    </div>
+    
+    <!-- 질문 내용 - 상단 타이틀 없이 이미지만 표시 -->
+    <div class="question-content">
+        {% if question.image %}
+        <div class="question-image-container">
+            <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
+        </div>
+        {% else %}
+        <div class="question-text">
+            {{ question.text }}
+        </div>
+        {% endif %}
         
-        <div class="question">
-            <h3 class="mb-4">{{ question.text }}</h3>
-            <form hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
-                  hx-target="#question-container" 
-                  hx-swap="outerHTML">
+        <!-- 선택지 -->
+        <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
+                hx-target="#question-container" hx-swap="outerHTML">
+            {% csrf_token %}
+            <div class="options-container options-{{ question.options.all|length }}">
                 {% for option in question.options.all %}
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="radio" 
-                           name="answer" id="option_{{ option.id }}" 
-                           value="{{ option.id }}" required>
-                    <label class="form-check-label" for="option_{{ option.id }}">
-                        {{ option.text }}
-                    </label>
-                </div>
-                {% empty %}
-                <div class="alert alert-warning">
-                    이 질문에 대한 선택지가 없습니다.
-                </div>
+                <button type="button" class="option-button" 
+                        onclick="selectOption('{{ option.id }}')">
+                    {{ option.text }}
+                </button>
                 {% endfor %}
-                <input type="hidden" name="current_index" value="{{ current_index }}">
-                
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-primary">다음</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <input type="hidden" name="answer" id="selected-option">
+            <input type="hidden" name="current_index" value="{{ current_index }}">
+        </form>
     </div>
 </div>
+
+<script>
+    function selectOption(optionId) {
+        document.getElementById('selected-option').value = optionId;
+        // 수동으로 form을 제출합니다
+        var form = document.getElementById('question-form');
+        // HTMX에게 폼을 제출하도록 지시합니다
+        htmx.trigger(form, 'submit');
+    }
+</script>

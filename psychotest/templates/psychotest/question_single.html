@@ -1,16 +1,119 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h2 class="h4 mb-0">{{ test.title }}</h2>
-        </div>
-        
-        <div class="card-body">
-            <!-- 이 부분만 AJAX로 업데이트됨 -->
-            {% include "psychotest/partials/question.html" %}
-        </div>
+<style>
+    /* 전체 컨테이너 */
+    .question-container {
+        max-width: 500px;
+        margin: 0 auto;
+        position: relative;
+    }
+    
+    /* 게이지 바 스타일링 수정 */
+    .progress-container {
+        position: absolute;
+        top: 10px;
+        left: 10px; /* 왼쪽 여백 추가 */
+        right: 10px; /* 오른쪽 여백 추가 */
+        z-index: 10;
+        width: calc(100% - 20px); /* 전체 너비에서 좌우 여백 뺌 */
+        max-width: 480px; /* 최대 너비 제한 */
+    }
+
+    .progress-track {
+        height: 15px;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        position: relative;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background-color: #ffe600;
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-character {
+        position: absolute;
+        top: -8px; /* 위치 조정 */
+        width: 30px;
+        height: 30px;
+        transition: left 0.3s ease;
+        z-index: 15;
+        margin-left: -15px; /* 캐릭터 중앙 정렬 */
+    }
+    
+    /* 질문 이미지 컨테이너 */
+    .question-image-container {
+        width: 500px;
+        height: 600px;
+        background-color: #ffe600;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .question-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    /* 이미지가 없을 때 대체 텍스트 */
+    .question-text {
+        width: 500px;
+        height: 600px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background-color: #ffe600;
+        font-size: 1.5rem;
+    }
+    
+    /* 선택지 버튼 스타일링 */
+    .options-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        padding: 0 30px; /* 좌우 여백 추가 */
+    }
+
+    .option-button {
+        background-color: white;
+        border: 2px solid #000;
+        border-radius: 30px;
+        padding: 15px 30px;
+        font-size: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        max-width: 440px; /* 선택지 최대 폭 제한 */
+        margin: 0 auto; /* 가운데 정렬 */
+        width: 100%;
+    }
+    
+    .option-button:hover {
+        background-color: #f0f0f0;
+    }
+    
+    /* 선택지 개수에 따른 높이 조정 */
+    .options-container.options-2 .option-button { height: 60px; }
+    .options-container.options-3 .option-button { height: 50px; }
+    .options-container.options-4 .option-button { height: 45px; }
+    .options-container.options-5 .option-button { height: 40px; }
+</style>
+
+<div class="container p-0">
+    <div class="question-container">
+        <!-- 이 부분만 AJAX로 업데이트됨 -->
+        {% include "psychotest/partials/question.html" %}
     </div>
 </div>
 {% endblock %}

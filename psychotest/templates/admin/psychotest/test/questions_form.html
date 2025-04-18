@@ -57,7 +57,7 @@
         </div>
     </div>
     
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         
         <div id="questions-container">
@@ -87,7 +87,27 @@
                             {{ form.order.errors }}
                         </div>
                     </div>
-                    
+
+                    <div class="form-row">
+                        <div class="fieldBox">
+                            <label>{% trans "질문 이미지" %}:</label>
+                            {% with question_id=form.instance.id %}
+                                {% if question_id %}
+                                    {% if form.instance.image %}
+                                        <p>현재 이미지: <a href="{{ form.instance.image.url }}" target="_blank">{{ form.instance.image }}</a></p>
+                                        <img src="{{ form.instance.image.url }}" style="max-width: 300px; margin-bottom: 10px;">
+                                        <div>
+                                            <input type="checkbox" name="question_{{ question_id }}_image_clear" id="question_{{ question_id }}_image_clear">
+                                            <label for="question_{{ question_id }}_image_clear">{% trans "이미지 삭제" %}</label>
+                                        </div>
+                                    {% endif %}
+                                    <input type="file" name="question_{{ question_id }}_image" accept="image/*">
+                                {% endif %}
+                            {% endwith %}
+                            <div class="help">{% trans "권장 크기: 500x600px" %}</div>
+                        </div>
+                    </div>
+
                     {% if formset.can_delete %}
                         <div class="form-row">
                             <div class="fieldBox">

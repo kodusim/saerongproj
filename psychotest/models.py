@@ -38,6 +38,9 @@ class Test(models.Model):
     # Test 모델 내에 추가
     intro_image = models.ImageField("인트로 이미지", upload_to="test_intro_images/", null=True, blank=True,
                                 help_text="권장 크기: 500x500")
+    gauge_character = models.ImageField("게이지 캐릭터 이미지", upload_to="gauge_characters/", 
+                                    null=True, blank=True, 
+                                    help_text="권장 크기: 30x30px, 게이지 바에 표시될 캐릭터")
     
     def __str__(self):
         return self.title
@@ -55,6 +58,8 @@ class Question(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='questions', verbose_name="테스트")
     text = models.TextField("질문 내용")
     order = models.PositiveSmallIntegerField("순서", default=0)
+    image = models.ImageField("질문 이미지", upload_to="question_images/", null=True, blank=True,
+                       help_text="권장 크기: 500x600px")
     
     class Meta:
         ordering = ['order']
@@ -117,4 +122,5 @@ class SharedTestResult(models.Model):
         from django.urls import reverse
         return reverse('psychotest:shared_result', args=[str(self.id)])
     
+
 
