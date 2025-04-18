@@ -12,7 +12,7 @@
         {% endif %}
     </div>
     
-    <!-- 질문 내용 - 상단 타이틀 없이 이미지만 표시 -->
+    <!-- 질문 내용 -->
     <div class="question-content">
         {% if question.image %}
         <div class="question-image-container">
@@ -30,7 +30,7 @@
             {% csrf_token %}
             <div class="options-container options-{{ question.options.all|length }}">
                 {% for option in question.options.all %}
-                <button type="button" class="option-button cloud-button" 
+                <button type="button" class="cloud-button" 
                         onclick="selectOption('{{ option.id }}')">
                     {{ option.text }}
                 </button>
@@ -45,9 +45,32 @@
 <script>
     function selectOption(optionId) {
         document.getElementById('selected-option').value = optionId;
-        // 수동으로 form을 제출합니다
+        // 선택된 버튼에 시각적 표시 추가
+        const buttons = document.querySelectorAll('.cloud-button');
+        buttons.forEach(btn => {
+            btn.disabled = true; // 중복 클릭 방지
+            if(btn.onclick.toString().includes(optionId)) {
+                btn.style.backgroundColor = '#e6f7ff';
+                btn.style.transform = 'translateY(-1px)';
+            }
+        });
+        
+        // 폼 제출
         var form = document.getElementById('question-form');
-        // HTMX에게 폼을 제출하도록 지시합니다
         htmx.trigger(form, 'submit');
     }
+    
+    // 화면 로드 시 모바일에서 최적화
+    document.addEventListener('DOMContentLoaded', function() {
+        // 모바일에서는 뷰포트 높이에 맞게 요소 조정
+        if(window.innerWidth <= 500) {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            const questionContent = document.querySelector('.question-content');
+            if(questionContent) {
+                questionContent.style.height = `calc(100 * var(--vh) - 50px)`;
+            }
+        }
+    });
 </script>

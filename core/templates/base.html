@@ -22,20 +22,32 @@
             font-style: normal;
         }
         
+        :root {
+            --vh: 1vh;
+        }
+        
         body {
             background-color: #f0f5ff;
             display: flex;
             flex-direction: column;
             align-items: center;
             font-family: 'Cafe24Ohsquare', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
+            width: 100%;
         }
         
         .site-wrapper {
-            width: 500px;
+            width: 100%;
+            max-width: 500px;
             background-color: #fff;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
             position: relative;
+            overflow-x: hidden; /* 가로 스크롤 방지 */
         }
         
         .header-container {
@@ -70,6 +82,7 @@
             right: -250px;
             width: 250px;
             height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
             background-color: #fff;
             box-shadow: -2px 0 5px rgba(0,0,0,0.1);
             transition: right 0.3s ease;
@@ -136,6 +149,15 @@
             max-width: 500px;
             padding-left: 15px;
             padding-right: 15px;
+            box-sizing: border-box;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* p-0 클래스 처리 */
+        .container.p-0, .container-fluid.p-0 {
+            padding-left: 0;
+            padding-right: 0;
         }
         
         /* 스크롤 가능한 카드 영역 */
@@ -159,26 +181,26 @@
             overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-
+    
         .test-card img {
             width: 100%;
-            height: 160px; /* 140px에서 160px로 늘림 */
+            height: 160px;
             object-fit: cover;
         }
-
+    
         .test-card .card-body {
-            padding: 6px; /* 8px에서 6px로 줄임 */
+            padding: 6px;
         }
-
+    
         .test-card .card-title {
             font-size: 0.9rem;
-            margin-bottom: 2px; /* 5px에서 2px로 줄임 */
-            max-height: 36px; /* 고정 높이 대신 최대 높이 사용 */
+            margin-bottom: 2px;
+            max-height: 36px;
             overflow: hidden;
         }
-
+    
         .test-card .card-text {
-            margin-bottom: 0; /* 카드 텍스트 하단 여백 제거 */
+            margin-bottom: 0;
         }
         
         .section-header {
@@ -212,7 +234,7 @@
             z-index: 100;
         }
         
-        /* 화면이 특정 크기보다 작을 때는 광고 숨김 */
+        /* 모바일 화면 최적화 */
         @media (max-width: 1100px) {
             .side-ad {
                 display: none;
@@ -233,6 +255,28 @@
             img.img-fluid {
                 max-width: 100%;
                 height: auto;
+            }
+            
+            /* 질문 페이지 최적화 */
+            .question-image-container, .question-text {
+                width: 100% !important;
+                height: auto !important;
+                max-height: 50vh !important;
+            }
+            
+            .question-image {
+                width: 100%;
+                height: auto;
+                object-fit: contain;
+            }
+            
+            .options-container {
+                padding: 0 15px !important;
+            }
+            
+            .cloud-button {
+                width: 100% !important;
+                max-width: 100% !important;
             }
         }
     </style>
@@ -357,5 +401,23 @@
         
         // 창 크기가 변경될 때마다 위치 재설정
         window.addEventListener('resize', positionAd);
+    });
+        // 모바일에서 높이 계산 최적화 (iOS Safari 대응)
+    function setVh() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 처음 로드 시 실행
+        setVh();
+        
+        // 리사이즈 이벤트에 대응
+        window.addEventListener('resize', setVh);
+        
+        // 방향 전환 이벤트에 대응 (모바일)
+        window.addEventListener('orientationchange', function() {
+            setTimeout(setVh, 100);
+        });
     });
 </script>
