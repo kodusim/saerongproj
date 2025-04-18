@@ -1,13 +1,37 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
 from .models import Test, Question, Option, Result, Category, SharedTestResult
 from django.conf import settings
 
 def test_list(request):
     """테스트 목록 페이지"""
-    tests = Test.objects.all()
-    return render(request, 'psychotest/test_list.html', {'tests': tests})
+    # 검색 기능 구현
+    search_query = request.GET.get('search', '')
+    if search_query:
+        tests = Test.objects.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        ).order_by('-created_at')
+    else:
+        tests = Test.objects.all().order_by('-created_at')
+    
+    # 페이지네이션 구현
+    paginator = Paginator(tests, 9)  # 한 페이지에 9개씩 표시 (3x3 그리드)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'tests': page_obj,
+        'search_query': search_query,
+        'is_paginated': page_obj.has_other_pages(),
+        'paginator': paginator,
+        'page_obj': page_obj,
+    }
+    
+    return render(request, 'psychotest/test_list.html', context)
 
 
 def test_detail(request, test_id):
