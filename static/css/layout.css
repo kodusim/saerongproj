@@ -76,3 +76,42 @@
     -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 지원 */
   }
 }
+
+/* 이미지 컨테이너 확장 스타일 */
+.full-width-image-container {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  max-width: 500px; /* 최대 너비 제한 */
+}
+
+.full-width-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* 고정 버튼 스타일 */
+.fixed-bottom-button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 400px;
+  z-index: 1000;
+  border-radius: 30px;
+  padding: 12px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 모바일 화면에서 버튼 조정 */
+@media (max-width: 500px) {
+  .fixed-bottom-button {
+      width: 90%;
+      bottom: 15px;
+  }
+}

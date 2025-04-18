@@ -1,33 +1,86 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card mb-4">
-        <div class="card-body p-0">
-            <!-- 테스트 메인 이미지를 클릭하면 테스트 시작 -->
-            <a href="{% url 'psychotest:take_test' test.id %}" class="d-block">
-                {% if test.intro_image %}
-                <img src="{{ test.intro_image.url }}" class="img-fluid w-100" alt="{{ test.title }}">
-                {% elif test.image %}
-                <img src="{{ test.image.url }}" class="img-fluid w-100" alt="{{ test.title }}">
-                {% else %}
-                <div class="text-center py-5 bg-light">
-                    <h2>{{ test.title }}</h2>
-                    <p class="lead">테스트 이미지가 없습니다</p>
-                </div>
-                {% endif %}
-            </a>
-        </div>
-    </div>
+<style>
+    /* 이미지 컨테이너 스타일 */
+    .test-intro-image {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
     
-    <!-- 하단 버튼 영역 -->
-    <div class="d-flex justify-content-between mb-4">
-        <a href="{% url 'core:root' %}" class="btn btn-outline-secondary flex-grow-1 me-2">
-            메인으로
-        </a>
-        <a href="{% url 'psychotest:test_list' %}" class="btn btn-outline-primary flex-grow-1">
-            다른 테스트
-        </a>
-    </div>
+    .test-intro-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    /* 하단 여백 확보 */
+    .bottom-padding {
+        padding-bottom: 80px;
+    }
+</style>
+
+<div class="test-intro-image">
+    <a href="{% url 'psychotest:take_test' test.id %}">
+        {% if test.intro_image %}
+        <img src="{{ test.intro_image.url }}" alt="{{ test.title }}">
+        {% elif test.image %}
+        <img src="{{ test.image.url }}" alt="{{ test.title }}">
+        {% else %}
+        <div class="text-center py-5 bg-light">
+            <h2>{{ test.title }}</h2>
+            <p class="lead">테스트 이미지가 없습니다</p>
+        </div>
+        {% endif %}
+    </a>
 </div>
+
+<div class="bottom-padding"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 사이트 래퍼 찾기
+    var siteWrapper = document.querySelector('.site-wrapper');
+    
+    // 기존 푸터 찾기
+    var footerContainer = document.querySelector('footer');
+    
+    if (footerContainer && siteWrapper) {
+        // 푸터 스타일 적용
+        footerContainer.style.backgroundColor = '#000000';
+        footerContainer.style.position = 'fixed';
+        footerContainer.style.bottom = '0';
+        footerContainer.style.width = '500px'; // 정확히 500px 너비 설정
+        footerContainer.style.maxWidth = '100%';
+        footerContainer.style.left = '50%';
+        footerContainer.style.transform = 'translateX(-50%)'; // 중앙 정렬
+        footerContainer.style.padding = '15px 0';
+        footerContainer.style.zIndex = '1000';
+        
+        // 푸터 내용 교체
+        footerContainer.innerHTML = '';
+        
+        // 버튼 생성
+        var testButton = document.createElement('a');
+        testButton.href = "{% url 'psychotest:test_list' %}";
+        testButton.textContent = '다른 테스트';
+        testButton.style.display = 'block';
+        testButton.style.width = '80%';
+        testButton.style.maxWidth = '400px';
+        testButton.style.margin = '0 auto';
+        testButton.style.borderRadius = '30px';
+        testButton.style.padding = '12px 20px';
+        testButton.style.fontSize = '18px';
+        testButton.style.fontWeight = 'bold';
+        testButton.style.backgroundColor = '#000000';
+        testButton.style.color = '#ffffff';
+        testButton.style.textAlign = 'center';
+        testButton.style.border = '2px solid #ffffff';
+        testButton.style.textDecoration = 'none';
+        
+        footerContainer.appendChild(testButton);
+    }
+});
+</script>
 {% endblock %}
