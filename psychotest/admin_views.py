@@ -479,11 +479,12 @@ class TestWizardSumResultsView(TemplateView):
             csv_results_data = request.session.get('wizard_results_data', [])
             
             # CSV 결과 이미지 처리
-            for key, file in request.FILES.items():
-                if key.startswith('csv_results[') and '][image]' in key:
-                    # 결과 인덱스 추출 (예: csv_results[1][image] -> 1)
-                    index_str = key.split('[')[1].split(']')[0]
-                    
+        for key, file in request.FILES.items():
+            if key.startswith('csv_results_') and '_image' in key:
+                # 결과 인덱스 추출 (예: csv_results_1_image -> 1)
+                parts = key.split('_')
+                if len(parts) >= 3:
+                    index_str = parts[2]
                     try:
                         index = int(index_str)
                         # 이미지 파일을 임시 저장

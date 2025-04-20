@@ -401,20 +401,20 @@
                     
                     <div class="form-group">
                         <label for="result_0_title">결과 제목</label>
-                        <input type="text" id="result_0_title" name="results[0][title]" class="form-control" required>
+                        <input type="text" id="result_0_title" name="results_0_title" class="form-control" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="result_0_description">결과 설명</label>
-                        <textarea id="result_0_description" name="results[0][description]" class="form-control" required></textarea>
+                        <textarea id="result_0_description" name="results_0_description" class="form-control" required></textarea>
                     </div>
                     
                     <div class="form-group">
                         <label>점수 범위</label>
                         <div class="score-range">
-                            <input type="number" name="results[0][min_score]" class="form-control score-input" placeholder="최소" required>
+                            <input type="number" name="results_0_min_score" class="form-control score-input" placeholder="최소" required>
                             <span>~</span>
-                            <input type="number" name="results[0][max_score]" class="form-control score-input" placeholder="최대" required>
+                            <input type="number" name="results_0_max_score" class="form-control score-input" placeholder="최대" required>
                         </div>
                     </div>
                     
@@ -497,40 +497,34 @@
     }
     
     function displayCSVContent(content) {
-        // 줄바꿈 문자를 확인하고 적절히 처리
-        let lines = content.split(/\r?\n/);
-        
-        // 빈 줄 필터링
-        lines = lines.filter(line => line.trim().length > 0);
-        
-        // 각 줄을 쉼표로 분할하여 행 배열 만들기
-        let rows = lines.map(line => line.split(',').map(cell => cell.trim()));
-        
-        console.log("CSV Parsed Rows:", rows);
-        
-        if (rows.length < 2) {
-            alert("CSV 파일에 충분한 데이터가 없습니다.");
-            return;
-        }
+        // CSV 데이터 파싱
+        const rows = content.split('\n').map(row => row.split(','));
         
         // 테이블 생성
         let tableHTML = '<table class="results-table">';
         
-        // 헤더 행
-        tableHTML += '<tr>';
-        for (let i = 0; i < rows[0].length; i++) {
-            tableHTML += `<th>${rows[0][i]}</th>`;
+        // 헤더 행 (첫 번째 행)
+        if (rows.length > 0) {
+            tableHTML += '<tr>';
+            for (let i = 0; i < rows[0].length; i++) {
+                let cellValue = rows[0][i].trim();
+                tableHTML += `<th>${cellValue}</th>`;
+            }
+            tableHTML += '</tr>';
         }
-        tableHTML += '</tr>';
         
         // 데이터 행
         for (let i = 1; i < rows.length; i++) {
-            tableHTML += '<tr>';
-            for (let j = 0; j < rows[0].length; j++) {
-                let cellValue = (j < rows[i].length) ? rows[i][j] : '';
-                tableHTML += `<td>${cellValue}</td>`;
+            if (rows[i].length > 1) { // 빈 행 제외
+                tableHTML += '<tr>';
+                
+                for (let j = 0; j < rows[i].length; j++) {
+                    let cellValue = j < rows[i].length ? rows[i][j].trim() : '';
+                    tableHTML += `<td>${cellValue}</td>`;
+                }
+                
+                tableHTML += '</tr>';
             }
-            tableHTML += '</tr>';
         }
         
         tableHTML += '</table>';
@@ -557,26 +551,19 @@
         const resultsGrid = document.getElementById('results-grid');
         resultsGrid.innerHTML = '';
         
-        // 헤더 행에서 결과 번호 가져오기 (1열부터)
-        for (let colIndex = 1; colIndex < rows[0].length; colIndex++) {
-            const resultNum = rows[0][colIndex]; // 헤더 행의 각 열이 결과 번호
+        // 열 기준으로 결과 생성 (첫 번째 열 제외)
+        for (let i = 1; i < rows[0].length; i++) {
+            const resultNum = i;
+            const resultTitle = rows[0][i] || `결과 ${resultNum}`;
             
-            // 결과 이름, 최소점수, 최대점수 찾기
-            let resultTitle = "";
-            let minScore = "";
-            let maxScore = "";
-            
-            // 각 행의 의미 (제목, 최소점수, 최대점수)에 따라 데이터 추출
-            for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
-                const rowLabel = rows[rowIndex][0].toLowerCase();
-                
-                if (rowLabel.includes('이름')) {
-                    resultTitle = rows[rowIndex][colIndex];
-                } else if (rowLabel.includes('최소')) {
-                    minScore = rows[rowIndex][colIndex];
-                } else if (rowLabel.includes('최대')) {
-                    maxScore = rows[rowIndex][colIndex];
-                }
+            // 실제 데이터 파싱
+            let resultData = {};
+            if (rows.length > 1) {
+                // 첫 행은 헤더이므로 두 번째 행부터 데이터로 간주
+                resultData = {
+                    min_score: (rows.length > 1 && rows[1].length > i) ? rows[1][i].trim() : '',
+                    max_score: (rows.length > 2 && rows[2].length > i) ? rows[2][i].trim() : ''
+                };
             }
             
             // 결과 카드 생성
@@ -586,9 +573,7 @@
             // 결과 헤더
             const resultHeader = document.createElement('div');
             resultHeader.className = 'result-header';
-            resultHeader.innerHTML = `
-                <h4 class="result-title">결과 ${resultNum}: ${resultTitle}</h4>
-            `;
+            resultHeader.innerHTML = `<h4 class="result-title">결과 ${resultNum}: ${resultTitle}</h4>`;
             
             // 결과 본문
             const resultBody = document.createElement('div');
@@ -596,11 +581,11 @@
             
             // 점수 범위 표시
             let scoreRangeHTML = '';
-            if (minScore && maxScore) {
+            if (resultData.min_score && resultData.max_score) {
                 scoreRangeHTML = `
                     <div class="result-form-group">
                         <label class="result-label">점수 범위</label>
-                        <p>${minScore} ~ ${maxScore}</p>
+                        <p>${resultData.min_score} ~ ${resultData.max_score}</p>
                     </div>
                 `;
             }
@@ -610,18 +595,18 @@
                 <div class="result-form-group">
                     <label class="result-label">배경 색상</label>
                     <div class="color-picker-container">
-                        <input type="color" id="csv_result_${resultNum}_background" name="csv_results[${resultNum}][background_color]" value="#FFFFFF" onchange="updateColorPreview(this, 'csv_result_${resultNum}_color_preview')">
+                        <input type="color" id="csv_result_${resultNum}_background" name="csv_results_${resultNum}_background_color" value="#FFFFFF" onchange="updateColorPreview(this, 'csv_result_${resultNum}_color_preview')">
                         <div class="color-preview" id="csv_result_${resultNum}_color_preview" style="background-color: #FFFFFF;"></div>
                     </div>
                 </div>
             `;
             
-            // 이미지 업로드
+            // 이미지 업로드 - 수정된 name 속성
             const imageUploadHTML = `
                 <div class="result-form-group">
                     <label class="result-label">결과 이미지</label>
                     <div class="image-upload-box">
-                        <input type="file" name="csv_results[${resultNum}][image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_image_preview')">
+                        <input type="file" name="csv_results_${resultNum}_image" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_image_preview')">
                         <p>결과 이미지</p>
                         <img id="csv_result_${resultNum}_image_preview" src="#" alt="미리보기" class="image-preview">
                     </div>
@@ -630,20 +615,20 @@
                 <div class="result-form-group">
                     <label class="result-label">보조 이미지</label>
                     <div class="image-upload-box">
-                        <input type="file" name="csv_results[${resultNum}][sub_image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_sub_image_preview')">
+                        <input type="file" name="csv_results_${resultNum}_sub_image" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_sub_image_preview')">
                         <p>보조 이미지</p>
                         <img id="csv_result_${resultNum}_sub_image_preview" src="#" alt="미리보기" class="image-preview">
                     </div>
                 </div>
             `;
             
-            // 히든 필드
+            // 히든 필드 - 수정된 name 속성
             const hiddenFieldsHTML = `
-                <input type="hidden" name="csv_results[${resultNum}][result_num]" value="${resultNum}">
-                <input type="hidden" name="csv_results[${resultNum}][title]" value="${resultTitle}">
-                <input type="hidden" name="csv_results[${resultNum}][description]" value="">
-                <input type="hidden" name="csv_results[${resultNum}][min_score]" value="${minScore}">
-                <input type="hidden" name="csv_results[${resultNum}][max_score]" value="${maxScore}">
+                <input type="hidden" name="csv_results_${resultNum}_result_num" value="${resultNum}">
+                <input type="hidden" name="csv_results_${resultNum}_title" value="${resultTitle}">
+                <input type="hidden" name="csv_results_${resultNum}_description" value="">
+                <input type="hidden" name="csv_results_${resultNum}_min_score" value="${resultData.min_score || ''}">
+                <input type="hidden" name="csv_results_${resultNum}_max_score" value="${resultData.max_score || ''}">
             `;
             
             // 결과 본문 내용 설정
@@ -657,7 +642,7 @@
             resultsGrid.appendChild(resultCard);
         }
     }
-    
+        
     function createResultSettingsUI(rows) {
         // 결과 수 계산 (헤더 제외한 행 수)
         const resultCount = rows.length - 1;
@@ -733,7 +718,7 @@
                 <div class="result-form-group">
                     <label class="result-label">결과 이미지</label>
                     <div class="image-upload-box">
-                        <input type="file" name="csv_results[${resultNum}][image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_image_preview')">
+                        <input type="file" name="csv_results_${resultNum}_image" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_image_preview')">
                         <p>결과 이미지</p>
                         <img id="csv_result_${resultNum}_image_preview" src="#" alt="미리보기" class="image-preview">
                     </div>
