@@ -1,0 +1,789 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+<style>
+    .wizard-container {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+    
+    .wizard-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .wizard-subtitle {
+        font-size: 18px;
+        margin-bottom: 25px;
+        text-align: center;
+        color: #555;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+    }
+    
+    .result-container {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: #f9f9f9;
+        position: relative;
+    }
+    
+    .remove-result {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    .add-result-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 15px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    
+    .image-upload-box {
+        border: 2px dashed #ccc;
+        padding: 20px;
+        text-align: center;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: border-color 0.3s;
+        position: relative;
+        margin-top: 10px;
+    }
+    
+    .image-upload-box:hover {
+        border-color: #0c2340;
+    }
+    
+    .image-upload-box input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .image-upload-box p {
+        margin: 0;
+        font-size: 14px;
+    }
+    
+    .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+        display: none;
+    }
+    
+    .image-upload-box.has-image {
+        border-color: #28a745;
+    }
+    
+    .color-picker-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .color-preview {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .btn-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary {
+        background-color: #0c2340;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn:hover {
+        opacity: 0.9;
+    }
+    
+    .score-range {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .score-input {
+        width: 80px;
+    }
+    
+    .help-text {
+        color: #666;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .image-upload-container {
+        margin-top: 15px;
+    }
+    
+    .image-upload-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    
+    /* CSV 업로드 관련 스타일 */
+    .csv-upload-container {
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    
+    .csv-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    .csv-upload-box {
+        border: 2px dashed #ccc;
+        padding: 30px;
+        text-align: center;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: border-color 0.3s;
+        position: relative;
+        width: 80%;
+        margin: 0 auto;
+    }
+    
+    .csv-upload-box:hover {
+        border-color: #0c2340;
+    }
+    
+    .csv-upload-box input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .file-name {
+        margin-top: 10px;
+        font-style: italic;
+        color: #28a745;
+        display: none;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0c2340;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 2s linear infinite;
+        margin: 0 auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* 결과 이미지 업로드 관련 스타일 */
+    .results-container {
+        margin-top: 40px;
+    }
+    
+    .results-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .result-card {
+        width: 280px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .result-header {
+        padding: 10px 15px;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .result-title {
+        font-weight: bold;
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .result-body {
+        padding: 15px;
+    }
+    
+    .result-form-group {
+        margin-bottom: 15px;
+    }
+    
+    .result-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .results-table-container {
+        margin-top: 30px;
+        overflow-x: auto;
+    }
+    
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #dee2e6;
+    }
+    
+    .results-table th, 
+    .results-table td {
+        border: 1px solid #dee2e6;
+        padding: 8px 12px;
+        text-align: center;
+    }
+    
+    .results-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .results-table tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="wizard-container">
+        <div class="wizard-title">테스트 추가 마법사 4</div>
+        <div class="wizard-subtitle">결과 설정</div>
+        
+        <form method="post" enctype="multipart/form-data" id="wizard-form-step4">
+            {% csrf_token %}
+            
+            <!-- 점수 범위 확인 섹션 -->
+            <div class="form-group">
+                <label>테스트의 가능한 점수 범위:</label>
+                <div id="score-range-info">
+                    <p>최소 가능 점수: <span id="min-possible-score">{{ min_possible_score }}</span></p>
+                    <p>최대 가능 점수: <span id="max-possible-score">{{ max_possible_score }}</span></p>
+                </div>
+                <p class="help-text">이 범위 내에서 각 결과의 점수 범위를 설정하세요.</p>
+            </div>
+
+            <!-- CSV 업로드 섹션 -->
+            <div class="csv-upload-container">
+                <label for="id_csv_file" class="csv-label">CSV파일</label>
+                <div class="csv-upload-box" id="csv-upload-box">
+                    <input type="file" id="id_csv_file" name="csv_file" accept=".csv" onchange="handleFileUpload(this)">
+                    <p>드래그해서 삽입</p>
+                </div>
+                <p class="file-name" id="file-name"></p>
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>CSV 파일 분석 중...</p>
+                </div>
+            </div>
+            
+            <!-- 결과 테이블 컨테이너 -->
+            <div class="results-table-container" id="results-table-container">
+                <!-- 여기에 CSV 내용이 테이블로 표시됩니다 -->
+            </div>
+            
+            <!-- 결과 이미지 업로드 컨테이너 -->
+            <div class="results-container" id="results-container" style="display: none;">
+                <h3>결과 설정</h3>
+                <p>각 결과에 대한 이미지와 색상을 설정하세요.</p>
+                
+                <div class="results-grid" id="results-grid">
+                    <!-- 결과 수에 따라 동적으로 생성됩니다 -->
+                </div>
+            </div>
+            
+            <!-- 수동 결과 입력 컨테이너 (CSV 파일을 사용하지 않을 경우) -->
+            <div id="manual-results-container">
+                <!-- 초기 결과 항목 -->
+                <div class="result-container" data-result-index="0">
+                    <button type="button" class="remove-result" onclick="removeResult(this)">×</button>
+                    <h3>결과 1</h3>
+                    
+                    <div class="form-group">
+                        <label for="result_0_title">결과 제목</label>
+                        <input type="text" id="result_0_title" name="results[0][title]" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="result_0_description">결과 설명</label>
+                        <textarea id="result_0_description" name="results[0][description]" class="form-control" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>점수 범위</label>
+                        <div class="score-range">
+                            <input type="number" name="results[0][min_score]" class="form-control score-input" placeholder="최소" required>
+                            <span>~</span>
+                            <input type="number" name="results[0][max_score]" class="form-control score-input" placeholder="최대" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="result_0_background">배경 색상</label>
+                        <div class="color-picker-container">
+                            <input type="color" id="result_0_background" name="results[0][background_color]" value="#FFFFFF">
+                            <div class="color-preview" id="result_0_color_preview" style="background-color: #FFFFFF;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="image-upload-container">
+                        <label class="image-upload-label">결과 이미지</label>
+                        <div class="image-upload-box" id="result_0_image_box">
+                            <input type="file" id="result_0_image" name="results[0][image]" accept="image/*" onchange="previewImage(this, 'result_0_image_preview')">
+                            <p>결과 이미지 (권장 크기: 500x500)</p>
+                            <p>드래그해서 삽입</p>
+                            <img id="result_0_image_preview" src="#" alt="미리보기" class="image-preview">
+                        </div>
+                    </div>
+                    
+                    <div class="image-upload-container">
+                        <label class="image-upload-label">보조 이미지 (선택사항)</label>
+                        <div class="image-upload-box" id="result_0_sub_image_box">
+                            <input type="file" id="result_0_sub_image" name="results[0][sub_image]" accept="image/*" onchange="previewImage(this, 'result_0_sub_image_preview')">
+                            <p>보조 이미지 (권장 크기: 500x300)</p>
+                            <p>드래그해서 삽입</p>
+                            <img id="result_0_sub_image_preview" src="#" alt="미리보기" class="image-preview">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" class="add-result-btn" onclick="addResultContainer()">+ 결과 추가</button>
+            
+            <div class="btn-container">
+                <a href="{% url 'admin:psychotest_test_wizard_sum_questions' %}" class="btn btn-secondary">이전</a>
+                <button type="submit" class="btn btn-primary">다음</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let resultIndex = 0;  // 현재 결과 인덱스
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 색상 선택 이벤트 연결
+        document.getElementById('result_0_background').addEventListener('input', function() {
+            updateColorPreview(this, 'result_0_color_preview');
+        });
+    });
+    
+    function handleFileUpload(input) {
+        // 파일이 선택되었는지 확인
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            
+            // 파일 이름 표시
+            const fileNameElement = document.getElementById('file-name');
+            fileNameElement.textContent = '선택된 파일: ' + file.name;
+            fileNameElement.style.display = 'block';
+            
+            // 로딩 표시기 보이기
+            document.getElementById('loading').style.display = 'block';
+            
+            // CSV 파일 읽기 및 처리
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                displayCSVContent(content);
+                
+                // 로딩 표시기 숨기기
+                document.getElementById('loading').style.display = 'none';
+            }
+            
+            reader.readAsText(file);
+        }
+    }
+    
+    function displayCSVContent(content) {
+        // CSV 데이터 파싱
+        const rows = content.split('\n').map(row => row.split(','));
+        
+        if (rows.length < 2) {
+            alert("CSV 파일에 충분한 데이터가 없습니다.");
+            return;
+        }
+        
+        // 테이블 생성
+        let tableHTML = '<table class="results-table">';
+        
+        // 헤더 행 (결과 필드)
+        tableHTML += '<tr>';
+        for (let i = 0; i < rows[0].length; i++) {
+            let cellValue = rows[0][i].trim();
+            tableHTML += `<th>${cellValue}</th>`;
+        }
+        tableHTML += '</tr>';
+        
+        // 데이터 행 (결과 데이터)
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i].length > 1) { // 빈 행 제외
+                tableHTML += '<tr>';
+                
+                for (let j = 0; j < rows[i].length; j++) {
+                    let cellValue = j < rows[i].length ? rows[i][j].trim() : '';
+                    tableHTML += `<td>${cellValue}</td>`;
+                }
+                
+                // 나머지 열이 부족한 경우 빈 셀로 채우기
+                for (let j = rows[i].length; j < rows[0].length; j++) {
+                    tableHTML += '<td></td>';
+                }
+                
+                tableHTML += '</tr>';
+            }
+        }
+        
+        tableHTML += '</table>';
+        
+        // 테이블을 컨테이너에 추가
+        document.getElementById('results-table-container').innerHTML = tableHTML;
+        
+        // 테이블 콘텐츠를 폼에 추가하기 위한 히든 필드 생성
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'csv_content';
+        hiddenInput.value = content;
+        document.getElementById('wizard-form-step4').appendChild(hiddenInput);
+        
+        // 수동 결과 입력 컨테이너 숨기기
+        document.getElementById('manual-results-container').style.display = 'none';
+        document.querySelector('.add-result-btn').style.display = 'none';
+        
+        // 결과 이미지 및 색상 설정 UI 생성
+        createResultSettingsUI(rows);
+    }
+    
+    function createResultSettingsUI(rows) {
+        // 결과 수 계산 (헤더 제외한 행 수)
+        const resultCount = rows.length - 1;
+        
+        if (resultCount <= 0) {
+            return;
+        }
+        
+        // 결과 컨테이너 표시
+        const resultsContainer = document.getElementById('results-container');
+        resultsContainer.style.display = 'block';
+        
+        // 결과 그리드 초기화
+        const resultsGrid = document.getElementById('results-grid');
+        resultsGrid.innerHTML = '';
+        
+        // 결과번호, 결과이름, 최소점수, 최대점수 열 인덱스 찾기
+        let idxResultNum = 0;
+        let idxResultTitle = 1;
+        let idxMinScore = -1;
+        let idxMaxScore = -1;
+        
+        // 열 인덱스 찾기
+        for (let i = 0; i < rows[0].length; i++) {
+            const header = rows[0][i].trim().toLowerCase();
+            if (header === '결과번호') idxResultNum = i;
+            else if (header === '결과이름') idxResultTitle = i;
+            else if (header === '최소점수') idxMinScore = i;
+            else if (header === '최대점수') idxMaxScore = i;
+        }
+        
+        // 각 결과에 대한 설정 UI 생성
+        for (let i = 1; i <= resultCount; i++) {
+            if (i >= rows.length) break;
+            
+            const row = rows[i];
+            if (row.length <= 1) continue; // 빈 행 제외
+            
+            const resultNum = row[idxResultNum].trim();
+            const resultTitle = row[idxResultTitle].trim();
+            const minScore = idxMinScore >= 0 && idxMinScore < row.length ? row[idxMinScore].trim() : '';
+            const maxScore = idxMaxScore >= 0 && idxMaxScore < row.length ? row[idxMaxScore].trim() : '';
+            
+            // 결과 카드 생성
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+            
+            // 결과 헤더
+            const resultHeader = document.createElement('div');
+            resultHeader.className = 'result-header';
+            resultHeader.innerHTML = `
+                <h4 class="result-title">결과 ${resultNum}: ${resultTitle}</h4>
+            `;
+            
+            // 결과 본문
+            const resultBody = document.createElement('div');
+            resultBody.className = 'result-body';
+            
+            // 점수 범위 표시
+            let scoreRangeHTML = '';
+            if (minScore && maxScore) {
+                scoreRangeHTML = `
+                    <div class="result-form-group">
+                        <label class="result-label">점수 범위</label>
+                        <p>${minScore} ~ ${maxScore}</p>
+                    </div>
+                `;
+            }
+            
+            // 색상 선택기
+            const colorPickerHTML = `
+                <div class="result-form-group">
+                    <label class="result-label">배경 색상</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="csv_result_${i}_background" name="csv_results[${i}][background_color]" value="#FFFFFF" onchange="updateColorPreview(this, 'csv_result_${i}_color_preview')">
+                        <div class="color-preview" id="csv_result_${i}_color_preview" style="background-color: #FFFFFF;"></div>
+                    </div>
+                </div>
+            `;
+            
+            // 이미지 업로드
+            const imageUploadHTML = `
+                <div class="result-form-group">
+                    <label class="result-label">결과 이미지</label>
+                    <div class="image-upload-box">
+                        <input type="file" name="csv_results[${i}][image]" accept="image/*" onchange="previewImage(this, 'csv_result_${i}_image_preview')">
+                        <p>결과 이미지</p>
+                        <img id="csv_result_${i}_image_preview" src="#" alt="미리보기" class="image-preview">
+                    </div>
+                </div>
+                
+                <div class="result-form-group">
+                    <label class="result-label">보조 이미지</label>
+                    <div class="image-upload-box">
+                        <input type="file" name="csv_results[${i}][sub_image]" accept="image/*" onchange="previewImage(this, 'csv_result_${i}_sub_image_preview')">
+                        <p>보조 이미지</p>
+                        <img id="csv_result_${i}_sub_image_preview" src="#" alt="미리보기" class="image-preview">
+                    </div>
+                </div>
+            `;
+            
+            // 히든 필드
+            const hiddenFieldsHTML = `
+                <input type="hidden" name="csv_results[${i}][result_num]" value="${resultNum}">
+                <input type="hidden" name="csv_results[${i}][title]" value="${resultTitle}">
+                <input type="hidden" name="csv_results[${i}][min_score]" value="${minScore}">
+                <input type="hidden" name="csv_results[${i}][max_score]" value="${maxScore}">
+            `;
+            
+            // 결과 본문 내용 설정
+            resultBody.innerHTML = scoreRangeHTML + colorPickerHTML + imageUploadHTML + hiddenFieldsHTML;
+            
+            // 결과 카드에 헤더와 본문 추가
+            resultCard.appendChild(resultHeader);
+            resultCard.appendChild(resultBody);
+            
+            // 그리드에 카드 추가
+            resultsGrid.appendChild(resultCard);
+        }
+    }
+    
+    function addResultContainer() {
+        resultIndex++;
+        const container = document.getElementById('manual-results-container');
+        
+        const resultHTML = `
+            <div class="result-container" data-result-index="${resultIndex}">
+                <button type="button" class="remove-result" onclick="removeResult(this)">×</button>
+                <h3>결과 ${resultIndex + 1}</h3>
+                
+                <div class="form-group">
+                    <label for="result_${resultIndex}_title">결과 제목</label>
+                    <input type="text" id="result_${resultIndex}_title" name="results[${resultIndex}][title]" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="result_${resultIndex}_description">결과 설명</label>
+                    <textarea id="result_${resultIndex}_description" name="results[${resultIndex}][description]" class="form-control" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>점수 범위</label>
+                    <div class="score-range">
+                        <input type="number" name="results[${resultIndex}][min_score]" class="form-control score-input" placeholder="최소" required>
+                        <span>~</span>
+                        <input type="number" name="results[${resultIndex}][max_score]" class="form-control score-input" placeholder="최대" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="result_${resultIndex}_background">배경 색상</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="result_${resultIndex}_background" name="results[${resultIndex}][background_color]" value="#FFFFFF">
+                        <div class="color-preview" id="result_${resultIndex}_color_preview" style="background-color: #FFFFFF;"></div>
+                    </div>
+                </div>
+                
+                <div class="image-upload-container">
+                    <label class="image-upload-label">결과 이미지</label>
+                    <div class="image-upload-box" id="result_${resultIndex}_image_box">
+                        <input type="file" id="result_${resultIndex}_image" name="results[${resultIndex}][image]" accept="image/*" onchange="previewImage(this, 'result_${resultIndex}_image_preview')">
+                        <p>결과 이미지 (권장 크기: 500x500)</p>
+                        <p>드래그해서 삽입</p>
+                        <img id="result_${resultIndex}_image_preview" src="#" alt="미리보기" class="image-preview">
+                    </div>
+                </div>
+                
+                <div class="image-upload-container">
+                    <label class="image-upload-label">보조 이미지 (선택사항)</label>
+                    <div class="image-upload-box" id="result_${resultIndex}_sub_image_box">
+                        <input type="file" id="result_${resultIndex}_sub_image" name="results[${resultIndex}][sub_image]" accept="image/*" onchange="previewImage(this, 'result_${resultIndex}_sub_image_preview')">
+                        <p>보조 이미지 (권장 크기: 500x300)</p>
+                        <p>드래그해서 삽입</p>
+                        <img id="result_${resultIndex}_sub_image_preview" src="#" alt="미리보기" class="image-preview">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', resultHTML);
+        
+        // 색상 선택 이벤트 연결
+        document.getElementById(`result_${resultIndex}_background`).addEventListener('input', function() {
+            updateColorPreview(this, `result_${resultIndex}_color_preview`);
+        });
+    }
+    
+    function removeResult(button) {
+        const container = button.closest('.result-container');
+        const containers = document.querySelectorAll('.result-container');
+        
+        // 최소 1개의 결과는 유지
+        if (containers.length > 1) {
+            container.remove();
+            
+            // 결과 제목 번호 재정렬
+            const remainingContainers = document.querySelectorAll('.result-container');
+            remainingContainers.forEach((container, index) => {
+                container.querySelector('h3').textContent = `결과 ${index + 1}`;
+            });
+        } else {
+            alert('최소 1개의 결과가 필요합니다.');
+        }
+    }
+    
+    function previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const box = input.closest('.image-upload-box');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                box.classList.add('has-image');
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.src = '#';
+            preview.style.display = 'none';
+            box.classList.remove('has-image');
+        }
+    }
+    
+    function updateColorPreview(input, previewId) {
+        const preview = document.getElementById(previewId);
+        preview.style.backgroundColor = input.value;
+    }
+</script>
+{% endblock %}

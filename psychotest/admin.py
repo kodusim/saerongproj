@@ -1,3 +1,4 @@
+# 기존 import 문
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import path
@@ -14,6 +15,8 @@ from .utils.test_wizard import TestWizardHandler
 from django.urls import path
 from .admin_views import TestWizardMethodSelectionView, TestWizardSumView, TestWizardSumQuestionsView
 
+# 누락된 import 문 추가
+from .admin_views import TestWizardSumResultsView, TestWizardSumConfirmView
 
 class TestImportForm(forms.Form):
     """테스트 일괄 등록을 위한 폼"""
@@ -172,31 +175,17 @@ class TestAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('import-test/', 
-                 self.admin_site.admin_view(self.import_test_view), 
-                 name='psychotest_test_import'),
+                self.admin_site.admin_view(self.import_test_view), 
+                name='psychotest_test_import'),
             path('add-test-wizard/', 
-                 self.admin_site.admin_view(self.add_test_wizard_view), 
-                 name='psychotest_test_wizard'),
+                self.admin_site.admin_view(self.add_test_wizard_view), 
+                name='psychotest_test_wizard'),
             path('<int:test_id>/questions/',
-                 self.admin_site.admin_view(self.questions_view),
-                 name='psychotest_test_questions'),
+                self.admin_site.admin_view(self.questions_view),
+                name='psychotest_test_questions'),
             path('<int:test_id>/results/',
-                 self.admin_site.admin_view(self.results_view),
-                 name='psychotest_test_results'),
-            path('import-test/', 
-                self.admin_site.admin_view(self.import_test_view), 
-                name='psychotest_test_import'),
-            # 새로운 마법사 메서드 선택 뷰
-            path('wizard-selection/', 
-                self.admin_site.admin_view(TestWizardMethodSelectionView.as_view()), 
-                name='psychotest_test_wizard_selection'),
-            # 점수 합산 방식 마법사
-            path('wizard-sum/', 
-                self.admin_site.admin_view(TestWizardSumView.as_view()), 
-                name='psychotest_test_wizard_sum'),
-            path('import-test/', 
-                self.admin_site.admin_view(self.import_test_view), 
-                name='psychotest_test_import'),
+                self.admin_site.admin_view(self.results_view),
+                name='psychotest_test_results'),
             # 새로운 마법사 메서드 선택 뷰
             path('wizard-selection/', 
                 self.admin_site.admin_view(TestWizardMethodSelectionView.as_view()), 
@@ -209,10 +198,14 @@ class TestAdmin(admin.ModelAdmin):
             path('wizard-sum/questions/', 
                 self.admin_site.admin_view(TestWizardSumQuestionsView.as_view()), 
                 name='psychotest_test_wizard_sum_questions'),
-            # 기존 마법사 뷰는 당분간 유지
-            path('add-test-wizard/', 
-                self.admin_site.admin_view(self.add_test_wizard_view), 
-                name='psychotest_test_wizard'),
+            # 점수 합산 방식 마법사 - 결과 설정
+            path('wizard-sum/results/', 
+                self.admin_site.admin_view(TestWizardSumResultsView.as_view()), 
+                name='psychotest_test_wizard_sum_results'),
+            # 점수 합산 방식 마법사 - 최종 확인
+            path('wizard-sum/confirm/', 
+                self.admin_site.admin_view(TestWizardSumConfirmView.as_view()), 
+                name='psychotest_test_wizard_sum_confirm'),
         ]
         return custom_urls + urls
     
