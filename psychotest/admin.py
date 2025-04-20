@@ -11,6 +11,10 @@ from .forms import OptionForm, QuestionForm, ResultForm
 from .utils.import_handler import TestImportHandler
 from .utils.test_wizard import TestWizardHandler
 
+from django.urls import path
+from .admin_views import TestWizardMethodSelectionView, TestWizardSumView, TestWizardSumQuestionsView
+
+
 class TestImportForm(forms.Form):
     """테스트 일괄 등록을 위한 폼"""
     file = forms.FileField(label='Excel 파일 업로드', 
@@ -179,6 +183,36 @@ class TestAdmin(admin.ModelAdmin):
             path('<int:test_id>/results/',
                  self.admin_site.admin_view(self.results_view),
                  name='psychotest_test_results'),
+            path('import-test/', 
+                self.admin_site.admin_view(self.import_test_view), 
+                name='psychotest_test_import'),
+            # 새로운 마법사 메서드 선택 뷰
+            path('wizard-selection/', 
+                self.admin_site.admin_view(TestWizardMethodSelectionView.as_view()), 
+                name='psychotest_test_wizard_selection'),
+            # 점수 합산 방식 마법사
+            path('wizard-sum/', 
+                self.admin_site.admin_view(TestWizardSumView.as_view()), 
+                name='psychotest_test_wizard_sum'),
+            path('import-test/', 
+                self.admin_site.admin_view(self.import_test_view), 
+                name='psychotest_test_import'),
+            # 새로운 마법사 메서드 선택 뷰
+            path('wizard-selection/', 
+                self.admin_site.admin_view(TestWizardMethodSelectionView.as_view()), 
+                name='psychotest_test_wizard_selection'),
+            # 점수 합산 방식 마법사 - 테스트 정보 입력
+            path('wizard-sum/', 
+                self.admin_site.admin_view(TestWizardSumView.as_view()), 
+                name='psychotest_test_wizard_sum'),
+            # 점수 합산 방식 마법사 - 질문지 입력
+            path('wizard-sum/questions/', 
+                self.admin_site.admin_view(TestWizardSumQuestionsView.as_view()), 
+                name='psychotest_test_wizard_sum_questions'),
+            # 기존 마법사 뷰는 당분간 유지
+            path('add-test-wizard/', 
+                self.admin_site.admin_view(self.add_test_wizard_view), 
+                name='psychotest_test_wizard'),
         ]
         return custom_urls + urls
     
@@ -450,10 +484,13 @@ class TestAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         """목록 뷰에 추가 버튼 표시"""
         extra_context = extra_context or {}
-        extra_context['show_wizard_button'] = True
+        extra_context['show_wizard_button'] = True  # 기존 플래그 유지
         extra_context['show_import_button'] = True
+        
+        # 템플릿에서 새 마법사 URL을 사용할 수 있게 URL 추가
+        from django.urls import reverse
+        extra_context['new_wizard_url'] = reverse('admin:psychotest_test_wizard_selection')
         return super().changelist_view(request, extra_context)
-    
 class QuestionAdmin(admin.ModelAdmin):
     inlines = [OptionInline]
     list_display = ['text', 'test', 'order', 'options_count', 'has_image']

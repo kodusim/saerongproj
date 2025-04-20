@@ -5,7 +5,7 @@
     {{ block.super }}
     {% if show_wizard_button %}
     <li>
-        <a href="{% url 'admin:psychotest_test_wizard' %}" class="addlink">
+        <a href="{{ new_wizard_url }}" class="addlink">
             {% trans '테스트 마법사로 추가' %}
         </a>
     </li>

@@ -1,0 +1,267 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+<style>
+    .wizard-container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+    
+    .wizard-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .wizard-subtitle {
+        font-size: 18px;
+        margin-bottom: 25px;
+        text-align: center;
+        color: #555;
+    }
+    
+    .csv-upload-container {
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    
+    .csv-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    .csv-upload-box {
+        border: 2px dashed #ccc;
+        padding: 30px;
+        text-align: center;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: border-color 0.3s;
+        position: relative;
+        width: 80%;
+        margin: 0 auto;
+    }
+    
+    .csv-upload-box:hover {
+        border-color: #0c2340;
+    }
+    
+    .csv-upload-box input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .csv-upload-box p {
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .questions-table-container {
+        margin-top: 30px;
+        overflow-x: auto;
+    }
+    
+    .questions-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #dee2e6;
+    }
+    
+    .questions-table th, 
+    .questions-table td {
+        border: 1px solid #dee2e6;
+        padding: 8px 12px;
+        text-align: center;
+    }
+    
+    .questions-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .questions-table tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+    
+    .btn-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary {
+        background-color: #0c2340;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn:hover {
+        opacity: 0.9;
+    }
+    
+    .file-name {
+        margin-top: 10px;
+        font-style: italic;
+        color: #28a745;
+        display: none;
+    }
+    
+    /* 로딩 표시기 */
+    .loading {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0c2340;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 2s linear infinite;
+        margin: 0 auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="wizard-container">
+        <div class="wizard-title">테스트 추가 마법사 3</div>
+        <div class="wizard-subtitle">질문지 및 선택지 입력</div>
+        
+        <form method="post" enctype="multipart/form-data" id="wizard-form-step3">
+            {% csrf_token %}
+            
+            <div class="csv-upload-container">
+                <label for="id_csv_file" class="csv-label">CSV파일</label>
+                <div class="csv-upload-box" id="csv-upload-box">
+                    <input type="file" id="id_csv_file" name="csv_file" accept=".csv" onchange="handleFileUpload(this)">
+                    <p>드래그해서 삽입</p>
+                </div>
+                <p class="file-name" id="file-name"></p>
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>CSV 파일 분석 중...</p>
+                </div>
+            </div>
+            
+            <div class="questions-table-container" id="questions-table-container">
+                <!-- 여기에 CSV 내용이 테이블로 표시됩니다 -->
+            </div>
+            
+            <div class="btn-container">
+                <a href="{% url 'admin:psychotest_test_wizard_sum' %}" class="btn btn-secondary">이전</a>
+                <button type="submit" class="btn btn-primary">다음</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function handleFileUpload(input) {
+        // 파일이 선택되었는지 확인
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            
+            // 파일 이름 표시
+            const fileNameElement = document.getElementById('file-name');
+            fileNameElement.textContent = '선택된 파일: ' + file.name;
+            fileNameElement.style.display = 'block';
+            
+            // 로딩 표시기 보이기
+            document.getElementById('loading').style.display = 'block';
+            
+            // CSV 파일 읽기 및 처리
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                displayCSVContent(content);
+                
+                // 로딩 표시기 숨기기
+                document.getElementById('loading').style.display = 'none';
+            }
+            
+            reader.readAsText(file);
+        }
+    }
+    
+    function displayCSVContent(content) {
+        // CSV 데이터 파싱
+        const rows = content.split('\n').map(row => row.split(','));
+        
+        // 테이블 생성
+        let tableHTML = '<table class="questions-table">';
+        
+        // 헤더 행 (질문 번호)
+        tableHTML += '<tr><th>질문번호</th>';
+        for (let i = 0; i < rows[0].length; i++) {
+            tableHTML += `<th>${rows[0][i].trim()}</th>`;
+        }
+        tableHTML += '</tr>';
+        
+        // 데이터 행
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i].length > 1) { // 빈 행 제외
+                tableHTML += '<tr>';
+                tableHTML += `<td>${i}</td>`;
+                
+                for (let j = 0; j < rows[i].length; j++) {
+                    tableHTML += `<td>${rows[i][j].trim()}</td>`;
+                }
+                
+                // 나머지 열이 부족한 경우 빈 셀로 채우기
+                for (let j = rows[i].length; j < rows[0].length; j++) {
+                    tableHTML += '<td></td>';
+                }
+                
+                tableHTML += '</tr>';
+            }
+        }
+        
+        tableHTML += '</table>';
+        
+        // 테이블을 컨테이너에 추가
+        document.getElementById('questions-table-container').innerHTML = tableHTML;
+        
+        // 테이블 콘텐츠를 폼에 추가하기 위한 히든 필드 생성
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'csv_content';
+        hiddenInput.value = content;
+        document.getElementById('wizard-form-step3').appendChild(hiddenInput);
+    }
+</script>
+{% endblock %}
