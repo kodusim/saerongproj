@@ -247,129 +247,6 @@ class TestWizardSumResultsView(TemplateView):
         
         return min_score, max_score
     
-    def post(self, request, *args, **kwargs):
-        # 결과 데이터 처리
-        results_data = []
-        result_images = {}
-        result_sub_images = {}
-        
-        # 결과 데이터 구성
-        for key, value in request.POST.items():
-            if key.startswith('results[') and key.endswith('][title]'):
-                # 결과 인덱스 추출
-                index_str = key.split('[')[1].split(']')[0]
-                index = int(index_str)
-                
-                # 결과 데이터 초기화
-                if len(results_data) <= index:
-                    results_data.append({})
-                
-                # 결과 제목 저장
-                results_data[index]['title'] = value
-        
-        # 나머지 결과 데이터 채우기
-        for key, value in request.POST.items():
-            if key.startswith('results['):
-                parts = key.split('[')
-                index_str = parts[1].split(']')[0]
-                field = parts[2].split(']')[0]
-                index = int(index_str)
-                
-                if len(results_data) <= index:
-                    continue
-                
-                # 필드별 데이터 저장
-                if field in ['description', 'min_score', 'max_score', 'background_color']:
-                    results_data[index][field] = value
-        
-        # 결과 이미지 처리
-        for key, file in request.FILES.items():
-            if key.startswith('results[') and key.endswith('][image]'):
-                # 결과 인덱스 추출
-                index_str = key.split('[')[1].split(']')[0]
-                index = int(index_str)
-                
-                # 이미지 파일을 임시 저장
-                path = f'temp/wizard/{request.session.session_key}/result_{index}_image{os.path.splitext(file.name)[1]}'
-                
-                # 기존 파일이 있으면 삭제
-                if default_storage.exists(path):
-                    default_storage.delete(path)
-                    
-                # 새 파일 저장
-                path = default_storage.save(path, ContentFile(file.read()))
-                result_images[index] = path
-            
-            # 보조 이미지 처리
-            elif key.startswith('results[') and key.endswith('][sub_image]'):
-                # 결과 인덱스 추출
-                index_str = key.split('[')[1].split(']')[0]
-                index = int(index_str)
-                
-                # 이미지 파일을 임시 저장
-                path = f'temp/wizard/{request.session.session_key}/result_{index}_sub_image{os.path.splitext(file.name)[1]}'
-                
-                # 기존 파일이 있으면 삭제
-                if default_storage.exists(path):
-                    default_storage.delete(path)
-                    
-                # 새 파일 저장
-                path = default_storage.save(path, ContentFile(file.read()))
-                result_sub_images[index] = path
-        
-        # 결과 데이터 세션에 저장
-        request.session['wizard_results_data'] = results_data
-        request.session['wizard_result_images'] = result_images
-        request.session['wizard_result_sub_images'] = result_sub_images
-        request.session.modified = True
-        
-        # 다음 단계로 이동 - 최종 확인 페이지
-        return redirect('admin:psychotest_test_wizard_sum_confirm')
-
-@method_decorator(staff_member_required, name='dispatch')
-class TestWizardSumResultsView(TemplateView):
-    """점수 합산 방식의 테스트 결과 설정 단계"""
-    template_name = 'admin/psychotest/test/wizard_results_form.html'
-    
-    def get(self, request, *args, **kwargs):
-        # 이전 단계 정보가 없으면 이전 단계로 리다이렉트
-        if 'wizard_test_info' not in request.session or 'wizard_questions_data' not in request.session:
-            messages.warning(request, "테스트 정보와 질문을 먼저 입력해주세요.")
-            return redirect('admin:psychotest_test_wizard_sum')
-        
-        # 최소/최대 가능 점수 계산
-        min_score, max_score = self.calculate_score_range(request.session['wizard_questions_data'])
-        
-        # 컨텍스트에 추가
-        context = self.get_context_data(**kwargs)
-        context['min_possible_score'] = min_score
-        context['max_possible_score'] = max_score
-        
-        return self.render_to_response(context)
-    
-    def calculate_score_range(self, questions_data):
-        """질문 데이터를 기반으로 최소/최대 가능 점수 계산"""
-        min_score = 0
-        max_score = 0
-        
-        for question in questions_data:
-            min_option_score = float('inf')
-            max_option_score = float('-inf')
-            
-            for option in question['options']:
-                score = option['score']
-                min_option_score = min(min_option_score, score)
-                max_option_score = max(max_option_score, score)
-            
-            # 무한대가 아닌 경우에만 계산에 포함
-            if min_option_score != float('inf'):
-                min_score += min_option_score
-            
-            if max_option_score != float('-inf'):
-                max_score += max_option_score
-        
-        return min_score, max_score
-    
     def parse_csv_results(self, csv_content):
         """CSV 결과 데이터 파싱"""
         results_data = []
@@ -377,62 +254,52 @@ class TestWizardSumResultsView(TemplateView):
         try:
             # 줄바꿈 문자 처리
             lines = csv_content.replace('\r\n', '\n').replace('\r', '\n').split('\n')
-            # 빈 줄 제거
             lines = [line for line in lines if line.strip()]
             
             # CSV 파서 사용
             csv_reader = csv.reader(lines)
             rows = list(csv_reader)
             
-            print(f"파싱된 CSV 행 수: {len(rows)}")
-            for i, row in enumerate(rows):
-                print(f"Row {i}: {row}")
-            
-            if len(rows) < 2:
+            if len(rows) < 4:  # 최소 4행(결과번호, 이름, 최소점수, 최대점수)이 필요
                 raise ValueError("CSV 파일에 충분한 데이터가 없습니다.")
             
-            # 데이터 행 처리 (첫 번째 행 제외)
-            for i in range(1, len(rows)):
-                row = rows[i]
-                if len(row) < 2:  # 최소한 결과번호와 이름은 필요
-                    continue
+            # 헤더 행에서 결과 번호 가져오기 (첫 번째 열은 제목이므로 제외)
+            result_nums = rows[0][1:]
+            
+            # 각 결과(열)에 대한 데이터 생성
+            for i, result_num in enumerate(result_nums):
+                col_idx = i + 1  # 첫 번째 열은 제목이므로 +1
                 
-                # 결과 데이터 생성
+                # 결과 데이터 구성
                 result_data = {
-                    'result_num': row[0].strip(),
-                    'title': row[1].strip(),
-                    'description': "", 
-                    'min_score': None,
-                    'max_score': None,
+                    'result_num': result_num,
+                    'title': rows[1][col_idx] if len(rows[1]) > col_idx else f"결과 {result_num}",
+                    'description': "",
                     'background_color': '#FFFFFF'
                 }
                 
-                # 최소 점수 처리
-                if len(row) > 2 and row[2].strip():
+                # 최소 점수
+                if len(rows) > 2 and len(rows[2]) > col_idx:
                     try:
-                        result_data['min_score'] = int(row[2].strip())
+                        result_data['min_score'] = int(rows[2][col_idx])
                     except (ValueError, TypeError):
-                        print(f"최소 점수 변환 오류: {row[2]}")
+                        result_data['min_score'] = 0
+                        print(f"최소 점수 변환 오류: {rows[2][col_idx]}")
                 
-                # 최대 점수 처리
-                if len(row) > 3 and row[3].strip():
+                # 최대 점수
+                if len(rows) > 3 and len(rows[3]) > col_idx:
                     try:
-                        result_data['max_score'] = int(row[3].strip())
+                        result_data['max_score'] = int(rows[3][col_idx])
                     except (ValueError, TypeError):
-                        print(f"최대 점수 변환 오류: {row[3]}")
+                        result_data['max_score'] = 100
+                        print(f"최대 점수 변환 오류: {rows[3][col_idx]}")
                 
                 results_data.append(result_data)
-            
-            print(f"결과 데이터 처리 완료: {len(results_data)}개 항목")
-            for i, data in enumerate(results_data):
-                print(f"Result {i+1}: {data}")
             
             return results_data
             
         except Exception as e:
-            import traceback
             print(f"CSV 파싱 오류: {str(e)}")
-            print(traceback.format_exc())
             raise
     
     def post(self, request, *args, **kwargs):
@@ -440,12 +307,13 @@ class TestWizardSumResultsView(TemplateView):
         csv_file = request.FILES.get('csv_file')
         csv_content = request.POST.get('csv_content')
         
+        # 결과 데이터 초기화
+        results_data = []
+        result_images = {}
+        result_sub_images = {}
+        
         # CSV 파일이 있는 경우 (CSV 모드)
         if csv_file or csv_content:
-            results_data = []
-            result_images = {}
-            result_sub_images = {}
-            
             # CSV 콘텐츠 파싱
             if csv_content:
                 try:
@@ -468,23 +336,19 @@ class TestWizardSumResultsView(TemplateView):
                         messages.error(request, "CSV 파일에서 결과 데이터를 읽을 수 없습니다.")
                         return self.render_to_response(self.get_context_data())
                     
-                    # 결과 데이터 저장
-                    request.session['wizard_results_data'] = csv_results
+                    # 결과 데이터 설정
+                    results_data = csv_results
                     
                 except Exception as e:
                     messages.error(request, f"CSV 파일 처리 중 오류가 발생했습니다: {str(e)}")
                     return self.render_to_response(self.get_context_data())
             
-            # 결과 이미지 및 색상 처리
-            csv_results_data = request.session.get('wizard_results_data', [])
-            
             # CSV 결과 이미지 처리
-        for key, file in request.FILES.items():
-            if key.startswith('csv_results_') and '_image' in key:
-                # 결과 인덱스 추출 (예: csv_results_1_image -> 1)
-                parts = key.split('_')
-                if len(parts) >= 3:
-                    index_str = parts[2]
+            for key, file in request.FILES.items():
+                if key.startswith('csv_results[') and key.endswith('][image]'):
+                    # 결과 인덱스 추출
+                    index_str = key.split('[')[1].split(']')[0]
+                    
                     try:
                         index = int(index_str)
                         # 이미지 파일을 임시 저장
@@ -501,13 +365,13 @@ class TestWizardSumResultsView(TemplateView):
                         if 'wizard_csv_result_images' not in request.session:
                             request.session['wizard_csv_result_images'] = {}
                         
-                        request.session['wizard_csv_result_images'][str(index)] = path
+                        request.session['wizard_csv_result_images'][index_str] = path
                         request.session.modified = True
                     except (ValueError, IndexError):
                         continue
                 
                 # 보조 이미지 처리
-                elif key.startswith('csv_results[') and '][sub_image]' in key:
+                elif key.startswith('csv_results[') and key.endswith('][sub_image]'):
                     # 결과 인덱스 추출
                     index_str = key.split('[')[1].split(']')[0]
                     
@@ -527,14 +391,14 @@ class TestWizardSumResultsView(TemplateView):
                         if 'wizard_csv_result_sub_images' not in request.session:
                             request.session['wizard_csv_result_sub_images'] = {}
                         
-                        request.session['wizard_csv_result_sub_images'][str(index)] = path
+                        request.session['wizard_csv_result_sub_images'][index_str] = path
                         request.session.modified = True
                     except (ValueError, IndexError):
                         continue
             
             # 배경 색상 처리
             for key, value in request.POST.items():
-                if key.startswith('csv_results[') and '][background_color]' in key:
+                if key.startswith('csv_results[') and key.endswith('][background_color]'):
                     # 결과 인덱스 추출
                     index_str = key.split('[')[1].split(']')[0]
                     
@@ -542,22 +406,15 @@ class TestWizardSumResultsView(TemplateView):
                         index = int(index_str)
                         
                         # 해당 인덱스의 결과 찾기
-                        for result in csv_results_data:
-                            if result.get('result_num') == str(index):
+                        for result in results_data:
+                            if result.get('result_num') == index_str:
                                 result['background_color'] = value
                                 break
                     except (ValueError, IndexError):
                         continue
             
-            # 세션에 결과 데이터 업데이트
-            request.session['wizard_results_data'] = csv_results_data
-            request.session.modified = True
-            
         else:
-            # 수동 입력 모드 처리 (기존 코드)
-            results_data = []
-            result_images = {}
-            result_sub_images = {}
+            # 수동 입력 모드 처리
             
             # 결과 데이터 구성
             for key, value in request.POST.items():
@@ -568,7 +425,9 @@ class TestWizardSumResultsView(TemplateView):
                     
                     # 결과 데이터 초기화
                     if len(results_data) <= index:
-                        results_data.append({})
+                        # 인덱스까지의 빈 요소 채우기
+                        while len(results_data) <= index:
+                            results_data.append({})
                     
                     # 결과 제목 저장
                     results_data[index]['title'] = value
@@ -623,16 +482,19 @@ class TestWizardSumResultsView(TemplateView):
                     path = default_storage.save(path, ContentFile(file.read()))
                     result_sub_images[index] = path
             
-            # 결과 데이터 세션에 저장
-            request.session['wizard_results_data'] = results_data
+            # 수동 입력 모드에서 이미지 경로 저장
             request.session['wizard_result_images'] = result_images
             request.session['wizard_result_sub_images'] = result_sub_images
         
+        # 세션에 결과 데이터 저장 (공통)
+        request.session['wizard_results_data'] = results_data
+        print(f"저장된 결과 데이터: {results_data}")
+        print(f"세션에 저장된 결과 데이터: {request.session.get('wizard_results_data')}")
         request.session.modified = True
         
         # 다음 단계로 이동 - 최종 확인 페이지
         return redirect('admin:psychotest_test_wizard_sum_confirm')
-    
+        
 
 @method_decorator(staff_member_required, name='dispatch')
 class TestWizardSumConfirmView(TemplateView):
