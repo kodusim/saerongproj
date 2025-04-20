@@ -19,7 +19,6 @@ class TestWizardHandler:
             # 1. 테스트 기본 정보 처리
             title = data.get('title')
             description = data.get('description')
-            calculation_method = data.get('calculation_method', 'sum')
             view_style = data.get('view_style', 'all')
             
             if not title or not description:
@@ -35,12 +34,12 @@ class TestWizardHandler:
                 except Category.DoesNotExist:
                     pass
             
-            # 테스트 생성
+            # 테스트 생성 - 계산 방식은 항상 'sum'으로 설정
             test = Test.objects.create(
                 title=title,
                 description=description,
                 category=category,
-                calculation_method=calculation_method,
+                calculation_method='sum',  # 항상 'sum'으로 고정
                 view_style=view_style
             )
             
@@ -60,7 +59,7 @@ class TestWizardHandler:
             self._process_results(data, files, test)
             
             return test
-            
+                
         except Exception as e:
             self.errors.append(f"테스트 생성 오류: {str(e)}")
             raise
@@ -125,21 +124,12 @@ class TestWizardHandler:
                 
                 score = int(o_data.get('score', 0))
                 
-                # 카테고리 점수 처리
-                category_scores = {}
-                if test.calculation_method == 'category':
-                    for category in Category.objects.all():
-                        category_score_key = f'questions[{q_index}][options][{o_index}][category_{category.id}]'
-                        if category_score_key in data and data[category_score_key]:
-                            score_value = int(data[category_score_key])
-                            if score_value != 0:
-                                category_scores[category.name] = score_value
-                
+                # 선택지 생성 - category_scores는 항상 빈 딕셔너리로 설정
                 Option.objects.create(
                     question=question,
                     text=o_data['text'],
                     score=score,
-                    category_scores=category_scores
+                    category_scores={}
                 )
     
     def _process_results(self, data, files, test):
@@ -166,28 +156,18 @@ class TestWizardHandler:
             if not r_data.get('title') or not r_data.get('description'):
                 continue
             
-            # 테스트 계산 방식에 따른 필드 처리
-            if test.calculation_method == 'sum':
-                min_score = int(r_data.get('min_score', 0))
-                max_score = int(r_data.get('max_score', 100))
-                category = None
-            elif test.calculation_method == 'category':
-                min_score = None
-                max_score = None
-                category = r_data.get('category')
-            else:  # pattern
-                min_score = None
-                max_score = None
-                category = None
+            # 점수 합산 방식에 필요한 필드만 사용
+            min_score = int(r_data.get('min_score', 0))
+            max_score = int(r_data.get('max_score', 100))
             
-            # 결과 생성
+            # 결과 생성 - category 필드는 항상 None으로 설정
             result = Result.objects.create(
                 test=test,
                 title=r_data['title'],
                 description=r_data['description'],
                 min_score=min_score,
                 max_score=max_score,
-                category=category
+                category=None
             )
             
             # 이미지 처리

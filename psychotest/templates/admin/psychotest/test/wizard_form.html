@@ -86,18 +86,14 @@
                 <div class="form-row field-calculation_method">
                     <div class="fieldBox">
                         <label for="id_calculation_method">{% trans "결과 계산 방식" %}:</label>
-                        <select name="calculation_method" id="id_calculation_method" class="vSelectField" required>
-                            <option value="sum">{% trans "점수 합산" %}</option>
-                            <option value="category">{% trans "카테고리 점수" %}</option>
-                            <option value="pattern">{% trans "패턴 매칭" %}</option>
-                        </select>
+                        <input type="hidden" name="calculation_method" value="sum">
+                        <p class="form-static">{% trans "점수 합산" %} <span class="help">(선택지의 점수를 합산하여 결과를 결정합니다)</span></p>
                     </div>
                 </div>
                 <div class="form-row field-view_style">
                     <div class="fieldBox">
                         <label for="id_view_style">{% trans "보기 방식" %}:</label>
                         <select name="view_style" id="id_view_style" class="vSelectField" required>
-                            <option value="all">{% trans "모든 질문 한번에" %}</option>
                             <option value="one">{% trans "한 질문씩" %}</option>
                         </select>
                     </div>
@@ -153,14 +149,6 @@
                                     <input type="number" name="questions[0][options][0][score]" class="vIntegerField" value="0">
                                 </div>
                             </div>
-                            <div class="form-row category-scores-row" style="display:none;">
-                                <div class="fieldBox">
-                                    <label>{% trans "카테고리별 점수" %}:</label>
-                                    <div class="category-scores-container">
-                                        <!-- 카테고리 점수 입력 필드 (JavaScript로 동적 추가) -->
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                         
                         <div class="option-container" data-question-index="0" data-option-index="1">
@@ -174,14 +162,6 @@
                                 <div class="fieldBox">
                                     <label>{% trans "점수" %}:</label>
                                     <input type="number" name="questions[0][options][1][score]" class="vIntegerField" value="0">
-                                </div>
-                            </div>
-                            <div class="form-row category-scores-row" style="display:none;">
-                                <div class="fieldBox">
-                                    <label>{% trans "카테고리별 점수" %}:</label>
-                                    <div class="category-scores-container">
-                                        <!-- 카테고리 점수 입력 필드 (JavaScript로 동적 추가) -->
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -212,22 +192,16 @@
                             <textarea name="results[0][description]" class="vLargeTextField" rows="4" required></textarea>
                         </div>
                     </div>
-                    <div class="form-row score-range-row">
+                    <div class="form-row">
                         <div class="fieldBox">
                             <label>{% trans "최소 점수" %}:</label>
                             <input type="number" name="results[0][min_score]" class="vIntegerField" value="0">
                         </div>
                     </div>
-                    <div class="form-row score-range-row">
+                    <div class="form-row">
                         <div class="fieldBox">
                             <label>{% trans "최대 점수" %}:</label>
                             <input type="number" name="results[0][max_score]" class="vIntegerField" value="100">
-                        </div>
-                    </div>
-                    <div class="form-row category-row" style="display:none;">
-                        <div class="fieldBox">
-                            <label>{% trans "카테고리" %}:</label>
-                            <input type="text" name="results[0][category]" class="vTextField">
                         </div>
                     </div>
                     <div class="form-row">
@@ -277,26 +251,6 @@
         let questionCount = 1;
         let resultCount = 1;
         let categories = [];
-        
-        // 계산 방식에 따른 필드 표시 설정
-        const calcMethodSelect = document.getElementById('id_calculation_method');
-        calcMethodSelect.addEventListener('change', function() {
-            const method = this.value;
-            
-            const categoryScoresRows = document.querySelectorAll('.category-scores-row');
-            const scoreRangeRows = document.querySelectorAll('.score-range-row');
-            const categoryRows = document.querySelectorAll('.category-row');
-            
-            if (method === 'category') {
-                categoryScoresRows.forEach(row => row.style.display = 'block');
-                scoreRangeRows.forEach(row => row.style.display = 'none');
-                categoryRows.forEach(row => row.style.display = 'block');
-            } else {
-                categoryScoresRows.forEach(row => row.style.display = 'none');
-                scoreRangeRows.forEach(row => row.style.display = 'block');
-                categoryRows.forEach(row => row.style.display = 'none');
-            }
-        });
         
         // 네비게이션 아이템 클릭 처리
         wizardNavItems.forEach(item => {
@@ -411,14 +365,6 @@
                                     <input type="number" name="questions[${questionCount}][options][0][score]" class="vIntegerField" value="0">
                                 </div>
                             </div>
-                            <div class="form-row category-scores-row" style="${calcMethodSelect.value === 'category' ? 'block' : 'none'}">
-                                <div class="fieldBox">
-                                    <label>{% trans "카테고리별 점수" %}:</label>
-                                    <div class="category-scores-container">
-                                        <!-- 카테고리 점수 입력 필드 (JavaScript로 동적 추가) -->
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                         
                         <div class="option-container" data-question-index="${questionCount}" data-option-index="1">
@@ -432,14 +378,6 @@
                                 <div class="fieldBox">
                                     <label>{% trans "점수" %}:</label>
                                     <input type="number" name="questions[${questionCount}][options][1][score]" class="vIntegerField" value="0">
-                                </div>
-                            </div>
-                            <div class="form-row category-scores-row" style="${calcMethodSelect.value === 'category' ? 'block' : 'none'}">
-                                <div class="fieldBox">
-                                    <label>{% trans "카테고리별 점수" %}:</label>
-                                    <div class="category-scores-container">
-                                        <!-- 카테고리 점수 입력 필드 (JavaScript로 동적 추가) -->
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -472,14 +410,6 @@
                             <input type="number" name="questions[${questionIndex}][options][${optionCount}][score]" class="vIntegerField" value="0">
                         </div>
                     </div>
-                    <div class="form-row category-scores-row" style="${calcMethodSelect.value === 'category' ? 'block' : 'none'}">
-                        <div class="fieldBox">
-                            <label>{% trans "카테고리별 점수" %}:</label>
-                            <div class="category-scores-container">
-                                <!-- 카테고리 점수 입력 필드 (JavaScript로 동적 추가) -->
-                            </div>
-                        </div>
-                    </div>
                 </div>
             `;
             
@@ -489,13 +419,6 @@
         // 새 결과 추가
         function addResult() {
             const resultsContainer = document.getElementById('results-container');
-            // 현재 선택된 계산 방식 가져오기
-            const calculationMethod = document.getElementById('id_calculation_method').value;
-            
-            // 계산 방식에 따라 표시할 필드 결정
-            const showScoreFields = calculationMethod !== 'category';
-            const showCategoryFields = calculationMethod === 'category';
-            
             const resultTemplate = `
                 <div class="result-container" data-result-index="${resultCount}">
                     <h3>{% trans "결과" %} ${resultCount + 1}</h3>
@@ -511,22 +434,16 @@
                             <textarea name="results[${resultCount}][description]" class="vLargeTextField" rows="4" required></textarea>
                         </div>
                     </div>
-                    <div class="form-row score-range-row" style="display: ${showScoreFields ? 'block' : 'none'}">
+                    <div class="form-row">
                         <div class="fieldBox">
                             <label>{% trans "최소 점수" %}:</label>
                             <input type="number" name="results[${resultCount}][min_score]" class="vIntegerField" value="0">
                         </div>
                     </div>
-                    <div class="form-row score-range-row" style="display: ${showScoreFields ? 'block' : 'none'}">
+                    <div class="form-row">
                         <div class="fieldBox">
                             <label>{% trans "최대 점수" %}:</label>
                             <input type="number" name="results[${resultCount}][max_score]" class="vIntegerField" value="100">
-                        </div>
-                    </div>
-                    <div class="form-row category-row" style="display: ${showCategoryFields ? 'block' : 'none'}">
-                        <div class="fieldBox">
-                            <label>{% trans "카테고리" %}:</label>
-                            <input type="text" name="results[${resultCount}][category]" class="vTextField">
                         </div>
                     </div>
                     <div class="form-row">
