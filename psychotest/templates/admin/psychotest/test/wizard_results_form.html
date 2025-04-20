@@ -497,8 +497,16 @@
     }
     
     function displayCSVContent(content) {
-        // CSV 데이터 파싱
-        const rows = content.split('\n').map(row => row.split(','));
+        // 줄바꿈 문자를 확인하고 적절히 처리
+        let lines = content.split(/\r?\n/);
+        
+        // 빈 줄 필터링
+        lines = lines.filter(line => line.trim().length > 0);
+        
+        // 각 줄을 쉼표로 분할하여 행 배열 만들기
+        let rows = lines.map(line => line.split(',').map(cell => cell.trim()));
+        
+        console.log("CSV Parsed Rows:", rows);
         
         if (rows.length < 2) {
             alert("CSV 파일에 충분한 데이터가 없습니다.");
@@ -508,31 +516,21 @@
         // 테이블 생성
         let tableHTML = '<table class="results-table">';
         
-        // 헤더 행 (결과 필드)
+        // 헤더 행
         tableHTML += '<tr>';
         for (let i = 0; i < rows[0].length; i++) {
-            let cellValue = rows[0][i].trim();
-            tableHTML += `<th>${cellValue}</th>`;
+            tableHTML += `<th>${rows[0][i]}</th>`;
         }
         tableHTML += '</tr>';
         
-        // 데이터 행 (결과 데이터)
+        // 데이터 행
         for (let i = 1; i < rows.length; i++) {
-            if (rows[i].length > 1) { // 빈 행 제외
-                tableHTML += '<tr>';
-                
-                for (let j = 0; j < rows[i].length; j++) {
-                    let cellValue = j < rows[i].length ? rows[i][j].trim() : '';
-                    tableHTML += `<td>${cellValue}</td>`;
-                }
-                
-                // 나머지 열이 부족한 경우 빈 셀로 채우기
-                for (let j = rows[i].length; j < rows[0].length; j++) {
-                    tableHTML += '<td></td>';
-                }
-                
-                tableHTML += '</tr>';
+            tableHTML += '<tr>';
+            for (let j = 0; j < rows[0].length; j++) {
+                let cellValue = (j < rows[i].length) ? rows[i][j] : '';
+                tableHTML += `<td>${cellValue}</td>`;
             }
+            tableHTML += '</tr>';
         }
         
         tableHTML += '</table>';
@@ -551,18 +549,6 @@
         document.getElementById('manual-results-container').style.display = 'none';
         document.querySelector('.add-result-btn').style.display = 'none';
         
-        // 결과 이미지 및 색상 설정 UI 생성
-        createResultSettingsUI(rows);
-    }
-    
-    function createResultSettingsUI(rows) {
-        // 결과 수 계산 (헤더 제외한 행 수)
-        const resultCount = rows.length - 1;
-        
-        if (resultCount <= 0) {
-            return;
-        }
-        
         // 결과 컨테이너 표시
         const resultsContainer = document.getElementById('results-container');
         resultsContainer.style.display = 'block';
@@ -571,32 +557,27 @@
         const resultsGrid = document.getElementById('results-grid');
         resultsGrid.innerHTML = '';
         
-        // 결과번호, 결과이름, 최소점수, 최대점수 열 인덱스 찾기
-        let idxResultNum = 0;
-        let idxResultTitle = 1;
-        let idxMinScore = -1;
-        let idxMaxScore = -1;
-        
-        // 열 인덱스 찾기
-        for (let i = 0; i < rows[0].length; i++) {
-            const header = rows[0][i].trim().toLowerCase();
-            if (header === '결과번호') idxResultNum = i;
-            else if (header === '결과이름') idxResultTitle = i;
-            else if (header === '최소점수') idxMinScore = i;
-            else if (header === '최대점수') idxMaxScore = i;
-        }
-        
-        // 각 결과에 대한 설정 UI 생성
-        for (let i = 1; i <= resultCount; i++) {
-            if (i >= rows.length) break;
+        // 헤더 행에서 결과 번호 가져오기 (1열부터)
+        for (let colIndex = 1; colIndex < rows[0].length; colIndex++) {
+            const resultNum = rows[0][colIndex]; // 헤더 행의 각 열이 결과 번호
             
-            const row = rows[i];
-            if (row.length <= 1) continue; // 빈 행 제외
+            // 결과 이름, 최소점수, 최대점수 찾기
+            let resultTitle = "";
+            let minScore = "";
+            let maxScore = "";
             
-            const resultNum = row[idxResultNum].trim();
-            const resultTitle = row[idxResultTitle].trim();
-            const minScore = idxMinScore >= 0 && idxMinScore < row.length ? row[idxMinScore].trim() : '';
-            const maxScore = idxMaxScore >= 0 && idxMaxScore < row.length ? row[idxMaxScore].trim() : '';
+            // 각 행의 의미 (제목, 최소점수, 최대점수)에 따라 데이터 추출
+            for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+                const rowLabel = rows[rowIndex][0].toLowerCase();
+                
+                if (rowLabel.includes('이름')) {
+                    resultTitle = rows[rowIndex][colIndex];
+                } else if (rowLabel.includes('최소')) {
+                    minScore = rows[rowIndex][colIndex];
+                } else if (rowLabel.includes('최대')) {
+                    maxScore = rows[rowIndex][colIndex];
+                }
+            }
             
             // 결과 카드 생성
             const resultCard = document.createElement('div');
@@ -629,8 +610,8 @@
                 <div class="result-form-group">
                     <label class="result-label">배경 색상</label>
                     <div class="color-picker-container">
-                        <input type="color" id="csv_result_${i}_background" name="csv_results[${i}][background_color]" value="#FFFFFF" onchange="updateColorPreview(this, 'csv_result_${i}_color_preview')">
-                        <div class="color-preview" id="csv_result_${i}_color_preview" style="background-color: #FFFFFF;"></div>
+                        <input type="color" id="csv_result_${resultNum}_background" name="csv_results[${resultNum}][background_color]" value="#FFFFFF" onchange="updateColorPreview(this, 'csv_result_${resultNum}_color_preview')">
+                        <div class="color-preview" id="csv_result_${resultNum}_color_preview" style="background-color: #FFFFFF;"></div>
                     </div>
                 </div>
             `;
@@ -640,28 +621,141 @@
                 <div class="result-form-group">
                     <label class="result-label">결과 이미지</label>
                     <div class="image-upload-box">
-                        <input type="file" name="csv_results[${i}][image]" accept="image/*" onchange="previewImage(this, 'csv_result_${i}_image_preview')">
+                        <input type="file" name="csv_results[${resultNum}][image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_image_preview')">
                         <p>결과 이미지</p>
-                        <img id="csv_result_${i}_image_preview" src="#" alt="미리보기" class="image-preview">
+                        <img id="csv_result_${resultNum}_image_preview" src="#" alt="미리보기" class="image-preview">
                     </div>
                 </div>
                 
                 <div class="result-form-group">
                     <label class="result-label">보조 이미지</label>
                     <div class="image-upload-box">
-                        <input type="file" name="csv_results[${i}][sub_image]" accept="image/*" onchange="previewImage(this, 'csv_result_${i}_sub_image_preview')">
+                        <input type="file" name="csv_results[${resultNum}][sub_image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_sub_image_preview')">
                         <p>보조 이미지</p>
-                        <img id="csv_result_${i}_sub_image_preview" src="#" alt="미리보기" class="image-preview">
+                        <img id="csv_result_${resultNum}_sub_image_preview" src="#" alt="미리보기" class="image-preview">
                     </div>
                 </div>
             `;
             
             // 히든 필드
             const hiddenFieldsHTML = `
-                <input type="hidden" name="csv_results[${i}][result_num]" value="${resultNum}">
-                <input type="hidden" name="csv_results[${i}][title]" value="${resultTitle}">
-                <input type="hidden" name="csv_results[${i}][min_score]" value="${minScore}">
-                <input type="hidden" name="csv_results[${i}][max_score]" value="${maxScore}">
+                <input type="hidden" name="csv_results[${resultNum}][result_num]" value="${resultNum}">
+                <input type="hidden" name="csv_results[${resultNum}][title]" value="${resultTitle}">
+                <input type="hidden" name="csv_results[${resultNum}][description]" value="">
+                <input type="hidden" name="csv_results[${resultNum}][min_score]" value="${minScore}">
+                <input type="hidden" name="csv_results[${resultNum}][max_score]" value="${maxScore}">
+            `;
+            
+            // 결과 본문 내용 설정
+            resultBody.innerHTML = scoreRangeHTML + colorPickerHTML + imageUploadHTML + hiddenFieldsHTML;
+            
+            // 결과 카드에 헤더와 본문 추가
+            resultCard.appendChild(resultHeader);
+            resultCard.appendChild(resultBody);
+            
+            // 그리드에 카드 추가
+            resultsGrid.appendChild(resultCard);
+        }
+    }
+    
+    function createResultSettingsUI(rows) {
+        // 결과 수 계산 (헤더 제외한 행 수)
+        const resultCount = rows.length - 1;
+        
+        if (resultCount <= 0) {
+            return;
+        }
+        
+        // 결과 컨테이너 표시
+        const resultsContainer = document.getElementById('results-container');
+        resultsContainer.style.display = 'block';
+        
+        // 결과 그리드 초기화
+        const resultsGrid = document.getElementById('results-grid');
+        resultsGrid.innerHTML = '';
+        
+        // 콘솔에 디버깅 정보 출력
+        console.log("CSV Rows:", rows);
+        
+        // 각 결과에 대한 설정 UI 생성
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length <= 1) continue; // 빈 행 제외
+            
+            // 첫 번째 열을 결과 번호로 사용
+            const resultNum = row[0].trim();
+            // 두 번째 열을 결과 이름으로 사용
+            const resultTitle = row[1].trim();
+            // 세 번째 열을 최소 점수로 사용 (있을 경우)
+            const minScore = row.length > 2 ? row[2].trim() : '';
+            // 네 번째 열을 최대 점수로 사용 (있을 경우)
+            const maxScore = row.length > 3 ? row[3].trim() : '';
+            
+            // 결과 카드 생성
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+            
+            // 결과 헤더
+            const resultHeader = document.createElement('div');
+            resultHeader.className = 'result-header';
+            resultHeader.innerHTML = `
+                <h4 class="result-title">결과 ${resultNum}: ${resultTitle}</h4>
+            `;
+            
+            // 결과 본문
+            const resultBody = document.createElement('div');
+            resultBody.className = 'result-body';
+            
+            // 점수 범위 표시
+            let scoreRangeHTML = '';
+            if (minScore && maxScore) {
+                scoreRangeHTML = `
+                    <div class="result-form-group">
+                        <label class="result-label">점수 범위</label>
+                        <p>${minScore} ~ ${maxScore}</p>
+                    </div>
+                `;
+            }
+            
+            // 색상 선택기
+            const colorPickerHTML = `
+                <div class="result-form-group">
+                    <label class="result-label">배경 색상</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="csv_result_${resultNum}_background" name="csv_results[${resultNum}][background_color]" value="#FFFFFF" onchange="updateColorPreview(this, 'csv_result_${resultNum}_color_preview')">
+                        <div class="color-preview" id="csv_result_${resultNum}_color_preview" style="background-color: #FFFFFF;"></div>
+                    </div>
+                </div>
+            `;
+            
+            // 이미지 업로드
+            const imageUploadHTML = `
+                <div class="result-form-group">
+                    <label class="result-label">결과 이미지</label>
+                    <div class="image-upload-box">
+                        <input type="file" name="csv_results[${resultNum}][image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_image_preview')">
+                        <p>결과 이미지</p>
+                        <img id="csv_result_${resultNum}_image_preview" src="#" alt="미리보기" class="image-preview">
+                    </div>
+                </div>
+                
+                <div class="result-form-group">
+                    <label class="result-label">보조 이미지</label>
+                    <div class="image-upload-box">
+                        <input type="file" name="csv_results[${resultNum}][sub_image]" accept="image/*" onchange="previewImage(this, 'csv_result_${resultNum}_sub_image_preview')">
+                        <p>보조 이미지</p>
+                        <img id="csv_result_${resultNum}_sub_image_preview" src="#" alt="미리보기" class="image-preview">
+                    </div>
+                </div>
+            `;
+            
+            // 히든 필드 - 빈 description 추가
+            const hiddenFieldsHTML = `
+                <input type="hidden" name="csv_results[${resultNum}][result_num]" value="${resultNum}">
+                <input type="hidden" name="csv_results[${resultNum}][title]" value="${resultTitle}">
+                <input type="hidden" name="csv_results[${resultNum}][description]" value="">
+                <input type="hidden" name="csv_results[${resultNum}][min_score]" value="${minScore}">
+                <input type="hidden" name="csv_results[${resultNum}][max_score]" value="${maxScore}">
             `;
             
             // 결과 본문 내용 설정
