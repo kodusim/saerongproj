@@ -33,7 +33,7 @@ class ResultInline(admin.StackedInline):
     model = Result
     form = ResultForm
     extra = 1
-    fields = ('title', 'description', 'min_score', 'max_score', 'category', 'image')
+    fields = ('title', 'description', 'min_score', 'max_score', 'category', 'image', 'sub_image', 'background_color')
 
     def get_fieldsets(self, request, obj=None):
         """테스트 계산 방식에 따라 필드 변경"""
@@ -45,13 +45,13 @@ class ResultInline(admin.StackedInline):
         if test_obj and test_obj.calculation_method == 'category':
             return (
                 (None, {
-                    'fields': ('title', 'description', 'category', 'image')
+                    'fields': ('title', 'description', 'category', 'image', 'sub_image', 'background_color')
                 }),
             )
         elif test_obj and test_obj.calculation_method == 'sum':
             return (
                 (None, {
-                    'fields': ('title', 'description', 'min_score', 'max_score', 'image')
+                    'fields': ('title', 'description', 'min_score', 'max_score', 'image', 'sub_image', 'background_color')
                 }),
             )
         else:
