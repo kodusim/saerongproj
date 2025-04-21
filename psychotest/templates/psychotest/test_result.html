@@ -275,14 +275,18 @@
                     alt="{{ result.title }}" 
                     class="result-image w-100">
             </div>
-            <div class="image-save-hint">
-                <span>⬆️ 꾹 눌러 이미지 저장하기</span>
-            </div>
             {% endif %}
             
             {% if result.sub_image %}
             <div class="sub-image-container">
                 <img src="{{ result.sub_image.url }}" alt="결과 설명 이미지" class="sub-image">
+            </div>
+            {% endif %}
+            
+            <!-- 이미지 저장 힌트는 보조 이미지 이후에 표시 -->
+            {% if result.image %}
+            <div class="image-save-hint">
+                <span>⬆️ 꼬옥 눌러 이미지 저장하기</span>
             </div>
             {% endif %}
             
