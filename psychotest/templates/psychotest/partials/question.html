@@ -1,6 +1,6 @@
 {% load static %}
 <div id="question-container">
-    <!-- 진행 바 - 위치 조정 (absolute에서 relative로) -->
+    <!-- 진행 바 -->
     <div class="progress-container">
         <div class="progress-track">
             <div class="progress-bar" style="width: {{ progress }}%;"></div>
@@ -11,6 +11,9 @@
             <img src="{% static 'images/default-character.png' %}" class="progress-character" style="left: calc({{ progress }}% - 15px);">
         {% endif %}
     </div>
+    
+    <!-- 간격을 위한 빈 div 추가 -->
+    <div style="height: 40px;"></div>
     
     <!-- 질문 내용 -->
     <div class="question-content">
@@ -24,7 +27,7 @@
         </div>
         {% endif %}
         
-        <!-- 선택지 -->
+        <!-- 선택지 코드는 그대로 유지 -->
         <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
                 hx-target="#question-container" hx-swap="outerHTML">
             {% csrf_token %}
