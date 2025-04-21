@@ -14,11 +14,16 @@
     
     /* 게이지 바 스타일링 수정 */
     .progress-container {
-        position: relative;
-        margin: 15px auto;
-        z-index: 10;
+        position: fixed;
+        top: 0; /* 상단에 바로 붙이기 */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
         width: calc(100% - 20px);
         max-width: 480px;
+        background-color: white;
+        padding: 5px 0;
+        margin-top: 60px; /* 헤더 높이에 맞게 조정 */
     }
 
     .progress-track {
