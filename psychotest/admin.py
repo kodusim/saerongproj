@@ -18,16 +18,8 @@ from .admin_views import (
 class OptionInline(admin.TabularInline):
     model = Option
     form = OptionForm
-    extra = 2
-    fieldsets = (
-        (None, {
-            'fields': ('text', 'score')
-        }),
-        ('카테고리별 점수 (고급)', {
-            'classes': ('collapse',),
-            'fields': ('category_scores',),
-        }),
-    )
+    extra = 0 
+    fields = ('text', 'score')
 
 class QuestionInline(admin.StackedInline):
     model = Question
@@ -229,8 +221,19 @@ class SharedTestResultAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """공유된 결과는 시스템에 의해 자동 생성되므로 관리자에서 직접 추가하지 않음"""
         return False
+class QuestionAdmin(admin.ModelAdmin):
+    inlines = [OptionInline]
+    list_display = ['text', 'test', 'order']
+    list_filter = ['test']
+    search_fields = ['text']
 
-# 관리자 페이지에 등록
+class OptionAdmin(admin.ModelAdmin):
+    list_display = ['text', 'question', 'score']
+    list_filter = ['question__test']
+    search_fields = ['text']
+
+admin.site.register(Option, OptionAdmin)
+admin.site.register(Question, QuestionAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Test, TestAdmin)
 admin.site.register(SharedTestResult, SharedTestResultAdmin)
