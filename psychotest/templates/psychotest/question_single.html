@@ -3,187 +3,114 @@
 
 {% block content %}
 <style>
-    /* 전체 컨테이너 */
-    .question-container {
-        max-width: 500px;
-        width: 100%;
-        margin: 0 auto;
-        position: relative;
-        padding-top: 75px; /* 게이지 바 높이만큼 상단 패딩 추가 */
+    /* 모든 마진/패딩 초기화 */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
     
-    /* 게이지 바 스타일링 수정 */
+    /* 헤더가 고정 높이를 가진다고 가정 */
+    .header-container {
+        height: 55px;
+    }
+    
+    /* 컨테이너에 패딩 제거 */
+    .container {
+        padding: 0 !important;
+    }
+    
+    /* 게이지 바 - 둥근 모서리로 디자인 개선 */
     .progress-container {
-        position: absolute; /* fixed에서 absolute로 변경 */
-        top: 0;
-        left: 0;
-        right: 0;
-        transform: none; /* translateX 제거 */
-        z-index: 100;
+        position: relative;
         width: 100%;
-        max-width: 500px;
-        background-color: white;
+        height: 30px;
         padding: 0;
-        margin: 0 auto;
+        margin: 0;
+        overflow: visible;
+        border: none;
     }
 
     .progress-track {
-        height: 15px;
+        width: 100%;
+        height: 30px;
         background-color: white;
         border: 1px solid #ddd;
-        border-radius: 10px;
-        position: relative;
+        border-radius: 20px; /* 둥근 모서리 추가 */
+        overflow: hidden; /* 자식 요소가 모서리를 넘지 않도록 설정 */
     }
 
     .progress-bar {
         height: 100%;
         background-color: #ffe600;
-        border-radius: 10px;
-        transition: width 0.3s ease;
+        border-radius: 20px; /* 둥근 모서리 추가 */
     }
 
     .progress-character {
         position: absolute;
-        top: -8px;
+        top: 0;
         width: 30px;
         height: 30px;
-        transition: left 0.3s ease;
-        z-index: 15;
-        margin-left: -15px;
+        z-index: 20; /* 높은 z-index로 항상 보이게 */
+        max-width: none; /* 최대 너비 제한 제거 */
+        pointer-events: none; /* 클릭 이벤트 무시 */
     }
-    
-    /* 질문 이미지 컨테이너 */
+
+    /* 질문 이미지 - 여백 완전 제거 */
     .question-image-container {
         width: 100%;
-        max-width: 500px;
-        height: auto;
+        display: block;
         margin: 0;
-        background-color: #ffe600;
-        overflow: visible;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        padding: 0;
+        background-color: #ccc; /* 배경색 */
     }
     
     .question-image {
         width: 100%;
-        height: auto;
-        object-fit: contain;
+        display: block;
+        margin: 0;
+        padding: 0;
     }
     
-    /* 이미지가 없을 때 대체 텍스트 */
+    /* 텍스트 질문 */
     .question-text {
         width: 100%;
-        max-width: 500px;
-        height: auto;
-        aspect-ratio: 5/6;
         margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        background-color: #ffe600;
-        font-size: 1.5rem;
         padding: 20px;
-        box-sizing: border-box;
+        background-color: #ccc;
+        font-size: 1.5rem;
+        text-align: center;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
-    /* 새로운 구름 스타일 선택지 */
+    /* 선택지 컨테이너 - 간격 최소화 */
     .options-container {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        margin-top: 20px;
-        margin-bottom: 20px;
-        padding: 0 15px;
         width: 100%;
-        box-sizing: border-box;
+        margin: 0;
+        padding: 10px;
     }
 
-    /* 구름 스타일의 버튼 */
+    /* 선택지 버튼 */
     .cloud-button {
-        background: linear-gradient(to right, #f0f8ff, #e6f7ff, #ccf2ff);
-        color: #333;
+        width: 100%;
+        margin: 5px 0;
+        padding: 15px;
         border: none;
         border-radius: 30px;
-        padding: 15px 20px;
+        background: linear-gradient(to right, #f0f8ff, #e6f7ff, #ccf2ff);
         font-size: 1rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 10px rgba(204, 242, 255, 0.4);
-        width: 100%;
-        margin: 0 auto;
         font-weight: bold;
-        word-break: break-word;
-    }
-
-    .cloud-button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 15px rgba(204, 242, 255, 0.6);
-        background: linear-gradient(to right, #e6f7ff, #ccf2ff, #b3eaff);
-    }
-
-    .cloud-button:active {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 8px rgba(204, 242, 255, 0.5);
-    }
-    
-    /* 선택지 개수에 따른 조정 */
-    .options-container.options-2 .cloud-button { min-height: 50px; }
-    .options-container.options-3 .cloud-button { min-height: 45px; }
-    .options-container.options-4 .cloud-button { min-height: 40px; }
-    .options-container.options-5 .cloud-button { min-height: 35px; }
-    
-    /* 모바일 스크린 최적화 */
-    @media (max-width: 500px) {
-        /* 모바일에서 게이지바와 컨테이너 관계 조정 */
-        .question-container {
-            padding-top: 55px; /* 모바일에서는 패딩 줄임 */
-        }
-        
-        .progress-container {
-            top: 0;
-        }
-        
-        .question-image-container, .question-text {
-            max-height: 50vh;
-        }
-        
-        .cloud-button {
-            padding: 12px 15px;
-            font-size: 0.9rem;
-        }
-        
-        .options-container {
-            gap: 10px;
-        }
-    }
-    
-    /* 아주 작은 화면용 */
-    @media (max-width: 320px) {
-        .question-image-container, .question-text {
-            max-height: 45vh;
-        }
-        
-        .cloud-button {
-            padding: 10px 12px;
-            min-height: auto !important;
-        }
-        
-        .options-container {
-            gap: 8px;
-            margin-top: 15px;
-            margin-bottom: 15px;
-        }
     }
 </style>
 
 <div class="container p-0">
-    <div class="question-container">
-        <!-- 이 부분만 AJAX로 업데이트됨 -->
-        {% include "psychotest/partials/question.html" %}
-    </div>
+    <!-- 이 부분만 AJAX로 업데이트됨 -->
+    {% include "psychotest/partials/question.html" %}
 </div>
 
 <script>
