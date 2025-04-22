@@ -57,4 +57,20 @@
         var form = document.getElementById('question-form');
         htmx.trigger(form, 'submit');
     }
+    
+    // 게이지 컨테이너 위치 수정 (선택적)
+    document.addEventListener('DOMContentLoaded', function() {
+        // 모바일 브라우저 감지
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Samsung 브라우저 특정 처리 (필요한 경우)
+            if (navigator.userAgent.match(/SamsungBrowser/i)) {
+                const container = document.querySelector('.question-container');
+                if (container) {
+                    container.style.paddingTop = '60px';
+                }
+            }
+        }
+    });
 </script>

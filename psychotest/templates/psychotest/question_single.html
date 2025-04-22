@@ -3,27 +3,28 @@
 
 {% block content %}
 <style>
-    /* 전체 컨테이너 - padding-top 제거 */
+    /* 전체 컨테이너 */
     .question-container {
         max-width: 500px;
         width: 100%;
         margin: 0 auto;
         position: relative;
-        padding-top: 0; /* 여기서 padding-top 제거 */
+        padding-top: 75px; /* 게이지 바 높이만큼 상단 패딩 추가 */
     }
     
     /* 게이지 바 스타일링 수정 */
     .progress-container {
-        position: fixed;
+        position: absolute; /* fixed에서 absolute로 변경 */
         top: 0;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 0;
+        right: 0;
+        transform: none; /* translateX 제거 */
         z-index: 100;
-        width: calc(100% - 20px);
-        max-width: 480px;
+        width: 100%;
+        max-width: 500px;
         background-color: white;
-        padding: 0; /* 패딩 제거 */
-        margin-top: 55px; /* 헤더 높이에 맞게 약간 조정 */
+        padding: 0;
+        margin: 0 auto;
     }
 
     .progress-track {
@@ -51,12 +52,12 @@
         margin-left: -15px;
     }
     
-    /* 질문 이미지 컨테이너 - 마진 모두 제거 */
+    /* 질문 이미지 컨테이너 */
     .question-image-container {
         width: 100%;
         max-width: 500px;
         height: auto;
-        margin: 0; /* 마진 제거 */
+        margin: 0;
         background-color: #ffe600;
         overflow: visible;
         display: flex;
@@ -70,13 +71,13 @@
         object-fit: contain;
     }
     
-    /* 이미지가 없을 때 대체 텍스트 - 마진 제거 */
+    /* 이미지가 없을 때 대체 텍스트 */
     .question-text {
         width: 100%;
         max-width: 500px;
         height: auto;
         aspect-ratio: 5/6;
-        margin: 0; /* 마진 제거 */
+        margin: 0;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -85,11 +86,6 @@
         font-size: 1.5rem;
         padding: 20px;
         box-sizing: border-box;
-    }
-    
-    /* 질문 컨텐츠 영역 - 상단 마진 최소화 */
-    .question-content {
-        margin-top: 15px; /* 게이지와 질문 사이 간격 최소화 */
     }
     
     /* 새로운 구름 스타일 선택지 */
@@ -141,6 +137,15 @@
     
     /* 모바일 스크린 최적화 */
     @media (max-width: 500px) {
+        /* 모바일에서 게이지바와 컨테이너 관계 조정 */
+        .question-container {
+            padding-top: 55px; /* 모바일에서는 패딩 줄임 */
+        }
+        
+        .progress-container {
+            top: 0;
+        }
+        
         .question-image-container, .question-text {
             max-height: 50vh;
         }
@@ -180,4 +185,21 @@
         {% include "psychotest/partials/question.html" %}
     </div>
 </div>
+
+<script>
+// 모바일 환경 감지
+document.addEventListener('DOMContentLoaded', function() {
+    // viewport 높이 재설정 (iOS Safari 대응)
+    function setVh() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    setVh();
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', function() {
+        setTimeout(setVh, 100);
+    });
+});
+</script>
 {% endblock %}
