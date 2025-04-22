@@ -12,37 +12,32 @@
         {% endif %}
     </div>
     
-    <!-- 간격을 위한 빈 div 추가 -->
-    <div style="height: 40px;"></div>
-    
-    <!-- 질문 내용 -->
-    <div class="question-content">
-        {% if question.image %}
-        <div class="question-image-container">
-            <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
-        </div>
-        {% else %}
-        <div class="question-text">
-            {{ question.text }}
-        </div>
-        {% endif %}
-        
-        <!-- 선택지 코드는 그대로 유지 -->
-        <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
-                hx-target="#question-container" hx-swap="outerHTML">
-            {% csrf_token %}
-            <div class="options-container options-{{ question.options.all|length }}">
-                {% for option in question.options.all %}
-                <button type="button" class="cloud-button" 
-                        onclick="selectOption('{{ option.id }}')">
-                    {{ option.text }}
-                </button>
-                {% endfor %}
-            </div>
-            <input type="hidden" name="answer" id="selected-option">
-            <input type="hidden" name="current_index" value="{{ current_index }}">
-        </form>
+    <!-- 질문 내용 - 여기서 바로 이미지나 텍스트 시작 -->
+    {% if question.image %}
+    <div class="question-image-container">
+        <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
     </div>
+    {% else %}
+    <div class="question-text">
+        {{ question.text }}
+    </div>
+    {% endif %}
+    
+    <!-- 선택지 코드는 그대로 유지 -->
+    <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
+            hx-target="#question-container" hx-swap="outerHTML">
+        {% csrf_token %}
+        <div class="options-container options-{{ question.options.all|length }}">
+            {% for option in question.options.all %}
+            <button type="button" class="cloud-button" 
+                    onclick="selectOption('{{ option.id }}')">
+                {{ option.text }}
+            </button>
+            {% endfor %}
+        </div>
+        <input type="hidden" name="answer" id="selected-option">
+        <input type="hidden" name="current_index" value="{{ current_index }}">
+    </form>
 </div>
 
 <script>
@@ -62,18 +57,4 @@
         var form = document.getElementById('question-form');
         htmx.trigger(form, 'submit');
     }
-    
-    // 화면 로드 시 모바일에서 최적화
-    document.addEventListener('DOMContentLoaded', function() {
-        // 모바일에서는 뷰포트 높이에 맞게 요소 조정
-        if(window.innerWidth <= 500) {
-            const vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-            
-            const questionContent = document.querySelector('.question-content');
-            if(questionContent) {
-                questionContent.style.height = `calc(100 * var(--vh) - 50px)`;
-            }
-        }
-    });
 </script>

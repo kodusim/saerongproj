@@ -3,27 +3,27 @@
 
 {% block content %}
 <style>
-    /* 전체 컨테이너 */
+    /* 전체 컨테이너 - padding-top 제거 */
     .question-container {
         max-width: 500px;
         width: 100%;
         margin: 0 auto;
         position: relative;
-        padding-top: 70px;
+        padding-top: 0; /* 여기서 padding-top 제거 */
     }
     
     /* 게이지 바 스타일링 수정 */
     .progress-container {
         position: fixed;
-        top: 0; /* 상단에 바로 붙이기 */
+        top: 0;
         left: 50%;
         transform: translateX(-50%);
         z-index: 100;
         width: calc(100% - 20px);
         max-width: 480px;
         background-color: white;
-        padding: 5px 0;
-        margin-top: 60px; /* 헤더 높이에 맞게 조정 */
+        padding: 0; /* 패딩 제거 */
+        margin-top: 55px; /* 헤더 높이에 맞게 약간 조정 */
     }
 
     .progress-track {
@@ -51,16 +51,14 @@
         margin-left: -15px;
     }
     
-    /* 질문 이미지 컨테이너 - 반응형으로 수정 */
+    /* 질문 이미지 컨테이너 - 마진 모두 제거 */
     .question-image-container {
         width: 100%;
         max-width: 500px;
         height: auto;
-        /* aspect-ratio 제거 또는 수정 */
-        aspect-ratio: auto; /* 또는 이 줄 제거 */
-        margin-top: 10px;
+        margin: 0; /* 마진 제거 */
         background-color: #ffe600;
-        overflow: visible; /* hidden에서 visible로 변경 */
+        overflow: visible;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -68,17 +66,17 @@
     
     .question-image {
         width: 100%;
-        height: auto; /* 강제 높이 지정 제거 */
-        object-fit: contain; /* cover에서 contain으로 변경 */
+        height: auto;
+        object-fit: contain;
     }
     
-    /* 이미지가 없을 때 대체 텍스트 - 반응형으로 수정 */
+    /* 이미지가 없을 때 대체 텍스트 - 마진 제거 */
     .question-text {
         width: 100%;
         max-width: 500px;
         height: auto;
         aspect-ratio: 5/6;
-        margin-top: 10px;   /* 게이지 바와의 간격 */
+        margin: 0; /* 마진 제거 */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -89,6 +87,11 @@
         box-sizing: border-box;
     }
     
+    /* 질문 컨텐츠 영역 - 상단 마진 최소화 */
+    .question-content {
+        margin-top: 15px; /* 게이지와 질문 사이 간격 최소화 */
+    }
+    
     /* 새로운 구름 스타일 선택지 */
     .options-container {
         display: flex;
@@ -96,7 +99,7 @@
         gap: 12px;
         margin-top: 20px;
         margin-bottom: 20px;
-        padding: 0 15px; /* 패딩 줄임 */
+        padding: 0 15px;
         width: 100%;
         box-sizing: border-box;
     }
@@ -107,16 +110,16 @@
         color: #333;
         border: none;
         border-radius: 30px;
-        padding: 15px 20px; /* 패딩 줄임 */
+        padding: 15px 20px;
         font-size: 1rem;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 4px 10px rgba(204, 242, 255, 0.4);
-        width: 100%; /* 최대 너비 제한 제거 */
+        width: 100%;
         margin: 0 auto;
         font-weight: bold;
-        word-break: break-word; /* 단어 줄바꿈 허용 */
+        word-break: break-word;
     }
 
     .cloud-button:hover {
@@ -139,7 +142,7 @@
     /* 모바일 스크린 최적화 */
     @media (max-width: 500px) {
         .question-image-container, .question-text {
-            max-height: 50vh; /* 더 작은 화면에서 높이 줄임 */
+            max-height: 50vh;
         }
         
         .cloud-button {
@@ -160,7 +163,7 @@
         
         .cloud-button {
             padding: 10px 12px;
-            min-height: auto !important; /* 고정 높이 무시 */
+            min-height: auto !important;
         }
         
         .options-container {
