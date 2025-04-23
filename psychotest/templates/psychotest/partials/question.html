@@ -12,16 +12,18 @@
         {% endif %}
     </div>
     
-    <!-- 질문 내용 (이미지 또는 텍스트) -->
-    {% if question.image %}
-    <div class="question-image-container">
-        <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
+    <!-- 질문 내용 (이미지 또는 텍스트) - div 감싸는 부분 유지 -->
+    <div class="question-content-wrapper">
+        {% if question.image %}
+        <div class="question-image-container">
+            <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
+        </div>
+        {% else %}
+        <div class="question-text">
+            {{ question.text }}
+        </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="question-text">
-        {{ question.text }}
-    </div>
-    {% endif %}
     
     <!-- 선택지 -->
     <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
