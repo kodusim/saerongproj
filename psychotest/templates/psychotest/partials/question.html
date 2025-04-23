@@ -1,47 +1,49 @@
 {% load static %}
-<!-- 게이지 바 -->
-<div class="progress-container">
-    <div class="progress-track">
-        <div class="progress-bar" style="width: {{ progress }}%;"></div>
+<div id="question-container">
+    <!-- 게이지 바 -->
+    <div class="progress-container">
+        <div class="progress-track">
+            <div class="progress-bar" style="width: {{ progress }}%;"></div>
+        </div>
+        {% if test.gauge_character %}
+            <img src="{{ test.gauge_character.url }}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
+        {% else %}
+            <img src="{% static 'images/default-character.png' %}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
+        {% endif %}
     </div>
-    {% if test.gauge_character %}
-        <img src="{{ test.gauge_character.url }}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
-    {% else %}
-        <img src="{% static 'images/default-character.png' %}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
-    {% endif %}
-</div>
-
-<!-- 질문 이미지 -->
-{% if question.image %}
-<div class="question-image-container">
-    <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
-</div>
-{% else %}
-<div class="question-text">
-    {{ question.text }}
-</div>
-{% endif %}
-
-<!-- 선택지 -->
-<form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
-        hx-target="#question-container" hx-swap="outerHTML">
-    {% csrf_token %}
-    <div class="options-container">
-        {% for option in question.options.all %}
-        <button type="button" class="cloud-button" 
-                onclick="selectOption('{{ option.id }}')">
-            {{ option.text }}
-        </button>
-        {% endfor %}
+    
+    <!-- 이미지와 텍스트를 포함하는 div에 높이 지정 -->
+    <div style="width: 100%; height: auto; overflow: hidden; position: relative;">
+        {% if question.image %}
+            <img src="{{ question.image.url }}" alt="{{ question.text }}" style="width: 100%; display: block;">
+        {% else %}
+            <div style="width: 100%; padding: 20px; background-color: #f5f5f5; font-size: 1.5rem; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                {{ question.text }}
+            </div>
+        {% endif %}
     </div>
-    <input type="hidden" name="answer" id="selected-option">
-    <input type="hidden" name="current_index" value="{{ current_index }}">
-</form>
+    
+    <!-- 선택지 - 이미지와 완전히 분리되도록 설정 -->
+    <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
+            hx-target="#question-container" hx-swap="outerHTML">
+        {% csrf_token %}
+        <div style="width: 100%; background-color: white; padding: 10px 15px 20px 15px; margin-top: 0; position: relative;">
+            {% for option in question.options.all %}
+            <button type="button" style="width: 100%; margin: 5px 0; padding: 15px; border: none; border-radius: 30px; background: linear-gradient(to right, #f0f8ff, #e6f7ff, #ccf2ff); font-size: 1rem; font-weight: bold;"
+                    onclick="selectOption('{{ option.id }}')">
+                {{ option.text }}
+            </button>
+            {% endfor %}
+        </div>
+        <input type="hidden" name="answer" id="selected-option">
+        <input type="hidden" name="current_index" value="{{ current_index }}">
+    </form>
+</div>
 
 <script>
     function selectOption(optionId) {
         document.getElementById('selected-option').value = optionId;
-        const buttons = document.querySelectorAll('.cloud-button');
+        const buttons = document.querySelectorAll('button[type="button"]');
         buttons.forEach(btn => {
             btn.disabled = true; // 중복 클릭 방지
         });
