@@ -1,44 +1,42 @@
 {% load static %}
-<div id="question-container">
-    <!-- 게이지 바 -->
-    <div class="progress-container">
-        <div class="progress-track">
-            <div class="progress-bar" style="width: {{ progress }}%;"></div>
-        </div>
-        {% if test.gauge_character %}
-            <img src="{{ test.gauge_character.url }}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
-        {% else %}
-            <img src="{% static 'images/default-character.png' %}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
-        {% endif %}
+<!-- 게이지 바 -->
+<div class="progress-container">
+    <div class="progress-track">
+        <div class="progress-bar" style="width: {{ progress }}%;"></div>
     </div>
-    
-    <!-- 질문 내용 (이미지 또는 텍스트) -->
-    {% if question.image %}
-    <div class="question-image-container">
-        <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
-    </div>
+    {% if test.gauge_character %}
+        <img src="{{ test.gauge_character.url }}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
     {% else %}
-    <div class="question-text">
-        {{ question.text }}
-    </div>
+        <img src="{% static 'images/default-character.png' %}" class="progress-character" style="left: min(calc({{ progress }}% - 20px), calc(100% - 40px));">
     {% endif %}
-    
-    <!-- 선택지 -->
-    <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
-            hx-target="#question-container" hx-swap="outerHTML">
-        {% csrf_token %}
-        <div class="options-container" style="position: relative; z-index: 10; background-color: white; margin-top: 0; padding-top: 10px;">
-            {% for option in question.options.all %}
-            <button type="button" class="cloud-button" 
-                    onclick="selectOption('{{ option.id }}')">
-                {{ option.text }}
-            </button>
-            {% endfor %}
-        </div>
-        <input type="hidden" name="answer" id="selected-option">
-        <input type="hidden" name="current_index" value="{{ current_index }}">
-    </form>
 </div>
+
+<!-- 질문 이미지 -->
+{% if question.image %}
+<div class="question-image-container">
+    <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
+</div>
+{% else %}
+<div class="question-text">
+    {{ question.text }}
+</div>
+{% endif %}
+
+<!-- 선택지 -->
+<form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
+        hx-target="#question-container" hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="options-container">
+        {% for option in question.options.all %}
+        <button type="button" class="cloud-button" 
+                onclick="selectOption('{{ option.id }}')">
+            {{ option.text }}
+        </button>
+        {% endfor %}
+    </div>
+    <input type="hidden" name="answer" id="selected-option">
+    <input type="hidden" name="current_index" value="{{ current_index }}">
+</form>
 
 <script>
     function selectOption(optionId) {
@@ -52,20 +50,4 @@
         var form = document.getElementById('question-form');
         htmx.trigger(form, 'submit');
     }
-    
-    // 게이지 컨테이너 위치 수정 (선택적)
-    document.addEventListener('DOMContentLoaded', function() {
-        // 모바일 브라우저 감지
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-            // Samsung 브라우저 특정 처리 (필요한 경우)
-            if (navigator.userAgent.match(/SamsungBrowser/i)) {
-                const container = document.querySelector('.question-container');
-                if (container) {
-                    container.style.paddingTop = '60px';
-                }
-            }
-        }
-    });
 </script>
