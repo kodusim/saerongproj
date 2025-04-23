@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">{{ category.name }}</h1>
+    <p class="text-muted">{{ category.description }}</p>
+    
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%">번호</th>
+                        <th style="width: 55%">제목</th>
+                        <th style="width: 15%">작성자</th>
+                        <th style="width: 10%">조회수</th>
+                        <th style="width: 10%">작성일</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in posts %}
+                    <tr{% if post.is_notice %} class="table-warning"{% endif %}>
+                        <td>{% if post.is_notice %}공지{% else %}{{ post.id }}{% endif %}</td>
+                        <td><a href="{% url 'community:post_detail' post.id %}" class="text-decoration-none">{{ post.title }}</a></td>
+                        <td>{{ post.author.username }}</td>
+                        <td>{{ post.view_count }}</td>
+                        <td>{{ post.created_at|date:"Y-m-d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-3">등록된 게시글이 없습니다.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 페이지네이션 -->
+    {% if posts.has_other_pages %}
+    <ul class="pagination justify-content-center">
+        {% if posts.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ posts.previous_page_number }}">&laquo;</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#">&laquo;</a>
+        </li>
+        {% endif %}
+        
+        {% for i in posts.paginator.page_range %}
+            {% if posts.number == i %}
+            <li class="page-item active">
+                <a class="page-link" href="#">{{ i }}</a>
+            </li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if posts.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ posts.next_page_number }}">&raquo;</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#">&raquo;</a>
+        </li>
+        {% endif %}
+    </ul>
+    {% endif %}
+</div>
+{% endblock %}

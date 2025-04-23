@@ -315,11 +315,9 @@
         </div>
         <ul>
             <li><a href="{% url 'core:root' %}">홈</a></li>
-            <li><a href="{% url 'psychotest:test_list' %}">테스트 목록</a></li>
-            <li><a href="#">인기 테스트</a></li>
-            <li><a href="#">카테고리</a></li>
-            <li><a href="#">로그인</a></li>
-            <li><a href="#">회원가입</a></li>
+            <li><a href="{% url 'psychotest:test_list' %}">심리테스트</a></li>
+            <li><a href="#">얼굴테스트</a></li>
+            <li><a href="{% url 'community:category_list' %}">커뮤니티</a></li>
         </ul>
     </nav>
 

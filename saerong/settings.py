@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "accounts",
     "core",
     "psychotest",
+    "community",
 ]
 
 if DEBUG:

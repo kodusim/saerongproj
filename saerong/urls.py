@@ -10,6 +10,7 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("", include("core.urls")),
     path("", include("psychotest.urls")),
+    path("community/", include("community.urls")),
 ]
 
 # 개발 환경에서 미디어 파일 서빙 설정
