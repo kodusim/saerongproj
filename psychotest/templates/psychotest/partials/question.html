@@ -12,24 +12,22 @@
         {% endif %}
     </div>
     
-    <!-- 질문 내용 (이미지 또는 텍스트) - div 감싸는 부분 유지 -->
-    <div class="question-content-wrapper">
-        {% if question.image %}
-        <div class="question-image-container">
-            <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
-        </div>
-        {% else %}
-        <div class="question-text">
-            {{ question.text }}
-        </div>
-        {% endif %}
+    <!-- 질문 내용 (이미지 또는 텍스트) -->
+    {% if question.image %}
+    <div class="question-image-container">
+        <img src="{{ question.image.url }}" alt="{{ question.text }}" class="question-image">
     </div>
+    {% else %}
+    <div class="question-text">
+        {{ question.text }}
+    </div>
+    {% endif %}
     
     <!-- 선택지 -->
     <form id="question-form" method="post" hx-post="{% url 'psychotest:answer_question' test.id question.id %}" 
             hx-target="#question-container" hx-swap="outerHTML">
         {% csrf_token %}
-        <div class="options-container">
+        <div class="options-container" style="position: relative; z-index: 10; background-color: white; margin-top: 0; padding-top: 10px;">
             {% for option in question.options.all %}
             <button type="button" class="cloud-button" 
                     onclick="selectOption('{{ option.id }}')">
