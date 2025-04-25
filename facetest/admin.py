@@ -257,15 +257,23 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
 @admin.register(FaceTestModel)
 class FaceTestModelAdmin(admin.ModelAdmin):
     """얼굴상 테스트 모델 관리자"""
-    list_display = ['name', 'is_active', 'created_at', 'result_types_count', 'view_result_types', 'manage_all_results']
+    list_display = ['name', 'show_thumbnail', 'is_active', 'created_at', 'result_types_count', 'view_result_types']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
-    readonly_fields = ['created_at', 'updated_at', 'sync_status']
+    readonly_fields = ['created_at', 'updated_at', 'sync_status', 'image_preview', 'intro_image_preview', 'guide_image_preview']
     inlines = [FaceResultTypeInline]
     
     fieldsets = (
         (None, {
             'fields': ('name', 'description', 'is_active')
+        }),
+        ('이미지', {
+            'fields': ('image', 'image_preview', 'intro_image', 'intro_image_preview', 'guide_image', 'guide_image_preview'),
+            'description': '메인 페이지 썸네일, 테스트 시작 페이지 이미지, 업로드 가이드 이미지를 업로드하세요.'
+        }),
+        ('가이드 텍스트', {
+            'fields': ('upload_guide',),
+            'description': '이미지 업로드 시 표시할 가이드 텍스트를 입력하세요.'
         }),
         ('모델 파일', {
             'fields': ('model_file', 'result_types_file', 'sync_status'),
@@ -280,6 +288,34 @@ class FaceTestModelAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def show_thumbnail(self, obj):
+        """썸네일 표시"""
+        if obj.image:
+            return format_html('<img src="{}" width="50" height="50" style="object-fit: cover;" />', obj.image.url)
+        return "이미지 없음"
+    show_thumbnail.short_description = '썸네일'
+    
+    def image_preview(self, obj):
+        """이미지 미리보기"""
+        if obj.image:
+            return format_html('<img src="{}" width="200" />', obj.image.url)
+        return "이미지 없음"
+    image_preview.short_description = "썸네일 미리보기"
+    
+    def intro_image_preview(self, obj):
+        """인트로 이미지 미리보기"""
+        if obj.intro_image:
+            return format_html('<img src="{}" width="300" />', obj.intro_image.url)
+        return "이미지 없음"
+    intro_image_preview.short_description = "인트로 이미지 미리보기"
+    
+    def guide_image_preview(self, obj):
+        """가이드 이미지 미리보기"""
+        if obj.guide_image:
+            return format_html('<img src="{}" width="300" />', obj.guide_image.url)
+        return "이미지 없음"
+    guide_image_preview.short_description = "업로드 가이드 이미지 미리보기"
     
     def result_types_count(self, obj):
         count = obj.result_types.count()
@@ -296,7 +332,7 @@ class FaceTestModelAdmin(admin.ModelAdmin):
     def manage_all_results(self, obj):
         """모든 결과 일괄 관리 링크"""
         if obj.pk:
-            url = reverse('admin:facetest_bulk_manage', args=[obj.pk])
+            url = reverse('facetest:bulk_manage_result_types', args=[obj.pk])
             return format_html('<a href="{}" class="button">모든 결과 일괄 관리</a>', url)
         return "-"
     manage_all_results.short_description = "일괄 관리"
@@ -317,9 +353,6 @@ class FaceTestModelAdmin(admin.ModelAdmin):
             path('<path:object_id>/sync-results/', 
                 self.admin_site.admin_view(self.sync_results_view), 
                 name='facetest_facetestmodel_sync_results'),
-            path('<int:test_id>/bulk-manage/',
-                self.admin_site.admin_view(self.bulk_manage_view),
-                name='facetest_bulk_manage'),
         ]
         return custom_urls + urls
     
@@ -335,18 +368,6 @@ class FaceTestModelAdmin(admin.ModelAdmin):
             messages.error(request, f"동기화 중 오류가 발생했습니다: {e}")
         
         return redirect('admin:facetest_facetestmodel_change', object_id=object_id)
-    
-    def bulk_manage_view(self, request, test_id):
-        """모든 결과 유형을 한 페이지에서 관리하는 뷰"""
-        test = get_object_or_404(FaceTestModel, id=test_id)
-        result_types = test.result_types.all().order_by('type_id')
-        
-        return render(request, 'admin/facetest/bulk_manage.html', {
-            'test': test,
-            'result_types': result_types,
-            'opts': self.model._meta,
-            'title': f"{test.name} - 결과 유형 통합 관리",
-        })
     
     def change_view(self, request, object_id, form_url='', extra_context=None):
         """변경 뷰에 동기화 폼 추가"""

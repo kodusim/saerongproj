@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    .result-container {
+        padding: 20px 0;
+    }
+    
+    .result-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .result-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .result-subtitle {
+        font-size: 1.2rem;
+        color: #666;
+    }
+    
+    .result-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .result-card {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    
+    .card-header {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .card-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    .face-comparison {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+    }
+    
+    @media (min-width: 576px) {
+        .face-comparison {
+            flex-direction: row;
+        }
+    }
+    
+    .face-item {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .face-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 10px;
+        border: 3px solid #fff;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    }
+    
+    .face-label {
+        font-size: 1rem;
+        font-weight: bold;
+    }
+    
+    .comparison-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #007bff;
+    }
+    
+    .result-description {
+        margin-top: 20px;
+        line-height: 1.6;
+    }
+    
+    .characteristics-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .characteristic-item {
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        background-color: #f8f9fa;
+        border-left: 3px solid #007bff;
+        border-radius: 4px;
+    }
+    
+    .examples-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .example-item {
+        background-color: #e9f5ff;
+        color: #0056b3;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+    
+    .share-container {
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    .share-title {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+    }
+    
+    .share-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .share-button {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        transition: transform 0.2s;
+        border: none;
+    }
+    
+    .share-button:hover {
+        transform: scale(1.1);
+    }
+    
+    .share-icon {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .retry-button {
+        display: block;
+        width: 100%;
+        max-width: 350px;
+        margin: 20px auto;
+        padding: 12px;
+        border: none;
+        border-radius: 30px;
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .retry-button:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,70,200,0.2);
+    }
+    
+    .other-tests {
+        margin-top: 40px;
+    }
+    
+    .other-tests-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .test-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .test-item {
+        background-color: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    
+    .test-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .test-image {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+    }
+    
+    .test-name {
+        padding: 10px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container result-container">
+    <!-- 결과 헤더 -->
+    <div class="result-header">
+        <h1 class="result-title">얼굴상 분석 결과</h1>
+        <p class="result-subtitle">당신의 얼굴을 AI가 분석했습니다</p>
+    </div>
+    
+    <div class="result-cards">
+        <!-- 결과 카드 - 얼굴 비교 -->
+        <div class="result-card">
+            <div class="card-header">
+                <h2 class="card-title">당신의 얼굴상</h2>
+            </div>
+            <div class="card-body">
+                <div class="face-comparison">
+                    <!-- 사용자 얼굴 -->
+                    <div class="face-item">
+                        {% if face_image_url %}
+                        <img src="{{ face_image_url }}" alt="내 얼굴" class="face-image">
+                        {% else %}
+                        <div class="face-image" style="display: flex; align-items: center; justify-content: center; background-color: #f0f0f0;">
+                            <span>이미지 없음</span>
+                        </div>
+                        {% endif %}
+                        <div class="face-label">내 얼굴</div>
+                    </div>
+                    
+                    <!-- 화살표 -->
+                    <div class="comparison-arrow">
+                        <span>⟹</span>
+                    </div>
+                    
+                    <!-- 결과 얼굴상 -->
+                    <div class="face-item">
+                        {% if result_type %}
+                            {% with main_image=result_type.images.filter.first %}
+                                {% if main_image %}
+                                <img src="{{ main_image.image.url }}" alt="{{ result_type.name }}" class="face-image">
+                                {% else %}
+                                <div class="face-image" style="display: flex; align-items: center; justify-content: center; background-color: #f0f0f0;">
+                                    <span>{{ result_type.name }}</span>
+                                </div>
+                                {% endif %}
+                            {% endwith %}
+                        <div class="face-label">{{ result_type.name }}</div>
+                        {% else %}
+                        <div class="face-image" style="display: flex; align-items: center; justify-content: center; background-color: #f0f0f0;">
+                            <span>결과 없음</span>
+                        </div>
+                        <div class="face-label">분석 실패</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if result_type %}
+                <div class="result-description">
+                    {{ result_type.description|linebreaks }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 결과 카드 - 특성 -->
+        {% if characteristics %}
+        <div class="result-card">
+            <div class="card-header">
+                <h2 class="card-title">특징</h2>
+            </div>
+            <div class="card-body">
+                <ul class="characteristics-list">
+                    {% for characteristic in characteristics %}
+                    <li class="characteristic-item">{{ characteristic }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 결과 카드 - 유명인 예시 -->
+        {% if examples %}
+        <div class="result-card">
+            <div class="card-header">
+                <h2 class="card-title">유사한 유명인</h2>
+            </div>
+            <div class="card-body">
+                <div class="examples-list">
+                    {% for example in examples %}
+                    <div class="example-item">{{ example }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 공유 버튼 -->
+    <div class="share-container">
+        <div class="share-title">결과 공유하기</div>
+        <div class="share-buttons">
+            <button class="share-button" id="kakao-share-btn" style="background-color: #FEE500;">
+                <img src="{% static 'images/kakao_icon.png' %}" class="share-icon" alt="KakaoTalk" 
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNSIgY3k9IjE1IiByPSIxNSIgZmlsbD0iI0ZFRTUwMCIvPjxwYXRoIGQ9Ik0xNS40NjIgOEMxMC41MSA4IDYuNTA5IDExLjM0NSA2LjUwOSAxNS41MDhDNi41MDkgMTguMTU2IDguMjg0IDIwLjQzMyAxMSAyMS42NzNMMTAuMSAyNC42MzlDMTAuMTY2IDI0Ljg2MyAxMC40IDE1LjUgMTAuNCAxNS41QzE1LjY2NCAxNS41IDE5LjQxNiAxNi45OTkgMTkuNDE2IDEzLjUwOEMxOS40MTYgOS44NTUgMTUuNDYyIDggMTUuNDYyIDhaIiBmaWxsPSJibGFjayIvPjwvc3ZnPg==';this.onerror='';">
+            </button>
+            
+            <button class="share-button" id="facebook-share-btn" style="background-color: #1877F2;">
+                <img src="{% static 'images/facebook_icon.png' %}" class="share-icon" alt="Facebook" 
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNSIgY3k9IjE1IiByPSIxNSIgZmlsbD0iIzE4NzdGMiIvPjxwYXRoIGQ9Ik0xNi41MzEgMjEuOTM3VjE1LjE2N0gxOS43OEwyMC4yMTkgMTEuMzVIMTYuNTNWOC45NDhDMTYuNTMgNy44MjYgMTYuODM3IDcuMDY2IDE4LjQ2NiA3LjA2NkgyMC4zNDRWMy42NjdDMTkuOTkgMy42MTggMTguNjA5IDMuNSAxNy4wNCAzLjVDMTMuNzkyIDMuNSAxMS41OTQgNS40OTUgMTEuNTk0IDguNTYzVjExLjM1SDguMzQ0VjE1LjE2N0gxMS41OTRWMjEuOTM3SDE2LjUzMVoiIGZpbGw9IndoaXRlIi8+PC9zdmc+';this.onerror='';">
+            </button>
+            
+            <button class="share-button" id="twitter-share-btn" style="background-color: #000000;">
+                <img src="{% static 'images/twitter_x_icon.png' %}" class="share-icon" alt="X" 
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNSIgY3k9IjE1IiByPSIxNSIgZmlsbD0iIzAwMDAwMCIvPjxwYXRoIGQ9Ik0xNi45IDEyTDE5LjkgMTJMMTUuOSAxNi45TDIxIDIzSDgmI3g4Mjf5Ik0xOC4wNyAxMy40M0gxNy4xN0wxMi43MSAyMC4wOUgxMy42TDE4LjA3IDEzLjQzWiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=';this.onerror='';">
+            </button>
+            
+            <button class="share-button" id="link-copy-btn" style="background-color: #e9e9e9;">
+                <img src="{% static 'images/share_icon.png' %}" class="share-icon" alt="공유" 
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNSIgY3k9IjE1IiByPSIxNSIgZmlsbD0iI2U5ZTllOSIvPjxwYXRoIGQ9Ik0xOCAxOUwxMyAxMU0xMyAxOUwxOCAxMU0xMyAxNUgyMk05IDE1SDE0IiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+';this.onerror='';">
+            </button>
+        </div>
+    </div>
+    
+    <!-- 다시 테스트하기 버튼 -->
+    <a href="{% url 'facetest:index' %}" class="retry-button">다른 사진으로 다시 테스트하기</a>
+    
+    <!-- 다른 얼굴상 테스트 -->
+    {% if other_tests %}
+    <div class="other-tests">
+        <div class="other-tests-title">다른 얼굴상 테스트</div>
+        <div class="test-grid">
+            {% for test in other_tests %}
+            <a href="{% url 'facetest:index' %}" class="test-item">
+                {% if test.image %}
+                <img src="{{ test.image.url }}" class="test-image" alt="{{ test.name }}">
+                {% else %}
+                <div class="test-image" style="display: flex; align-items: center; justify-content: center; background-color: #f0f0f0;">
+                    <span>{{ test.name }}</span>
+                </div>
+                {% endif %}
+                <div class="test-name">{{ test.name }}</div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 링크 복사 기능
+    document.getElementById('link-copy-btn').addEventListener('click', function() {
+        copyToClipboard(window.location.href);
+        alert('링크가 복사되었습니다!');
+    });
+    
+    // 카카오톡 공유
+    document.getElementById('kakao-share-btn').addEventListener('click', function() {
+        shareToKakao();
+    });
+    
+    // 페이스북 공유
+    document.getElementById('facebook-share-btn').addEventListener('click', function() {
+        const shareUrl = window.location.href;
+        const shareTitle = "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}";
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareTitle)}`, 'facebook-share', 'width=600,height=700');
+    });
+    
+    // 트위터(X) 공유
+    document.getElementById('twitter-share-btn').addEventListener('click', function() {
+        const shareUrl = window.location.href;
+        const shareText = "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}";
+        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, 'twitter-share', 'width=600,height=700');
+    });
+    
+    // 클립보드 복사 함수
+    function copyToClipboard(text) {
+        // 임시 엘리먼트 생성
+        const tempElement = document.createElement('textarea');
+        tempElement.value = text;
+        document.body.appendChild(tempElement);
+        
+        // 선택 및 복사
+        tempElement.select();
+        document.execCommand('copy');
+        
+        // 임시 엘리먼트 제거
+        document.body.removeChild(tempElement);
+    }
+    
+    // 카카오톡 공유 함수
+    function shareToKakao() {
+        if (typeof Kakao === 'undefined') {
+            alert('카카오톡 SDK가 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
+            return;
+        }
+        
+        // 카카오 SDK 초기화
+        if (!Kakao.isInitialized()) {
+            Kakao.init('{{ kakao_api_key }}');
+        }
+        
+        // 공유할 이미지
+        let imageUrl = '';
+        {% if result_type %}
+            {% with main_image=result_type.images.filter.first %}
+                {% if main_image %}
+                    imageUrl = '{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}';
+                {% endif %}
+            {% endwith %}
+        {% endif %}
+        
+        // 공유 데이터 설정
+        Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+                title: '내 얼굴상 테스트 결과',
+                description: '{% if result_type %}{{ result_type.name }} - {{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}',
+                imageUrl: imageUrl,
+                link: {
+                    mobileWebUrl: window.location.href,
+                    webUrl: window.location.href
+                }
+            },
+            buttons: [
+                {
+                    title: '결과 보기',
+                    link: {
+                        mobileWebUrl: window.location.href,
+                        webUrl: window.location.href
+                    }
+                },
+                {
+                    title: '테스트 하기',
+                    link: {
+                        mobileWebUrl: '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}',
+                        webUrl: '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}'
+                    }
+                }
+            ]
+        });
+    }
+});
+</script>
+{% endblock %}

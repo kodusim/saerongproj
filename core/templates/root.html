@@ -92,10 +92,60 @@
         <img src="{% static 'images/banner.jpg' %}" class="img-fluid w-100" alt="배너 이미지" onerror="this.src='https://via.placeholder.com/500x200?text=배너이미지';this.onerror='';">
     </div>
     
-    <!-- 최신 테스트 섹션 -->
+    <!-- 최신 얼굴상 테스트 섹션 -->
     <div class="section-container">
         <div class="section-header">
-            <h2>최신 테스트</h2>
+            <h2>최신 얼굴상 테스트</h2>
+            <a href="{% url 'facetest:index' %}" class="btn btn-sm btn-outline-primary">더보기</a>
+        </div>
+        
+        <div class="scrollable-cards-container">
+            <!-- 슬라이드 버튼 -->
+            <button class="slide-button slide-prev">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            
+            <div class="scrollable-cards">
+                {% for test in recent_face_tests %}
+                <div class="test-card">
+                    <a href="{% url 'facetest:test_intro' test.id %}" class="text-decoration-none text-reset">
+                        {% if test.image %}
+                        <img src="{{ test.image.url }}" class="card-img-top" alt="{{ test.name }}">
+                        {% else %}
+                        <div class="bg-light text-center d-flex align-items-center justify-content-center" style="height: 140px;">
+                            <span class="text-muted">이미지 없음</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ test.name }}</h5>
+                        </div>
+                    </a>
+                </div>
+                {% empty %}
+                <div class="alert alert-info w-100">
+                    준비 중인 얼굴상 테스트입니다.
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button class="slide-button slide-next">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+            
+            <!-- 그라데이션 효과 -->
+            <div class="scroll-fade-left"></div>
+            <div class="scroll-fade-right"></div>
+        </div>
+    </div>
+    
+    <!-- 최신 심리 테스트 섹션 (이름 변경) -->
+    <div class="section-container">
+        <div class="section-header">
+            <h2>최신 심리 테스트</h2>
             <a href="{% url 'psychotest:test_list' %}" class="btn btn-sm btn-outline-primary">더보기</a>
         </div>
         

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* 이미지 컨테이너 스타일 */
+    .test-intro-image {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .test-intro-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    /* 하단 여백 확보 */
+    .bottom-padding {
+        padding-bottom: 80px;
+    }
+    
+    /* 커스텀 푸터 스타일 */
+    .custom-footer {
+        position: fixed;
+        bottom: 0;
+        width: 500px;
+        max-width: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #000000;
+        padding: 15px 0;
+        z-index: 1000;
+        text-align: center;
+    }
+    
+    .custom-footer-button {
+        display: block;
+        width: 80%;
+        max-width: 400px;
+        margin: 0 auto;
+        border-radius: 30px;
+        padding: 12px 20px;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        background-color: #000000;
+        color: #ffffff;
+        border: 2px solid #ffffff;
+        text-decoration: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.3);
+        transition: all 0.2s ease;
+    }
+    
+    .custom-footer-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4);
+    }
+</style>
+
+<div class="test-intro-image">
+    <a href="{% url 'facetest:index' %}">
+        {% if test.intro_image %}
+        <img src="{{ test.intro_image.url }}" alt="{{ test.name }}">
+        {% elif test.image %}
+        <img src="{{ test.image.url }}" alt="{{ test.name }}">
+        {% else %}
+        <div class="text-center py-5 bg-light">
+            <h2>{{ test.name }}</h2>
+            <p class="lead">테스트 이미지가 없습니다</p>
+        </div>
+        {% endif %}
+    </a>
+</div>
+
+<div class="bottom-padding"></div>
+
+<!-- 고정 푸터를 직접 HTML로 추가 -->
+<div class="custom-footer">
+    <a href="{% url 'psychotest:test_list' %}" class="custom-footer-button">다른 테스트</a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 기존 푸터 숨기기 (root.html의 footer와 겹치지 않도록)
+    var originalFooter = document.querySelector('footer');
+    if (originalFooter) {
+        originalFooter.style.display = 'none';
+    }
+    
+    // 버튼 호버/터치 효과
+    var button = document.querySelector('.custom-footer-button');
+    if (button) {
+        button.addEventListener('mouseover', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4)';
+        });
+        
+        button.addEventListener('mouseout', function() {
+            this.style.transform = '';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.3)';
+        });
+        
+        button.addEventListener('mousedown', function() {
+            this.style.transform = 'translateY(-1px)';
+            this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.2)';
+        });
+        
+        button.addEventListener('mouseup', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4)';
+        });
+    }
+});
+</script>
+{% endblock %}

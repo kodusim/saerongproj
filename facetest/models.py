@@ -18,16 +18,35 @@ def result_image_upload_path(instance, filename):
     filename = f"{safe_name}_{uuid.uuid4()}.{ext}"
     return os.path.join('facetest/result_images', filename)
 
+def test_image_upload_path(instance, filename):
+    """테스트 대표 이미지 업로드 경로"""
+    ext = filename.split('.')[-1]
+    safe_name = instance.name.replace(' ', '_')
+    filename = f"{safe_name}_{uuid.uuid4()}.{ext}"
+    return os.path.join('facetest/test_images', filename)
+
 class FaceTestModel(models.Model):
     """얼굴상 테스트 통합 모델"""
     name = models.CharField("테스트 이름", max_length=100)
     description = models.TextField("설명", blank=True)
+    
+    # 이미지 필드들
+    image = models.ImageField("대표 이미지", upload_to=test_image_upload_path, null=True, blank=True, 
+                             help_text="권장 크기: 140x160px, 테스트 목록에 표시됩니다.")
+    intro_image = models.ImageField("인트로 이미지", upload_to=test_image_upload_path, null=True, blank=True,
+                                  help_text="권장 크기: 500x500px, 테스트 시작 페이지에 표시됩니다.")
+    guide_image = models.ImageField("업로드 가이드 이미지", upload_to=test_image_upload_path, null=True, blank=True,
+                                  help_text="권장 크기: 500x300px, 얼굴 업로드 가이드로 표시됩니다.")
     
     # 모델 파일들
     model_file = models.FileField("모델 파일(.pth)", upload_to=file_upload_path)
     result_types_file = models.FileField("결과 유형 파일(JSON)", upload_to=file_upload_path)
     train_script = models.FileField("학습 스크립트(train.py)", upload_to=file_upload_path, blank=True, null=True)
     predict_script = models.FileField("예측 스크립트(predict.py)", upload_to=file_upload_path, blank=True, null=True)
+    
+    # 추가 텍스트 필드
+    upload_guide = models.TextField("업로드 가이드", blank=True, 
+                                   help_text="얼굴 이미지 업로드시 표시할 가이드 텍스트입니다.")
     
     # 기타 설정
     is_active = models.BooleanField("활성화", default=True)
