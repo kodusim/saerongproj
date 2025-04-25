@@ -11,6 +11,7 @@ urlpatterns = [
     path("", include("core.urls")),
     path("", include("psychotest.urls")),
     path("community/", include("community.urls")),
+    path("facetest/", include("facetest.urls")),  # 얼굴테스트 URL 추가
 ]
 
 # 개발 환경에서 미디어 파일 서빙 설정
