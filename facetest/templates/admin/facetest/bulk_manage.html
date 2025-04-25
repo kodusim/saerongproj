@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ test.name }} - 결과 유형 관리</h1>
+    
+    {% for result_type in result_types %}
+        <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd;">
+            <h3>{{ result_type.name }} (ID: {{ result_type.type_id }})</h3>
+            <p>{{ result_type.description }}</p>
+            
+            <!-- 이미지 목록 -->
+            <div>
+                <h4>이미지</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% for image in result_type.images.all %}
+                        <div style="border: 1px solid #eee; padding: 5px;">
+                            <img src="{{ image.image.url }}" width="100">
+                            <p>{{ image.title|default:"제목 없음" }}</p>
+                        </div>
+                    {% empty %}
+                        <p>등록된 이미지가 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>등록된 결과 유형이 없습니다.</p>
+    {% endfor %}
+</div>
+{% endblock %}

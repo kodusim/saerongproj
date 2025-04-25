@@ -1,0 +1,143 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="module aligned">
+    <h2>{{ result_type.name }} - 이미지 관리</h2>
+    
+    {% if images %}
+    <div class="images-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+        {% for image in images %}
+        <div class="image-item" data-image-id="{{ image.id }}" style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background-color: #fff; {% if image.is_main %}border: 3px solid #28a745;{% endif %}">
+            <img src="{{ image.image.url }}" alt="{{ image.title }}" style="width: 100%; height: 150px; object-fit: cover;">
+            <div class="image-controls" style="padding: 8px;">
+                <div class="image-title" style="font-size: 14px; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{ image.title|default:"제목 없음" }}
+                </div>
+                <div class="image-actions" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="button set-main-button" data-image-id="{{ image.id }}" {% if image.is_main %}disabled{% endif %}>대표 이미지</button>
+                    <button type="button" class="button delete-button" data-image-id="{{ image.id }}">삭제</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>등록된 이미지가 없습니다.</p>
+    {% endif %}
+    
+    <div class="submit-row" style="margin-top: 20px;">
+        <input type="button" value="이미지 추가" onclick="location.href='{% url "admin:facetest_upload_image" result_type.id %}';" class="default">
+        <input type="button" value="닫기" onclick="window.close();">
+    </div>
+    
+    <div id="message-container" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageContainer = document.getElementById('message-container');
+        
+        // 대표 이미지 설정 버튼 클릭
+        document.querySelectorAll('.set-main-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const imageId = this.dataset.imageId;
+                
+                // 대표 이미지 설정 요청
+                fetch('{% url "admin:facetest_set_main_image" 0 %}'.replace('0', imageId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('대표 이미지가 설정되었습니다.', 'success');
+                        // 성공 시 페이지 새로고침
+                        window.location.reload();
+                        
+                        // 부모 창 새로고침
+                        if (window.opener && !window.opener.closed) {
+                            window.opener.location.reload();
+                        }
+                    } else {
+                        showMessage('오류가 발생했습니다: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage('요청 처리 중 오류가 발생했습니다: ' + error, 'error');
+                });
+            });
+        });
+        
+        // 이미지 삭제 버튼 클릭
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', function() {
+                if (confirm('정말로 이 이미지를 삭제하시겠습니까?')) {
+                    const imageId = this.dataset.imageId;
+                    
+                    // 이미지 삭제 요청
+                    fetch('{% url "admin:facetest_delete_image" 0 %}'.replace('0', imageId), {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showMessage('이미지가 삭제되었습니다.', 'success');
+                            // 성공 시 해당 이미지 아이템 제거
+                            const imageItem = document.querySelector(`.image-item[data-image-id="${imageId}"]`);
+                            if (imageItem) {
+                                imageItem.remove();
+                            }
+                            
+                            // 부모 창 새로고침
+                            if (window.opener && !window.opener.closed) {
+                                window.opener.location.reload();
+                            }
+                            
+                            // 모든 이미지가 삭제되었는지 확인
+                            if (document.querySelectorAll('.image-item').length === 0) {
+                                location.reload(); // 페이지 새로고침
+                            }
+                        } else {
+                            showMessage('오류가 발생했습니다: ' + data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showMessage('요청 처리 중 오류가 발생했습니다: ' + error, 'error');
+                    });
+                }
+            });
+        });
+        
+        // 메시지 표시 함수
+        function showMessage(text, type) {
+            messageContainer.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
+            messageContainer.style.display = 'block';
+        }
+    });
+</script>
+
+<style>
+    .alert {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
