@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>얼굴상 테스트</h1>
+    <p>얼굴 이미지를 업로드하여 당신의 얼굴상을 분석해보세요.</p>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="image" class="form-label">얼굴 이미지</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary">분석하기</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
