@@ -101,14 +101,6 @@ class FaceModelAdmin(admin.ModelAdmin):
         }
         return render(request, 'admin/facetest/facemodel/import_face_types.html', context)
     
-    def response_change(self, request, obj):
-        """관리자 페이지 저장 이후 처리"""
-        if "_import_face_types" in request.POST:
-            return HttpResponseRedirect(
-                reverse('admin:import-face-types', args=[obj.id])
-            )
-        return super().response_change(request, obj)
-    
     def face_types_count(self, obj):
         return obj.face_types.count()
     face_types_count.short_description = '얼굴 유형 수'
@@ -128,6 +120,20 @@ class FaceModelAdmin(admin.ModelAdmin):
         
         messages.success(request, f"'{model.name}' 모델이 활성화되었습니다.")
     activate_model.short_description = "선택된 모델 활성화"
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_import_button'] = True
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def response_change(self, request, obj):
+        """관리자 페이지 저장 이후 처리"""
+        if "_import_face_types" in request.POST:
+            # 여기서 URL 이름이 위에서 정의한 이름과 일치해야 함
+            return HttpResponseRedirect(
+                reverse('admin:facetest_facemodel_import_types', args=[obj.id])
+            )
+        return super().response_change(request, obj)
 
 @admin.register(FaceType)
 class FaceTypeAdmin(admin.ModelAdmin):

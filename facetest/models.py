@@ -23,8 +23,7 @@ class FaceModel(models.Model):
     name = models.CharField("모델명", max_length=100)
     description = models.TextField("설명", blank=True)
     model_file = models.FileField("모델 파일", upload_to=model_file_upload_path)
-    types_json = models.FileField("얼굴 유형 JSON", upload_to="face_models/", blank=True, null=True, 
-                               help_text="얼굴 유형 정보가 포함된 JSON 파일")
+    face_types_json = models.JSONField("얼굴 유형 데이터", default=dict, blank=True)
     is_active = models.BooleanField("활성화", default=True)
     created_at = models.DateTimeField("생성일", auto_now_add=True)
     
@@ -35,12 +34,6 @@ class FaceModel(models.Model):
     
     def __str__(self):
         return self.name
-    
-    def save(self, *args, **kwargs):
-        # 새 모델이 활성화되면 기존 활성화 모델을 비활성화
-        if self.is_active:
-            FaceModel.objects.exclude(pk=self.pk).update(is_active=False)
-        super().save(*args, **kwargs)
 
 class FaceType(models.Model):
     """얼굴 유형 모델"""
