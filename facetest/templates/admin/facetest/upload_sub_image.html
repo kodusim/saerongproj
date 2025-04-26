@@ -1,0 +1,143 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="module aligned">
+    <h2>{{ result_type.name }} - 보조 이미지 업로드</h2>
+    
+    <div class="info-box" style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #17a2b8;">
+        <p style="margin: 0; font-size: 14px; color: #495057;">
+            보조 이미지는 결과 페이지에서 결과 설명 대신 표시됩니다. 권장 크기는 500x300px입니다.
+        </p>
+    </div>
+    
+    {% if result_type.sub_image %}
+    <div class="current-image" style="margin-bottom: 20px;">
+        <h3>현재 보조 이미지</h3>
+        <div style="text-align: center;">
+            <img src="{{ result_type.sub_image.url }}" alt="현재 보조 이미지" style="max-width: 100%; max-height: 200px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+    </div>
+    {% endif %}
+    
+    <form id="upload-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_sub_image">이미지 파일:</label>
+                <input type="file" id="id_sub_image" name="sub_image" accept="image/*" required>
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="button" id="upload-button" value="업로드" class="default">
+            <input type="button" value="닫기" onclick="window.close();">
+        </div>
+    </form>
+    
+    <div id="preview-container" style="margin-top: 20px; display: none;">
+        <h3>미리보기</h3>
+        <div id="image-preview" style="max-width: 100%; margin-top: 10px; text-align: center;"></div>
+    </div>
+    
+    <div id="message-container" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('upload-form');
+        const uploadButton = document.getElementById('upload-button');
+        const imageInput = document.getElementById('id_sub_image');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const messageContainer = document.getElementById('message-container');
+        
+        // 이미지 선택 시 미리보기
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '200px';
+                    img.style.borderRadius = '4px';
+                    img.style.border = '1px solid #ddd';
+                    
+                    imagePreview.innerHTML = '';
+                    imagePreview.appendChild(img);
+                    previewContainer.style.display = 'block';
+                };
+                
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+        
+        // 업로드 버튼 클릭 시
+        uploadButton.addEventListener('click', function() {
+            if (!imageInput.files || !imageInput.files[0]) {
+                showMessage('이미지를 선택해주세요.', 'error');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            
+            // 보조 이미지 업로드 요청
+            fetch(`/facetest/admin/result-type/{{ result_type.id }}/update-sub-image/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('보조 이미지가 성공적으로 업로드되었습니다.', 'success');
+                    // 성공 시 부모 창 새로고침
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.location.reload();
+                    }
+                    
+                    // 3초 후 창 닫기
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
+                } else {
+                    showMessage('오류가 발생했습니다: ' + (data.message || data.error), 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('요청 처리 중 오류가 발생했습니다: ' + error, 'error');
+            });
+        });
+        
+        // 메시지 표시 함수
+        function showMessage(text, type) {
+            messageContainer.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
+            messageContainer.style.display = 'block';
+        }
+    });
+</script>
+
+<style>
+    .alert {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+</style>
+{% endblock %}

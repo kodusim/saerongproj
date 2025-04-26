@@ -4,6 +4,30 @@
 <div class="module aligned">
     <h2>{{ result_type.name }} - 이미지 관리</h2>
     
+    <div class="image-actions" style="margin-bottom: 20px;">
+        <a href="{% url 'admin:facetest_upload_image' result_type.id %}" class="button default" 
+           onclick="return openUploadDialog(this.href);">새 이미지 업로드</a>
+        
+        <a href="{% url 'admin:facetest_upload_sub_image' result_type.id %}" class="button" 
+           onclick="return openUploadDialog(this.href);" style="background-color: #17a2b8; color: white;">
+            보조 이미지 업로드
+        </a>
+    </div>
+    
+    <!-- 보조 이미지 표시 (있는 경우) -->
+    {% if result_type.sub_image %}
+    <div class="sub-image-section" style="margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background-color: #f9f9f9;">
+        <h3>보조 이미지</h3>
+        <div style="text-align: center; margin: 10px 0;">
+            <img src="{{ result_type.sub_image.url }}" alt="보조 이미지" style="max-width: 300px; max-height: 200px;">
+        </div>
+        <div style="text-align: right;">
+            <button type="button" class="button delete-sub-image-button" data-type-id="{{ result_type.id }}" 
+                    style="background-color: #dc3545; color: white;">삭제</button>
+        </div>
+    </div>
+    {% endif %}
+    
     {% if images %}
     <div class="images-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
         {% for image in images %}
@@ -26,7 +50,7 @@
     {% endif %}
     
     <div class="submit-row" style="margin-top: 20px;">
-        <input type="button" value="이미지 추가" onclick="location.href='{% url "admin:facetest_upload_image" result_type.id %}';" class="default">
+        <input type="button" value="이미지 추가" onclick="openUploadDialog('{% url "admin:facetest_upload_image" result_type.id %}');" class="default">
         <input type="button" value="닫기" onclick="window.close();">
     </div>
     
@@ -113,12 +137,59 @@
             });
         });
         
+        // 보조 이미지 삭제 버튼 클릭
+        const deleteSubImageBtn = document.querySelector('.delete-sub-image-button');
+        if (deleteSubImageBtn) {
+            deleteSubImageBtn.addEventListener('click', function() {
+                if (confirm('정말로 보조 이미지를 삭제하시겠습니까?')) {
+                    const typeId = this.dataset.typeId;
+                    
+                    // 보조 이미지 삭제 요청
+                    fetch(`/facetest/admin/result-type/${typeId}/delete-sub-image/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showMessage('보조 이미지가 삭제되었습니다.', 'success');
+                            // 성공 시 페이지 새로고침
+                            window.location.reload();
+                            
+                            // 부모 창 새로고침
+                            if (window.opener && !window.opener.closed) {
+                                window.opener.location.reload();
+                            }
+                        } else {
+                            showMessage('오류가 발생했습니다: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showMessage('요청 처리 중 오류가 발생했습니다: ' + error, 'error');
+                    });
+                }
+            });
+        }
+        
         // 메시지 표시 함수
         function showMessage(text, type) {
             messageContainer.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
             messageContainer.style.display = 'block';
         }
     });
+    
+    // 업로드 대화상자 열기 함수
+    function openUploadDialog(url) {
+        const width = 600;
+        const height = 500;
+        const left = (screen.width/2) - (width/2);
+        const top = (screen.height/2) - (height/2);
+        
+        window.open(url, '업로드', `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+        return false;
+    }
 </script>
 
 <style>

@@ -102,7 +102,15 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
             upload_url, upload_url, view_url, view_url
         )
     upload_image_button.short_description = "이미지 관리"
-    
+    def upload_sub_image_view(self, request, result_type_id):
+        """보조 이미지 업로드 대화상자 뷰"""
+        result_type = get_object_or_404(FaceResultType, id=result_type_id)
+        
+        return render(request, 'admin/facetest/upload_sub_image.html', {
+            'result_type': result_type,
+            'opts': self.model._meta,
+            'title': f"{result_type.name} - 보조 이미지 업로드",
+        })
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -121,6 +129,9 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
             path('image/<int:image_id>/set-main/', 
                 self.admin_site.admin_view(self.set_main_image), 
                 name='facetest_set_main_image'),
+            path('<int:result_type_id>/upload-sub-image/', 
+                self.admin_site.admin_view(self.upload_sub_image_view), 
+                name='facetest_upload_sub_image'),
         ]
         return custom_urls + urls
     

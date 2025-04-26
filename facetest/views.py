@@ -414,3 +414,58 @@ def test_list(request):
     }
     
     return render(request, 'facetest/test_list.html', context)
+
+# views.py에 추가될 함수들
+
+@staff_member_required
+@require_POST
+def update_sub_image(request, type_id):
+    """결과 유형 보조 이미지 업로드/업데이트"""
+    result_type = get_object_or_404(FaceResultType, id=type_id)
+    
+    try:
+        sub_image = request.FILES.get('sub_image')
+        if not sub_image:
+            return JsonResponse({'success': False, 'error': '이미지 파일이 제공되지 않았습니다.'}, status=400)
+        
+        # 기존 보조 이미지가 있으면 삭제
+        if result_type.sub_image:
+            result_type.sub_image.delete(save=False)
+        
+        # 새 보조 이미지 설정
+        result_type.sub_image = sub_image
+        result_type.save()
+        
+        return JsonResponse({
+            'success': True,
+            'sub_image_url': result_type.sub_image.url
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@staff_member_required
+@require_POST
+def delete_sub_image(request, type_id):
+    """결과 유형 보조 이미지 삭제"""
+    result_type = get_object_or_404(FaceResultType, id=type_id)
+    
+    try:
+        if result_type.sub_image:
+            result_type.sub_image.delete()
+            result_type.sub_image = None
+            result_type.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@staff_member_required
+def upload_sub_image_view(request, result_type_id):
+    """보조 이미지 업로드 대화상자 뷰"""
+    result_type = get_object_or_404(FaceResultType, id=result_type_id)
+    
+    return render(request, 'admin/facetest/upload_sub_image.html', {
+        'result_type': result_type,
+        'opts': FaceResultType._meta,
+        'title': f"{result_type.name} - 보조 이미지 업로드",
+    })

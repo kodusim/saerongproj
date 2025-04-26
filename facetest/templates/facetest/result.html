@@ -401,9 +401,14 @@
             <div class="results-container">
                 {% for other_result in all_results %}
                     <div class="result-item">
-                        {% with main_image=other_result.images.filter.first %}
-                            {% if main_image %}
-                                <img src="{{ main_image.image.url }}" alt="{{ other_result.name }}" class="result-image">
+                        {% with other_image=other_result.images.filter.first %}
+                            {% if other_image %}
+                                <img src="{{ other_image.image.url }}" alt="{{ other_result.name }}" class="result-image">
+                            {% else %}
+                                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 10px;">
+                                    <h3>{{ other_result.name }}</h3>
+                                    <p>이미지가 없습니다</p>
+                                </div>
                             {% endif %}
                         {% endwith %}
                     </div>
@@ -549,20 +554,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (openModalBtn) {
         openModalBtn.onclick = function() {
             modal.style.display = 'block';
+            console.log('모달 열기 클릭');
         }
+    } else {
+        console.log('모달 열기 버튼을 찾을 수 없습니다.');
     }
     
     if (closeModalBtn) {
         closeModalBtn.onclick = function() {
             modal.style.display = 'none';
+            console.log('모달 닫기 클릭');
         }
+    } else {
+        console.log('모달 닫기 버튼을 찾을 수 없습니다.');
     }
     
     // 모달 외부 클릭시 닫기
     window.onclick = function(event) {
         if (event.target == modal) {
             modal.style.display = 'none';
+            console.log('모달 외부 클릭');
         }
     }
 });
+</script>
 {% endblock %}
