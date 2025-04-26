@@ -13,7 +13,15 @@ def file_upload_path(instance, filename):
 def result_image_upload_path(instance, filename):
     """결과 이미지 업로드 경로"""
     ext = filename.split('.')[-1]
-    result_type = instance.result_type
+    
+    # Check if the instance is a FaceResultType or has a result_type attribute
+    if hasattr(instance, 'result_type'):
+        # This is a FaceResultImage instance
+        result_type = instance.result_type
+    else:
+        # This is a FaceResultType instance itself
+        result_type = instance
+    
     safe_name = result_type.name.replace(' ', '_')
     filename = f"{safe_name}_{uuid.uuid4()}.{ext}"
     return os.path.join('facetest/result_images', filename)

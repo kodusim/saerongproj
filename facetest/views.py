@@ -433,11 +433,16 @@ def update_sub_image(request, type_id):
         
         # 기존 보조 이미지가 있으면 삭제
         if result_type.sub_image:
-            result_type.sub_image.delete(save=False)
+            # 실제 파일 삭제
+            old_path = result_type.sub_image.path
+            if os.path.exists(old_path):
+                os.remove(old_path)
+            result_type.sub_image = None  # Remove reference before adding new image
+            result_type.save(update_fields=['sub_image'])  # Save once to clear the image field
         
         # 새 보조 이미지 설정
         result_type.sub_image = sub_image
-        result_type.save()
+        result_type.save(update_fields=['sub_image'])  # Only update the sub_image field
         
         return JsonResponse({
             'success': True,

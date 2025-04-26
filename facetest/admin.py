@@ -233,7 +233,7 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
                     }});
                     
                     // 보조 이미지 파일 업로드 처리 함수
-                    function handleSubImageFile(file) {
+                    function handleSubImageFile(file) {{
                         // FormData 객체 생성
                         var formData = new FormData();
                         formData.append('sub_image', file);
@@ -242,31 +242,30 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
                         var csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         
                         // 업로드 요청 전송 - URL 경로가 올바른지 확인
-                        fetch('/facetest/admin/result-type/{0}/update-sub-image/', {
+                        fetch('/facetest/admin/result-type/{0}/update-sub-image/', {{
                             method: 'POST',
                             body: formData,
-                            headers: {
+                            headers: {{
                                 'X-CSRFToken': csrfTokenValue
-                            }
-                        })
-                        .then(function(response) { 
+                            }}
+                        }})
+                        .then(function(response) {{ 
                             console.log("응답 상태:", response.status);
                             return response.json(); 
-                        })
-                        .then(function(data) {
+                        }})
+                        .then(function(data) {{
                             console.log("응답 데이터:", data);
-                            if (data.success) {
+                            if (data.success) {{
                                 alert('보조 이미지가 성공적으로 업로드되었습니다.');
                                 location.reload();
-                            } else {
+                            }} else {{
                                 alert('업로드 실패: ' + (data.error || '알 수 없는 오류'));
-                            }
-                        })
-                        .catch(function(error) {
+                            }}
+                        }})
+                        .catch(function(error) {{
                             console.error("업로드 오류:", error);
                             alert('업로드 중 오류 발생: ' + error);
-                        });
-                    }
+                        }});
                     }}
                 }})();
             </script>
