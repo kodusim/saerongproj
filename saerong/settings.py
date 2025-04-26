@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "template_partials",
     "django_htmx",
+    'django_summernote',
     # local apps
     "accounts",
     "core",
@@ -115,7 +116,24 @@ DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 
 WSGI_APPLICATION = "saerong.wsgi.application"
 
-
+SUMMERNOTE_CONFIG = {
+    # 에디터 크기 설정
+    'summernote': {
+        'width': '100%',
+        'height': '480',
+        'toolbar': [
+            ['style', ['style']],
+            ['font', ['bold', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture', 'video']],
+            ['view', ['fullscreen', 'codeview', 'help']],
+        ],
+    },
+    'attachment_filesize_limit': 5 * 1024 * 1024,  # 5MB 제한
+}
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 

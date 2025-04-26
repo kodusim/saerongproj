@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from .models import Post, Comment
+from django_summernote.widgets import SummernoteWidget
 from collections import OrderedDict
 
 User = get_user_model()
@@ -31,7 +32,8 @@ class PostForm(forms.ModelForm):
             }),
             'image': forms.FileInput(attrs={
                 'class': 'form-control-file'
-            })
+            }),
+            'content': SummernoteWidget(), 
         }
     
     def __init__(self, *args, **kwargs):

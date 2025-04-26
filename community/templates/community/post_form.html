@@ -3,131 +3,116 @@
 
 {% block content %}
 <style>
-    /* 게시글 폼 스타일 */
+    /* 폼 스타일 */
     .form-container {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        padding: 25px;
-        margin-bottom: 25px;
+        background-color: #222;
+        color: #e0e0e0;
+        padding: 15px;
     }
     
     .form-title {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         font-weight: bold;
-        margin-bottom: 20px;
-        color: #333;
+        margin-bottom: 15px;
+        color: #e0e0e0;
         text-align: center;
     }
     
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     
     .form-label {
-        font-weight: 500;
-        margin-bottom: 8px;
-        color: #333;
+        display: block;
+        margin-bottom: 5px;
+        color: #e0e0e0;
     }
     
     .form-control {
-        border: 1px solid #ced4da;
-        border-radius: 5px;
-        padding: 10px 12px;
-        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        width: 100%;
+        background-color: #333;
+        border: 1px solid #444;
+        color: #e0e0e0;
+        padding: 10px;
     }
     
-    .form-control:focus {
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    textarea.form-control {
+        min-height: 150px;
+        resize: vertical;
     }
     
-    .help-text {
-        color: #6c757d;
-        font-size: 0.85rem;
-        margin-top: 5px;
-    }
-    
-    .preview-container {
-        margin-top: 10px;
-    }
-    
-    .image-preview {
-        max-width: 100%;
-        max-height: 300px;
-        border-radius: 5px;
-        margin-top: 10px;
-        display: none;
-    }
-    
-    .current-image {
-        max-width: 100%;
-        max-height: 200px;
-        border-radius: 5px;
-        margin-top: 10px;
-    }
-    
-    .action-buttons {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
-    }
-    
-    .btn-submit {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 5px;
-        font-weight: 500;
-    }
-    
-    .btn-submit:hover {
-        background-color: #0069d9;
-    }
-    
-    .btn-cancel {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 5px;
-        font-weight: 500;
-        text-decoration: none;
-    }
-    
-    .btn-cancel:hover {
-        background-color: #5a6268;
-        color: white;
-        text-decoration: none;
-    }
-    
-    /* 오류 메시지 스타일 */
-    .errorlist {
-        color: #dc3545;
-        list-style-type: none;
-        padding-left: 0;
-        margin-top: 5px;
-        font-size: 0.85rem;
-    }
-    
-    /* 관리자용 스타일 */
+    /* 관리자 섹션 */
     .admin-section {
-        background-color: #fff3cd;
-        border: 1px solid #ffeeba;
-        border-radius: 5px;
+        background-color: #333;
         padding: 15px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+        border-left: 3px solid #e0e0e0;
     }
     
     .admin-section-title {
         font-weight: bold;
         margin-bottom: 10px;
-        color: #856404;
+        color: #e0e0e0;
+    }
+    
+    /* 작성자 이름 변경 필드 */
+    .author-field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+    }
+    
+    .author-field label {
+        margin-bottom: 5px;
+        color: #e0e0e0;
+    }
+    
+    .author-field input {
+        background-color: #444;
+        border: 1px solid #555;
+        color: #e0e0e0;
+        padding: 8px;
+    }
+    
+    .help-text {
+        font-size: 0.8rem;
+        color: #aaa;
+        margin-top: 5px;
+    }
+    
+    /* 버튼 스타일 */
+    .form-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+    
+    .btn {
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background-color: #375a7f;
+        color: #fff;
+    }
+    
+    .btn-secondary {
+        background-color: #444;
+        color: #e0e0e0;
+    }
+    
+    /* 에러 메시지 */
+    .error-list {
+        color: #e74c3c;
+        list-style-type: none;
+        padding: 0;
+        margin: 5px 0 0;
     }
 </style>
 
-<div class="container mt-4">
+<div class="container p-0">
     <div class="form-container">
         <h1 class="form-title">
             {% if is_create %}
@@ -140,19 +125,23 @@
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
-            {% if is_staff and not is_create %}
+            {% if is_staff %}
             <div class="admin-section">
-                <div class="admin-section-title">관리자 전용 설정</div>
-                <div class="form-group">
-                    <label for="id_author" class="form-label">작성자</label>
-                    <select name="author" id="id_author" class="form-control">
-                        <option value="">---------</option>
-                        {% for user in form.author.field.queryset %}
-                        <option value="{{ user.id }}" {% if user == post.author %}selected{% endif %}>{{ user.username }}</option>
-                        {% endfor %}
-                    </select>
-                    <div class="help-text">작성자를 변경할 수 있습니다. (관리자 전용)</div>
+                <div class="admin-section-title">관리자 설정</div>
+                
+                <div class="author-field">
+                    <label for="custom_author_name">작성자 이름:</label>
+                    <input type="text" id="custom_author_name" name="custom_author_name" 
+                           value="{{ post.author.username|default:user.username }}" class="form-control">
+                    <div class="help-text">게시글에 표시될 작성자 이름을 변경할 수 있습니다.</div>
                 </div>
+                
+                {% if not is_create %}
+                <div class="form-group">
+                    <label class="form-label">작성 시간:</label>
+                    <input type="text" value="{{ post.created_at|date:'Y-m-d H:i' }}" class="form-control" disabled>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             
@@ -160,7 +149,7 @@
                 <label for="{{ form.title.id_for_label }}" class="form-label">제목</label>
                 {{ form.title }}
                 {% if form.title.errors %}
-                <ul class="errorlist">
+                <ul class="error-list">
                     {% for error in form.title.errors %}
                     <li>{{ error }}</li>
                     {% endfor %}
@@ -172,7 +161,7 @@
                 <label for="{{ form.content.id_for_label }}" class="form-label">내용</label>
                 {{ form.content }}
                 {% if form.content.errors %}
-                <ul class="errorlist">
+                <ul class="error-list">
                     {% for error in form.content.errors %}
                     <li>{{ error }}</li>
                     {% endfor %}
@@ -186,57 +175,27 @@
                 <div class="help-text">{{ form.image.help_text }}</div>
                 
                 {% if form.image.errors %}
-                <ul class="errorlist">
+                <ul class="error-list">
                     {% for error in form.image.errors %}
                     <li>{{ error }}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}
                 
-                <div class="preview-container">
-                    {% if post.image %}
-                    <div class="current-image-container">
-                        <p>현재 이미지:</p>
-                        <img src="{{ post.image.url }}" alt="현재 이미지" class="current-image">
-                    </div>
-                    {% endif %}
-                    <img src="#" alt="이미지 미리보기" class="image-preview" id="image-preview">
+                {% if post.image %}
+                <div style="margin-top: 10px;">
+                    <img src="{{ post.image.url }}" style="max-width: 200px; max-height: 200px;">
                 </div>
+                {% endif %}
             </div>
             
-            <div class="action-buttons">
-                <a href="{% if is_create %}{% url 'community:category_detail' category.slug %}{% else %}{% url 'community:post_detail' post.id %}{% endif %}" class="btn-cancel">취소</a>
-                <button type="submit" class="btn-submit">
-                    {% if is_create %}글 작성{% else %}수정 완료{% endif %}
+            <div class="form-buttons">
+                <a href="{% if is_create %}{% url 'community:category_detail' category.slug %}{% else %}{% url 'community:post_detail' post.id %}{% endif %}" class="btn btn-secondary">취소</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if is_create %}작성 완료{% else %}수정 완료{% endif %}
                 </button>
             </div>
         </form>
     </div>
 </div>
-
-<script>
-// 이미지 미리보기 기능
-document.addEventListener('DOMContentLoaded', function() {
-    const imageInput = document.getElementById('{{ form.image.id_for_label }}');
-    const imagePreview = document.getElementById('image-preview');
-    
-    if (imageInput) {
-        imageInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                }
-                
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                imagePreview.src = '#';
-                imagePreview.style.display = 'none';
-            }
-        });
-    }
-});
-</script>
 {% endblock %}

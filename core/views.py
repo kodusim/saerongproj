@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from psychotest.models import Test
 from facetest.models import FaceTestModel
+from community.models import Post  # 추가: 게시글 모델 import
 
 def root(request):
     """메인 페이지"""
@@ -41,10 +42,14 @@ def root(request):
     # 조회수 기준 정렬 후 상위 6개 선택
     popular_tests = sorted(combined_popular, key=lambda x: x['view_count'], reverse=True)[:6]
     
+    # 커뮤니티 최신 게시글 5개 가져오기
+    recent_posts = Post.objects.select_related('category', 'author').order_by('-created_at')[:5]
+    
     context = {
         'recent_tests': recent_tests,
         'recent_face_tests': recent_face_tests,
         'popular_tests': popular_tests,
+        'recent_posts': recent_posts,  # 최신 게시글 추가
     }
     
     return render(request, 'root.html', context)

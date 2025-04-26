@@ -84,6 +84,63 @@
         right: 0;
         background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
     }
+    
+    /* 커뮤니티 최신 글 스타일 */
+    .community-section {
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .community-posts {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .community-post-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .community-post-item:last-child {
+        border-bottom: none;
+    }
+    
+    .community-post-link {
+        display: block;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.95rem;
+        margin-bottom: 3px;
+    }
+    
+    .community-post-link:hover {
+        color: #007bff;
+    }
+    
+    .community-post-meta {
+        display: flex;
+        font-size: 0.8rem;
+        color: #888;
+        gap: 10px;
+    }
+    
+    .community-post-meta span {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    .community-more-link {
+        display: block;
+        text-align: right;
+        color: #007bff;
+        text-decoration: none;
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
 </style>
 
 <div class="container p-0">
@@ -243,6 +300,41 @@
             <!-- 그라데이션 효과 -->
             <div class="scroll-fade-left"></div>
             <div class="scroll-fade-right"></div>
+        </div>
+    </div>
+    
+    <!-- 커뮤니티 최신 글 섹션 추가 -->
+    <div class="section-container">
+        <div class="section-header">
+            <h2>커뮤니티</h2>
+            <a href="{% url 'community:category_list' %}" class="btn btn-sm btn-outline-primary">더보기</a>
+        </div>
+        
+        <div class="community-section">
+            <ul class="community-posts">
+                {% for post in recent_posts %}
+                <li class="community-post-item">
+                    <a href="{% url 'community:post_detail' post.id %}" class="community-post-link">
+                        [{{ post.category.name }}] {{ post.title }}
+                    </a>
+                    <div class="community-post-meta">
+                        <span>{{ post.author.username }}</span>
+                        <span><span>👁️</span> {{ post.view_count }}</span>
+                        <span><span>💬</span> {{ post.get_comment_count }}</span>
+                        <span><span>❤️</span> {{ post.likes.count|default:"0" }}</span>
+                        <span>{{ post.created_at|date:"Y-m-d" }}</span>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="community-post-item">
+                    <p class="text-center text-muted">등록된 게시글이 없습니다.</p>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <a href="{% url 'community:category_list' %}" class="community-more-link">
+                더 많은 글 보기 &raquo;
+            </a>
         </div>
     </div>
 </div>

@@ -3,168 +3,90 @@
 
 {% block content %}
 <style>
-    /* 게시글 상세 페이지 스타일 */
+    /* 전체 컨테이너 */
+    .container.p-0 {
+        padding: 0 !important;
+    }
+    
+    /* 공통 스타일 */
+    .post-container, .comments-section, .other-posts-section, .comment-form {
+        background-color: #222;
+        color: #e0e0e0;
+    }
+    
+    /* 구분선 */
+    .divider {
+        height: 1px;
+        background-color: #333;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* 게시글 컨테이너 */
     .post-container {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        overflow: hidden;
-        margin-bottom: 25px;
+        padding: 15px;
     }
     
-    .post-header {
-        padding: 20px;
-        border-bottom: 1px solid #eee;
-        background-color: #f8f9fa;
-    }
-    
+    /* 제목 */
     .post-title {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         font-weight: bold;
         margin-bottom: 10px;
-        color: #333;
+        color: #e0e0e0;
     }
     
+    /* 작성자 정보 */
     .post-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         font-size: 0.9rem;
-        color: #666;
+        margin-bottom: 15px;
+        color: #e0e0e0;
     }
     
-    .post-author {
-        display: flex;
-        align-items: center;
+    .post-date {
+        color: #aaa;
     }
     
-    .author-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        margin-right: 10px;
-        background-color: #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        color: #495057;
-    }
-    
-    .post-stats {
-        display: flex;
-        gap: 15px;
-    }
-    
+    /* 게시글 내용 */
     .post-content {
-        padding: 25px;
-        font-size: 1.05rem;
-        line-height: 1.8;
-        color: #333;
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #e0e0e0;
     }
     
     .post-content img {
         max-width: 100%;
         height: auto;
-        margin: 15px 0;
-        border-radius: 5px;
+        margin: 10px 0;
     }
     
-    .post-images {
-        margin-top: 20px;
-    }
-    
-    .post-image {
-        max-width: 100%;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    .action-buttons {
+    /* 통계 정보 */
+    .post-stats {
         display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-        margin-bottom: 30px;
+        gap: 15px;
+        color: #aaa;
+        font-size: 0.9rem;
+        margin: 10px 0;
     }
     
-    .btn {
-        padding: 8px 20px;
-        border-radius: 5px;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-    
-    .btn-list {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-    }
-    
-    .btn-list:hover {
-        background-color: #5a6268;
-        color: white;
-        text-decoration: none;
-    }
-    
-    .author-actions {
+    .stat-item {
         display: flex;
-        gap: 10px;
+        align-items: center;
+        gap: 5px;
     }
     
-    .btn-edit {
-        background-color: #28a745;
-        color: white;
-        border: none;
+    .stat-icon {
+        color: #aaa;
     }
     
-    .btn-edit:hover {
-        background-color: #218838;
-        color: white;
-        text-decoration: none;
-    }
-    
-    .btn-delete {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-    }
-    
-    .btn-delete:hover {
-        background-color: #c82333;
-        color: white;
-        text-decoration: none;
-    }
-    
-    /* 댓글 스타일 */
+    /* 댓글 섹션 */
     .comments-section {
-        margin-top: 30px;
-    }
-    
-    .comments-title {
-        font-size: 1.2rem;
-        font-weight: bold;
-        margin-bottom: 15px;
-        color: #333;
-    }
-    
-    .comment-card {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        margin-bottom: 20px;
-        overflow: hidden;
-    }
-    
-    .comment-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
+        padding: 15px;
+        border-top: 1px solid #333;
     }
     
     .comment-item {
-        padding: 15px 20px;
-        border-bottom: 1px solid #eee;
+        padding: 10px 0;
+        border-bottom: 1px solid #333;
     }
     
     .comment-item:last-child {
@@ -172,160 +94,320 @@
     }
     
     .comment-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
     }
     
     .comment-author {
-        font-weight: 600;
-        color: #333;
+        font-weight: bold;
+        color: #e0e0e0;
     }
     
     .comment-date {
-        font-size: 0.85rem;
-        color: #666;
+        color: #aaa;
+        font-size: 0.8rem;
     }
     
-    .comment-body {
-        color: #333;
-        line-height: 1.6;
+    .comment-content {
+        color: #e0e0e0;
     }
     
-    .comment-form-card {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        padding: 20px;
-        margin-top: 20px;
-    }
-    
-    .comment-form-title {
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-bottom: 15px;
-        color: #333;
+    /* 댓글 작성 폼 */
+    .comment-form {
+        padding: 15px;
+        border-top: 1px solid #333;
     }
     
     .comment-textarea {
         width: 100%;
-        border: 1px solid #ced4da;
-        border-radius: 5px;
+        background-color: #333;
+        border: 1px solid #444;
+        color: #e0e0e0;
         padding: 10px;
-        font-size: 1rem;
-        min-height: 100px;
-        margin-bottom: 15px;
+        border-radius: 0;
+        margin-bottom: 10px;
+        resize: vertical;
     }
     
-    .btn-comment {
-        background-color: #007bff;
-        color: white;
+    /* 버튼 공통 스타일 */
+    .btn-action {
+        background-color: #444;
+        color: #e0e0e0;
         border: none;
-        padding: 8px 20px;
-        border-radius: 5px;
-        font-weight: 500;
+        padding: 8px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-action:hover {
+        background-color: #555;
+    }
+    
+    /* 좋아요 버튼과 댓글 버튼을 포함한 액션 영역 */
+    .post-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .like-button {
+        background-color: #444;
+        color: #e0e0e0;
+    }
+    
+    .like-button.liked {
+        background-color: #e74c3c;
+    }
+    
+    .comment-submit {
         float: right;
     }
     
-    .btn-comment:hover {
-        background-color: #0069d9;
+    /* 다른 글 섹션 */
+    .other-posts-section {
+        padding: 15px;
+        border-top: 1px solid #333;
+    }
+    
+    .section-title {
+        font-size: 1rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #e0e0e0;
+    }
+    
+    .post-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .post-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #333;
+    }
+    
+    .post-item:last-child {
+        border-bottom: none;
+    }
+    
+    .post-link {
+        color: #e0e0e0;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+    
+    .post-meta {
+        display: flex;
+        font-size: 0.8rem;
+        color: #aaa;
+        margin-top: 3px;
+    }
+    
+    .meta-item {
+        margin-right: 10px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    /* 로그인 안내 텍스트 */
+    .login-info {
+        text-align: center;
+        padding: 10px;
+        color: #e0e0e0;
+    }
+    
+    .login-info a {
+        color: #fff;
+        text-decoration: underline;
     }
 </style>
 
-<div class="container mt-4">
+<div class="container p-0">
+    <!-- 게시글 내용 -->
     <div class="post-container">
-        <div class="post-header">
-            <h1 class="post-title">{{ post.title }}</h1>
-            <div class="post-info">
-                <div class="post-author">
-                    <div class="author-avatar">
-                        {% if post.author.profile.avatar %}
-                            <img src="{{ post.author.profile.avatar.url }}" alt="{{ post.author.username }}" width="30" height="30">
-                        {% else %}
-                            {{ post.author.username|first|upper }}
-                        {% endif %}
-                    </div>
-                    <span>{{ post.author.username }} | {{ post.created_at|date:"Y-m-d H:i" }}</span>
-                </div>
-                <div class="post-stats">
-                    <span><i class="fas fa-eye"></i> {{ post.view_count }}</span>
-                    {% if post.comment_count %}
-                    <span><i class="fas fa-comment"></i> {{ post.comment_count }}</span>
-                    {% endif %}
-                </div>
-            </div>
+        <!-- 제목 -->
+        <h1 class="post-title">{{ post.title }}</h1>
+        
+        <!-- 작성자 정보 -->
+        <div class="post-info">
+            {{ post.author.username }} {{ post.created_at|date:"Y년 m월 d일 H:i" }}
         </div>
         
+        <!-- 게시글 내용 -->
         <div class="post-content">
-            {{ post.content|linebreaks }}
+            {{ post.content|safe }}
             
             {% if post.image %}
-            <div class="post-images">
-                <img src="{{ post.image.url }}" alt="게시글 이미지" class="post-image">
+            <div class="post-image">
+                <img src="{{ post.image.url }}" alt="게시글 이미지">
             </div>
             {% endif %}
         </div>
-    </div>
-    
-    <div class="action-buttons">
-        <a href="{% url 'community:category_detail' post.category.slug %}" class="btn btn-list">
-            <i class="fas fa-list"></i> 목록으로
-        </a>
         
-        {% if user == post.author or user.is_staff %}
-        <div class="author-actions">
-            <a href="{% url 'community:post_edit' post.id %}" class="btn btn-edit">
-                <i class="fas fa-edit"></i> 수정
-            </a>
-            <a href="{% url 'community:post_delete' post.id %}" class="btn btn-delete" 
-               onclick="return confirm('정말로 이 게시글을 삭제하시겠습니까?');">
-                <i class="fas fa-trash-alt"></i> 삭제
-            </a>
+        <!-- 통계 정보 -->
+        <div class="post-stats">
+            <div class="stat-item">
+                <span class="stat-icon">❤️</span>
+                <span id="like-count">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">💬</span>
+                <span>{{ comments|length }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">👁️</span>
+                <span>{{ post.view_count }}</span>
+            </div>
         </div>
-        {% endif %}
     </div>
     
     <!-- 댓글 섹션 -->
     <div class="comments-section">
-        <h2 class="comments-title">댓글 {% if comments %}({{ comments|length }}){% endif %}</h2>
-        
-        <div class="comment-card">
-            {% if comments %}
-            <ul class="comment-list">
-                {% for comment in comments %}
-                <li class="comment-item">
-                    <div class="comment-header">
-                        <span class="comment-author">{{ comment.author.username }}</span>
-                        <span class="comment-date">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
-                    </div>
-                    <div class="comment-body">
-                        {{ comment.content }}
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div class="empty-message" style="padding: 20px; text-align: center; color: #666;">
-                첫 댓글을 작성해보세요!
+        <!-- 댓글 목록 -->
+        {% if comments %}
+            {% for comment in comments %}
+            <div class="comment-item">
+                <div class="comment-header">
+                    {{ comment.author.username }} {{ comment.created_at|date:"Y-m-d H:i" }}
+                </div>
+                <div class="comment-content">
+                    {{ comment.content }}
+                </div>
             </div>
-            {% endif %}
-        </div>
-        
-        {% if user.is_authenticated %}
-        <div class="comment-form-card">
-            <h3 class="comment-form-title">댓글 작성</h3>
-            <form method="post" action="{% url 'community:add_comment' post.id %}">
-                {% csrf_token %}
-                <textarea name="content" class="comment-textarea" placeholder="댓글을 작성해주세요..." required></textarea>
-                <button type="submit" class="btn btn-comment">댓글 등록</button>
-                <div style="clear: both;"></div>
-            </form>
-        </div>
+            {% endfor %}
         {% else %}
-        <div class="comment-form-card">
-            <p class="text-center">댓글을 작성하려면 <a href="{% url 'accounts:login' %}">로그인</a>이 필요합니다.</p>
-        </div>
+            <div class="comment-item">
+                <p>등록된 댓글이 없습니다.</p>
+            </div>
         {% endif %}
     </div>
+    
+    <!-- 댓글 작성 폼 -->
+    {% if user.is_authenticated %}
+    <div class="comment-form">
+        <form method="post" action="{% url 'community:add_comment' post.id %}">
+            {% csrf_token %}
+            <textarea name="content" class="comment-textarea" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
+            <div class="post-actions">
+                <button type="button" id="like-button" class="btn-action like-button" data-post-id="{{ post.id }}">
+                    <span>❤️</span> 좋아요
+                </button>
+                <button type="submit" class="btn-action comment-submit">
+                    <span>💬</span> 댓글 쓰기
+                </button>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="comment-form">
+        <div class="login-info">
+            댓글을 작성하려면 <a href="{% url 'accounts:login' %}">로그인</a>이 필요합니다.
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 해당 커뮤니티의 다른 글 섹션 -->
+    <div class="other-posts-section">
+        <h2 class="section-title">{{ post.category.name }}의 다른 글</h2>
+        
+        <ul class="post-list">
+            {% for other_post in post.category.posts.all|slice:":10" %}
+                {% if other_post.id != post.id %}
+                <li class="post-item">
+                    <a href="{% url 'community:post_detail' other_post.id %}" class="post-link">
+                        {{ other_post.title }}
+                    </a>
+                    <div class="post-meta">
+                        <span class="meta-item">{{ other_post.author.username }}</span>
+                        <span class="meta-item"><span>👁️</span> {{ other_post.view_count }}</span>
+                        <span class="meta-item"><span>💬</span> {{ other_post.get_comment_count }}</span>
+                    </div>
+                </li>
+                {% endif %}
+            {% empty %}
+                <li class="post-item">
+                    <p>다른 게시글이 없습니다.</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
+
+<!-- 좋아요 기능을 위한 JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const likeButton = document.getElementById('like-button');
+    const likeCount = document.getElementById('like-count');
+    
+    if (likeButton) {
+        likeButton.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            
+            // AJAX 요청으로 좋아요 처리
+            fetch(`/community/post/${postId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 좋아요 수 업데이트
+                    likeCount.textContent = data.like_count;
+                    
+                    // 버튼 상태 변경
+                    if (data.liked) {
+                        likeButton.classList.add('liked');
+                    } else {
+                        likeButton.classList.remove('liked');
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
+    
+    // CSRF 토큰 가져오기
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // 로드 시 좋아요 상태 확인 (선택 사항)
+    const postId = likeButton?.getAttribute('data-post-id');
+    if (postId) {
+        fetch(`/community/post/${postId}/like/?check=true`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                likeCount.textContent = data.like_count;
+                if (data.liked) {
+                    likeButton.classList.add('liked');
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+</script>
 {% endblock %}

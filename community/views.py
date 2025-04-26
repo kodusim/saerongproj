@@ -3,10 +3,12 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Count, Prefetch
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.http import require_POST
 from .models import BoardCategory, Post, Comment
 from .forms import PostForm, CommentForm
+from accounts.models import User
 
 
 def category_list(request):
@@ -65,10 +67,16 @@ def post_detail(request, post_id):
     # 댓글 작성 폼
     comment_form = CommentForm()
     
+    # 좋아요 상태 확인 (로그인한 경우)
+    liked = False
+    if request.user.is_authenticated:
+        liked = post.likes.filter(id=request.user.id).exists()
+    
     return render(request, 'community/post_detail.html', {
         'post': post, 
         'comments': comments,
-        'comment_form': comment_form
+        'comment_form': comment_form,
+        'liked': liked
     })
 
 
@@ -84,6 +92,13 @@ def post_create(request, category_slug):
             post = form.save(commit=False)
             post.category = category
             post.author = request.user
+            
+            # 작성자 이름 변경 처리
+            custom_author_name = request.POST.get('custom_author_name')
+            if custom_author_name and custom_author_name != request.user.username:
+                request.user.username = custom_author_name
+                request.user.save()
+            
             post.save()
             messages.success(request, '게시글이 등록되었습니다.')
             return redirect('community:post_detail', post_id=post.id)
@@ -93,7 +108,8 @@ def post_create(request, category_slug):
     return render(request, 'community/post_form.html', {
         'form': form, 
         'category': category,
-        'is_create': True
+        'is_create': True,
+        'is_staff': request.user.is_staff
     })
 
 
@@ -109,17 +125,12 @@ def post_edit(request, post_id):
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES, instance=post)
         if form.is_valid():
-            # 관리자일 경우 작성자 변경 가능
-            if request.user.is_staff and 'author' in request.POST:
-                # 작성자 변경 시도
-                try:
-                    from accounts.models import User
-                    author_id = request.POST.get('author')
-                    if author_id:
-                        new_author = User.objects.get(id=author_id)
-                        post.author = new_author
-                except Exception as e:
-                    messages.error(request, f'작성자 변경 중 오류가 발생했습니다: {str(e)}')
+            # 관리자일 경우 작성자 이름 변경 가능
+            if request.user.is_staff:
+                custom_author_name = request.POST.get('custom_author_name')
+                if custom_author_name and custom_author_name != post.author.username:
+                    post.author.username = custom_author_name
+                    post.author.save()
             
             post = form.save()
             messages.success(request, '게시글이 수정되었습니다.')
@@ -182,13 +193,23 @@ def delete_comment(request, comment_id):
     messages.success(request, '댓글이 삭제되었습니다.')
     return redirect('community:post_detail', post_id=post_id)
 
+
 @login_required
 def post_like(request, post_id):
     """게시글 좋아요 토글"""
     post = get_object_or_404(Post, id=post_id)
     
+    # 좋아요 상태 확인 요청인 경우
+    if request.method == 'GET' and request.GET.get('check') == 'true':
+        liked = post.likes.filter(id=request.user.id).exists()
+        return JsonResponse({
+            'success': True,
+            'liked': liked,
+            'like_count': post.likes.count()
+        })
+    
     # 현재 사용자가 이미 좋아요를 눌렀는지 확인
-    if request.user in post.likes.all():
+    if post.likes.filter(id=request.user.id).exists():
         # 좋아요 취소
         post.likes.remove(request.user)
         liked = False
@@ -206,4 +227,4 @@ def post_like(request, post_id):
         })
     
     # 일반 요청인 경우 이전 페이지로 리다이렉트
-    return redirect(request.META.get('HTTP_REFERER', 'community:post_detail', args=[post_id]))
+    return redirect('community:post_detail', post_id=post.id)

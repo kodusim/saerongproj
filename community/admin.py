@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django_summernote.admin import SummernoteModelAdmin
 from .models import BoardCategory, Post, Comment
 
 
@@ -25,7 +26,8 @@ class BoardCategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(SummernoteModelAdmin):  # 변경: admin.ModelAdmin → SummernoteModelAdmin
+    summernote_fields = ('content',)  # 추가: content 필드에 Summernote 적용
     list_display = ['title', 'category', 'author', 'view_count', 'comment_count', 'is_notice', 'image_preview', 'created_at']
     list_filter = ['category', 'is_notice', 'created_at']
     search_fields = ['title', 'content', 'author__username']
