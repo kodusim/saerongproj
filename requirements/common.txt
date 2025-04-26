@@ -32,3 +32,5 @@ requests==2.32.2
 beautifulsoup4==4.12.3
 
 django-csp==3.8
+
+django-summernote==0.8.20.0
