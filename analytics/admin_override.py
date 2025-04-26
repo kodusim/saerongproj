@@ -39,36 +39,9 @@ class AnalyticsAdminSite:
             
             # 조회수 분석 메뉴 추가
             site_admin_app['models'].append({
-                'name': _('전체 조회수 분석'),
+                'name': _('통합 조회수 분석'),
                 'object_name': 'ViewsStats',
                 'admin_url': '/analytics/views-stats/',
-                'view_only': True,
-                'perms': {'view': True}
-            })
-            
-            # 심리 테스트 조회수 분석 메뉴 추가
-            site_admin_app['models'].append({
-                'name': _('심리 테스트 조회수 분석'),
-                'object_name': 'PsychoTestStats',
-                'admin_url': '/analytics/content-stats/psycho/',
-                'view_only': True,
-                'perms': {'view': True}
-            })
-            
-            # 얼굴상 테스트 조회수 분석 메뉴 추가
-            site_admin_app['models'].append({
-                'name': _('얼굴상 테스트 조회수 분석'),
-                'object_name': 'FaceTestStats',
-                'admin_url': '/analytics/content-stats/face/',
-                'view_only': True,
-                'perms': {'view': True}
-            })
-            
-            # 커뮤니티 게시글 조회수 분석 메뉴 추가
-            site_admin_app['models'].append({
-                'name': _('커뮤니티 게시글 조회수 분석'),
-                'object_name': 'PostStats',
-                'admin_url': '/analytics/content-stats/post/',
                 'view_only': True,
                 'perms': {'view': True}
             })

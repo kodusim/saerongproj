@@ -162,6 +162,51 @@
         margin-top: 20px;
         display: none;
     }
+    
+    /* 콘텐츠별 상세 통계를 위한 추가 스타일 */
+    .content-view {
+        display: none;
+    }
+    
+    .content-view.active {
+        display: block;
+    }
+    
+    .content-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .content-table th, .content-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .content-table th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+    }
+    
+    .content-table tr:hover {
+        background-color: #f9f9f9;
+    }
+    
+    .content-table td a {
+        color: #417690;
+        text-decoration: none;
+    }
+    
+    .content-table td a:hover {
+        text-decoration: underline;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #888;
+    }
 </style>
 {% endblock %}
 
@@ -175,55 +220,204 @@
         <div class="content-tab" data-type="post">커뮤니티 게시글</div>
     </div>
     
-    <div class="filters-container">
-        <div class="filter-group">
-            <label for="start-date">시작일</label>
-            <input type="date" id="start-date" value="{{ start_date }}">
+    <!-- 전체 통계 보기 (기본 뷰) -->
+    <div id="all-view" class="content-view active">
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="start-date">시작일</label>
+                <input type="date" id="start-date" value="{{ start_date }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="end-date">종료일</label>
+                <input type="date" id="end-date" value="{{ end_date }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="group-by">기간 단위</label>
+                <select id="group-by">
+                    <option value="day">일별</option>
+                    <option value="week">주별</option>
+                    <option value="month">월별</option>
+                </select>
+            </div>
+            
+            <div class="filter-buttons">
+                <button id="apply-filters">적용</button>
+            </div>
         </div>
         
-        <div class="filter-group">
-            <label for="end-date">종료일</label>
-            <input type="date" id="end-date" value="{{ end_date }}">
+        <div class="chart-container">
+            <canvas id="viewsChart"></canvas>
         </div>
         
-        <div class="filter-group">
-            <label for="group-by">기간 단위</label>
-            <select id="group-by">
-                <option value="day">일별</option>
-                <option value="week">주별</option>
-                <option value="month">월별</option>
-            </select>
+        <div id="noDataMessage">
+            <p>선택한 기간에 데이터가 없습니다.</p>
         </div>
         
-        <div class="filter-buttons">
-            <button id="apply-filters">적용</button>
+        <div class="top-content">
+            <h2>인기 콘텐츠 TOP 10</h2>
+            <ul id="topItems" class="top-items"></ul>
         </div>
     </div>
     
-    <div class="chart-container">
-        <canvas id="viewsChart"></canvas>
+    <!-- 심리 테스트 콘텐츠 상세 통계 -->
+    <div id="psycho-view" class="content-view">
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="psycho-limit">상위 표시 개수</label>
+                <select id="psycho-limit">
+                    <option value="10">10개</option>
+                    <option value="20">20개</option>
+                    <option value="50">50개</option>
+                    <option value="100">100개</option>
+                </select>
+            </div>
+            
+            <div class="filter-buttons">
+                <button id="psycho-apply-filters">적용</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="psychoContentChart"></canvas>
+        </div>
+        
+        <h2>심리 테스트 조회수 순위</h2>
+        
+        <table class="content-table" id="psychoContentTable">
+            <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>제목</th>
+                    <th>조회수</th>
+                    <th>생성일</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="psychoContentTableBody">
+                <tr>
+                    <td colspan="5" class="no-data">
+                        데이터를 불러오는 중...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 얼굴상 테스트 콘텐츠 상세 통계 -->
+    <div id="face-view" class="content-view">
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="face-limit">상위 표시 개수</label>
+                <select id="face-limit">
+                    <option value="10">10개</option>
+                    <option value="20">20개</option>
+                    <option value="50">50개</option>
+                    <option value="100">100개</option>
+                </select>
+            </div>
+            
+            <div class="filter-buttons">
+                <button id="face-apply-filters">적용</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="faceContentChart"></canvas>
+        </div>
+        
+        <h2>얼굴상 테스트 조회수 순위</h2>
+        
+        <table class="content-table" id="faceContentTable">
+            <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>제목</th>
+                    <th>조회수</th>
+                    <th>생성일</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="faceContentTableBody">
+                <tr>
+                    <td colspan="5" class="no-data">
+                        데이터를 불러오는 중...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 커뮤니티 게시글 콘텐츠 상세 통계 -->
+    <div id="post-view" class="content-view">
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="post-limit">상위 표시 개수</label>
+                <select id="post-limit">
+                    <option value="10">10개</option>
+                    <option value="20">20개</option>
+                    <option value="50">50개</option>
+                    <option value="100">100개</option>
+                </select>
+            </div>
+            
+            <div class="filter-buttons">
+                <button id="post-apply-filters">적용</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="postContentChart"></canvas>
+        </div>
+        
+        <h2>커뮤니티 게시글 조회수 순위</h2>
+        
+        <table class="content-table" id="postContentTable">
+            <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>제목</th>
+                    <th>조회수</th>
+                    <th>생성일</th>
+                    <th>카테고리</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="postContentTableBody">
+                <tr>
+                    <td colspan="6" class="no-data">
+                        데이터를 불러오는 중...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
     
     <div id="loader" class="loader"></div>
-    
-    <div id="noDataMessage">
-        <p>선택한 기간에 데이터가 없습니다.</p>
-    </div>
-    
-    <div class="top-content">
-        <h2>인기 콘텐츠 TOP 10</h2>
-        <ul id="topItems" class="top-items"></ul>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 차트 객체
+        // 차트 객체들
         let viewsChart = null;
+        let psychoContentChart = null;
+        let faceContentChart = null;
+        let postContentChart = null;
         
         // 현재 선택된 콘텐츠 유형
         let currentContentType = 'all';
+        
+        // 로더 표시 함수
+        function showLoader() {
+            document.getElementById('loader').style.display = 'block';
+        }
+        
+        // 로더 숨기기 함수
+        function hideLoader() {
+            document.getElementById('loader').style.display = 'none';
+        }
         
         // 탭 클릭 이벤트
         const tabs = document.querySelectorAll('.content-tab');
@@ -238,18 +432,52 @@
                 // 콘텐츠 유형 업데이트
                 currentContentType = this.dataset.type;
                 
+                // 모든 콘텐츠 뷰 숨기기
+                document.querySelectorAll('.content-view').forEach(view => {
+                    view.classList.remove('active');
+                });
+                
+                // 해당 콘텐츠 뷰 표시
+                const viewId = currentContentType + '-view';
+                const view = document.getElementById(viewId);
+                if (view) {
+                    view.classList.add('active');
+                }
+                
                 // 데이터 새로고침
-                fetchData();
+                if (currentContentType === 'all') {
+                    fetchOverallData();
+                } else if (currentContentType === 'psycho') {
+                    fetchContentData('psycho');
+                } else if (currentContentType === 'face') {
+                    fetchContentData('face');
+                } else if (currentContentType === 'post') {
+                    fetchContentData('post');
+                }
             });
         });
         
-        // 필터 적용 버튼 클릭 이벤트
-        document.getElementById('apply-filters').addEventListener('click', fetchData);
+        // 전체 보기 필터 적용 버튼 클릭 이벤트
+        document.getElementById('apply-filters').addEventListener('click', fetchOverallData);
         
-        // 데이터 가져오기
-        function fetchData() {
-            // 로딩 표시 시작
-            document.getElementById('loader').style.display = 'block';
+        // 심리 테스트 필터 적용 버튼 클릭 이벤트
+        document.getElementById('psycho-apply-filters').addEventListener('click', function() {
+            fetchContentData('psycho');
+        });
+        
+        // 얼굴상 테스트 필터 적용 버튼 클릭 이벤트
+        document.getElementById('face-apply-filters').addEventListener('click', function() {
+            fetchContentData('face');
+        });
+        
+        // 커뮤니티 게시글 필터 적용 버튼 클릭 이벤트
+        document.getElementById('post-apply-filters').addEventListener('click', function() {
+            fetchContentData('post');
+        });
+        
+        // 전체 데이터 가져오기
+        function fetchOverallData() {
+            showLoader();
             
             // 필터 값 가져오기
             const startDate = document.getElementById('start-date').value;
@@ -260,24 +488,50 @@
             fetch(`/analytics/api/views-data/?start_date=${startDate}&end_date=${endDate}&group_by=${groupBy}&content_type=${currentContentType}`)
                 .then(response => response.json())
                 .then(data => {
-                    // 로딩 표시 종료
-                    document.getElementById('loader').style.display = 'none';
+                    hideLoader();
                     
                     // 차트 업데이트
-                    updateChart(data.chart_data);
+                    updateOverallChart(data.chart_data);
                     
                     // 상위 항목 업데이트
                     updateTopItems(data.top_items);
                 })
                 .catch(error => {
                     console.error('데이터 가져오기 오류:', error);
-                    document.getElementById('loader').style.display = 'none';
+                    hideLoader();
                     alert('데이터를 가져오는 중 오류가 발생했습니다.');
                 });
         }
         
-        // 차트 업데이트
-        function updateChart(chartData) {
+        // 콘텐츠별 데이터 가져오기
+        function fetchContentData(contentType) {
+            showLoader();
+            
+            // 필터 값 가져오기
+            const limit = document.getElementById(`${contentType}-limit`).value;
+            
+            // API 요청
+            fetch(`/analytics/api/content-data/${contentType}/?limit=${limit}`)
+                .then(response => response.json())
+                .then(data => {
+                    hideLoader();
+                    
+                    // 차트 업데이트
+                    updateContentChart(contentType, data.content_data);
+                    
+                    // 테이블 업데이트
+                    updateContentTable(contentType, data.content_data);
+                })
+                .catch(error => {
+                    console.error('데이터 가져오기 오류:', error);
+                    hideLoader();
+                    document.getElementById(`${contentType}ContentTableBody`).innerHTML = 
+                        `<tr><td colspan="${contentType === 'post' ? '6' : '5'}" class="no-data">데이터를 가져오는 중 오류가 발생했습니다.</td></tr>`;
+                });
+        }
+        
+        // 전체 차트 업데이트
+        function updateOverallChart(chartData) {
             const ctx = document.getElementById('viewsChart').getContext('2d');
             
             // 기존 차트 제거
@@ -328,6 +582,159 @@
             });
         }
         
+        // 콘텐츠별 차트 업데이트
+        function updateContentChart(contentType, contentData) {
+            const ctx = document.getElementById(`${contentType}ContentChart`).getContext('2d');
+            const chartObj = contentType === 'psycho' ? psychoContentChart : 
+                            contentType === 'face' ? faceContentChart : postContentChart;
+            
+            // 기존 차트 제거
+            if (chartObj) {
+                chartObj.destroy();
+            }
+            
+            // 데이터가 없는 경우
+            if (!contentData || contentData.length === 0) {
+                document.getElementById(`${contentType}ContentTableBody`).innerHTML = 
+                    `<tr><td colspan="${contentType === 'post' ? '6' : '5'}" class="no-data">데이터가 없습니다.</td></tr>`;
+                return;
+            }
+            
+            // 차트 데이터 준비
+            const labels = contentData.map(item => item.title);
+            const views = contentData.map(item => item.views);
+            
+            // 차트 색상
+            let backgroundColor, borderColor;
+            
+            if (contentType === 'psycho') {
+                backgroundColor = 'rgba(75, 192, 192, 0.5)';
+                borderColor = 'rgba(75, 192, 192, 1)';
+            } else if (contentType === 'face') {
+                backgroundColor = 'rgba(153, 102, 255, 0.5)';
+                borderColor = 'rgba(153, 102, 255, 1)';
+            } else if (contentType === 'post') {
+                backgroundColor = 'rgba(255, 159, 64, 0.5)';
+                borderColor = 'rgba(255, 159, 64, 1)';
+            }
+            
+            // 새 차트 생성
+            const newChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '조회수',
+                        data: views,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '조회수'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '콘텐츠'
+                            },
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    // 긴 제목 자르기
+                                    const label = this.getLabelForValue(value);
+                                    if (label.length > 15) {
+                                        return label.substr(0, 12) + '...';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: getContentTypeLabel(contentType) + ' 조회수 순위 TOP ' + contentData.length
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    // 전체 제목 표시
+                                    return tooltipItems[0].label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 차트 객체 저장
+            if (contentType === 'psycho') {
+                psychoContentChart = newChart;
+            } else if (contentType === 'face') {
+                faceContentChart = newChart;
+            } else if (contentType === 'post') {
+                postContentChart = newChart;
+            }
+        }
+        
+        // 콘텐츠 테이블 업데이트
+        function updateContentTable(contentType, contentData) {
+            const tableBody = document.getElementById(`${contentType}ContentTableBody`);
+            tableBody.innerHTML = '';
+            
+            if (!contentData || contentData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="${contentType === 'post' ? '6' : '5'}" class="no-data">데이터가 없습니다.</td></tr>`;
+                return;
+            }
+            
+            contentData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                const rankCell = document.createElement('td');
+                rankCell.textContent = index + 1;
+                row.appendChild(rankCell);
+                
+                const titleCell = document.createElement('td');
+                titleCell.textContent = item.title;
+                row.appendChild(titleCell);
+                
+                const viewsCell = document.createElement('td');
+                viewsCell.textContent = item.views;
+                row.appendChild(viewsCell);
+                
+                const dateCell = document.createElement('td');
+                dateCell.textContent = item.created_at;
+                row.appendChild(dateCell);
+                
+                if (contentType === 'post') {
+                    const categoryCell = document.createElement('td');
+                    categoryCell.textContent = item.category || '-';
+                    row.appendChild(categoryCell);
+                }
+                
+                const actionCell = document.createElement('td');
+                const link = document.createElement('a');
+                link.href = item.url;
+                link.textContent = '보기';
+                actionCell.appendChild(link);
+                row.appendChild(actionCell);
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
         // 상위 항목 업데이트
         function updateTopItems(topItems) {
             const topItemsList = document.getElementById('topItems');
@@ -373,8 +780,18 @@
             }
         }
         
+        // 콘텐츠 유형 전체 라벨 가져오기
+        function getContentTypeLabel(type) {
+            switch (type) {
+                case 'psycho': return '심리 테스트';
+                case 'face': return '얼굴상 테스트';
+                case 'post': return '커뮤니티 게시글';
+                default: return '콘텐츠';
+            }
+        }
+        
         // 초기 데이터 로드
-        fetchData();
+        fetchOverallData();
     });
 </script>
 {% endblock %}

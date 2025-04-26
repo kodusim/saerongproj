@@ -293,49 +293,10 @@ def get_top_content(content_type, limit=10):
     return result[:limit]
 
 @staff_member_required
-def content_stats(request, app_name):
-    """특정 앱의 콘텐츠별 조회수 통계를 보여주는 뷰"""
-    app_labels = {
-        'psycho': '심리 테스트',
-        'face': '얼굴상 테스트',
-        'post': '커뮤니티 게시글'
-    }
-    
-    app_label = app_labels.get(app_name, app_name)
-    
-    context = {
-        'title': f'{app_label} 콘텐츠 조회수 분석',
-        'app_name': app_name,
-        'app_label': app_label,
-        'start_date': (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),
-        'end_date': datetime.now().strftime('%Y-%m-%d'),
-    }
-    return render(request, 'analytics/content_stats.html', context)
-
-@staff_member_required
 def api_content_data(request, app_name):
     """특정 앱의 콘텐츠별 조회수 데이터를 JSON 형식으로 반환하는 API"""
     # 요청에서 기간 및 집계 유형 가져오기
-    start_date_str = request.GET.get('start_date', '')
-    end_date_str = request.GET.get('end_date', '')
     limit = int(request.GET.get('limit', '10'))
-    
-    # 날짜 파싱
-    try:
-        if start_date_str:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        else:
-            start_date = datetime.now() - timedelta(days=30)
-            
-        if end_date_str:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-        else:
-            end_date = datetime.now()
-            
-        # end_date는 해당 날짜의 23:59:59까지 포함
-        end_date = end_date.replace(hour=23, minute=59, second=59)
-    except ValueError:
-        return JsonResponse({'error': '날짜 형식이 올바르지 않습니다.'}, status=400)
     
     # 앱에 따라 데이터 가져오기
     if app_name == 'psycho':
