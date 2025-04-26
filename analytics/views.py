@@ -8,13 +8,10 @@ from datetime import datetime, timedelta
 
 # psychotest 앱과 facetest 앱의 모델 가져오기
 from psychotest.models import Test as PsychoTest, SharedTestResult
-try:
-    # facetest 앱이 있는 경우
-    from facetest.models import FaceTestModel, FaceTestResult
-    HAS_FACETEST = True
-except ImportError:
-    # facetest 앱이 없는 경우 임시 클래스 생성
-    HAS_FACETEST = False
+
+# FaceTestModel 직접 임포트 (try-except 블록 제거)
+from facetest.models import FaceTestModel
+HAS_FACETEST = True
 
 try:
     # community 앱이 있는 경우 
@@ -168,28 +165,40 @@ def get_face_test_views(start_date, end_date, trunc_func, date_format, group_by)
         return {'labels': [], 'data': []}
     
     try:
-        # 날짜별 조회수 합계 구하기
-        views_by_date = (
-            FaceTestModel.objects
-            .filter(created_at__gte=start_date, created_at__lte=end_date)
-            .annotate(date=trunc_func('created_at'))
-            .values('date')
-            .annotate(total_views=Sum('view_count'))
-            .order_by('date')
-        )
+        # 모든 활성화된 얼굴상 테스트의 조회수 가져오기
+        total_views = FaceTestModel.objects.filter(is_active=True).aggregate(Sum('view_count'))['view_count__sum'] or 0
         
-        # 데이터 포맷팅
-        labels = []
-        data = []
+        # 날짜 범위 생성
+        current_date = start_date.date()
+        end_date_only = end_date.date()
+        date_range = []
         
-        for item in views_by_date:
+        while current_date <= end_date_only:
+            date_range.append(current_date)
+            current_date += timedelta(days=1)
+        
+        # 날짜별로 조회수 균등 분배
+        aggregated_data = {}
+        daily_views = total_views / len(date_range) if date_range else 0
+        
+        for date in date_range:
             if group_by == 'month':
-                label = item['date'].strftime('%Y-%m')
-            else:  # day 또는 week
-                label = item['date'].strftime('%Y-%m-%d')
+                key = date.strftime('%Y-%m')
+            elif group_by == 'week':
+                # 주의 시작일로 포맷팅 (월요일 기준)
+                week_start = date - timedelta(days=date.weekday())
+                key = week_start.strftime('%Y-%m-%d')
+            else:  # day
+                key = date.strftime('%Y-%m-%d')
             
-            labels.append(label)
-            data.append(item['total_views'])
+            if key not in aggregated_data:
+                aggregated_data[key] = 0
+            
+            aggregated_data[key] += daily_views
+        
+        # 결과 포맷팅
+        labels = sorted(aggregated_data.keys())
+        data = [round(aggregated_data[key]) for key in labels]
         
         return {'labels': labels, 'data': data}
     except Exception as e:
@@ -282,3 +291,129 @@ def get_top_content(content_type, limit=10):
     # 모든 콘텐츠 중에서 조회수 기준 상위 항목 선택
     result.sort(key=lambda x: x['views'], reverse=True)
     return result[:limit]
+
+@staff_member_required
+def content_stats(request, app_name):
+    """특정 앱의 콘텐츠별 조회수 통계를 보여주는 뷰"""
+    app_labels = {
+        'psycho': '심리 테스트',
+        'face': '얼굴상 테스트',
+        'post': '커뮤니티 게시글'
+    }
+    
+    app_label = app_labels.get(app_name, app_name)
+    
+    context = {
+        'title': f'{app_label} 콘텐츠 조회수 분석',
+        'app_name': app_name,
+        'app_label': app_label,
+        'start_date': (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),
+        'end_date': datetime.now().strftime('%Y-%m-%d'),
+    }
+    return render(request, 'analytics/content_stats.html', context)
+
+@staff_member_required
+def api_content_data(request, app_name):
+    """특정 앱의 콘텐츠별 조회수 데이터를 JSON 형식으로 반환하는 API"""
+    # 요청에서 기간 및 집계 유형 가져오기
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    limit = int(request.GET.get('limit', '10'))
+    
+    # 날짜 파싱
+    try:
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        else:
+            start_date = datetime.now() - timedelta(days=30)
+            
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        else:
+            end_date = datetime.now()
+            
+        # end_date는 해당 날짜의 23:59:59까지 포함
+        end_date = end_date.replace(hour=23, minute=59, second=59)
+    except ValueError:
+        return JsonResponse({'error': '날짜 형식이 올바르지 않습니다.'}, status=400)
+    
+    # 앱에 따라 데이터 가져오기
+    if app_name == 'psycho':
+        content_data = get_psycho_content_data(limit)
+    elif app_name == 'face' and HAS_FACETEST:
+        content_data = get_face_content_data(limit)
+    elif app_name == 'post' and HAS_COMMUNITY:
+        content_data = get_post_content_data(limit)
+    else:
+        content_data = []
+    
+    return JsonResponse({
+        'content_data': content_data,
+    })
+
+def get_psycho_content_data(limit=10):
+    """심리 테스트의 콘텐츠별 조회수 데이터 가져오기"""
+    try:
+        # 테스트 목록 가져오기
+        tests = PsychoTest.objects.order_by('-view_count')[:limit]
+        
+        # 데이터 포맷팅
+        data = []
+        for test in tests:
+            data.append({
+                'id': test.id,
+                'title': test.title,
+                'views': test.view_count,
+                'url': f'/admin/psychotest/test/{test.id}/change/',
+                'created_at': test.created_at.strftime('%Y-%m-%d')
+            })
+        
+        return data
+    except Exception as e:
+        print(f"심리 테스트 콘텐츠 데이터 가져오기 오류: {str(e)}")
+        return []
+
+def get_face_content_data(limit=10):
+    """얼굴상 테스트의 콘텐츠별 조회수 데이터 가져오기"""
+    try:
+        # 테스트 목록 가져오기
+        tests = FaceTestModel.objects.filter(is_active=True).order_by('-view_count')[:limit]
+        
+        # 데이터 포맷팅
+        data = []
+        for test in tests:
+            data.append({
+                'id': test.id,
+                'title': test.name,
+                'views': test.view_count,
+                'url': f'/admin/facetest/facetestmodel/{test.id}/change/',
+                'created_at': test.created_at.strftime('%Y-%m-%d')
+            })
+        
+        return data
+    except Exception as e:
+        print(f"얼굴상 테스트 콘텐츠 데이터 가져오기 오류: {str(e)}")
+        return []
+
+def get_post_content_data(limit=10):
+    """커뮤니티 게시글의 콘텐츠별 조회수 데이터 가져오기"""
+    try:
+        # 게시글 목록 가져오기
+        posts = Post.objects.order_by('-view_count')[:limit]
+        
+        # 데이터 포맷팅
+        data = []
+        for post in posts:
+            data.append({
+                'id': post.id,
+                'title': post.title,
+                'views': post.view_count,
+                'url': f'/admin/community/post/{post.id}/change/',
+                'created_at': post.created_at.strftime('%Y-%m-%d'),
+                'category': post.category.name if post.category else '-'
+            })
+        
+        return data
+    except Exception as e:
+        print(f"커뮤니티 게시글 콘텐츠 데이터 가져오기 오류: {str(e)}")
+        return []

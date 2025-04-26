@@ -795,7 +795,7 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
 @admin.register(FaceTestModel)
 class FaceTestModelAdmin(admin.ModelAdmin):
     """얼굴상 테스트 모델 관리자"""
-    list_display = ['name', 'show_thumbnail', 'is_active', 'created_at', 'result_types_count', 'view_result_types']
+    list_display = ['name', 'show_thumbnail', 'is_active', 'view_count', 'created_at', 'result_types_count', 'view_result_types']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
     readonly_fields = ['created_at', 'updated_at', 'sync_status', 'image_preview', 'intro_image_preview', 'guide_image_preview']
