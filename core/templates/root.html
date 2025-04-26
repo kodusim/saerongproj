@@ -238,6 +238,35 @@
         font-size: 0.9rem;
         margin-top: 10px;
     }
+    .ad-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 20px 0;
+        width: 100%;
+    }
+    
+    .center-ad-wrapper {
+        width: 300px;
+        height: 250px;
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+    }
+    
+    /* 모바일 환경에서의 광고 스타일 조정 */
+    @media (max-width: 500px) {
+        .center-ad-wrapper {
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .center-ad-wrapper ins {
+            transform: scale(0.9);
+            transform-origin: center;
+        }
+    }
 </style>
 
 <div class="container p-0">
@@ -385,7 +414,16 @@
             <div class="scroll-fade-right"></div>
         </div>
     </div>
-    
+    <!-- 광고 섹션 -->
+    <div class="section-container ad-container">
+        <div class="center-ad-wrapper">
+            <ins class="kakao_ad_area" style="display:none;"
+            data-ad-unit = "DAN-ZTkm5bWYzd2oVvGS"
+            data-ad-width = "300"
+            data-ad-height = "250"></ins>
+            <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+        </div>
+    </div>
     <!-- 인기 테스트 섹션 -->
     <div class="section-container">
         <div class="section-header">

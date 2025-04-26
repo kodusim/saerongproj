@@ -228,12 +228,19 @@
         /* 사이드 광고 스타일 */
         .side-ad {
             position: fixed;
-            right: 20px;
             top: 50%;
             transform: translateY(-50%);
             z-index: 100;
         }
-        
+
+        .side-ad-left {
+            left: 20px;
+        }
+
+        .side-ad-right {
+            right: 20px;
+        }
+
         /* 모바일 화면 최적화 */
         @media (max-width: 1100px) {
             .side-ad {
@@ -284,8 +291,17 @@
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
+<!-- 좌측 사이드 광고 영역 -->
+<div class="side-ad side-ad-left">
+    <ins class="kakao_ad_area" style="display:none;"
+    data-ad-unit = "DAN-PIJeCUwGyWudHos5"
+    data-ad-width = "160"
+    data-ad-height = "600"></ins>
+    <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+</div>
+
 <!-- 우측 사이드 광고 영역 -->
-<div class="side-ad">
+<div class="side-ad side-ad-right">
     <ins class="kakao_ad_area" style="display:none;"
     data-ad-unit = "DAN-ZqLNaNRQWUQ7Qqgz"
     data-ad-width = "160"
@@ -372,22 +388,31 @@
         
         // 광고 위치 동적 계산
         const siteWrapper = document.querySelector('.site-wrapper');
-        const sideAd = document.querySelector('.side-ad');
-        
+        const sideAdRight = document.querySelector('.side-ad-right');
+        const sideAdLeft = document.querySelector('.side-ad-left');
+
         function positionAd() {
             if (window.innerWidth > 1100) {
                 const siteRect = siteWrapper.getBoundingClientRect();
                 const rightEdge = siteRect.right;
+                const leftEdge = siteRect.left;
                 const screenWidth = window.innerWidth;
                 
                 // 메인 콘텐츠 오른쪽과 화면 오른쪽 사이의 중간 위치
-                const adLeftPosition = rightEdge + (screenWidth - rightEdge - 160) / 2;
+                const adRightPosition = rightEdge + (screenWidth - rightEdge - 160) / 2;
                 
-                sideAd.style.left = adLeftPosition + 'px';
-                sideAd.style.right = 'auto';
-                sideAd.style.display = 'block';
+                // 메인 콘텐츠 왼쪽과 화면 왼쪽 사이의 중간 위치
+                const adLeftPosition = leftEdge / 2 - 80; // 광고 너비(160)의 절반을 고려
+                
+                sideAdRight.style.left = adRightPosition + 'px';
+                sideAdRight.style.right = 'auto';
+                sideAdRight.style.display = 'block';
+                
+                sideAdLeft.style.left = adLeftPosition + 'px';
+                sideAdLeft.style.display = 'block';
             } else {
-                sideAd.style.display = 'none';
+                sideAdRight.style.display = 'none';
+                sideAdLeft.style.display = 'none';
             }
         }
         
