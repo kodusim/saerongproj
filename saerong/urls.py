@@ -1,9 +1,12 @@
-
 from django.apps import apps
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from analytics.admin_override import AnalyticsAdminSite
+
+# 관리자 메뉴에 조회수 분석 메뉴 추가
+AnalyticsAdminSite.add_analytics_menu()
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -13,6 +16,7 @@ urlpatterns = [
     path("community/", include("community.urls")),
     path("facetest/", include("facetest.urls")),  # 얼굴테스트 URL 추가
     path('summernote/', include('django_summernote.urls')),
+    path('analytics/', include('analytics.urls')),  # 분석 앱 URL 추가
 ]
 
 # 개발 환경에서 미디어 파일 서빙 설정

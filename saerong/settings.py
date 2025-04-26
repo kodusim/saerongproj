@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "psychotest",
     "community",
     "facetest",
+    "analytics",
 ]
 
 if DEBUG:
