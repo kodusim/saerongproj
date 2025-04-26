@@ -224,6 +224,15 @@
         color: #fff;
         text-decoration: underline;
     }
+    /* 광고 컨테이너 스타일 */
+    .ad-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin: 15px 0;
+        text-align: center;
+    }
 </style>
 
 <div class="container p-0">
@@ -309,6 +318,14 @@
         </div>
     </div>
     {% endif %}
+    <!-- 카카오 광고 -->
+    <div class="ad-container">
+        <ins class="kakao_ad_area" style="display:none;"
+            data-ad-unit = "DAN-ybmE37WXGkg8vEe4"
+            data-ad-width = "320" 
+            data-ad-height = "50"></ins>
+        <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+    </div>
     
     <!-- 해당 커뮤니티의 다른 글 섹션 -->
     <div class="other-posts-section">

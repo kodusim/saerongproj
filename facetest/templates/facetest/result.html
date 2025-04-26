@@ -290,6 +290,15 @@
     .bottom-padding {
         padding-bottom: 80px;
     }
+    /* 광고 컨테이너 스타일 */
+    .ad-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin: 15px 0;
+        text-align: center;
+    }
 </style>
 
 <div class="container p-0">
@@ -348,6 +357,15 @@
             <!-- 모든 결과 보기 버튼 - psychotest와 동일한 스타일로 변경 -->
             <div class="text-center">
                 <button class="all-results-btn" id="showAllResults">모든 결과 보기</button>
+            </div>
+
+            <!-- 카카오 광고 -->
+            <div class="ad-container">
+                <ins class="kakao_ad_area" style="display:none;"
+                    data-ad-unit = "DAN-ybmE37WXGkg8vEe4"
+                    data-ad-width = "320" 
+                    data-ad-height = "50"></ins>
+                <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
             </div>
             
             <!-- 공유 섹션 - 심리테스트와 동일한 스타일로 변경 -->
