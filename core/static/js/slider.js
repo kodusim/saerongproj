@@ -1,11 +1,74 @@
 // 슬라이드 기능 JavaScript 코드
 document.addEventListener('DOMContentLoaded', function() {
-    // 모든 슬라이드 컨테이너에 기능 적용
-    setupSliders();
+    // 스크롤 가능한 카드 영역 제어
+    const cardContainers = document.querySelectorAll('.scrollable-cards-container');
     
-    // 윈도우 리사이즈시 슬라이더 재설정
-    window.addEventListener('resize', function() {
-        setupSliders();
+    cardContainers.forEach(container => {
+        const cards = container.querySelector('.scrollable-cards');
+        const prevBtn = container.querySelector('.slide-prev');
+        const nextBtn = container.querySelector('.slide-next');
+        
+        if (!cards || !prevBtn || !nextBtn) return;
+        
+        // 다음 슬라이드 버튼 클릭 이벤트
+        nextBtn.addEventListener('click', () => {
+            const cardWidth = cards.querySelector('.test-card').offsetWidth + 10; // 카드 너비 + 마진
+            cards.scrollBy({ left: cardWidth * 3, behavior: 'smooth' });
+        });
+        
+        // 이전 슬라이드 버튼 클릭 이벤트
+        prevBtn.addEventListener('click', () => {
+            const cardWidth = cards.querySelector('.test-card').offsetWidth + 10; // 카드 너비 + 마진
+            cards.scrollBy({ left: -cardWidth * 3, behavior: 'smooth' });
+        });
+        
+        // 드래그 스크롤 기능
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        
+        cards.addEventListener('mousedown', (e) => {
+            isDown = true;
+            cards.classList.add('grabbing');
+            startX = e.pageX - cards.offsetLeft;
+            scrollLeft = cards.scrollLeft;
+        });
+        
+        cards.addEventListener('mouseleave', () => {
+            isDown = false;
+            cards.classList.remove('grabbing');
+        });
+        
+        cards.addEventListener('mouseup', () => {
+            isDown = false;
+            cards.classList.remove('grabbing');
+        });
+        
+        cards.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - cards.offsetLeft;
+            const walk = (x - startX) * 2; // 스크롤 속도 조절
+            cards.scrollLeft = scrollLeft - walk;
+        });
+        
+        // 터치 이벤트 처리 (모바일)
+        cards.addEventListener('touchstart', (e) => {
+            isDown = true;
+            startX = e.touches[0].pageX - cards.offsetLeft;
+            scrollLeft = cards.scrollLeft;
+        }, { passive: true });
+        
+        cards.addEventListener('touchend', () => {
+            isDown = false;
+        }, { passive: true });
+        
+        cards.addEventListener('touchmove', (e) => {
+            if (!isDown) return;
+            const x = e.touches[0].pageX - cards.offsetLeft;
+            const walk = (x - startX) * 2;
+            cards.scrollLeft = scrollLeft - walk;
+        }, { passive: true });
     });
 });
 
@@ -131,3 +194,4 @@ function updateButtonsVisibility(slider, prevButton, nextButton) {
         nextButton.style.display = 'flex';
     }
 }
+

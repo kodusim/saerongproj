@@ -1,10 +1,14 @@
 from django.shortcuts import render
 from psychotest.models import Test
 from facetest.models import FaceTestModel
-from community.models import Post  # 추가: 게시글 모델 import
+from community.models import Post
+from .models import Banner  # Banner 모델 import 추가
 
 def root(request):
     """메인 페이지"""
+    # 활성화된 배너 이미지 가져오기
+    banners = Banner.objects.filter(is_active=True).order_by('order', '-created_at')
+    
     # 최신 심리 테스트 가져오기
     recent_tests = Test.objects.all().order_by('-created_at')[:6]
     
@@ -46,10 +50,11 @@ def root(request):
     recent_posts = Post.objects.select_related('category', 'author').order_by('-created_at')[:5]
     
     context = {
+        'banners': banners,  # 배너 추가
         'recent_tests': recent_tests,
         'recent_face_tests': recent_face_tests,
         'popular_tests': popular_tests,
-        'recent_posts': recent_posts,  # 최신 게시글 추가
+        'recent_posts': recent_posts,
     }
     
     return render(request, 'root.html', context)
