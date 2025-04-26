@@ -134,6 +134,10 @@ class FaceResultType(models.Model):
     description = models.TextField("설명")
     characteristics = models.TextField("특성(JSON)", help_text="특성 목록을 JSON 형식으로 저장")
     examples = models.TextField("예시(JSON)", help_text="예시 목록을 JSON 형식으로 저장", blank=True)
+    background_color = models.CharField("배경색", max_length=20, default="#FFF5EE", 
+                             help_text="예: #FFFFFF, rgb(255,255,255), mintcream 등")
+    sub_image = models.ImageField("결과 보조 이미지", upload_to=result_image_upload_path, null=True, blank=True,
+                            help_text="권장 크기: 500x300px, 결과 설명 대신 표시됩니다.")
     
     class Meta:
         verbose_name = "얼굴상 결과 유형"

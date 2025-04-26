@@ -50,6 +50,29 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
     inlines = [FaceResultImageInline]
     actions = ['bulk_image_upload']
     
+    # 필드셋에 배경색과 보조 이미지 필드 추가
+    fieldsets = (
+        (None, {
+            'fields': ('face_test', 'type_id', 'name', 'description')
+        }),
+        ('스타일', {
+            'fields': ('background_color', 'sub_image', 'sub_image_preview'),
+            'description': '결과 페이지의 배경색과 보조 이미지를 설정합니다.'
+        }),
+        ('데이터', {
+            'fields': ('characteristics', 'examples'),
+            'description': '특성과 예시는 JSON 형식으로 저장됩니다. 리스트 형식([])으로 입력하세요.'
+        }),
+    )
+    readonly_fields = ('sub_image_preview',)
+    
+    def sub_image_preview(self, obj):
+        """보조 이미지 미리보기"""
+        if obj.sub_image:
+            return format_html('<img src="{}" width="300" style="max-height: 200px; object-fit: contain;" />', obj.sub_image.url)
+        return "보조 이미지 없음"
+    sub_image_preview.short_description = "보조 이미지 미리보기"
+    
     def short_description(self, obj):
         if len(obj.description) > 50:
             return obj.description[:50] + "..."
