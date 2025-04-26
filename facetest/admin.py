@@ -92,16 +92,189 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
     
     def upload_image_button(self, obj):
         """이미지 업로드 버튼"""
-        upload_url = reverse('admin:facetest_upload_image', args=[obj.id])
-        view_url = reverse('admin:facetest_view_images', args=[obj.id])
-        
         return format_html(
-            '<a href="{}" class="button" onclick="return showImageUploadDialog(event, \'{}\')">이미지 업로드</a>'
-            '&nbsp;'
-            '<a href="{}" class="button" onclick="return showImagesDialog(event, \'{}\')">이미지 보기</a>',
-            upload_url, upload_url, view_url, view_url
+            """
+            <div style="display: flex; gap: 10px;">
+                <div id="image-drag-zone-{0}" class="drag-zone" style="flex: 1; padding: 10px; text-align: center; background-color: #73b6d1; color: white; border-radius: 5px; cursor: pointer;">
+                    <span style="font-weight: bold;">이미지 드래그</span>
+                    <input type="file" id="image-upload-{0}" style="display: none;" multiple accept="image/*">
+                </div>
+                <div id="sub-image-drag-zone-{0}" class="drag-zone" style="flex: 1; padding: 10px; text-align: center; background-color: #6daebd; color: white; border-radius: 5px; cursor: pointer;">
+                    <span style="font-weight: bold;">보조 이미지 드래그</span>
+                    <input type="file" id="sub-image-upload-{0}" style="display: none;" accept="image/*">
+                </div>
+            </div>
+            <script>
+                (function() {{
+                    // 1. 일반 이미지 드래그 영역 이벤트 설정
+                    var dragZone = document.getElementById('image-drag-zone-{0}');
+                    var fileInput = document.getElementById('image-upload-{0}');
+                    
+                    // 클릭시 파일 선택 대화상자 표시
+                    dragZone.addEventListener('click', function() {{
+                        fileInput.click();
+                    }});
+                    
+                    // 드래그 앤 드롭 이벤트
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(event) {{
+                        dragZone.addEventListener(event, function(e) {{
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }});
+                    }});
+                    
+                    // 드래그 진입/오버 스타일 변경
+                    ['dragenter', 'dragover'].forEach(function(event) {{
+                        dragZone.addEventListener(event, function() {{
+                            this.style.opacity = '0.8';
+                        }});
+                    }});
+                    
+                    // 드래그 나가기/드롭 스타일 복원
+                    ['dragleave', 'drop'].forEach(function(event) {{
+                        dragZone.addEventListener(event, function() {{
+                            this.style.opacity = '1';
+                        }});
+                    }});
+                    
+                    // 파일 드롭 처리
+                    dragZone.addEventListener('drop', function(e) {{
+                        var files = e.dataTransfer.files;
+                        handleImageFiles(files);
+                    }});
+                    
+                    // 파일 선택 처리
+                    fileInput.addEventListener('change', function() {{
+                        handleImageFiles(this.files);
+                    }});
+                    
+                    // 파일 업로드 처리 함수
+                    function handleImageFiles(files) {{
+                        if (!files.length) return;
+                        
+                        // FormData 객체 생성
+                        var formData = new FormData();
+                        
+                        // 여러 파일 처리
+                        for (var i = 0; i < files.length; i++) {{
+                            formData.append('image', files[i]);
+                            formData.append('title', files[i].name);
+                        }}
+                        
+                        // CSRF 토큰 가져오기
+                        var csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        
+                        // 업로드 요청 전송
+                        fetch('/facetest/admin/result-type/{0}/upload-image/', {{
+                            method: 'POST',
+                            body: formData,
+                            headers: {{
+                                'X-CSRFToken': csrfTokenValue
+                            }}
+                        }})
+                        .then(function(response) {{ return response.json(); }})
+                        .then(function(data) {{
+                            if (data.success) {{
+                                alert('이미지가 성공적으로 업로드되었습니다.');
+                                location.reload();
+                            }} else {{
+                                alert('업로드 실패: ' + (data.message || '알 수 없는 오류'));
+                            }}
+                        }})
+                        .catch(function(error) {{
+                            alert('업로드 중 오류 발생: ' + error);
+                        }});
+                    }}
+                    
+                    // 2. 보조 이미지 드래그 영역 이벤트 설정
+                    var subDragZone = document.getElementById('sub-image-drag-zone-{0}');
+                    var subFileInput = document.getElementById('sub-image-upload-{0}');
+                    
+                    // 클릭시 파일 선택 대화상자 표시
+                    subDragZone.addEventListener('click', function() {{
+                        subFileInput.click();
+                    }});
+                    
+                    // 드래그 앤 드롭 이벤트
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(event) {{
+                        subDragZone.addEventListener(event, function(e) {{
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }});
+                    }});
+                    
+                    // 드래그 진입/오버 스타일 변경
+                    ['dragenter', 'dragover'].forEach(function(event) {{
+                        subDragZone.addEventListener(event, function() {{
+                            this.style.opacity = '0.8';
+                        }});
+                    }});
+                    
+                    // 드래그 나가기/드롭 스타일 복원
+                    ['dragleave', 'drop'].forEach(function(event) {{
+                        subDragZone.addEventListener(event, function() {{
+                            this.style.opacity = '1';
+                        }});
+                    }});
+                    
+                    // 파일 드롭 처리
+                    subDragZone.addEventListener('drop', function(e) {{
+                        var files = e.dataTransfer.files;
+                        if (files.length > 0) {{
+                            handleSubImageFile(files[0]); // 첫 번째 파일만 처리
+                        }}
+                    }});
+                    
+                    // 파일 선택 처리
+                    subFileInput.addEventListener('change', function() {{
+                        if (this.files.length > 0) {{
+                            handleSubImageFile(this.files[0]); // 첫 번째 파일만 처리
+                        }}
+                    }});
+                    
+                    // 보조 이미지 파일 업로드 처리 함수
+                    function handleSubImageFile(file) {
+                        // FormData 객체 생성
+                        var formData = new FormData();
+                        formData.append('sub_image', file);
+                        
+                        // CSRF 토큰 가져오기
+                        var csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        
+                        // 업로드 요청 전송 - URL 경로가 올바른지 확인
+                        fetch('/facetest/admin/result-type/{0}/update-sub-image/', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': csrfTokenValue
+                            }
+                        })
+                        .then(function(response) { 
+                            console.log("응답 상태:", response.status);
+                            return response.json(); 
+                        })
+                        .then(function(data) {
+                            console.log("응답 데이터:", data);
+                            if (data.success) {
+                                alert('보조 이미지가 성공적으로 업로드되었습니다.');
+                                location.reload();
+                            } else {
+                                alert('업로드 실패: ' + (data.error || '알 수 없는 오류'));
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error("업로드 오류:", error);
+                            alert('업로드 중 오류 발생: ' + error);
+                        });
+                    }
+                    }}
+                }})();
+            </script>
+            """,
+            obj.id
         )
     upload_image_button.short_description = "이미지 관리"
+
     def upload_sub_image_view(self, request, result_type_id):
         """보조 이미지 업로드 대화상자 뷰"""
         result_type = get_object_or_404(FaceResultType, id=result_type_id)
@@ -244,44 +417,376 @@ class FaceResultTypeAdmin(admin.ModelAdmin):
         """목록 뷰에 JavaScript 추가"""
         extra_context = extra_context or {}
         
-        # 이미지 업로드/관리를 위한 JavaScript 코드 추가
-        extra_context['extra_js'] = """
-        <script>
-        function showImageUploadDialog(event, url) {
-            event.preventDefault();
-            
-            // 모달 창 열기
-            const width = 600;
-            const height = 400;
-            const left = (screen.width/2) - (width/2);
-            const top = (screen.height/2) - (height/2);
-            
-            window.open(
-                url, 
-                '이미지 업로드',
-                `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-            );
-            
-            return false;
-        }
+        # 결과 유형 목록 준비
+        queryset = self.get_queryset(request)
+        result_type_options = ''.join([f'<option value="{rt.id}">{rt.name}</option>' for rt in queryset])
         
-        function showImagesDialog(event, url) {
-            event.preventDefault();
+        # 이미지 업로드/관리를 위한 JavaScript 코드 추가
+        extra_context['extra_js'] = f"""
+        <style>
+            .upload-zone {{
+                border: 2px dashed #ccc;
+                padding: 20px;
+                text-align: center;
+                margin: 10px 0;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: none;
+            }}
             
-            // 모달 창 열기
-            const width = 800;
-            const height = 600;
-            const left = (screen.width/2) - (width/2);
-            const top = (screen.height/2) - (height/2);
+            .upload-zone.highlight {{
+                border-color: #28a745;
+                background-color: #f8f9fa;
+            }}
             
-            window.open(
-                url, 
-                '이미지 관리',
-                `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-            );
+            .progress {{
+                margin-top: 10px;
+                height: 20px;
+                display: none;
+                background: #f0f0f0;
+                border-radius: 4px;
+                overflow: hidden;
+            }}
             
-            return false;
-        }
+            .progress-bar {{
+                height: 100%;
+                background-color: #28a745;
+                width: 0%;
+                transition: width 0.3s;
+                text-align: center;
+                color: white;
+                line-height: 20px;
+                font-size: 12px;
+            }}
+            
+            .upload-message {{
+                margin-top: 10px;
+                padding: 10px;
+                border-radius: 4px;
+                display: none;
+            }}
+            
+            .upload-message.success {{
+                background-color: #d4edda;
+                color: #155724;
+            }}
+            
+            .upload-message.error {{
+                background-color: #f8d7da;
+                color: #721c24;
+            }}
+        </style>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {{
+            // 디버깅 출력 추가
+            console.log("드래그 앤 드롭 스크립트 로드됨");
+            
+            // 계산한 CSRF 토큰 - Django에서 자동으로 생성됨
+            var csrfToken = '{{% csrf_token %}}'.match(/value=['"]([^'"]*)['"]/)[1];
+            
+            // 더 확실한 위치 선택 (여러 가능한 위치 시도)
+            var targetElements = [
+                document.getElementById('changelist-form'),  // 기본 changelist 폼
+                document.querySelector('.actions'),  // 액션 바
+                document.querySelector('#content-main'),  // 메인 콘텐츠 영역
+                document.querySelector('form#changelist-form')  // ID와 태그로 선택
+            ];
+            
+            // 사용 가능한 첫 번째 요소 선택
+            var targetElement = null;
+            for (var i = 0; i < targetElements.length; i++) {{
+                if (targetElements[i]) {{
+                    targetElement = targetElements[i];
+                    console.log("타겟 요소 발견:", i);
+                    break;
+                }}
+            }}
+            
+            if (!targetElement) {{
+                console.error("업로드 영역을 추가할 대상 요소를 찾을 수 없습니다.");
+                return;
+            }}
+            
+            // 버튼과 선택기 추가
+            var controlDiv = document.createElement('div');
+            controlDiv.className = 'upload-controls';
+            controlDiv.style.marginBottom = '15px';
+            controlDiv.style.marginTop = '15px';
+            controlDiv.innerHTML = `
+                <button type="button" id="toggle-upload-zone" class="button">드래그 앤 드롭 업로드 영역 표시</button>
+                <select id="result-type-selector" style="margin-left: 10px; display: none;">
+                    <option value="">-- 결과 유형 선택 --</option>
+                    {result_type_options}
+                </select>
+            `;
+            
+            // 타겟 요소 맨 앞에 삽입
+            targetElement.parentNode.insertBefore(controlDiv, targetElement);
+            
+            // 업로드 영역 추가
+            var uploadZone = document.createElement('div');
+            uploadZone.className = 'upload-zone';
+            uploadZone.id = 'upload-zone';
+            uploadZone.innerHTML = `
+                <p>이미지 파일을 여기에 드래그하거나 클릭하여 업로드하세요</p>
+                <input type="file" id="file-upload" style="display: none;" multiple accept="image/*">
+                <div class="progress">
+                    <div class="progress-bar" id="progress-bar">0%</div>
+                </div>
+                <div class="upload-message" id="upload-message"></div>
+            `;
+            
+            targetElement.parentNode.insertBefore(uploadZone, targetElement.nextSibling);
+            
+            console.log("업로드 영역 추가됨");
+            
+            // 토글 버튼 이벤트
+            var toggleBtn = document.getElementById('toggle-upload-zone');
+            var resultSelector = document.getElementById('result-type-selector');
+            var fileInput = document.getElementById('file-upload');
+            
+            if (toggleBtn) {{
+                toggleBtn.addEventListener('click', function() {{
+                    var zone = document.getElementById('upload-zone');
+                    if (!zone) {{
+                        console.error("업로드 영역 요소를 찾을 수 없습니다.");
+                        return;
+                    }}
+                    
+                    if (zone.style.display === 'none' || !zone.style.display) {{
+                        zone.style.display = 'block';
+                        resultSelector.style.display = 'inline-block';
+                        this.textContent = '업로드 영역 숨기기';
+                    }} else {{
+                        zone.style.display = 'none';
+                        resultSelector.style.display = 'none';
+                        this.textContent = '드래그 앤 드롭 업로드 영역 표시';
+                    }}
+                    
+                    console.log("토글 버튼 클릭됨, 영역 표시:", zone.style.display);
+                }});
+            }} else {{
+                console.error("토글 버튼을 찾을 수 없습니다.");
+            }}
+            
+            // 파일 업로드 처리
+            var uploadZone = document.getElementById('upload-zone');
+            
+            if (uploadZone && fileInput) {{
+                uploadZone.addEventListener('click', function() {{
+                    fileInput.click();
+                }});
+                
+                // 드래그 앤 드롭 이벤트
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(event) {{
+                    uploadZone.addEventListener(event, preventDefaults, false);
+                }});
+                
+                function preventDefaults(e) {{
+                    e.preventDefault();
+                    e.stopPropagation();
+                }}
+                
+                ['dragenter', 'dragover'].forEach(function(event) {{
+                    uploadZone.addEventListener(event, function() {{
+                        uploadZone.classList.add('highlight');
+                    }}, false);
+                }});
+                
+                ['dragleave', 'drop'].forEach(function(event) {{
+                    uploadZone.addEventListener(event, function() {{
+                        uploadZone.classList.remove('highlight');
+                    }}, false);
+                }});
+                
+                uploadZone.addEventListener('drop', function(e) {{
+                    console.log("파일 드롭됨");
+                    var files = e.dataTransfer.files;
+                    handleFiles(files);
+                }});
+                
+                fileInput.addEventListener('change', function() {{
+                    console.log("파일 선택됨");
+                    handleFiles(this.files);
+                }});
+            }} else {{
+                console.error("업로드 영역 또는 파일 입력 요소를 찾을 수 없습니다.");
+            }}
+            
+            function handleFiles(files) {{
+                var resultTypeSelector = document.getElementById('result-type-selector');
+                if (!resultTypeSelector) {{
+                    console.error("결과 유형 선택기를 찾을 수 없습니다.");
+                    return;
+                }}
+                
+                var resultTypeId = resultTypeSelector.value;
+                
+                if (!resultTypeId) {{
+                    showMessage('결과 유형을 선택해주세요', 'error');
+                    return;
+                }}
+                
+                var progressBar = document.getElementById('progress-bar');
+                var progressContainer = document.querySelector('.progress');
+                
+                if (!progressBar || !progressContainer) {{
+                    console.error("진행 표시줄 요소를 찾을 수 없습니다.");
+                    return;
+                }}
+                
+                // 진행 표시줄 초기화 및 표시
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+                progressContainer.style.display = 'block';
+                
+                var uploadedCount = 0;
+                var totalFiles = files.length;
+                
+                console.log("업로드 시작, 총 파일 수:", totalFiles);
+                
+                Array.from(files).forEach(function(file) {{
+                    uploadFile(file, resultTypeId, function(success) {{
+                        uploadedCount++;
+                        
+                        // 진행률 업데이트
+                        var percent = Math.round((uploadedCount / totalFiles) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressBar.textContent = percent + '%';
+                        
+                        console.log("파일 업로드 완료:", file.name, "성공:", success, "진행:", percent + "%");
+                        
+                        // 모든 파일 업로드 완료 시
+                        if (uploadedCount === totalFiles) {{
+                            showMessage(totalFiles + '개의 이미지가 성공적으로 업로드되었습니다.', 'success');
+                            
+                            // 3초 후 페이지 새로고침
+                            setTimeout(function() {{
+                                location.reload();
+                            }}, 3000);
+                        }}
+                    }});
+                }});
+            }}
+            
+            function uploadFile(file, resultTypeId, callback) {{
+                // 이미지 파일인지 확인
+                if (!file.type.match('image.*')) {{
+                    showMessage(file.name + '은(는) 이미지 파일이 아닙니다.', 'error');
+                    callback(false);
+                    return;
+                }}
+                
+                var formData = new FormData();
+                formData.append('image', file);
+                formData.append('title', file.name);
+                
+                // CSRF 토큰 가져오기 - 여러 방법 시도
+                var csrfToken = '';
+                var csrfField = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                
+                if (csrfField) {{
+                    csrfToken = csrfField.value;
+                }} else {{
+                    // Django에서 제공하는 쿠키에서 CSRF 토큰 가져오기
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {{
+                        var cookie = cookies[i].trim();
+                        if (cookie.startsWith('csrftoken=')) {{
+                            csrfToken = cookie.substring('csrftoken='.length);
+                            break;
+                        }}
+                    }}
+                }}
+                
+                console.log("파일 업로드 요청:", file.name, "결과 유형 ID:", resultTypeId, "CSRF 토큰 존재:", !!csrfToken);
+                
+                fetch('/facetest/admin/result-type/' + resultTypeId + '/upload-image/', {{
+                    method: 'POST',
+                    body: formData,
+                    headers: {{
+                        'X-CSRFToken': csrfToken
+                    }}
+                }})
+                .then(function(response) {{ 
+                    console.log("응답 상태:", response.status);
+                    return response.json(); 
+                }})
+                .then(function(data) {{
+                    console.log("응답 데이터:", data);
+                    if (data.success) {{
+                        callback(true);
+                    }} else {{
+                        var errorMsg = data.message || data.error || '업로드 실패';
+                        showMessage(file.name + ' 업로드 실패: ' + errorMsg, 'error');
+                        callback(false);
+                    }}
+                }})
+                .catch(function(error) {{
+                    console.error("업로드 오류:", error);
+                    showMessage(file.name + ' 업로드 중 오류 발생: ' + error, 'error');
+                    callback(false);
+                }});
+            }}
+            
+            function showMessage(text, type) {{
+                var messageContainer = document.getElementById('upload-message');
+                if (!messageContainer) {{
+                    console.error("메시지 컨테이너를 찾을 수 없습니다.");
+                    alert(text);
+                    return;
+                }}
+                
+                messageContainer.textContent = text;
+                messageContainer.className = 'upload-message ' + type;
+                messageContainer.style.display = 'block';
+                
+                console.log("메시지 표시:", text, "타입:", type);
+                
+                if (type === 'error') {{
+                    setTimeout(function() {{
+                        messageContainer.style.display = 'none';
+                    }}, 5000);
+                }}
+            }}
+            
+            // 기존 함수 유지
+            window.showImageUploadDialog = function(event, url) {{
+                event.preventDefault();
+                
+                var width = 600;
+                var height = 400;
+                var left = (screen.width/2) - (width/2);
+                var top = (screen.height/2) - (height/2);
+                
+                window.open(
+                    url, 
+                    '이미지 업로드',
+                    'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',resizable=yes,scrollbars=yes'
+                );
+                
+                return false;
+            }};
+            
+            window.showImagesDialog = function(event, url) {{
+                event.preventDefault();
+                
+                var width = 800;
+                var height = 600;
+                var left = (screen.width/2) - (width/2);
+                var top = (screen.height/2) - (height/2);
+                
+                window.open(
+                    url, 
+                    '이미지 관리',
+                    'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',resizable=yes,scrollbars=yes'
+                );
+                
+                return false;
+            }};
+        }});
         </script>
         """
         

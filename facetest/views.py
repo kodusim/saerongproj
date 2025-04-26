@@ -428,6 +428,9 @@ def update_sub_image(request, type_id):
         if not sub_image:
             return JsonResponse({'success': False, 'error': '이미지 파일이 제공되지 않았습니다.'}, status=400)
         
+        # 디버깅 로그 추가
+        print(f"보조 이미지 업로드 시도: {sub_image.name}, 타입: {sub_image.content_type}, 크기: {sub_image.size}")
+        
         # 기존 보조 이미지가 있으면 삭제
         if result_type.sub_image:
             result_type.sub_image.delete(save=False)
@@ -441,6 +444,9 @@ def update_sub_image(request, type_id):
             'sub_image_url': result_type.sub_image.url
         })
     except Exception as e:
+        import traceback
+        print(f"보조 이미지 업로드 오류: {str(e)}")
+        print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @staff_member_required
