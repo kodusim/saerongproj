@@ -29,6 +29,7 @@ class FaceTestModel(models.Model):
     """얼굴상 테스트 통합 모델"""
     name = models.CharField("테스트 이름", max_length=100)
     description = models.TextField("설명", blank=True)
+    view_count = models.PositiveIntegerField("조회수", default=0)
     
     # 이미지 필드들
     image = models.ImageField("대표 이미지", upload_to=test_image_upload_path, null=True, blank=True, 
@@ -59,6 +60,10 @@ class FaceTestModel(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def increase_view_count(self):
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
         
     def save(self, *args, **kwargs):
         """저장 시 JSON 파일이 있으면 결과 유형 자동 생성"""

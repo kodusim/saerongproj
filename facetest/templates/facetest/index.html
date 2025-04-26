@@ -222,18 +222,41 @@
         border-radius: 10px;
         transition: width 0.3s;
     }
+    
+    /* 업로드 가이드 스타일 */
+    .upload-guide {
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        margin: 20px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .guide-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    
+    .guide-content {
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+    
+    .guide-image {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
 </style>
 
 <div class="container mt-4">
-    <!-- 배너 이미지 -->
-    <div class="face-test-banner">
-        <img src="{% static 'images/face_test_banner.jpg' %}" alt="얼굴상 테스트" onerror="this.src='https://via.placeholder.com/800x300?text=얼굴상+테스트';this.onerror='';">
-    </div>
-    
-    <!-- 소개 텍스트 -->
+    <!-- 테스트 제목 및 설명 -->
     <div class="face-test-intro">
-        <h1 class="text-center mb-3">AI 얼굴상 분석</h1>
-        <p>인공지능이 당신의 얼굴을 분석하여 어떤 얼굴상인지 알려드립니다. 당신의 얼굴에 숨겨진 특징과 매력을 발견해보세요!</p>
+        <h1 class="text-center mb-3">{{ test.name|default:"AI 얼굴상 분석" }}</h1>
+        <p>{{ test.description|default:"인공지능이 당신의 얼굴을 분석하여 어떤 얼굴상인지 알려드립니다. 당신의 얼굴에 숨겨진 특징과 매력을 발견해보세요!" }}</p>
     </div>
     
     <!-- 이미지 업로드 영역 -->
@@ -253,33 +276,25 @@
             <div class="progress-container" id="progress-container">
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
-            <button type="submit" class="action-button mt-3">분석 시작하기</button>
         </div>
+        
+        <!-- 분석 시작 버튼 -->
+        <button type="submit" class="action-button" id="analyze-btn">분석 시작하기</button>
     </form>
     
-    <!-- 예시 결과 -->
-    <div class="examples-container">
-        <div class="examples-title">분석 예시</div>
-        <div class="examples-grid">
-            <div class="example-card">
-                <img src="{% static 'images/example1.jpg' %}" class="example-image" alt="예시 1" onerror="this.src='https://via.placeholder.com/300x150?text=예시+1';this.onerror='';">
-                <div class="example-info">
-                    <div class="example-title">귀여운 강아지상</div>
-                    <div class="example-desc">친근하고 다정한 인상의 얼굴로, 사람들에게 편안함을 줍니다.</div>
-                </div>
-            </div>
-            
-            <div class="example-card">
-                <img src="{% static 'images/example2.jpg' %}" class="example-image" alt="예시 2" onerror="this.src='https://via.placeholder.com/300x150?text=예시+2';this.onerror='';">
-                <div class="example-info">
-                    <div class="example-title">카리스마 있는 고양이상</div>
-                    <div class="example-desc">날카로운 눈매와 세련된 인상으로 강렬한 첫인상을 줍니다.</div>
-                </div>
-            </div>
-        </div>
+    <!-- 업로드 가이드 -->
+    <div class="upload-guide">
+        <h3 class="guide-title">업로드 가이드</h3>
+        
+        <!-- 업로드 가이드 이미지 -->
+        {% if test.guide_image %}
+        <img src="{{ test.guide_image.url }}" alt="업로드 가이드" class="guide-image">
+        {% else %}
+        <img src="{% static 'images/face_guide.jpg' %}" alt="업로드 가이드" class="guide-image" onerror="this.src='https://via.placeholder.com/500x300?text=업로드+가이드';this.onerror='';">
+        {% endif %}
     </div>
     
-    <!-- 테스트 목록 -->
+    <!-- 다른 얼굴상 테스트 -->
     <div class="test-list">
         <div class="test-list-title">다른 얼굴상 테스트</div>
         <div class="test-cards">
@@ -314,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressContainer = document.getElementById('progress-container');
     const progressBar = document.getElementById('progress-bar');
     const uploadForm = document.getElementById('upload-form');
+    const analyzeBtn = document.getElementById('analyze-btn');
     
     // 파일 선택 이벤트
     imageUpload.addEventListener('change', function() {

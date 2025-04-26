@@ -20,7 +20,7 @@ urlpatterns = [
     
     # 통합 관리 페이지
     path('admin/test/<int:test_id>/bulk-manage/', views.bulk_manage_result_types, name='bulk_manage_result_types'),
-
+    path('tests/', views.test_list, name='test_list'),  # 추가: 테스트 목록
     path('tests/<int:test_id>/', views.test_intro, name='test_intro'),
     path('test/<int:test_id>/', views.test_view, name='test'),
 ]

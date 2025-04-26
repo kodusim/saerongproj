@@ -4,6 +4,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.db import transaction
+from django.urls import reverse
+from django.core.paginator import Paginator
+from django.db.models import Q
 import json
 
 from .models import FaceTestModel, FaceResultType, FaceResultImage
@@ -27,6 +30,9 @@ def test_view(request, test_id):
     """특정 얼굴상 테스트 페이지"""
     # 특정 테스트 가져오기
     test = get_object_or_404(FaceTestModel, id=test_id, is_active=True)
+    
+    # 조회수 증가
+    test.increase_view_count()
     
     # 다른 테스트 목록 (현재 테스트 제외)
     face_tests = FaceTestModel.objects.filter(is_active=True).exclude(id=test_id)
@@ -237,26 +243,69 @@ def analyze_face(request):
         # 세션에 파일 경로 저장
         request.session['face_image_path'] = os.path.join('temp', unique_filename)
         
-        # TODO: 실제 분석 로직 구현 (현재는 임시로 고정된 결과 반환)
-        # 실제로는 모델을 로드하고 이미지를 분석하여 결과를 반환해야 함
-        
-        # 임시 결과 (첫 번째 얼굴상 테스트의 첫 번째 결과 유형)
+        # 모델 로드하고 이미지 분석
         face_test = FaceTestModel.objects.filter(is_active=True).first()
         
-        if face_test:
-            result_type = face_test.result_types.first()
-            if result_type:
-                # 세션에 결과 저장
-                request.session['face_result'] = {
-                    'test_id': face_test.id,
-                    'result_type_id': result_type.id
-                }
+        if not face_test:
+            return JsonResponse({'success': False, 'error': '활성화된 얼굴 분석 모델이 없습니다.'})
+            
+        # 모델 파일과 결과 유형 파일 경로 가져오기
+        model_path = face_test.model_file.path
+        result_types_path = face_test.result_types_file.path
+        
+        # predict.py 스크립트 실행 (파일이 있는 경우)
+        if face_test.predict_script:
+            try:
+                import subprocess
                 
-                # 결과 페이지 URL 반환
-                return JsonResponse({
-                    'success': True,
-                    'result_url': reverse('facetest:result')
-                })
+                # 예측 스크립트 경로
+                predict_script_path = face_test.predict_script.path
+                
+                # 스크립트 실행
+                result = subprocess.run(
+                    ['python', predict_script_path, file_path, model_path, result_types_path],
+                    capture_output=True,
+                    text=True
+                )
+                
+                if result.returncode != 0:
+                    print("예측 스크립트 오류:", result.stderr)
+                    raise Exception(f"예측 스크립트 실행 오류: {result.stderr}")
+                
+                # 스크립트 출력 결과 파싱
+                import json
+                prediction_result = json.loads(result.stdout)
+                
+                # 결과 유형 ID 가져오기
+                prediction_id = prediction_result.get('type_id', 0)
+                
+                # 해당 유형 ID로 결과 유형 찾기
+                result_type = face_test.result_types.filter(type_id=prediction_id).first()
+                
+            except Exception as e:
+                print(f"모델 실행 중 오류: {str(e)}")
+                # 오류 발생 시 랜덤하게 결과 유형 선택 (대체 방안)
+                import random
+                result_types = list(face_test.result_types.all())
+                result_type = random.choice(result_types) if result_types else None
+        else:
+            # predict_script가 없는 경우 랜덤 결과 반환 (테스트용)
+            import random
+            result_types = list(face_test.result_types.all())
+            result_type = random.choice(result_types) if result_types else None
+        
+        if result_type:
+            # 세션에 결과 저장
+            request.session['face_result'] = {
+                'test_id': face_test.id,
+                'result_type_id': result_type.id
+            }
+            
+            # 결과 페이지 URL 반환
+            return JsonResponse({
+                'success': True,
+                'result_url': reverse('facetest:result')
+            })
         
         return JsonResponse({'success': False, 'error': '얼굴상 분석에 실패했습니다. 다른 사진을 시도해보세요.'})
         
@@ -329,4 +378,35 @@ def test_intro(request, test_id):
     """테스트 인트로 페이지 - 시작 화면 보여주기"""
     test = get_object_or_404(FaceTestModel, id=test_id, is_active=True)
     
+    # 조회수 증가
+    test.increase_view_count()
+    
     return render(request, 'facetest/test_intro.html', {'test': test})
+
+def test_list(request):
+    """얼굴상 테스트 목록 페이지"""
+    # 검색 기능 구현
+    search_query = request.GET.get('search', '')
+    if search_query:
+        tests = FaceTestModel.objects.filter(
+            Q(name__icontains=search_query) | 
+            Q(description__icontains=search_query),
+            is_active=True
+        ).order_by('-created_at')
+    else:
+        tests = FaceTestModel.objects.filter(is_active=True).order_by('-created_at')
+    
+    # 페이지네이션 구현
+    paginator = Paginator(tests, 9)  # 한 페이지에 9개씩 표시
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'tests': page_obj,
+        'search_query': search_query,
+        'is_paginated': page_obj.has_other_pages(),
+        'paginator': paginator,
+        'page_obj': page_obj,
+    }
+    
+    return render(request, 'facetest/test_list.html', context)

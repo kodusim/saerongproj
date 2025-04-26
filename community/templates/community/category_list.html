@@ -1,20 +1,178 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">커뮤니티</h1>
+<style>
+    /* 전체 컨테이너 스타일 */
+    .community-container {
+        padding: 20px 10px;
+        background-color: #f4f4f4;
+        min-height: 100vh;
+    }
     
-    <div class="list-group">
-        {% for category in categories %}
-        <a href="{% url 'community:category_detail' category.slug %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-            {{ category.name }}
-            <span class="badge bg-primary rounded-pill">{{ category.posts.count }}</span>
-        </a>
-        {% empty %}
-        <div class="alert alert-info">
-            아직 등록된 게시판이 없습니다.
-        </div>
-        {% endfor %}
+    /* 상단 탭 네비게이션 */
+    .tab-navigation {
+        display: flex;
+        background-color: #333;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .tab-item {
+        padding: 12px 20px;
+        color: #fff;
+        text-decoration: none;
+        text-align: center;
+        transition: background-color 0.3s;
+    }
+    
+    .tab-item.active {
+        background-color: #555;
+        font-weight: bold;
+    }
+    
+    .tab-item:hover {
+        background-color: #444;
+    }
+    
+    /* 게시판 섹션 */
+    .board-section {
+        margin-bottom: 30px;
+    }
+    
+    /* 게시글 목록 스타일 */
+    .post-list {
+        background-color: #fff;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .post-item {
+        border-bottom: 1px solid #eee;
+        padding: 12px 15px;
+    }
+    
+    .post-item:last-child {
+        border-bottom: none;
+    }
+    
+    .post-title {
+        font-size: 14px;
+        margin-bottom: 5px;
+        color: #333;
+        text-decoration: none;
+    }
+    
+    .post-title:hover {
+        color: #007bff;
+    }
+    
+    .post-title .board-tag {
+        color: #007bff;
+        font-weight: bold;
+    }
+    
+    .post-meta {
+        display: flex;
+        font-size: 12px;
+        color: #888;
+    }
+    
+    .post-meta span {
+        margin-right: 10px;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+    }
+    
+    .meta-item i {
+        margin-right: 3px;
+    }
+    
+    /* 더보기 버튼 */
+    .more-button {
+        display: block;
+        width: 100%;
+        padding: 8px;
+        background-color: #f8f9fa;
+        text-align: center;
+        color: #666;
+        text-decoration: none;
+        font-size: 13px;
+        border-top: 1px solid #eee;
+    }
+    
+    .more-button:hover {
+        background-color: #e9ecef;
+    }
+</style>
+
+<div class="community-container">
+    <!-- 상단 탭 네비게이션 -->
+    <div class="tab-navigation">
+        <a href="{% url 'community:category_list' %}" class="tab-item active">전체 게시판</a>
+        <a href="#" class="tab-item">자유게시판</a>
+        <a href="#" class="tab-item">바리스타 게시판</a>
+        <a href="#" class="tab-item">로스터 게시판</a>
+        <a href="#" class="tab-item">머신 게시판</a>
+        <a href="#" class="tab-item">구인구직</a>
     </div>
+    
+    <!-- 최신 게시글 목록 (전체) -->
+    <div class="board-section">
+        <div class="post-list">
+            {% for category in categories %}
+                {% for post in category.recent_posts %}
+                <div class="post-item">
+                    <a href="{% url 'community:post_detail' post.id %}" class="post-title">
+                        <span class="board-tag">[{{ category.name }}]</span> {{ post.title }}
+                    </a>
+                    <div class="post-meta">
+                        <span class="meta-item">{{ post.author.username }}</span>
+                        <span class="meta-item"><i class="fas fa-thumbs-up"></i> {{ post.view_count }}</span>
+                        <span class="meta-item"><i class="fas fa-comment"></i> {{ post.comment_count }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                {% endfor %}
+            {% empty %}
+                <div class="post-item">
+                    <p>등록된 게시판이 없습니다.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- 각 게시판별 최신 게시글 -->
+    {% for category in categories %}
+    <div class="board-section">
+        <div class="post-list">
+            {% for post in category.recent_posts %}
+            <div class="post-item">
+                <a href="{% url 'community:post_detail' post.id %}" class="post-title">
+                    <span class="board-tag">[{{ category.name }}]</span> {{ post.title }}
+                </a>
+                <div class="post-meta">
+                    <span class="meta-item">{{ post.author.username }}</span>
+                    <span class="meta-item"><i class="fas fa-thumbs-up"></i> {{ post.view_count }}</span>
+                    <span class="meta-item"><i class="fas fa-comment"></i> {{ post.comment_count }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="post-item">
+                <p>이 게시판에 등록된 게시글이 없습니다.</p>
+            </div>
+            {% endfor %}
+            
+            <a href="{% url 'community:category_detail' category.slug %}" class="more-button">
+                더보기
+            </a>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    .test-card {
+        flex: 0 0 auto;
+        width: 140px;
+        margin-right: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .test-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .test-card img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+    }
+
+    .test-card .card-body {
+        padding: 6px;
+    }
+
+    .test-card .card-title {
+        font-size: 0.9rem;
+        margin-bottom: 2px;
+        max-height: 36px;
+        overflow: hidden;
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- 검색 영역 -->
+    <div class="search-container mb-4">
+        <form method="get" action="{% url 'facetest:test_list' %}">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="테스트 검색..." name="search" value="{{ request.GET.search|default:'' }}">
+                <button class="btn btn-primary" type="submit">검색</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 테스트 목록 -->
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for test in tests %}
+        <div class="col">
+            <div class="test-card">
+                <a href="{% url 'facetest:test_intro' test.id %}" class="text-decoration-none text-reset">
+                    {% if test.image %}
+                    <img src="{{ test.image.url }}" class="card-img-top" alt="{{ test.name }}">
+                    {% else %}
+                    <div class="bg-light text-center d-flex align-items-center justify-content-center" style="height: 140px;">
+                        <span class="text-muted">이미지 없음</span>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ test.name }}</h5>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                검색 결과가 없습니다.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 페이지네이션 -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+            </li>
+            {% endif %}
+            
+            {% for i in paginator.page_range %}
+                {% if page_obj.number == i %}
+                <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                {% else %}
+                <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
