@@ -341,6 +341,9 @@ def result(request):
         try:
             face_test = FaceTestModel.objects.get(id=result_data['test_id'])
             result_type = FaceResultType.objects.get(id=result_data['result_type_id'])
+            
+            # 모든 결과 유형 목록
+            all_results = FaceResultType.objects.filter(face_test=face_test)
         except (FaceTestModel.DoesNotExist, FaceResultType.DoesNotExist):
             pass
     
@@ -369,7 +372,8 @@ def result(request):
         'other_tests': other_tests,
         'characteristics': result_type.get_characteristics_list() if result_type else [],
         'examples': result_type.get_examples_list() if result_type else [],
-        'kakao_api_key': kakao_api_key
+        'kakao_api_key': kakao_api_key,
+        'all_results': all_results
     }
     
     return render(request, 'facetest/result.html', context)
