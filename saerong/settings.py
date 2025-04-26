@@ -256,3 +256,13 @@ KAKAO_JAVASCRIPT_KEY = env.str("KAKAO_JAVASCRIPT_KEY", default="3fd3d8be1d733c63
 CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "https://t1.kakaocdn.net", "https://developers.kakao.com"] + CSP_FRAME_ANCESTORS
 CSP_IMG_SRC = ["'self'", "data:", "https://developers.kakao.com", "https://*.kakao.com"] + CSP_FRAME_ANCESTORS
 CSP_CONNECT_SRC = ["'self'", "https://*.kakao.com"]
+
+# 이메일 설정
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env.str("EMAIL_HOST", default="smtp.naver.com")
+EMAIL_PORT = env.int("EMAIL_PORT", default=465)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=True)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@saerong.com")

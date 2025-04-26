@@ -15,11 +15,41 @@
     <link rel="stylesheet" href="{% static 'bootstrap/5.3.3/css/bootstrap.min.css' %}" />
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <style>
+        /* 나눔스퀘어네오 폰트 정의 */
         @font-face {
-            font-family: 'Cafe24Ohsquare';
-            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/Cafe24Ohsquare.woff') format('woff');
-            font-weight: normal;
-            font-style: normal;
+            font-family: 'NanumSquareNeoLight';
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-aLt.eot);
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-aLt.eot?#iefix) format("embedded-opentype"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-aLt.woff) format("woff"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-aLt.ttf) format("truetype");
+        }
+
+        @font-face {
+            font-family: 'NanumSquareNeo';
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.eot);
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.eot?#iefix) format("embedded-opentype"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.woff) format("woff"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.ttf) format("truetype");
+        }
+
+        @font-face {
+            font-family: 'NanumSquareNeoBold';
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.eot);
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.eot?#iefix) format("embedded-opentype"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.woff) format("woff"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.ttf) format("truetype");
+        }
+
+        @font-face {
+            font-family: 'NanumSquareNeoExtraBold';
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.eot);
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.eot?#iefix) format("embedded-opentype"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.woff) format("woff"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.ttf) format("truetype");
+        }
+
+        @font-face {
+            font-family: 'NanumSquareNeoHeavy';
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.eot);
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.eot?#iefix) format("embedded-opentype"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.woff) format("woff"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.ttf) format("truetype");
+        }
+
+        @font-face {
+            font-family: 'NanumSquareNeoVariable';
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeo-Variable.eot);
+            src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeo-Variable.eot?#iefix) format("embedded-opentype"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeo-Variable.woff) format("woff"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeo-Variable.ttf) format("truetype");
         }
         
         :root {
@@ -31,12 +61,38 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-family: 'Cafe24Ohsquare', sans-serif;
+            font-family: 'NanumSquareNeo', sans-serif;
             margin: 0;
             padding: 0;
             min-height: 100vh;
             min-height: calc(var(--vh, 1vh) * 100);
             width: 100%;
+        }
+        
+        /* 폰트 클래스 헬퍼 */
+        .text-light {
+            font-family: 'NanumSquareNeoLight', sans-serif;
+        }
+        
+        .text-regular {
+            font-family: 'NanumSquareNeo', sans-serif;
+        }
+        
+        .text-bold {
+            font-family: 'NanumSquareNeoBold', sans-serif;
+        }
+        
+        .text-extrabold {
+            font-family: 'NanumSquareNeoExtraBold', sans-serif;
+        }
+        
+        .text-heavy {
+            font-family: 'NanumSquareNeoHeavy', sans-serif;
+        }
+        
+        /* 제목 요소에 볼드 폰트 적용 */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'NanumSquareNeoBold', sans-serif;
         }
         
         .site-wrapper {
@@ -334,6 +390,7 @@
             <li><a href="{% url 'psychotest:test_list' %}">심리테스트</a></li>
             <li><a href="{% url 'facetest:test_list' %}">얼굴테스트</a></li>
             <li><a href="{% url 'community:category_list' %}">커뮤니티</a></li>
+            <li><a href="{% url 'core:inquiry' %}">광고 및 협업 문의</a></li>
         </ul>
     </nav>
 
