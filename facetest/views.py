@@ -385,7 +385,14 @@ def test_intro(request, test_id):
     # 조회수 증가
     test.increase_view_count()
     
-    return render(request, 'facetest/test_intro.html', {'test': test})
+    # 카카오 API 키 가져오기
+    from django.conf import settings
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    return render(request, 'facetest/test_intro.html', {
+        'test': test,
+        'kakao_api_key': kakao_api_key
+    })
 
 def test_list(request):
     """얼굴상 테스트 목록 페이지"""
