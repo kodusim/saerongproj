@@ -221,7 +221,7 @@ def analyze_face(request):
         if image_file.size > 5 * 1024 * 1024:
             return JsonResponse({'success': False, 'error': '파일 크기가 너무 큽니다. 5MB 이하의 파일을 선택해주세요.'})
         
-        # 세션에 임시 파일 경로 저장
+        # 임시 파일 저장
         import os
         from django.conf import settings
         import uuid
@@ -240,7 +240,7 @@ def analyze_face(request):
             for chunk in image_file.chunks():
                 destination.write(chunk)
         
-        # 세션에 파일 경로 저장
+        # 세션에 파일 경로 저장 (이전 방식과의 호환성 유지)
         request.session['face_image_path'] = os.path.join('temp', unique_filename)
         
         # 모델 로드하고 이미지 분석
@@ -295,16 +295,25 @@ def analyze_face(request):
             result_type = random.choice(result_types) if result_types else None
         
         if result_type:
-            # 세션에 결과 저장
+            # 결과를 데이터베이스에 저장
+            from .models import FaceTestResult
+            test_result = FaceTestResult.objects.create(
+                face_test=face_test,
+                result_type=result_type,
+                image_path=request.session['face_image_path']
+            )
+            
+            # 세션에 현재 결과 UUID 저장 (이전 방식과의 호환성 유지)
             request.session['face_result'] = {
                 'test_id': face_test.id,
-                'result_type_id': result_type.id
+                'result_type_id': result_type.id,
+                'result_uuid': str(test_result.uuid)
             }
             
-            # 결과 페이지 URL 반환
+            # 결과 페이지 URL 반환 (UUID 포함)
             return JsonResponse({
                 'success': True,
-                'result_url': reverse('facetest:result')
+                'result_url': test_result.get_absolute_url()
             })
         
         return JsonResponse({'success': False, 'error': '얼굴상 분석에 실패했습니다. 다른 사진을 시도해보세요.'})
@@ -314,26 +323,19 @@ def analyze_face(request):
 
 
 def result(request):
-    """얼굴상 분석 결과 페이지"""
+    """얼굴상 분석 결과 페이지 (이전 방식과의 호환성 유지)"""
     # 세션에서 결과 데이터 가져오기
     result_data = request.session.get('face_result')
     
     if not result_data:
-        # 결과 데이터가 없으면 임시 더미 데이터 생성 (개발용)
-        # 실제 서비스에서는 결과가 없을 경우 메인 페이지로 리다이렉트
-        # return redirect('facetest:index')
-        
-        # 개발용 임시 데이터 
-        face_test = FaceTestModel.objects.filter(is_active=True).first()
-        if face_test:
-            result_type = face_test.result_types.first()
-            if result_type:
-                result_data = {
-                    'test_id': face_test.id,
-                    'result_type_id': result_type.id
-                }
+        # 결과 데이터가 없으면 메인 페이지로 리다이렉트
+        return redirect('facetest:index')
     
-    # 결과 데이터로 상세 정보 조회
+    # UUID가 있으면 상세 페이지로 리다이렉트
+    if 'result_uuid' in result_data:
+        return redirect('facetest:result_detail', uuid=result_data['result_uuid'])
+    
+    # 이전 방식 결과 처리 (레거시 지원)
     face_test = None
     result_type = None
     
@@ -374,6 +376,50 @@ def result(request):
         'examples': result_type.get_examples_list() if result_type else [],
         'kakao_api_key': kakao_api_key,
         'all_results': all_results
+    }
+    
+    return render(request, 'facetest/result.html', context)
+
+def result_detail(request, uuid):
+    """UUID로 얼굴상 분석 결과 조회"""
+    from .models import FaceTestResult
+    
+    # UUID로 결과 조회
+    try:
+        test_result = FaceTestResult.objects.get(uuid=uuid)
+    except FaceTestResult.DoesNotExist:
+        # 결과가 없으면 메인 페이지로 리다이렉트
+        return redirect('facetest:index')
+    
+    face_test = test_result.face_test
+    result_type = test_result.result_type
+    
+    # 모든 결과 유형 목록
+    all_results = FaceResultType.objects.filter(face_test=face_test)
+    
+    # 이미지 경로 가져오기
+    face_image_url = None
+    if test_result.image_path:
+        from django.conf import settings
+        face_image_url = f"{settings.MEDIA_URL}{test_result.image_path}"
+    
+    # 다른 얼굴상 테스트 목록
+    other_tests = FaceTestModel.objects.filter(is_active=True).exclude(id=face_test.id)[:4]
+    
+    # 카카오 API 키 가져오기
+    from django.conf import settings
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    context = {
+        'face_test': face_test,
+        'result_type': result_type,
+        'face_image_url': face_image_url,
+        'other_tests': other_tests,
+        'characteristics': result_type.get_characteristics_list(),
+        'examples': result_type.get_examples_list(),
+        'kakao_api_key': kakao_api_key,
+        'all_results': all_results,
+        'test_result': test_result  # 결과 객체 추가
     }
     
     return render(request, 'facetest/result.html', context)

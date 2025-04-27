@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.db import transaction
 from django.contrib import messages
 
-from .models import FaceTestModel, FaceResultType, FaceResultImage
+from .models import FaceTestModel, FaceResultType, FaceResultImage, FaceTestResult
 
 
 class FaceResultImageInline(admin.TabularInline):
@@ -940,3 +940,21 @@ class FaceResultImageAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" width="100" />', obj.image.url)
         return "이미지 없음"
     image_preview.short_description = "이미지 미리보기"
+
+@admin.register(FaceTestResult)
+class FaceTestResultAdmin(admin.ModelAdmin):
+    """얼굴상 테스트 결과 관리자"""
+    list_display = ['uuid', 'face_test', 'result_type', 'created_at', 'show_image']
+    list_filter = ['face_test', 'result_type', 'created_at']
+    search_fields = ['uuid']
+    readonly_fields = ['uuid', 'created_at', 'show_image']
+    date_hierarchy = 'created_at'
+    
+    def show_image(self, obj):
+        """결과 이미지 표시"""
+        if obj.image_path:
+            from django.conf import settings
+            image_url = f"{settings.MEDIA_URL}{obj.image_path}"
+            return format_html('<img src="{}" width="100" height="100" style="object-fit: cover;" />', image_url)
+        return "이미지 없음"
+    show_image.short_description = "테스트 이미지"

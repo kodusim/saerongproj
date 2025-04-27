@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 import os
 import json
+import uuid
 from django.core.exceptions import ValidationError
 
 def file_upload_path(instance, filename):
@@ -199,3 +200,24 @@ class FaceResultImage(models.Model):
             ).exclude(pk=self.pk).update(is_main=False)
             
         super().save(*args, **kwargs)
+
+class FaceTestResult(models.Model):
+    """얼굴상 테스트 결과 저장 모델"""
+    uuid = models.UUIDField("고유 ID", default=uuid.uuid4, editable=False, unique=True)
+    face_test = models.ForeignKey(FaceTestModel, on_delete=models.CASCADE, related_name='results', verbose_name="테스트")
+    result_type = models.ForeignKey(FaceResultType, on_delete=models.CASCADE, related_name='test_results', verbose_name="결과 유형")
+    image_path = models.CharField("이미지 경로", max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField("생성일", auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "얼굴상 테스트 결과"
+        verbose_name_plural = "얼굴상 테스트 결과"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.face_test.name} - {self.result_type.name} ({self.uuid})"
+    
+    def get_absolute_url(self):
+        """결과 페이지 URL 반환"""
+        from django.urls import reverse
+        return reverse('facetest:result_detail', kwargs={'uuid': self.uuid})

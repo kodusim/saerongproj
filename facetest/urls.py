@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('analyze/', views.analyze_face, name='analyze_face'),
     path('result/', views.result, name='result'),
+    path('result/<uuid:uuid>/', views.result_detail, name='result_detail'),  # 추가: UUID로 결과 조회
     
     # 관리자 페이지
     path('admin/test/<int:test_id>/', views.manage_test, name='manage_test'),
@@ -22,8 +23,7 @@ urlpatterns = [
     path('admin/test/<int:test_id>/bulk-manage/', views.bulk_manage_result_types, name='bulk_manage_result_types'),
     path('admin/result-type/<int:type_id>/update-sub-image/', views.update_sub_image, name='update_sub_image'),
     path('admin/result-type/<int:type_id>/delete-sub-image/', views.delete_sub_image, name='delete_sub_image'),
-    path('tests/', views.test_list, name='test_list'),  # 추가: 테스트 목록
+    path('tests/', views.test_list, name='test_list'),
     path('tests/<int:test_id>/', views.test_intro, name='test_intro'),
     path('test/<int:test_id>/', views.test_view, name='test')
-    
 ]
