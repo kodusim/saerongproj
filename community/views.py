@@ -9,7 +9,8 @@ from django.views.decorators.http import require_POST
 from .models import BoardCategory, Post, Comment
 from .forms import PostForm, CommentForm
 from accounts.models import User
-
+from functools import wraps
+from django.core.exceptions import PermissionDenied
 
 def category_list(request):
     """게시판 카테고리 목록과 각 카테고리별 최신 게시글 5개 표시"""
@@ -78,6 +79,14 @@ def post_detail(request, post_id):
         'comment_form': comment_form,
         'liked': liked
     })
+
+def staff_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_staff:
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 
 @login_required
@@ -163,6 +172,7 @@ def post_delete(request, post_id):
 
 
 @login_required
+@staff_member_required
 def add_comment(request, post_id):
     """댓글 추가"""
     post = get_object_or_404(Post, id=post_id)
@@ -180,6 +190,7 @@ def add_comment(request, post_id):
 
 
 @login_required
+@staff_member_required
 def delete_comment(request, comment_id):
     """댓글 삭제"""
     comment = get_object_or_404(Comment, id=comment_id)
@@ -194,37 +205,60 @@ def delete_comment(request, comment_id):
     return redirect('community:post_detail', post_id=post_id)
 
 
-@login_required
 def post_like(request, post_id):
-    """게시글 좋아요 토글"""
+    """게시글 좋아요 토글 - 모든 사용자 가능"""
     post = get_object_or_404(Post, id=post_id)
+    
+    # IP 주소 확인
+    client_ip = get_client_ip(request)
+    
+    # 세션에 좋아요 정보 저장
+    liked_posts = request.session.get('liked_posts', {})
+    post_id_str = str(post_id)
     
     # 좋아요 상태 확인 요청인 경우
     if request.method == 'GET' and request.GET.get('check') == 'true':
-        liked = post.likes.filter(id=request.user.id).exists()
+        liked = post_id_str in liked_posts
         return JsonResponse({
             'success': True,
             'liked': liked,
-            'like_count': post.likes.count()
+            'like_count': post.like_count
         })
     
-    # 현재 사용자가 이미 좋아요를 눌렀는지 확인
-    if post.likes.filter(id=request.user.id).exists():
+    # 좋아요 토글
+    if post_id_str in liked_posts:
         # 좋아요 취소
-        post.likes.remove(request.user)
+        del liked_posts[post_id_str]
+        post.like_count = max(0, post.like_count - 1)  # 음수 방지
         liked = False
     else:
         # 좋아요 추가
-        post.likes.add(request.user)
+        liked_posts[post_id_str] = True
+        post.like_count = post.like_count + 1
         liked = True
+    
+    # 세션 업데이트
+    request.session['liked_posts'] = liked_posts
+    
+    # 게시글 저장
+    post.save(update_fields=['like_count'])
     
     # 비동기 요청인 경우 JSON 응답
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
             'success': True,
             'liked': liked,
-            'like_count': post.likes.count()
+            'like_count': post.like_count
         })
     
     # 일반 요청인 경우 이전 페이지로 리다이렉트
     return redirect('community:post_detail', post_id=post.id)
+
+# IP 주소를 가져오는 헬퍼 함수
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip

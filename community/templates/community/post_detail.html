@@ -305,9 +305,19 @@
                 <button type="button" id="like-button" class="btn-action like-button" data-post-id="{{ post.id }}">
                     <span>❤️</span> 좋아요
                 </button>
-                <button type="submit" class="btn-action comment-submit">
-                    <span>💬</span> 댓글 쓰기
-                </button>
+                
+                <!-- 댓글 작성은 관리자만 가능 -->
+                {% if user.is_authenticated and user.is_staff %}
+                <div class="comment-form">
+                    <form method="post" action="{% url 'community:add_comment' post.id %}">
+                        {% csrf_token %}
+                        <textarea name="content" class="comment-textarea" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
+                        <button type="submit" class="btn-action comment-submit">
+                            <span>💬</span> 댓글 쓰기
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </form>
     </div>

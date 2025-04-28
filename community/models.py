@@ -47,7 +47,7 @@ class Post(models.Model):
     image = models.ImageField("이미지", upload_to=post_image_upload_path, blank=True, null=True)
     # 좋아요 기능 추가
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True, verbose_name="좋아요")
-    
+    like_count = models.PositiveIntegerField("좋아요 수", default=0)
     class Meta:
         ordering = ['-is_notice', '-created_at']
         verbose_name = "게시글"
@@ -68,10 +68,7 @@ class Post(models.Model):
         """댓글 수 반환"""
         return self.comments.count() if hasattr(self, 'comments') else 0
     
-    @property
-    def like_count(self):
-        """좋아요 수 반환"""
-        return self.likes.count()
+
 
 
 class Comment(models.Model):
