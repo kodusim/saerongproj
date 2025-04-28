@@ -261,7 +261,7 @@
         <div class="post-stats">
             <div class="stat-item">
                 <span class="stat-icon">❤️</span>
-                <span id="like-count">0</span>
+                <span id="like-count">{{ post.like_count }}</span>
             </div>
             <div class="stat-item">
                 <span class="stat-icon">💬</span>
@@ -297,37 +297,42 @@
     
     <!-- 댓글 작성 폼 -->
     {% if user.is_authenticated %}
-    <div class="comment-form">
-        <form method="post" action="{% url 'community:add_comment' post.id %}">
-            {% csrf_token %}
-            <textarea name="content" class="comment-textarea" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
+        {% if user.is_staff %}
+        <!-- 관리자만 댓글 작성 가능 -->
+        <div class="comment-form">
+            <form method="post" action="{% url 'community:add_comment' post.id %}">
+                {% csrf_token %}
+                <textarea name="content" class="comment-textarea" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
+                <div class="post-actions">
+                    <button type="submit" class="btn-action comment-submit">
+                        <span>💬</span> 댓글 쓰기
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+        
+        <!-- 모든 로그인 사용자에게 좋아요 버튼 표시 -->
+        <div class="post-actions">
+            <button type="button" id="like-button" class="btn-action like-button" data-post-id="{{ post.id }}">
+                <span>❤️</span> 좋아요
+            </button>
+        </div>
+    {% else %}
+        <!-- 비로그인 사용자에게 표시 -->
+        <div class="comment-form">
+            <div class="login-info">
+                댓글 작성은 준비중입니다.
+            </div>
+            <!-- 비로그인 사용자에게도 좋아요 버튼 표시 -->
             <div class="post-actions">
                 <button type="button" id="like-button" class="btn-action like-button" data-post-id="{{ post.id }}">
                     <span>❤️</span> 좋아요
                 </button>
-                
-                <!-- 댓글 작성은 관리자만 가능 -->
-                {% if user.is_authenticated and user.is_staff %}
-                <div class="comment-form">
-                    <form method="post" action="{% url 'community:add_comment' post.id %}">
-                        {% csrf_token %}
-                        <textarea name="content" class="comment-textarea" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
-                        <button type="submit" class="btn-action comment-submit">
-                            <span>💬</span> 댓글 쓰기
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
             </div>
-        </form>
-    </div>
-    {% else %}
-    <div class="comment-form">
-        <div class="login-info">
-            댓글을 작성하려면 <a href="{% url 'accounts:login' %}">로그인</a>이 필요합니다.
         </div>
-    </div>
     {% endif %}
+
     <!-- 카카오 광고 -->
     <div class="ad-container">
         <ins class="kakao_ad_area" style="display:none;"
@@ -369,6 +374,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     const likeButton = document.getElementById('like-button');
     const likeCount = document.getElementById('like-count');
+    
+    if (likeCount) {
+        likeCount.textContent = "{{ post.like_count }}";
+    }
     
     if (likeButton) {
         likeButton.addEventListener('click', function() {
