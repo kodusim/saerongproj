@@ -214,6 +214,17 @@ def analyze_face(request):
         if not image_file:
             return JsonResponse({'success': False, 'error': '이미지 파일이 제공되지 않았습니다.'})
         
+        # 테스트 ID 받기 (추가된 부분)
+        test_id = request.POST.get('test_id')
+        if not test_id:
+            return JsonResponse({'success': False, 'error': '테스트 ID가 제공되지 않았습니다.'})
+        
+        # 해당 ID의 테스트 가져오기 (수정된 부분)
+        try:
+            face_test = FaceTestModel.objects.get(id=test_id, is_active=True)
+        except FaceTestModel.DoesNotExist:
+            return JsonResponse({'success': False, 'error': '해당 테스트를 찾을 수 없습니다.'})
+        
         # 파일 타입 확인
         if not image_file.name.lower().endswith(('.png', '.jpg', '.jpeg')):
             return JsonResponse({'success': False, 'error': '지원되지 않는 파일 형식입니다. JPG, PNG 파일만 업로드 가능합니다.'})
@@ -244,12 +255,6 @@ def analyze_face(request):
         # 세션에 파일 경로 저장 (이전 방식과의 호환성 유지)
         request.session['face_image_path'] = os.path.join('temp', unique_filename)
         
-        # 모델 로드하고 이미지 분석
-        face_test = FaceTestModel.objects.filter(is_active=True).first()
-        
-        if not face_test:
-            return JsonResponse({'success': False, 'error': '활성화된 얼굴 분석 모델이 없습니다.'})
-            
         # 모델 파일과 결과 유형 파일 경로 가져오기
         model_path = face_test.model_file.path
         result_types_path = face_test.result_types_file.path

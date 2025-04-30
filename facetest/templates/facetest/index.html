@@ -262,6 +262,7 @@
     <!-- 이미지 업로드 영역 -->
     <form id="upload-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
+        <input type="hidden" name="test_id" value="{{ test.id }}">
         <div class="upload-container" id="upload-area">
             <input type="file" id="image-upload" name="image" accept="image/*">
             <div class="upload-icon">📷</div>
