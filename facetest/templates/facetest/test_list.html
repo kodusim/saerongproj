@@ -3,13 +3,14 @@
 
 {% block content %}
 <style>
+    /* 테스트 카드 기본 스타일 */
     .test-card {
         flex: 0 0 auto;
         width: 140px;
         margin-right: 10px;
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         transition: transform 0.2s, box-shadow 0.2s;
     }
 
@@ -26,13 +27,67 @@
 
     .test-card .card-body {
         padding: 6px;
+        height: 40px; /* 높이 고정 */
+        display: flex;
+        align-items: center;
     }
 
     .test-card .card-title {
         font-size: 0.9rem;
-        margin-bottom: 2px;
-        max-height: 36px;
+        margin: 0;
+        line-height: 1.2;
+        max-height: 32px;
         overflow: hidden;
+        width: 100%;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* 최대 2줄 */
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis; /* 말줄임표 추가 */
+        word-break: keep-all; /* 단어 단위로 줄바꿈 */
+    }
+    
+    /* 모바일 환경에서 카드 그리드 조정 */
+    @media (max-width: 576px) {
+        .test-card-col {
+            width: 33.333%; /* sm 브레이크포인트 이하에서도 3개씩 표시 */
+            padding: 0 5px; /* 작은 패딩으로 간격 조정 */
+            margin-bottom: 15px; /* 행간 여백 추가 */
+        }
+        
+        .test-card {
+            width: 100%; /* 부모 컨테이너의 너비에 맞춤 */
+            margin-right: 0;
+        }
+        
+        .test-card img {
+            height: 110px; /* 모바일에서는 이미지 높이 줄임 */
+        }
+        
+        .test-card .card-body {
+            height: 34px; /* 모바일에서 높이 줄임 */
+        }
+        
+        .test-card .card-title {
+            font-size: 0.8rem; /* 모바일에서 폰트 크기 줄임 */
+            -webkit-line-clamp: 2; /* 2줄로 제한 */
+            max-height: 28px;
+        }
+        
+        .row {
+            margin-left: -5px;
+            margin-right: -5px;
+        }
+    }
+    
+    /* 더 작은 화면에서 추가 조정 */
+    @media (max-width: 400px) {
+        .test-card img {
+            height: 100px; /* 더 작은 화면에서 이미지 높이 추가 축소 */
+        }
+        
+        .test-card-col {
+            margin-bottom: 10px; /* 더 작은 화면에서 여백 축소 */
+        }
     }
 </style>
 
@@ -48,15 +103,15 @@
     </div>
     
     <!-- 테스트 목록 -->
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="row g-2">
         {% for test in tests %}
-        <div class="col">
+        <div class="col-4 col-sm-4 col-md-4 col-lg-4 test-card-col">
             <div class="test-card">
                 <a href="{% url 'facetest:test_intro' test.id %}" class="text-decoration-none text-reset">
                     {% if test.image %}
                     <img src="{{ test.image.url }}" class="card-img-top" alt="{{ test.name }}">
                     {% else %}
-                    <div class="bg-light text-center d-flex align-items-center justify-content-center" style="height: 140px;">
+                    <div class="bg-light text-center d-flex align-items-center justify-content-center" style="height: 110px;">
                         <span class="text-muted">이미지 없음</span>
                     </div>
                     {% endif %}
