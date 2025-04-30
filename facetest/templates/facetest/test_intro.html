@@ -93,7 +93,7 @@
 </style>
 
 <div class="test-intro-image">
-    <a href="{% url 'facetest:index' %}">
+    <a href="{% url 'facetest:test' test.id %}">
         {% if test.intro_image %}
         <img src="{{ test.intro_image.url }}" alt="{{ test.name }}">
         {% elif test.image %}

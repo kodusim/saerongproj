@@ -298,18 +298,18 @@
     <div class="test-list">
         <div class="test-list-title">다른 얼굴상 테스트</div>
         <div class="test-cards">
-            {% for test in face_tests %}
+            {% for face_test in face_tests %}
             <div class="test-card">
-                <a href="{% url 'facetest:test_intro' test.id %}" class="text-decoration-none text-reset">
-                    {% if test.image %}
-                    <img src="{{ test.image.url }}" class="test-image" alt="{{ test.name }}">
+                <a href="{% url 'facetest:test_intro' face_test.id %}" class="text-decoration-none text-reset">
+                    {% if face_test.image %}
+                    <img src="{{ face_test.image.url }}" class="test-image" alt="{{ face_test.name }}">
                     {% else %}
                     <div class="test-image" style="display: flex; align-items: center; justify-content: center; background-color: #f0f0f0;">
-                        <span>{{ test.name }}</span>
+                        <span>{{ face_test.name }}</span>
                     </div>
                     {% endif %}
                     <div class="test-info">
-                        <div class="test-title">{{ test.name }}</div>
+                        <div class="test-title">{{ face_test.name }}</div>
                     </div>
                 </a>
             </div>

@@ -19,11 +19,12 @@ def index(request):
     face_tests = FaceTestModel.objects.filter(is_active=True)
     
     # 기본으로 보여줄 테스트 (첫 번째 테스트)
-    test = face_tests.first()
+    # 여기서 개별 테스트를 지정하지만 링크는 각 테스트별로 생성
+    default_test = face_tests.first()
     
     return render(request, 'facetest/index.html', {
         'face_tests': face_tests,
-        'test': test
+        'test': default_test  # 템플릿의 상단 테스트 표시용으로 사용
     })
 
 def test_view(request, test_id):
@@ -39,7 +40,7 @@ def test_view(request, test_id):
     
     return render(request, 'facetest/index.html', {
         'face_tests': face_tests,
-        'test': test
+        'test': test  # 현재 선택된 테스트
     })
 
 # 관리자용 테스트 관리 페이지
