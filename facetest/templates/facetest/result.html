@@ -320,9 +320,8 @@
             <div class="sub-image-container">
                 <img src="{{ result_type.sub_image.url }}" alt="결과 설명 이미지" class="sub-image">
             </div>
-            {% endif %}
-
-            {% if characteristics %}
+            {% elif characteristics %}
+            <!-- 보조 이미지가 없는 경우에만 특징과 유사한 유명인 표시 -->
             <div class="result-cards">
                 <div class="result-card">
                     <div class="card-header">
@@ -336,7 +335,7 @@
                         </div>
                     </div>
                 </div>
-
+            
                 {% if examples %}
                 <div class="result-card">
                     <div class="card-header">
