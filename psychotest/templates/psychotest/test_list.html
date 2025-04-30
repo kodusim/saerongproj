@@ -2,35 +2,75 @@
 
 {% block content %}
 <style>
-            .test-card {
-            flex: 0 0 auto;
-            width: 140px;
-            margin-right: 10px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+    /* 테스트 카드 스타일 유지 */
+    .test-card {
+        flex: 0 0 auto;
+        width: 140px;
+        margin-right: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
 
+    .test-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .test-card img {
+        width: 100%;
+        height: 160px; /* 140px에서 160px로 늘림 */
+        object-fit: cover;
+    }
+
+    .test-card .card-body {
+        padding: 6px; /* 8px에서 6px로 줄임 */
+    }
+
+    .test-card .card-title {
+        font-size: 0.9rem;
+        margin-bottom: 2px; /* 5px에서 2px로 줄임 */
+        max-height: 36px; /* 고정 높이 대신 최대 높이 사용 */
+        overflow: hidden;
+    }
+
+    .test-card .card-text {
+        margin-bottom: 0; /* 카드 텍스트 하단 여백 제거 */
+    }
+    
+    /* 모바일 환경에서 카드 그리드 조정 */
+    @media (max-width: 576px) {
+        .test-card-col {
+            width: 33.333%; /* sm 브레이크포인트 이하에서도 3개씩 표시 */
+            padding: 0 5px; /* 작은 패딩으로 간격 조정 */
+        }
+        
+        .test-card {
+            width: 100%; /* 부모 컨테이너의 너비에 맞춤 */
+            margin-right: 0;
+        }
+        
         .test-card img {
-            width: 100%;
-            height: 160px; /* 140px에서 160px로 늘림 */
-            object-fit: cover;
+            height: 120px; /* 모바일에서는 이미지 높이 줄임 */
         }
-
-        .test-card .card-body {
-            padding: 6px; /* 8px에서 6px로 줄임 */
-        }
-
+        
         .test-card .card-title {
-            font-size: 0.9rem;
-            margin-bottom: 2px; /* 5px에서 2px로 줄임 */
-            max-height: 36px; /* 고정 높이 대신 최대 높이 사용 */
-            overflow: hidden;
+            font-size: 0.8rem; /* 모바일에서 폰트 크기 줄임 */
         }
-
-        .test-card .card-text {
-            margin-bottom: 0; /* 카드 텍스트 하단 여백 제거 */
+        
+        .row {
+            margin-left: -5px;
+            margin-right: -5px;
         }
+    }
+    
+    /* 더 작은 화면에서 추가 조정 */
+    @media (max-width: 400px) {
+        .test-card img {
+            height: 100px; /* 더 작은 화면에서 이미지 높이 추가 축소 */
+        }
+    }
 </style>
 <div class="container mt-4">
     <!-- 검색 영역 -->
@@ -43,10 +83,10 @@
         </form>
     </div>
     
-    <!-- 테스트 목록 -->
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    <!-- 테스트 목록 - 그리드 시스템 수정 -->
+    <div class="row g-3">
         {% for test in tests %}
-        <div class="col">
+        <div class="col-4 col-sm-4 col-md-4 col-lg-4 test-card-col">
             <div class="test-card">
                 <a href="{% url 'psychotest:test_intro' test.id %}" class="text-decoration-none text-reset">
                     {% if test.image %}
