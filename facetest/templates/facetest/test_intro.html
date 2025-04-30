@@ -165,28 +165,28 @@ document.addEventListener('DOMContentLoaded', function() {
         Kakao.init('{{ kakao_api_key }}'); 
         
         document.getElementById('kakao-share-btn').addEventListener('click', function() {
-            Kakao.Share.sendDefault({
-                objectType: 'feed',
-                content: {
-                    title: '{{ test.name }}',
-                    description: '{{ test.description|truncatechars:50|escapejs }}',
-                    imageUrl: {% if test.intro_image %}'{{ request.scheme }}://{{ request.get_host }}{{ test.intro_image.url }}'{% elif test.image %}'{{ request.scheme }}://{{ request.get_host }}{{ test.image.url }}'{% else %}''{% endif %},
+        Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+                title: '{{ test.name }}',
+                description: '{{ test.description|truncatechars:50|escapejs }}',
+                imageUrl: {% if test.image %}'{{ request.scheme }}://{{ request.get_host }}{{ test.image.url }}'{% elif test.intro_image %}'{{ request.scheme }}://{{ request.get_host }}{{ test.intro_image.url }}'{% else %}''{% endif %},
+                link: {
+                    mobileWebUrl: window.location.href,
+                    webUrl: window.location.href
+                }
+            },
+            buttons: [
+                {
+                    title: '테스트 하기',
                     link: {
                         mobileWebUrl: window.location.href,
                         webUrl: window.location.href
                     }
-                },
-                buttons: [
-                    {
-                        title: '테스트 하기',
-                        link: {
-                            mobileWebUrl: window.location.href,
-                            webUrl: window.location.href
-                        }
-                    }
-                ]
-            });
+                }
+            ]
         });
+    });
     } catch (e) {
         console.error('카카오톡 공유 초기화 실패:', e);
     }
