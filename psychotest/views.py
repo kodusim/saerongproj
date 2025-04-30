@@ -44,9 +44,17 @@ def test_detail(request, test_id):
 def test_intro(request, test_id):
     """테스트 인트로 페이지 - 시작 화면 보여주기"""
     test = get_object_or_404(Test, id=test_id)
-    # 조회수 증가는 여기서 처리하고 test_detail에서는 제거
+    # 조회수 증가
     test.increase_view_count()
-    return render(request, 'psychotest/test_intro.html', {'test': test})
+    
+    # 카카오 API 키 가져오기
+    from django.conf import settings
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    return render(request, 'psychotest/test_intro.html', {
+        'test': test,
+        'kakao_api_key': kakao_api_key
+    })
 
 def take_test(request, test_id):
     """테스트 진행 페이지"""

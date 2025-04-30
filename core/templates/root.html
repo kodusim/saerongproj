@@ -3,15 +3,15 @@
 
 {% block content %}
 <style>
-    /* 배너 슬라이드 스타일 */
+    /* 배너 슬라이드 스타일 - 반응형으로 개선 */
     .banner-container {
         position: relative;
         width: 100%;
-        height: 300px;
+        height: 300px; /* 기본 높이 */
         overflow: hidden;
         margin-bottom: 20px;
     }
-    
+
     .banner-track {
         display: flex;
         width: 100%;
@@ -19,26 +19,41 @@
         position: relative;
         transition: transform 0.5s ease-out;
     }
-    
+
     .banner-slide {
         flex: 0 0 100%;
         width: 100%;
         height: 100%;
+        cursor: pointer;
     }
-    
+
     .banner-image {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain; /* cover에서 contain으로 변경하여 이미지가 잘리지 않게 함 */
     }
-    
-    .banner-link {
-        display: block;
-        width: 100%;
-        height: 100%;
+
+    /* 모바일 환경에서 배너 높이 조정 */
+    @media (max-width: 768px) {
+        .banner-container {
+            height: auto; /* 높이를 자동으로 설정 */
+            aspect-ratio: 16 / 9; /* 가로세로 비율 설정 (16:9) */
+            max-height: 250px; /* 최대 높이 제한 */
+        }
+        
+        .banner-image {
+            object-fit: contain; /* 이미지가 잘리지 않고 전체가 보이도록 설정 */
+        }
     }
-    
-    /* 배너 컨트롤 버튼 */
+
+    /* 더 작은 모바일 화면에서 추가 조정 */
+    @media (max-width: 480px) {
+        .banner-container {
+            max-height: 200px;
+        }
+    }
+
+    /* 배너 컨트롤 버튼 스타일은 유지 */
     .banner-controls {
         position: absolute;
         top: 0;
@@ -50,8 +65,9 @@
         align-items: center;
         padding: 0 15px;
         z-index: 10;
+        pointer-events: none;
     }
-    
+
     .banner-button {
         width: 40px;
         height: 40px;
@@ -64,12 +80,26 @@
         transition: all 0.3s ease;
         border: none;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        pointer-events: auto;
     }
-    
+
+    /* 모바일에서 버튼 크기 줄임 */
+    @media (max-width: 480px) {
+        .banner-button {
+            width: 30px;
+            height: 30px;
+        }
+        
+        .banner-button svg {
+            width: 20px;
+            height: 20px;
+        }
+    }
+
     .banner-button:hover {
         background-color: rgba(255, 255, 255, 0.9);
     }
-    
+
     /* 배너 인디케이터 */
     .banner-indicators {
         position: absolute;
@@ -82,8 +112,9 @@
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 20px;
         padding: 5px 10px;
+        pointer-events: auto;
     }
-    
+
     .banner-indicator {
         width: 10px;
         height: 10px;
@@ -92,7 +123,7 @@
         cursor: pointer;
         transition: all 0.3s ease;
     }
-    
+
     .banner-indicator.active {
         background-color: white;
         width: 12px;
@@ -270,18 +301,12 @@
 </style>
 
 <div class="container p-0">
-    <!-- 배너 슬라이드 -->
+    <!-- 배너 관련 HTML 구조 수정 -->
     <div class="banner-container">
         <div class="banner-track" id="banner-track">
             {% for banner in banners %}
-            <div class="banner-slide" data-index="{{ forloop.counter0 }}">
-                {% if banner.url %}
-                <a href="{{ banner.url }}" class="banner-link">
-                    <img src="{{ banner.image.url }}" class="banner-image" alt="{{ banner.title }}">
-                </a>
-                {% else %}
+            <div class="banner-slide" data-index="{{ forloop.counter0 }}" {% if banner.url %}data-url="{{ banner.url }}"{% endif %}>
                 <img src="{{ banner.image.url }}" class="banner-image" alt="{{ banner.title }}">
-                {% endif %}
             </div>
             {% empty %}
             <!-- 등록된 배너가 없을 경우 기본 이미지 표시 -->
@@ -560,6 +585,7 @@
 
 <!-- 배너 슬라이드 스크립트 -->
 <script>
+// 간단하고 확실한 배너 슬라이드 스크립트
 document.addEventListener('DOMContentLoaded', function() {
     // 배너 슬라이드 기능
     const bannerTrack = document.getElementById('banner-track');
@@ -572,6 +598,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let currentIndex = 0;
     let interval;
+    
+    // 드래그 관련 변수
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let startTime = 0;
+    let isDragging = false;
+    let wasDragged = false; // 실제로 드래그가 발생했는지 추적
     
     // 슬라이드 이동 함수
     function moveToSlide(index) {
@@ -611,49 +644,151 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 이전 버튼 클릭 이벤트
-    prevButton.addEventListener('click', () => {
+    prevButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // 이벤트 버블링 방지
         moveToSlide(currentIndex - 1);
         startAutoSlide(); // 버튼 클릭 후 타이머 재시작
     });
     
     // 다음 버튼 클릭 이벤트
-    nextButton.addEventListener('click', () => {
+    nextButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // 이벤트 버블링 방지
         moveToSlide(currentIndex + 1);
         startAutoSlide(); // 버튼 클릭 후 타이머 재시작
     });
     
     // 인디케이터 클릭 이벤트
     indicators.forEach((indicator, index) => {
-        indicator.addEventListener('click', () => {
+        indicator.addEventListener('click', (e) => {
+            e.stopPropagation(); // 이벤트 버블링 방지
             moveToSlide(index);
             startAutoSlide(); // 인디케이터 클릭 후 타이머 재시작
         });
     });
     
-    // 터치 이벤트 처리
-    let touchStartX = 0;
-    let touchEndX = 0;
+    // 각 배너 슬라이드에 클릭 이벤트 추가 (직접 핸들러 추가)
+    slides.forEach((slide) => {
+        slide.addEventListener('click', function(e) {
+            // 드래그 중이 아니고, 컨트롤 버튼이나 인디케이터를 클릭한 것이 아닌 경우에만 링크로 이동
+            if (!wasDragged && 
+                !e.target.closest('.banner-button') && 
+                !e.target.closest('.banner-indicator')) {
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.location.href = url;
+                }
+            }
+        });
+    });
     
+    // 배너 컨테이너에 터치 이벤트 추가
     const bannerContainer = document.querySelector('.banner-container');
     
-    bannerContainer.addEventListener('touchstart', (e) => {
+    // 터치 이벤트 - 모바일
+    bannerContainer.addEventListener('touchstart', function(e) {
+        // 컨트롤 버튼이나 인디케이터를 터치한 경우 무시
+        if (e.target.closest('.banner-button') || e.target.closest('.banner-indicator')) {
+            return;
+        }
+        
         touchStartX = e.changedTouches[0].screenX;
+        startTime = new Date().getTime();
+        isDragging = false;
+        wasDragged = false;
         stopAutoSlide();
     }, { passive: true });
     
-    bannerContainer.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
+    bannerContainer.addEventListener('touchmove', function(e) {
+        if (e.target.closest('.banner-button') || e.target.closest('.banner-indicator')) {
+            return;
+        }
         
-        if (touchStartX - touchEndX > 50) {
-            // 왼쪽으로 스와이프 (다음 슬라이드)
-            moveToSlide(currentIndex + 1);
-        } else if (touchEndX - touchStartX > 50) {
-            // 오른쪽으로 스와이프 (이전 슬라이드)
-            moveToSlide(currentIndex - 1);
+        const diffX = Math.abs(e.changedTouches[0].screenX - touchStartX);
+        
+        if (diffX > 10) { // 일정 거리 이상 이동했을 때만 드래그로 간주
+            isDragging = true;
+            wasDragged = true;
+        }
+    }, { passive: true });
+    
+    bannerContainer.addEventListener('touchend', function(e) {
+        if (e.target.closest('.banner-button') || e.target.closest('.banner-indicator')) {
+            return;
+        }
+        
+        touchEndX = e.changedTouches[0].screenX;
+        let endTime = new Date().getTime();
+        
+        // 스와이프 감지 - 충분한 거리를 이동했고 너무 오래 걸리지 않은 경우
+        if (isDragging && Math.abs(touchEndX - touchStartX) > 50 && (endTime - startTime) < 300) {
+            if (touchStartX > touchEndX) {
+                // 왼쪽으로 스와이프 - 다음 슬라이드
+                moveToSlide(currentIndex + 1);
+            } else {
+                // 오른쪽으로 스와이프 - 이전 슬라이드
+                moveToSlide(currentIndex - 1);
+            }
         }
         
         startAutoSlide();
     }, { passive: true });
+    
+    // 마우스 이벤트 - 데스크톱 (추가됨)
+    let isMouseDown = false;
+    
+    bannerContainer.addEventListener('mousedown', function(e) {
+        // 컨트롤 버튼이나 인디케이터를 클릭한 경우 무시
+        if (e.target.closest('.banner-button') || e.target.closest('.banner-indicator')) {
+            return;
+        }
+        
+        touchStartX = e.clientX;
+        startTime = new Date().getTime();
+        isMouseDown = true;
+        isDragging = false;
+        wasDragged = false;
+        stopAutoSlide();
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!isMouseDown) return;
+        
+        const diffX = Math.abs(e.clientX - touchStartX);
+        
+        if (diffX > 10) { // 일정 거리 이상 이동했을 때만 드래그로 간주
+            isDragging = true;
+            wasDragged = true;
+            bannerContainer.style.cursor = 'grabbing';
+        }
+    });
+    
+    document.addEventListener('mouseup', function(e) {
+        if (!isMouseDown) return;
+        
+        bannerContainer.style.cursor = '';
+        
+        touchEndX = e.clientX;
+        let endTime = new Date().getTime();
+        isMouseDown = false;
+        
+        // 스와이프 감지 - 충분한 거리를 이동했고 너무 오래 걸리지 않은 경우
+        if (isDragging && Math.abs(touchEndX - touchStartX) > 50 && (endTime - startTime) < 300) {
+            if (touchStartX > touchEndX) {
+                // 왼쪽으로 드래그 - 다음 슬라이드
+                moveToSlide(currentIndex + 1);
+            } else {
+                // 오른쪽으로 드래그 - 이전 슬라이드
+                moveToSlide(currentIndex - 1);
+            }
+        }
+        
+        startAutoSlide();
+    });
+    
+    // 드래그 중에 텍스트 선택 방지
+    bannerContainer.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+    });
     
     // 마우스 오버시 자동 전환 중지
     bannerContainer.addEventListener('mouseenter', stopAutoSlide);
@@ -662,6 +797,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 초기 슬라이드 설정
     moveToSlide(0);
     startAutoSlide();
+    
+    // 디버깅용 로그
+    console.log('배너 스크립트 초기화 완료');
 });
 </script>
 

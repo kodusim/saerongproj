@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
 <style>
@@ -29,16 +30,16 @@
         left: 50%;
         transform: translateX(-50%);
         background-color: #000000;
-        padding: 15px 0;
+        padding: 15px 10px;
         z-index: 1000;
-        text-align: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
     
     .custom-footer-button {
-        display: block;
-        width: 80%;
-        max-width: 400px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: 420px;
         border-radius: 30px;
         padding: 12px 20px;
         font-size: 18px;
@@ -55,6 +56,39 @@
     .custom-footer-button:hover {
         transform: translateY(-3px);
         box-shadow: 0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4);
+    }
+    
+    .custom-footer-button:active {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.2);
+    }
+    
+    /* 카카오 공유 버튼 스타일 */
+    .kakao-share-btn {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background-color: #FEE500;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: 10px;
+        text-decoration: none;
+        color: #333;
+        font-size: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+        border: none;
+    }
+    
+    .kakao-share-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .kakao-share-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 </style>
 
@@ -78,12 +112,14 @@
 <!-- 고정 푸터를 직접 HTML로 추가 -->
 <div class="custom-footer">
     <a href="{% url 'psychotest:test_list' %}" class="custom-footer-button">다른 테스트</a>
+    <button id="kakao-share-btn" class="kakao-share-btn">
+        <img src="{% static 'images/kakao_icon.png' %}" alt="KakaoTalk" width="24" height="24"
+            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMiIgZmlsbD0iI0ZFRTUwMCIvPjxwYXRoIGQ9Ik0xMi4wMTkgNy41QzkuMjE0IDcuNSA2LjkzIDkuNDMzIDYuOTMgMTEuODNDNi45MyAxMy41MzMgOC4xNDkgMTQuOTgyIDkuODkxIDE1Ljc4MUw5LjM2OCAxNy42ODVDOS4zNjggMTcuNjg1IDExLjIxNSAxNi40ODQgMTEuNDMgMTYuMzU5QzExLjYyMSAxNi4zOTMgMTEuODE4IDE2LjQxMSAxMi4wMTkgMTYuNDExQzE0LjgyNCAxNi40MTEgMTcuMTA4IDE0LjQ3OCAxNy4xMDggMTIuMDgxQzE3LjEwOCA5LjY4NCAxNC44MjQgNy41IDEyLjAxOSA3LjVaIiBmaWxsPSJibGFjayIvPjwvc3ZnPg==';this.onerror='';">
+    </button>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // DOM 조작 스크립트 제거하고 대신 HTML로 직접 푸터 정의
-    
     // 기존 푸터 숨기기 (root.html의 footer와 겹치지 않도록)
     var originalFooter = document.querySelector('footer');
     if (originalFooter) {
@@ -111,6 +147,51 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('mouseup', function() {
             this.style.transform = 'translateY(-3px)';
             this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,255,0.4)';
+        });
+    }
+});
+</script>
+
+<!-- 카카오톡 SDK -->
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" 
+integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4" 
+crossorigin="anonymous"></script>
+
+<!-- 카카오톡 공유 스크립트 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 카카오톡 공유 초기화 및 이벤트 설정
+    try {
+        Kakao.init('{{ kakao_api_key }}'); 
+        console.log('Kakao init success:', Kakao.isInitialized());
+        
+        document.getElementById('kakao-share-btn').addEventListener('click', function() {
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: '{{ test.title }}',
+                    description: '{{ test.description|truncatechars:50|escapejs }}',
+                    imageUrl: {% if test.image %}'{{ request.scheme }}://{{ request.get_host }}{{ test.image.url }}'{% elif test.intro_image %}'{{ request.scheme }}://{{ request.get_host }}{{ test.intro_image.url }}'{% else %}''{% endif %},
+                    link: {
+                        mobileWebUrl: window.location.href,
+                        webUrl: window.location.href
+                    }
+                },
+                buttons: [
+                    {
+                        title: '테스트 하기',
+                        link: {
+                            mobileWebUrl: window.location.href,
+                            webUrl: window.location.href
+                        }
+                    }
+                ]
+            });
+        });
+    } catch (e) {
+        console.error('카카오톡 공유 초기화 실패:', e);
+        document.getElementById('kakao-share-btn').addEventListener('click', function() {
+            alert('카카오톡 공유 기능을 초기화하는데 실패했습니다. 다시 시도해주세요.');
         });
     }
 });
