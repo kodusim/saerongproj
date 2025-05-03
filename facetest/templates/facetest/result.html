@@ -18,7 +18,6 @@
 {% else %}
 <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
-{% endblock %}
 
 <!-- Open Graph 메타 태그도 동일하게 수정 -->
 <meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
@@ -348,7 +347,7 @@
 <div class="container p-0">
     <div class="result-content">
         {% if result_type %}
-            {% with main_image=result_type.images.filter.first %}
+            {% with main_image=result_type.images.first %}
                 {% if main_image %}
                 <div class="result-image-container">
                     <img src="{{ main_image.image.url }}" alt="{{ result_type.name }}" class="result-image w-100">
