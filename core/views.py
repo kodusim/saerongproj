@@ -6,6 +6,8 @@ from psychotest.models import Test
 from facetest.models import FaceTestModel
 from community.models import Post
 from .models import Banner
+from django.http import HttpResponse
+from django.views.decorators.http import require_GET
 
 def root(request):
     """메인 페이지"""
@@ -110,3 +112,16 @@ def inquiry(request):
             messages.error(request, f'문의 전송 중 오류가 발생했습니다. 다시 시도해주세요. 오류: {str(e)}')
     
     return render(request, 'core/inquiry.html')
+
+@require_GET
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /static/",
+        "Disallow: /media/temp/",
+        "",
+        "Sitemap: https://saerong.com/sitemap.xml"
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")

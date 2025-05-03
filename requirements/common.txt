@@ -34,3 +34,4 @@ beautifulsoup4==4.12.3
 django-csp==3.8
 
 django-summernote==0.8.20.0
+django-sitemap==1.2.0

@@ -37,6 +37,21 @@
      crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{% static 'bootstrap/5.3.3/css/bootstrap.min.css' %}" />
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}" />
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "새롱",
+            "url": "https://saerong.com",
+            "description": "다양한 심리테스트와 AI 얼굴상 테스트",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://saerong.com/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }
+        }
+    </script>
     <style>
         /* 나눔스퀘어네오 폰트 정의 */
         @font-face {
