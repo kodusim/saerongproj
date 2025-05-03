@@ -25,7 +25,7 @@ class PsychoTestSitemap(Sitemap):
         return obj.created_at
 
     def location(self, obj):
-        return reverse('psychotest:test_intro', args=[obj.id])
+        return reverse('psychotest:test_intro', args=[obj.id])  # 이 부분이 중요!
 
 class FaceTestSitemap(Sitemap):
     changefreq = "weekly"
@@ -38,7 +38,7 @@ class FaceTestSitemap(Sitemap):
         return obj.updated_at
 
     def location(self, obj):
-        return reverse('facetest:test_intro', args=[obj.id])
+        return reverse('facetest:test_intro', args=[obj.id])  # 이 부분이 중요!
 
 class CommunityPostSitemap(Sitemap):
     changefreq = "daily"

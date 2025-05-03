@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "template_partials",
     "django_htmx",
     'django_summernote',
+    'django.contrib.sitemaps',
     # local apps
     "accounts",
     "core",
