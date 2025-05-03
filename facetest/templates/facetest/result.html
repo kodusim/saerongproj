@@ -12,15 +12,20 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
 <meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
-{% with main_image=result_type.images.filter.first %}
-{% if main_image %}
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-{% else %}
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-{% endif %}
-{% endwith %}
 
-<!-- Open Graph 메타 태그도 추가 (페이스북 등에서 사용) -->
+{% if result_type %}
+    {% with main_image=result_type.images.first %}
+        {% if main_image %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
+        {% else %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+        {% endif %}
+    {% endwith %}
+{% else %}
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+{% endif %}
+
+<!-- Open Graph 메타 태그도 동일하게 수정 -->
 <meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
 <meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
 <meta property="og:type" content="website">
@@ -29,15 +34,20 @@
 {% else %}
 <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.get_full_path }}">
 {% endif %}
-{% with main_image=result_type.images.filter.first %}
-{% if main_image %}
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+
+{% if result_type %}
+    {% with main_image=result_type.images.first %}
+        {% if main_image %}
+            <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
+            <meta property="og:image:width" content="1200">
+            <meta property="og:image:height" content="630">
+        {% else %}
+            <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+        {% endif %}
+    {% endwith %}
 {% else %}
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
-{% endwith %}
 {% endblock %}
 
 {% block content %}
