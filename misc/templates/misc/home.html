@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">{{ title }}</h1>
+    <p class="text-center mb-5">{{ description }}</p>
+
+    <div class="row">
+        <!-- 운세 바로가기 카드 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">오늘의 운세</h5>
+                    <p class="card-text">오늘의 운세를 확인해보세요.</p>
+                    <a href="{% url 'misc:fortune_home' %}" class="btn btn-primary">운세 보러가기</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 추가 콘텐츠 바로가기 카드 (향후 추가 예정) -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">준비중</h5>
+                    <p class="card-text">더 많은 콘텐츠가 준비중입니다.</p>
+                    <button class="btn btn-secondary" disabled>준비중입니다</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
