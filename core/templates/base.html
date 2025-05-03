@@ -11,9 +11,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <!-- Primary Meta Tags -->
-    <title>새롱, 너만의 심리테스트</title>
-    <meta name="title" content="새롱, 너만의 심리테스트" />
-    <meta name="description" content="다양한 심리테스트를 통해 일상에서 미처 깨닫지 못했던 자신의 내면을 들여다보고, AI 얼굴상 테스트로 타인의 눈에 비친 당신의 이미지를 새롭게 발견해보세요. 호기심과 재미가 가득한 새롱에서는 매일 새로운 나를 만날 수 있습니다." />
+    <title>{% block title %}새롱, 너만의 심리테스트{% endblock %}</title>
+    <meta name="title" content="{% block meta_title %}새롱, 너만의 심리테스트{% endblock %}" />
+    <meta name="description" content="{% block meta_description %}다양한 심리테스트를 통해 일상에서 미처 깨닫지 못했던 자신의 내면을 들여다보고, AI 얼굴상 테스트로 타인의 눈에 비친 당신의 이미지를 새롭게 발견해보세요. 호기심과 재미가 가득한 새롱에서는 매일 새로운 나를 만날 수 있습니다.{% endblock %}" />
+
+    <!-- 추가적인 메타 태그를 위한 블록 -->
+    {% block extra_head %}{% endblock %}
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -410,7 +413,6 @@
             <li><a href="{% url 'psychotest:test_list' %}">심리테스트</a></li>
             <li><a href="{% url 'facetest:test_list' %}">얼굴테스트</a></li>
             <li><a href="{% url 'community:category_list' %}">커뮤니티</a></li>
-            <li><a href="{% url 'misc:home' %}">잡동사니</a></li>  <!-- 추가된 부분 -->
             <li><a href="{% url 'core:inquiry' %}">광고 및 협업 문의</a></li>
         </ul>
     </nav>
@@ -519,3 +521,5 @@
         });
     });
 </script>
+</body>
+</html>
