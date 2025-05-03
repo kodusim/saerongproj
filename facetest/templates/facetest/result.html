@@ -8,22 +8,17 @@
 {% block meta_description %}{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}{% endblock %}
 
 {% block extra_head %}
-<!-- Twitter Card 메타 태그 추가 -->
+<!-- Twitter Card 메타 태그 -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
+<meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
 
-{% if result_type %}
-    {% with main_image=result_type.images.first %}
-        {% if main_image %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-        {% else %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-        {% endif %}
-    {% endwith %}
+{% if result_type and result_type.images.first %}
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
 {% else %}
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
+{% endblock %}
 
 <!-- Open Graph 메타 태그도 동일하게 수정 -->
 <meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
