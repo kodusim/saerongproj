@@ -334,6 +334,16 @@
         .side-ad-right {
             right: 20px;
         }
+        
+        /* 애드센스 광고 스타일 */
+        .side-ad .adsbygoogle {
+            max-width: 160px;
+            max-height: 600px;
+        }
+        
+        .center-ad-wrapper .adsbygoogle {
+            max-width: 100%;
+        }
 
         /* 모바일 화면 최적화 */
         @media (max-width: 1100px) {
@@ -379,6 +389,11 @@
                 width: 100% !important;
                 max-width: 100% !important;
             }
+            
+            .center-ad-wrapper .adsbygoogle {
+                transform: scale(0.9);
+                transform-origin: center;
+            }
         }
     </style>
     {% component_css_dependencies %}
@@ -387,20 +402,30 @@
 
 <!-- 좌측 사이드 광고 영역 -->
 <div class="side-ad side-ad-left">
-    <ins class="kakao_ad_area" style="display:none;"
-    data-ad-unit = "DAN-PIJeCUwGyWudHos5"
-    data-ad-width = "160"
-    data-ad-height = "600"></ins>
-    <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+    <script async src="https://pagead.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
+         crossorigin="anonymous"></script>
+    <!-- 좌우배너 -->
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:160px;height:600px"
+         data-ad-client="ca-pub-7308084694640774"
+         data-ad-slot="4815636961"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
 </div>
 
 <!-- 우측 사이드 광고 영역 -->
 <div class="side-ad side-ad-right">
-    <ins class="kakao_ad_area" style="display:none;"
-    data-ad-unit = "DAN-ZqLNaNRQWUQ7Qqgz"
-    data-ad-width = "160"
-    data-ad-height = "600"></ins>
-    <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+    <script async src="https://pagead.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
+         crossorigin="anonymous"></script>
+    <!-- 좌우배너 -->
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:160px;height:600px"
+         data-ad-client="ca-pub-7308084694640774"
+         data-ad-slot="4815636961"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
 </div>
 
 <div class="site-wrapper">

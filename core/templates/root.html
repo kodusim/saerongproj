@@ -293,7 +293,7 @@
             overflow: hidden;
         }
         
-        .center-ad-wrapper ins {
+        .center-ad-wrapper .adsbygoogle {
             transform: scale(0.9);
             transform-origin: center;
         }
@@ -439,14 +439,19 @@
             <div class="scroll-fade-right"></div>
         </div>
     </div>
-    <!-- 카카오 광고 -->
+    <!-- 구글 애드센스 광고 -->
     <div class="section-container ad-container">
         <div class="center-ad-wrapper">
-            <ins class="kakao_ad_area" style="display:none;"
-                data-ad-unit = "DAN-ybmE37WXGkg8vEe4"
-                data-ad-width = "320" 
-                data-ad-height = "50"></ins>
-            <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+            <script async src="https://pagead.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
+                 crossorigin="anonymous"></script>
+            <!-- 좌우배너 -->
+            <ins class="adsbygoogle"
+                 style="display:inline-block;width:320px;height:50px"
+                 data-ad-client="ca-pub-7308084694640774"
+                 data-ad-slot="4815636961"></ins>
+            <script>
+                 (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
         </div>
     </div>
     <!-- 인기 테스트 섹션 -->
@@ -806,4 +811,3 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- 슬라이드 스크립트 포함 -->
 <script src="{% static 'js/slider.js' %}"></script>
 {% endblock %}
-
