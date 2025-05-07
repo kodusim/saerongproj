@@ -32,7 +32,7 @@
     <meta property="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}" />
     {% endif %}
     
-    <!-- 즉시 실제 결과 페이지로 리다이렉트 -->
+    <!-- 3초 후 실제 결과 페이지로 리다이렉트 -->
     <meta http-equiv="refresh" content="0;url={% url 'psychotest:shared_result' shared_result.id %}" />
     
     <style>

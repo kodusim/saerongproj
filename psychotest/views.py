@@ -411,3 +411,21 @@ def shared_result(request, result_id):
     
     # 새로운 템플릿 사용
     return render(request, 'psychotest/shared_result.html', context)
+
+def share_preview(request, result_id):
+    """소셜 미디어 공유를 위한 전용 미리보기 페이지"""
+    shared_result = get_object_or_404(SharedTestResult, id=result_id)
+    test = shared_result.test
+    result = shared_result.result
+    
+    # 카카오 API 키 가져오기
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    context = {
+        'test': test,
+        'result': result,
+        'shared_result': shared_result,
+        'kakao_api_key': kakao_api_key,
+    }
+    
+    return render(request, 'psychotest/share_preview.html', context)

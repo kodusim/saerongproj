@@ -409,7 +409,7 @@ crossorigin="anonymous"></script>
 document.addEventListener('DOMContentLoaded', function() {
     // 공유할 URL 설정
     {% if shared_result %}
-        const shareUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "psychotest:shared_result" shared_result.id %}';
+        const shareUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "psychotest:share_preview" shared_result.id %}';
     {% else %}
         const shareUrl = window.location.href.split('#')[0];
     {% endif %}
