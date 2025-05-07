@@ -400,6 +400,15 @@ def result_detail(request, uuid):
     face_test = test_result.face_test
     result_type = test_result.result_type
     
+    # 만약 result_type이 None이라면 조치
+    if not result_type:
+        # 로그 남기기
+        print(f"Warning: result_type is None for UUID: {uuid}")
+        # 대체 로직이나 에러 페이지로 리다이렉트
+        return render(request, 'facetest/error.html', {
+            'error_message': '결과 유형을 찾을 수 없습니다.'
+        })
+    
     # 모든 결과 유형 목록
     all_results = FaceResultType.objects.filter(face_test=face_test)
     
@@ -409,23 +418,25 @@ def result_detail(request, uuid):
         from django.conf import settings
         face_image_url = f"{settings.MEDIA_URL}{test_result.image_path}"
     
-    # 다른 얼굴상 테스트 목록
-    other_tests = FaceTestModel.objects.filter(is_active=True).exclude(id=face_test.id)[:4]
-    
     # 카카오 API 키 가져오기
     from django.conf import settings
     kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    # 모든 필요한 변수를 디버깅용으로 출력
+    print(f"face_test: {face_test}, result_type: {result_type}")
+    print(f"characteristics: {result_type.get_characteristics_list()}")
+    print(f"examples: {result_type.get_examples_list()}")
     
     context = {
         'face_test': face_test,
         'result_type': result_type,
         'face_image_url': face_image_url,
-        'other_tests': other_tests,
+        'other_tests': FaceTestModel.objects.filter(is_active=True).exclude(id=face_test.id)[:4],
         'characteristics': result_type.get_characteristics_list(),
         'examples': result_type.get_examples_list(),
         'kakao_api_key': kakao_api_key,
         'all_results': all_results,
-        'test_result': test_result  # 결과 객체 추가
+        'test_result': test_result
     }
     
     return render(request, 'facetest/result.html', context)
