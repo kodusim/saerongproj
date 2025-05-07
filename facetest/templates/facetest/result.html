@@ -480,11 +480,11 @@
     </div>
 </div>
 
-<!-- 푸터 영역 -->
+<!-- 푸터 영역 - Web Share API 적용 -->
 <div class="custom-footer">
-    <a href="#" class="kakao-share-btn" id="kakao-footer-btn">
-        카카오톡으로 공유하기
-    </a>
+    <button id="web-share-btn" class="kakao-share-btn">
+        테스트 공유하기
+    </button>
     <a href="{% url 'facetest:index' %}" class="back-btn">
         <i class="back-icon">↩</i>
     </a>
@@ -514,34 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 링크 복사 기능
     document.getElementById('link-copy-btn').addEventListener('click', function() {
-        try {
-            navigator.clipboard.writeText(shareUrl).then(function() {
-                alert('링크가 복사되었습니다.');
-            }).catch(function(err) {
-                fallbackCopy();
-            });
-        } catch (e) {
-            fallbackCopy();
-        }
-        
-        // 클립보드 API 지원하지 않는 브라우저를 위한 대체 방법
-        function fallbackCopy() {
-            const textarea = document.createElement('textarea');
-            textarea.value = shareUrl;
-            textarea.style.position = 'fixed';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            
-            try {
-                document.execCommand('copy');
-                alert('링크가 복사되었습니다.');
-            } catch (err) {
-                alert('링크 복사에 실패했습니다. 직접 URL을 복사해주세요.');
-            }
-            
-            document.body.removeChild(textarea);
-        }
+        copyToClipboard(shareUrl);
     });
     
     // 페이스북 공유
@@ -549,12 +522,12 @@ document.addEventListener('DOMContentLoaded', function() {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, 'facebook', 'width=600, height=700, resizable=no');
     });
 
-    // 트위터(X) 공유 - 개선된 버전
+    // 트위터(X) 공유
     document.getElementById('twitter-share-btn').addEventListener('click', function() {
         // URL 인코딩을 통해 한글 텍스트 처리
         const text = encodeURIComponent(title + '\n' + description);
         const url = encodeURIComponent(shareUrl);
-        const hashtags = encodeURIComponent('얼굴상테스트,새롱'); // 해시태그 추가 (선택사항)
+        const hashtags = encodeURIComponent('얼굴상테스트,새롱');
         
         window.open(
             `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`, 
@@ -563,7 +536,55 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     });
     
+    // 카카오톡 공유 초기화 (상단 공유 버튼용)
+    try {
+        Kakao.init('{{ kakao_api_key }}'); 
+        console.log('Kakao init success:', Kakao.isInitialized());
+
+        // 상단 카카오 버튼
+        setupKakaoShare(document.getElementById('kakao-share-btn'));
+        
+    } catch (e) {
+        console.error('카카오톡 공유 초기화 실패:', e);
+        const kakaoErrorMsg = '카카오톡 공유 기능을 초기화하는데 실패했습니다: ' + e.message;
+        
+        document.getElementById('kakao-share-btn').addEventListener('click', function(e) {
+            alert(kakaoErrorMsg);
+        });
+    }
+    
+    // 푸터의 Web Share 버튼 (새로 추가)
+    const webShareBtn = document.getElementById('web-share-btn');
+    if (webShareBtn) {
+        webShareBtn.addEventListener('click', async function() {
+            // Web Share API 지원 여부 확인
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: title,
+                        text: description,
+                        url: shareUrl
+                    });
+                    console.log('공유 성공');
+                } catch (error) {
+                    console.log('공유 중 오류 발생:', error);
+                    
+                    // 공유 취소 시에는 아무것도 하지 않음
+                    if (error.name !== 'AbortError') {
+                        copyToClipboard(shareUrl);
+                    }
+                }
+            } else {
+                // Web Share API 미지원 브라우저용 대체 방법
+                copyToClipboard(shareUrl);
+            }
+        });
+    }
+    
+    // 카카오 공유 설정 함수 (상단 카카오 버튼용)
     function setupKakaoShare(element) {
+        if (!element) return;
+        
         element.addEventListener('click', function(e) {
             e.preventDefault();
             
@@ -598,28 +619,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 카카오톡 공유 초기화
-    try {
-        Kakao.init('{{ kakao_api_key }}'); 
-        console.log('Kakao init success:', Kakao.isInitialized());
-
-        // 상단 카카오 버튼
-        setupKakaoShare(document.getElementById('kakao-share-btn'));
+    // 클립보드 복사 함수
+    function copyToClipboard(text) {
+        try {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('공유 링크가 복사되었습니다.');
+            }).catch(function(err) {
+                manualCopy(text);
+            });
+        } catch (e) {
+            manualCopy(text);
+        }
+    }
+    
+    // 수동 복사 함수 (navigator.clipboard API 미지원 시)
+    function manualCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = 0;
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
         
-        // 하단 푸터 카카오 버튼
-        setupKakaoShare(document.getElementById('kakao-footer-btn'));
+        try {
+            document.execCommand('copy');
+            alert('공유 링크가 복사되었습니다.');
+        } catch (err) {
+            alert('공유 링크: ' + text);
+        }
         
-    } catch (e) {
-        console.error('카카오톡 공유 초기화 실패:', e);
-        const kakaoErrorMsg = '카카오톡 공유 기능을 초기화하는데 실패했습니다: ' + e.message;
-        
-        document.getElementById('kakao-share-btn').addEventListener('click', function(e) {
-            alert(kakaoErrorMsg);
-        });
-        
-        document.getElementById('kakao-footer-btn').addEventListener('click', function(e) {
-            alert(kakaoErrorMsg);
-        });
+        document.body.removeChild(textarea);
     }
     
     // 모달 기능
@@ -632,8 +662,6 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.style.display = 'block';
             console.log('모달 열기 클릭');
         }
-    } else {
-        console.log('모달 열기 버튼을 찾을 수 없습니다.');
     }
     
     if (closeModalBtn) {
@@ -641,8 +669,6 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.style.display = 'none';
             console.log('모달 닫기 클릭');
         }
-    } else {
-        console.log('모달 닫기 버튼을 찾을 수 없습니다.');
     }
     
     // 모달 외부 클릭시 닫기
