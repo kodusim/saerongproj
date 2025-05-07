@@ -388,66 +388,47 @@ def result(request):
 
 def result_detail(request, uuid):
     """UUID로 얼굴상 분석 결과 조회"""
-    from django.conf import settings
-    from .models import FaceTestResult, FaceResultType, FaceTestModel
-    import traceback
+    from .models import FaceTestResult
     
+    # UUID로 결과 조회
     try:
-        # UUID로 결과 조회
-        try:
-            test_result = FaceTestResult.objects.get(uuid=uuid)
-        except FaceTestResult.DoesNotExist:
-            # 결과가 없으면 메인 페이지로 리다이렉트
-            return redirect('facetest:index')
-        
-        face_test = test_result.face_test
-        result_type = test_result.result_type
-        
-        # 모든 결과 유형 목록
-        all_results = FaceResultType.objects.filter(face_test=face_test)
-        
-        # 이미지 경로 가져오기
-        face_image_url = None
-        if test_result.image_path:
-            face_image_url = f"{settings.MEDIA_URL}{test_result.image_path}"
-        
-        # 다른 얼굴상 테스트 목록
-        other_tests = FaceTestModel.objects.filter(is_active=True).exclude(id=face_test.id)[:4]
-        
-        # 카카오 API 키 가져오기
-        kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
-        
-        context = {
-            'face_test': face_test,
-            'result_type': result_type,
-            'face_image_url': face_image_url,
-            'other_tests': other_tests,
-            'characteristics': result_type.get_characteristics_list(),
-            'examples': result_type.get_examples_list(),
-            'kakao_api_key': kakao_api_key,
-            'all_results': all_results,
-            'test_result': test_result  # 결과 객체 추가
-        }
-        
-        # 응답 생성
-        response = render(request, 'facetest/result.html', context)
-        
-        # 캐시 방지 헤더 추가
-        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response['Pragma'] = 'no-cache'
-        response['Expires'] = '0'
-        
-        return response
-        
-    except Exception as e:
-        # 오류 로깅
-        print(f"결과 페이지 오류: {str(e)}")
-        print(traceback.format_exc())
-        
-        # 대체 응답
-        return render(request, 'facetest/error.html', {
-            'error_message': f"결과를 불러오는 중 오류가 발생했습니다: {str(e)}"
-        })
+        test_result = FaceTestResult.objects.get(uuid=uuid)
+    except FaceTestResult.DoesNotExist:
+        # 결과가 없으면 메인 페이지로 리다이렉트
+        return redirect('facetest:index')
+    
+    face_test = test_result.face_test
+    result_type = test_result.result_type
+    
+    # 모든 결과 유형 목록
+    all_results = FaceResultType.objects.filter(face_test=face_test)
+    
+    # 이미지 경로 가져오기
+    face_image_url = None
+    if test_result.image_path:
+        from django.conf import settings
+        face_image_url = f"{settings.MEDIA_URL}{test_result.image_path}"
+    
+    # 다른 얼굴상 테스트 목록
+    other_tests = FaceTestModel.objects.filter(is_active=True).exclude(id=face_test.id)[:4]
+    
+    # 카카오 API 키 가져오기
+    from django.conf import settings
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
+    
+    context = {
+        'face_test': face_test,
+        'result_type': result_type,
+        'face_image_url': face_image_url,
+        'other_tests': other_tests,
+        'characteristics': result_type.get_characteristics_list(),
+        'examples': result_type.get_examples_list(),
+        'kakao_api_key': kakao_api_key,
+        'all_results': all_results,
+        'test_result': test_result  # 결과 객체 추가
+    }
+    
+    return render(request, 'facetest/result.html', context)
 
 def test_intro(request, test_id):
     """테스트 인트로 페이지 - 시작 화면 보여주기"""
