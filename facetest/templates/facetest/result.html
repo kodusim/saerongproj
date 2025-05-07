@@ -10,14 +10,40 @@
 {% block extra_head %}
 <!-- 동적인 결과별 메타태그 설정 -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과{% endif %}">
+<meta name="twitter:title" content="내 얼굴상 테스트 결과: {{ result_type.name }}">
+<meta name="twitter:description" content="{{ result_type.description|truncatechars:100 }}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
 
 <!-- 오픈그래프 태그 (소셜미디어 공유용) -->
-<meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과{% endif %}">
+<meta property="og:title" content="{% if result_type %}{{ result_type.name }} 얼굴상 결과{% else %}얼굴상 분석 결과{% endif %}">
+<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="새롱 - 얼굴상 테스트">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
+<meta property="og:image:width" content="800">
+<meta property="og:image:height" content="400">
+{% endblock %}
+
+<!-- 결과 이미지 URL 설정 -->
+{% if result_type %}
+    {% with main_image=result_type.images.filter(is_main=True).first %}
+        {% if main_image %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
+        {% elif result_type.images.first %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
+        {% else %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+        {% endif %}
+    {% endwith %}
+{% else %}
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+{% endif %}
+
+<!-- 오픈그래프 태그 (소셜미디어 공유용) -->
+<meta property="og:title" content="{% if result_type %}{{ result_type.name }} 얼굴상 결과{% else %}얼굴상 분석 결과{% endif %}">
+<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
+<meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.build_absolute_uri }}">
 
 <!-- 결과 이미지 URL 설정 -->
@@ -25,23 +51,20 @@
     {% with main_image=result_type.images.filter(is_main=True).first %}
         {% if main_image %}
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
         {% elif result_type.images.first %}
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
         {% else %}
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
         {% endif %}
     {% endwith %}
 {% else %}
     <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
 
 <!-- 카카오톡 공유 시 필요한 추가 메타 태그 -->
 <meta property="og:image:width" content="800">
 <meta property="og:image:height" content="400">
+<meta property="og:site_name" content="새롱 - 얼굴상 테스트">
 {% endblock %}
 
 {% block content %}
@@ -499,23 +522,12 @@ crossorigin="anonymous"></script>
 <!-- 공유 기능 스크립트 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM 로드 완료, 공유 스크립트 초기화');
-    
     // 공유할 URL 설정
-    {% if test_result %}
-    // UUID로 고정된 URL 사용 (새 방식)
-    const shareUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:result_detail" test_result.uuid %}';
-    {% else %}
-    // 현재 페이지 URL 사용 (이전 방식)
     const shareUrl = window.location.href.split('#')[0];
-    {% endif %}
-    
     const testUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}';
     
     const title = "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}";
     const description = "{% if result_type %}{{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}";
-    
-    console.log('공유 정보 준비 완료:', {shareUrl, title, description});
     
     // 링크 복사 기능
     const linkCopyBtn = document.getElementById('link-copy-btn');
@@ -550,12 +562,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 카카오톡 공유 초기화 (상단 공유 버튼용)
+    // 카카오톡 공유 초기화
     try {
         Kakao.init('{{ kakao_api_key }}'); 
-        console.log('Kakao init success:', Kakao.isInitialized());
 
-        // 상단 카카오 버튼
+        // 카카오 버튼
         const kakaoBtn = document.getElementById('kakao-share-btn');
         if (kakaoBtn) {
             kakaoBtn.addEventListener('click', function() {
@@ -564,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     content: {
                         title: title,
                         description: description,
-                        imageUrl: {% with main_image=result_type.images.filter.first %}{% if main_image %}'{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}'{% else %}''{% endif %}{% endwith %},
+                        imageUrl: {% with main_image=result_type.images.first %}{% if main_image %}'{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}'{% else %}''{% endif %}{% endwith %},
                         link: {
                             mobileWebUrl: shareUrl,
                             webUrl: shareUrl
@@ -593,65 +604,21 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('카카오톡 공유 초기화 실패:', e);
     }
     
-    // 푸터의 Web Share 버튼
-    const webShareBtn = document.getElementById('web-share-btn');
-    if (webShareBtn) {
-        console.log('Web Share 버튼 발견:', webShareBtn);
-        
-        webShareBtn.addEventListener('click', function() {
-            console.log('Web Share 버튼 클릭됨');
-            
-            // 공유할 데이터 설정
-            const shareData = {
-                title: title,
-                text: description,
-                url: shareUrl
-            };
-            
-            // Web Share API 지원 및 데이터 공유 가능 여부 확인
-            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                console.log('Web Share API 지원 및 데이터 공유 가능');
-                
-                navigator.share(shareData)
-                .then(() => console.log('공유 성공'))
-                .catch((error) => {
-                    console.log('공유 중 오류 발생:', error);
-                    // 공유 취소가 아닌 경우에만 대체 방법 사용
-                    if (error.name !== 'AbortError') {
-                        copyToClipboard(shareUrl);
-                    }
-                });
-            } else {
-                console.log('Web Share API 미지원 또는 데이터 공유 불가, 클립보드 복사로 대체');
-                // 대체 방법
-                copyToClipboard(shareUrl);
-            }
-        });
-    } else {
-        console.log('Web Share 버튼을 찾을 수 없음');
-    }
-    
     // 클립보드 복사 함수
     function copyToClipboard(text) {
-        console.log('클립보드 복사 시도:', text);
-        
         try {
             navigator.clipboard.writeText(text).then(function() {
-                console.log('클립보드 복사 성공');
                 alert('공유 링크가 복사되었습니다.');
             }).catch(function(err) {
-                console.error('클립보드 API 오류:', err);
                 manualCopy(text);
             });
         } catch (e) {
-            console.error('클립보드 접근 오류:', e);
             manualCopy(text);
         }
     }
     
     // 수동 복사 함수 (navigator.clipboard API 미지원 시)
     function manualCopy(text) {
-        console.log('수동 복사 메서드 사용');
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -662,39 +629,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const successful = document.execCommand('copy');
-            console.log('execCommand 복사 ' + (successful ? '성공' : '실패'));
             alert('공유 링크가 복사되었습니다.');
         } catch (err) {
-            console.error('execCommand 복사 오류:', err);
             alert('공유 링크: ' + text);
         }
         
         document.body.removeChild(textarea);
     }
-    
-    // 모달 기능
-    const modal = document.getElementById('resultsModal');
-    const openModalBtn = document.getElementById('showAllResults');
-    const closeModalBtn = document.querySelector('.close-modal');
-    
-    if (openModalBtn) {
-        openModalBtn.onclick = function() {
-            modal.style.display = 'block';
-        }
-    }
-    
-    if (closeModalBtn) {
-        closeModalBtn.onclick = function() {
-            modal.style.display = 'none';
-        }
-    }
-    
-    // 모달 외부 클릭시 닫기
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    }
-});
 </script>
 {% endblock %}
