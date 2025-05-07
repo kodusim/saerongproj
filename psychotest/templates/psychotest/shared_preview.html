@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ test.title }} - {{ result.title }} | 새롱</title>
+    
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="{{ test.title }} - {{ result.title }} | 새롱" />
+    <meta name="description" content="{{ result.description|truncatechars:150 }}" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+    <meta property="og:title" content="{{ test.title }} - {{ result.title }} | 새롱" />
+    <meta property="og:description" content="{{ result.description|truncatechars:150 }}" />
+    {% if result.image %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}" />
+    {% else %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}" />
+    {% endif %}
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="{{ request.build_absolute_uri }}" />
+    <meta property="twitter:title" content="{{ test.title }} - {{ result.title }} | 새롱" />
+    <meta property="twitter:description" content="{{ result.description|truncatechars:150 }}" />
+    {% if result.image %}
+    <meta property="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}" />
+    {% else %}
+    <meta property="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}" />
+    {% endif %}
+    
+    <!-- 3초 후 실제 결과 페이지로 리다이렉트 -->
+    <meta http-equiv="refresh" content="0;url={% url 'psychotest:shared_result' shared_result.id %}" />
+    
+    <style>
+        body {
+            font-family: 'NanumSquareNeo', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: {{ result.background_color|default:"#FFF5EE" }};
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        p {
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #0070f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ test.title }} - {{ result.title }}</h1>
+        {% if result.image %}
+            <img src="{{ result.image.url }}" alt="{{ result.title }}">
+        {% endif %}
+        <p>{{ result.description|truncatechars:150 }}</p>
+        <a href="{% url 'psychotest:shared_result' shared_result.id %}" class="btn">결과 보기</a>
+        <p>잠시 후 자동으로 이동합니다...</p>
+    </div>
+</body>
+</html>

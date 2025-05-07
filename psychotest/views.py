@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Test, Question, Option, Result, Category, SharedTestResult
 from django.conf import settings
+from django.template.loader import render_to_string
 
 def test_list(request):
     """테스트 목록 페이지"""
@@ -379,7 +380,7 @@ def shared_result(request, result_id):
     test = shared_result.test
     result = shared_result.result
     
-    # 이미지 크기 측정 (선택적)
+    # 이미지 크기 측정 (필요한 경우)
     image_dimensions = {}
     if result and result.image:
         try:
@@ -400,24 +401,31 @@ def shared_result(request, result_id):
     # 카카오 API 키 가져오기
     kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
     
-    # 결과 데이터 구성
-    result_data = {
-        'test_id': test.id,
-        'result_id': result.id,
-        'score': shared_result.score,
-        'category': shared_result.category,
-        'category_scores': shared_result.category_scores,
-        'method': shared_result.calculation_method
+    context = {
+        'test': test,
+        'result': result,
+        'image_dimensions': image_dimensions,
+        'kakao_api_key': kakao_api_key,
+        'shared_result': shared_result,
     }
+    
+    # 새로운 템플릿 사용
+    return render(request, 'psychotest/shared_result.html', context)
+
+def share_preview(request, result_id):
+    """소셜 미디어 공유를 위한 전용 미리보기 페이지"""
+    shared_result = get_object_or_404(SharedTestResult, id=result_id)
+    test = shared_result.test
+    result = shared_result.result
+    
+    # 카카오 API 키 가져오기
+    kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
     
     context = {
         'test': test,
         'result': result,
-        'result_data': result_data,
-        'image_dimensions': image_dimensions,
-        'kakao_api_key': kakao_api_key,
         'shared_result': shared_result,
-        'is_shared_view': True,  # 공유된 결과 페이지임을 표시
+        'kakao_api_key': kakao_api_key,
     }
     
-    return render(request, 'psychotest/test_result.html', context)
+    return render(request, 'psychotest/share_preview.html', context)

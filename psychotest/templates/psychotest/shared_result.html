@@ -13,6 +13,7 @@
 {% block twitter_title %}{{ test.title }} - {{ result.title }} | 새롱{% endblock %}
 {% block twitter_description %}{{ result.description|truncatechars:150 }}{% endblock %}
 {% block twitter_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block twitter_image %}{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{% get_static_prefix %}images/saerong_og_image.png{% endif %}{% endblock %}
 
 {% block content %}
 <style>
@@ -407,7 +408,7 @@ crossorigin="anonymous"></script>
 <!-- 공유 기능 스크립트 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 공유할 URL 설정
+    // 공유할 URL 설정 - share_preview 뷰를 사용하도록 수정
     {% if shared_result %}
         const shareUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "psychotest:share_preview" shared_result.id %}';
     {% else %}
