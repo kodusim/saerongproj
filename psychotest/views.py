@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Test, Question, Option, Result, Category, SharedTestResult
 from django.conf import settings
+from django.template.loader import render_to_string
 
 def test_list(request):
     """테스트 목록 페이지"""
@@ -424,4 +425,30 @@ def shared_result(request, result_id):
         'all_results': all_results,  # 모든 결과 추가
     }
     
-    return render(request, 'psychotest/test_result.html', context)
+    # 메타 태그를 위한 HTML 코드
+    if result.image:
+        image_url = request.build_absolute_uri(result.image.url)
+        title = f"{result.title} - {test.title} | 새롱"
+        description = result.description[:150] if result.description else ""
+        
+        # HTML 직접 렌더링
+        html = render_to_string('psychotest/test_result.html', context, request)
+        
+        # 메타 태그 삽입 - head 태그 바로 뒤에 추가
+        meta_tags = f"""
+        <meta property="og:title" content="{title}" />
+        <meta property="og:description" content="{description}" />
+        <meta property="og:url" content="{request.build_absolute_uri()}" />
+        <meta property="og:image" content="{image_url}" />
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:title" content="{title}" />
+        <meta property="twitter:description" content="{description}" />
+        <meta property="twitter:image" content="{image_url}" />
+        """
+        
+        # head 태그 뒤에 메타 태그 삽입
+        html = html.replace('<head>', '<head>' + meta_tags)
+        
+        return HttpResponse(html)
+    else:
+        return render(request, 'psychotest/test_result.html', context)
