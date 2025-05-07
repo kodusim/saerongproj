@@ -428,6 +428,7 @@ def result_detail(request, uuid):
         'test_result': test_result  # 결과 객체 추가
     }
     
+    # 응답 생성
     response = render(request, 'facetest/result.html', context)
     
     # 캐시 방지 헤더 추가
@@ -435,6 +436,7 @@ def result_detail(request, uuid):
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
     
+    # response 반환
     return response
 
 def test_intro(request, test_id):
