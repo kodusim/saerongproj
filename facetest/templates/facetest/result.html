@@ -597,20 +597,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const webShareBtn = document.getElementById('web-share-btn');
     if (webShareBtn) {
         console.log('Web Share 버튼 발견:', webShareBtn);
-        console.log('Web Share API 지원 여부:', !!navigator.share);
         
         webShareBtn.addEventListener('click', function() {
             console.log('Web Share 버튼 클릭됨');
             
-            // Web Share API 사용
-            if (navigator.share) {
-                console.log('Web Share API 호출 시도');
+            // 공유할 데이터 설정
+            const shareData = {
+                title: title,
+                text: description,
+                url: shareUrl
+            };
+            
+            // Web Share API 지원 및 데이터 공유 가능 여부 확인
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                console.log('Web Share API 지원 및 데이터 공유 가능');
                 
-                navigator.share({
-                    title: title,
-                    text: description,
-                    url: shareUrl
-                })
+                navigator.share(shareData)
                 .then(() => console.log('공유 성공'))
                 .catch((error) => {
                     console.log('공유 중 오류 발생:', error);
@@ -620,8 +622,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             } else {
-                console.log('Web Share API 미지원, 클립보드 복사로 대체');
-                // Web Share API 미지원 브라우저용 대체 방법
+                console.log('Web Share API 미지원 또는 데이터 공유 불가, 클립보드 복사로 대체');
+                // 대체 방법
                 copyToClipboard(shareUrl);
             }
         });
