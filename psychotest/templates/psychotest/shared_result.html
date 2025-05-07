@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <!-- Primary Meta Tags -->
+    <title>{{ test.title }} - {{ result.title }} | 새롱</title>
+    <meta name="title" content="{{ test.title }} - {{ result.title }} | 새롱" />
+    <meta name="description" content="{{ result.description|truncatechars:150 }}" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+    <meta property="og:title" content="{{ test.title }} - {{ result.title }} | 새롱" />
+    <meta property="og:description" content="{{ result.description|truncatechars:150 }}" />
+    {% if result.image %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}" />
+    {% else %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}" />
+    {% endif %}
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="{{ request.build_absolute_uri }}" />
+    <meta property="twitter:title" content="{{ test.title }} - {{ result.title }} | 새롱" />
+    <meta property="twitter:description" content="{{ result.description|truncatechars:150 }}" />
+    {% if result.image %}
+    <meta property="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}" />
+    {% else %}
+    <meta property="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}" />
+    {% endif %}
+
+    <!-- 리다이렉트 -->
+    <meta http-equiv="refresh" content="0;url={{ request.scheme }}://{{ request.get_host }}{% url 'psychotest:test_result' test.id %}?shared_id={{ shared_result.id }}">
+</head>
+<body>
+    <p>자동으로 결과 페이지로 이동합니다. 이동하지 않으면 <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'psychotest:test_result' test.id %}?shared_id={{ shared_result.id }}">여기</a>를 클릭하세요.</p>
+</body>
+</html>

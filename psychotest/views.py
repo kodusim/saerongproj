@@ -380,7 +380,7 @@ def shared_result(request, result_id):
     test = shared_result.test
     result = shared_result.result
     
-    # 이미지 크기 측정 (선택적)
+    # 이미지 크기 측정 (필요한 경우)
     image_dimensions = {}
     if result and result.image:
         try:
@@ -401,54 +401,13 @@ def shared_result(request, result_id):
     # 카카오 API 키 가져오기
     kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
     
-    # 결과 데이터 구성
-    result_data = {
-        'test_id': test.id,
-        'result_id': result.id,
-        'score': shared_result.score,
-        'category': shared_result.category,
-        'category_scores': shared_result.category_scores,
-        'method': shared_result.calculation_method
-    }
-    
-    # 해당 테스트의 모든 결과 가져오기 (모달용)
-    all_results = Result.objects.filter(test=test)
-    
     context = {
         'test': test,
         'result': result,
-        'result_data': result_data,
         'image_dimensions': image_dimensions,
         'kakao_api_key': kakao_api_key,
         'shared_result': shared_result,
-        'is_shared_view': True,  # 공유된 결과 페이지임을 표시
-        'all_results': all_results,  # 모든 결과 추가
     }
     
-    # 메타 태그를 위한 HTML 코드
-    if result.image:
-        image_url = request.build_absolute_uri(result.image.url)
-        title = f"{result.title} - {test.title} | 새롱"
-        description = result.description[:150] if result.description else ""
-        
-        # HTML 직접 렌더링
-        html = render_to_string('psychotest/test_result.html', context, request)
-        
-        # 메타 태그 삽입 - head 태그 바로 뒤에 추가
-        meta_tags = f"""
-        <meta property="og:title" content="{title}" />
-        <meta property="og:description" content="{description}" />
-        <meta property="og:url" content="{request.build_absolute_uri()}" />
-        <meta property="og:image" content="{image_url}" />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:title" content="{title}" />
-        <meta property="twitter:description" content="{description}" />
-        <meta property="twitter:image" content="{image_url}" />
-        """
-        
-        # head 태그 뒤에 메타 태그 삽입
-        html = html.replace('<head>', '<head>' + meta_tags)
-        
-        return HttpResponse(html)
-    else:
-        return render(request, 'psychotest/test_result.html', context)
+    # 새로운 템플릿 사용
+    return render(request, 'psychotest/shared_result.html', context)
