@@ -12,7 +12,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="내 얼굴상 테스트 결과: {{ result_type.name }}">
 <meta name="twitter:description" content="{{ result_type.description|truncatechars:100 }}">
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
 
 <!-- 오픈그래프 태그 (소셜미디어 공유용) -->
 <meta property="og:title" content="내 얼굴상 테스트 결과: {{ result_type.name }}">
@@ -20,51 +19,29 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="새롱 - 얼굴상 테스트">
 <meta property="og:url" content="{{ request.build_absolute_uri }}">
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
-<meta property="og:image:width" content="800">
-<meta property="og:image:height" content="400">
-{% endblock %}
-
-<!-- 결과 이미지 URL 설정 -->
-{% if result_type %}
-    {% with main_image=result_type.images.filter(is_main=True).first %}
-        {% if main_image %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-        {% elif result_type.images.first %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
-        {% else %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-        {% endif %}
-    {% endwith %}
-{% else %}
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-{% endif %}
-
-<!-- 오픈그래프 태그 (소셜미디어 공유용) -->
-<meta property="og:title" content="{% if result_type %}{{ result_type.name }} 얼굴상 결과{% else %}얼굴상 분석 결과{% endif %}">
-<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
-<meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.build_absolute_uri }}">
 
 <!-- 결과 이미지 URL 설정 -->
 {% if result_type %}
     {% with main_image=result_type.images.filter(is_main=True).first %}
         {% if main_image %}
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
         {% elif result_type.images.first %}
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
         {% else %}
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
         {% endif %}
     {% endwith %}
 {% else %}
     <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
 
 <!-- 카카오톡 공유 시 필요한 추가 메타 태그 -->
 <meta property="og:image:width" content="800">
 <meta property="og:image:height" content="400">
-<meta property="og:site_name" content="새롱 - 얼굴상 테스트">
 {% endblock %}
 
 {% block content %}
