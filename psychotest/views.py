@@ -410,6 +410,9 @@ def shared_result(request, result_id):
         'method': shared_result.calculation_method
     }
     
+    # 해당 테스트의 모든 결과 가져오기 (모달용)
+    all_results = Result.objects.filter(test=test)
+    
     context = {
         'test': test,
         'result': result,
@@ -418,6 +421,7 @@ def shared_result(request, result_id):
         'kakao_api_key': kakao_api_key,
         'shared_result': shared_result,
         'is_shared_view': True,  # 공유된 결과 페이지임을 표시
+        'all_results': all_results,  # 모든 결과 추가
     }
     
     return render(request, 'psychotest/test_result.html', context)

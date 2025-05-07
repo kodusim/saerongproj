@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% load static psychotest_filters %}
 
+{% block title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
+{% block meta_title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
+{% block meta_description %}{{ result.description|truncatechars:150 }}{% endblock %}
+
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block og_title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
+{% block og_description %}{{ result.description|truncatechars:150 }}{% endblock %}
+{% block og_image %}{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{% get_static_prefix %}images/saerong_og_image.png{% endif %}{% endblock %}
+
+{% block twitter_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block twitter_title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
+{% block twitter_description %}{{ result.description|truncatechars:150 }}{% endblock %}
+{% block twitter_image %}{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{% get_static_prefix %}images/saerong_og_image.png{% endif %}{% endblock %}
+
 {% block content %}
 <style>
     body {
