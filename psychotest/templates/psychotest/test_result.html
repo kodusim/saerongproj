@@ -378,9 +378,9 @@
 
 <!-- 푸터 영역 -->
 <div class="custom-footer">
-    <a href="#" class="kakao-share-btn" id="kakao-footer-btn">
-        카카오톡으로 공유하기
-    </a>
+    <button id="web-share-btn" class="kakao-share-btn">
+        테스트 공유하기
+    </button>
     <a href="{% url 'psychotest:test_intro' test.id %}" class="back-btn">
         <i class="back-icon">↩</i>
     </a>
@@ -406,105 +406,167 @@ document.addEventListener('DOMContentLoaded', function() {
     const title = "{{ test.title }} - {{ result.title }}";
     const description = "{{ result.description|truncatechars:50|escapejs }}";
     
-    // 기존 링크 복사 기능
-    document.getElementById('link-copy-btn').addEventListener('click', function() {
-        try {
-            navigator.clipboard.writeText(shareUrl).then(function() {
-                alert('링크가 복사되었습니다.');
-            }).catch(function(err) {
-                fallbackCopy();
-            });
-        } catch (e) {
-            fallbackCopy();
-        }
-        
-        // 클립보드 API 지원하지 않는 브라우저를 위한 대체 방법
-        function fallbackCopy() {
-            const textarea = document.createElement('textarea');
-            textarea.value = shareUrl;
-            textarea.style.position = 'fixed';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            
-            try {
-                document.execCommand('copy');
-                alert('링크가 복사되었습니다.');
-            } catch (err) {
-                alert('링크 복사에 실패했습니다. 직접 URL을 복사해주세요.');
-            }
-            
-            document.body.removeChild(textarea);
-        }
-    });
+    console.log('공유 정보 준비:', { shareUrl, title, description });
     
-    // 페이스북 공유
-    document.getElementById('facebook-share-btn').addEventListener('click', function() {
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, 'facebook', 'width=600, height=700, resizable=no');
-    });
-
-    // 트위터(X) 공유
-    document.getElementById('twitter-share-btn').addEventListener('click', function() {
-        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title)}`, 'twitter', 'width=600, height=700, resizable=no');
-    });
-    
-    function setupKakaoShare(element) {
-        element.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            Kakao.Share.sendDefault({
-                objectType: 'feed',
-                content: {
-                    title: title,
-                    description: description,
-                    imageUrl: {% if result.image %}'{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}'{% else %}''{% endif %},
-                    link: {
-                        mobileWebUrl: shareUrl,
-                        webUrl: shareUrl
-                    }
-                },
-                buttons: [
-                    {
-                        title: '결과 확인하기',
-                        link: {
-                            mobileWebUrl: shareUrl,
-                            webUrl: shareUrl
-                        }
-                    },
-                    {
-                        title: '테스트 하기',
-                        link: {
-                            mobileWebUrl: testUrl,
-                            webUrl: testUrl
-                        }
-                    }
-                ]
-            });
+    // 링크 복사 기능 (상단 공유 버튼)
+    const linkCopyBtn = document.getElementById('link-copy-btn');
+    if (linkCopyBtn) {
+        linkCopyBtn.addEventListener('click', function() {
+            copyToClipboard(shareUrl);
         });
     }
     
-    // 카카오톡 공유 초기화
+    // 페이스북 공유 (상단 공유 버튼)
+    const facebookBtn = document.getElementById('facebook-share-btn');
+    if (facebookBtn) {
+        facebookBtn.addEventListener('click', function() {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, 'facebook', 'width=600, height=700, resizable=no');
+        });
+    }
+
+    // 트위터(X) 공유 (상단 공유 버튼)
+    const twitterBtn = document.getElementById('twitter-share-btn');
+    if (twitterBtn) {
+        twitterBtn.addEventListener('click', function() {
+            // URL 인코딩을 통해 한글 텍스트 처리
+            const text = encodeURIComponent(title);
+            const url = encodeURIComponent(shareUrl);
+            const hashtags = encodeURIComponent('심리테스트,새롱');
+            
+            window.open(
+                `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`, 
+                'twitter', 
+                'width=600, height=700, resizable=no'
+            );
+        });
+    }
+    
+    // 카카오톡 공유 초기화 (상단 공유 버튼용)
     try {
         Kakao.init('{{ kakao_api_key }}'); 
         console.log('Kakao init success:', Kakao.isInitialized());
 
         // 상단 카카오 버튼
-        setupKakaoShare(document.getElementById('kakao-share-btn'));
-        
-        // 하단 푸터 카카오 버튼
-        setupKakaoShare(document.getElementById('kakao-footer-btn'));
-        
+        const kakaoBtn = document.getElementById('kakao-share-btn');
+        if (kakaoBtn) {
+            kakaoBtn.addEventListener('click', function() {
+                Kakao.Share.sendDefault({
+                    objectType: 'feed',
+                    content: {
+                        title: title,
+                        description: description,
+                        imageUrl: {% if result.image %}'{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}'{% else %}''{% endif %},
+                        link: {
+                            mobileWebUrl: shareUrl,
+                            webUrl: shareUrl
+                        }
+                    },
+                    buttons: [
+                        {
+                            title: '결과 확인하기',
+                            link: {
+                                mobileWebUrl: shareUrl,
+                                webUrl: shareUrl
+                            }
+                        },
+                        {
+                            title: '테스트 하기',
+                            link: {
+                                mobileWebUrl: testUrl,
+                                webUrl: testUrl
+                            }
+                        }
+                    ]
+                });
+            });
+        }
     } catch (e) {
         console.error('카카오톡 공유 초기화 실패:', e);
-        const kakaoErrorMsg = '카카오톡 공유 기능을 초기화하는데 실패했습니다: ' + e.message;
         
-        document.getElementById('kakao-share-btn').addEventListener('click', function(e) {
-            alert(kakaoErrorMsg);
-        });
+        const kakaoBtn = document.getElementById('kakao-share-btn');
+        if (kakaoBtn) {
+            kakaoBtn.addEventListener('click', function() {
+                alert('카카오톡 공유 기능을 초기화하는데 실패했습니다.');
+            });
+        }
+    }
+    
+    // 푸터의 Web Share 버튼
+    const webShareBtn = document.getElementById('web-share-btn');
+    if (webShareBtn) {
+        console.log('Web Share 버튼 발견');
         
-        document.getElementById('kakao-footer-btn').addEventListener('click', function(e) {
-            alert(kakaoErrorMsg);
+        webShareBtn.addEventListener('click', function() {
+            console.log('Web Share 버튼 클릭됨');
+            
+            // 공유할 데이터 설정
+            const shareData = {
+                title: title,
+                text: description,
+                url: shareUrl
+            };
+            
+            // Web Share API 지원 및 데이터 공유 가능 여부 확인
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                console.log('Web Share API 지원 및 데이터 공유 가능');
+                
+                navigator.share(shareData)
+                .then(() => console.log('공유 성공'))
+                .catch((error) => {
+                    console.log('공유 중 오류 발생:', error);
+                    
+                    // 공유 취소가 아닌 경우에만 대체 방법 사용
+                    if (error.name !== 'AbortError') {
+                        copyToClipboard(shareUrl);
+                    }
+                });
+            } else {
+                console.log('Web Share API 미지원 또는 데이터 공유 불가, 클립보드 복사로 대체');
+                // 대체 방법
+                copyToClipboard(shareUrl);
+            }
         });
+    }
+    
+    // 클립보드 복사 함수
+    function copyToClipboard(text) {
+        console.log('클립보드 복사 시도:', text);
+        
+        try {
+            navigator.clipboard.writeText(text).then(function() {
+                console.log('클립보드 복사 성공');
+                alert('공유 링크가 복사되었습니다.');
+            }).catch(function(err) {
+                console.error('클립보드 API 오류:', err);
+                manualCopy(text);
+            });
+        } catch (e) {
+            console.error('클립보드 접근 오류:', e);
+            manualCopy(text);
+        }
+    }
+    
+    // 수동 복사 함수 (navigator.clipboard API 미지원 시)
+    function manualCopy(text) {
+        console.log('수동 복사 메서드 사용');
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = 0;
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            console.log('execCommand 복사 ' + (successful ? '성공' : '실패'));
+            alert('공유 링크가 복사되었습니다.');
+        } catch (err) {
+            console.error('execCommand 복사 오류:', err);
+            alert('공유 링크: ' + text);
+        }
+        
+        document.body.removeChild(textarea);
     }
     
     // 모달 기능
