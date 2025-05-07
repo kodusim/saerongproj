@@ -1,19 +1,17 @@
-{% extends "base.html" %}
-{% load static psychotest_filters %}
-
-{% block title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
-{% block meta_title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
-{% block meta_description %}{{ result.description|truncatechars:150 }}{% endblock %}
-
-{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
-{% block og_title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
-{% block og_description %}{{ result.description|truncatechars:150 }}{% endblock %}
-{% block og_image %}{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{% get_static_prefix %}images/saerong_og_image.png{% endif %}{% endblock %}
-
-{% block twitter_url %}{{ request.build_absolute_uri }}{% endblock %}
-{% block twitter_title %}{{ result.title }} - {{ test.title }} | 새롱{% endblock %}
-{% block twitter_description %}{{ result.description|truncatechars:150 }}{% endblock %}
-{% block twitter_image %}{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{% get_static_prefix %}images/saerong_og_image.png{% endif %}{% endblock %}
+{% block extra_head %}
+    <!-- 기존 블록 대신 직접 메타 태그 설정 -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}" />
+    <meta property="og:title" content="{{ result.title }} - {{ test.title }} | 새롱" />
+    <meta property="og:description" content="{{ result.description|truncatechars:150 }}" />
+    <meta property="og:image" content="{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}{% endif %}" />
+    
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}" />
+    <meta property="twitter:title" content="{{ result.title }} - {{ test.title }} | 새롱" />
+    <meta property="twitter:description" content="{{ result.description|truncatechars:150 }}" />
+    <meta property="twitter:image" content="{% if result.image %}{{ request.scheme }}://{{ request.get_host }}{{ result.image.url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}{% endif %}" />
+{% endblock %}
 
 {% block content %}
 <style>
