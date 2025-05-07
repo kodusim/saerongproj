@@ -395,7 +395,6 @@ def result_detail(request, uuid):
         test_result = FaceTestResult.objects.get(uuid=uuid)
     except FaceTestResult.DoesNotExist:
         # 결과가 없으면 메인 페이지로 리다이렉트
-        messages.error(request, '해당 결과를 찾을 수 없습니다.')
         return redirect('facetest:index')
     
     face_test = test_result.face_test
@@ -422,8 +421,8 @@ def result_detail(request, uuid):
         'result_type': result_type,
         'face_image_url': face_image_url,
         'other_tests': other_tests,
-        'characteristics': result_type.get_characteristics_list() if result_type else [],
-        'examples': result_type.get_examples_list() if result_type else [],
+        'characteristics': result_type.get_characteristics_list(),
+        'examples': result_type.get_examples_list(),
         'kakao_api_key': kakao_api_key,
         'all_results': all_results,
         'test_result': test_result  # 결과 객체 추가
