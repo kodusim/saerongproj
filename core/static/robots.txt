@@ -6,3 +6,9 @@ Disallow: /static/
 Disallow: /media/temp/
 
 Sitemap: https://saerong.com/sitemap.xml
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
