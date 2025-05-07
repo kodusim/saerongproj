@@ -428,7 +428,14 @@ def result_detail(request, uuid):
         'test_result': test_result  # 결과 객체 추가
     }
     
-    return render(request, 'facetest/result.html', context)
+    response = render(request, 'facetest/result.html', context)
+    
+    # 캐시 방지 헤더 추가
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    
+    return response
 
 def test_intro(request, test_id):
     """테스트 인트로 페이지 - 시작 화면 보여주기"""
