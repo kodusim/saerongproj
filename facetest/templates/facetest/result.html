@@ -3,49 +3,18 @@
 
 {% block title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %} - 새롱{% endblock %}
 
-{% block meta_title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}{% endblock %}
-
+{% block meta_title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %} - 새롱{% endblock %}
 {% block meta_description %}{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}{% endblock %}
 
-{% block extra_head %}
-<!-- 수정된 OG 메타태그: 크기 명시 및 메타태그 개선 -->
-<meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.build_absolute_uri }}">
-<meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
-<meta property="og:site_name" content="새롱">
-<meta property="og:locale" content="ko_KR">
+{% block og_title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %} - 새롱{% endblock %}
+{% block og_description %}{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block og_image %}{% with main_image=result_type.images.filter.first %}{% if main_image %}{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}{% endif %}{% endwith %}{% endblock %}
 
-{% if result_type %}
-    {% with main_image=result_type.images.filter.first %}
-        {% if main_image %}
-            <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-            <meta property="og:image:width" content="1200">
-            <meta property="og:image:height" content="630">
-            <meta property="og:image:type" content="image/jpeg">
-            <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
-        {% else %}
-            <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-            <meta property="og:image:width" content="1200">
-            <meta property="og:image:height" content="630">
-            <meta property="og:image:type" content="image/png">
-            <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-        {% endif %}
-    {% endwith %}
-{% else %}
-    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:type" content="image/png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-{% endif %}
-
-<meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
-{% endblock extra_head %}
+{% block twitter_title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %} - 새롱{% endblock %}
+{% block twitter_description %}{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}{% endblock %}
+{% block twitter_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block twitter_image %}{% with main_image=result_type.images.filter.first %}{% if main_image %}{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}{% endif %}{% endwith %}{% endblock %}
 
 {% block content %}
 <style>
@@ -399,7 +368,7 @@
             </div>
             {% endif %}
 
-            <!-- 모든 결과 보기 버튼 - psychotest와 동일한 스타일로 변경 -->
+            <!-- 모든 결과 보기 버튼 -->
             <div class="text-center">
                 <button class="all-results-btn" id="showAllResults">모든 결과 보기</button>
             </div>
@@ -531,30 +500,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // 공유할 URL 설정 (심리테스트와 동일한 방식으로 변경)
+    {% if test_result %}
+        const shareUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:result_detail" test_result.uuid %}';
+    {% else %}
+        const shareUrl = window.location.href.split('#')[0];
+    {% endif %}
+    
+    const testUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}';
+    
+    const title = "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}";
+    const description = "{% if result_type %}{{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}";
+
+    console.log('공유 정보 준비:', { shareUrl, title, description });
+    
     // 웹 공유 API 사용 (기기 지원 시)
     const webShareBtn = document.getElementById('web-share-btn');
     if (webShareBtn) {
         webShareBtn.addEventListener('click', function() {
-            if (navigator.share) {
-                navigator.share({
-                    title: "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}",
-                    text: "{% if result_type %}{{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}",
-                    url: window.location.href
-                })
-                .then(() => console.log('공유 성공'))
-                .catch((error) => console.log('공유 실패:', error));
+            if (navigator.share && navigator.canShare) {
+                const shareData = {
+                    title: title,
+                    text: description,
+                    url: shareUrl
+                };
+                
+                // canShare 메서드 지원 확인
+                if (!navigator.canShare || navigator.canShare(shareData)) {
+                    navigator.share(shareData)
+                    .then(() => console.log('공유 성공'))
+                    .catch((error) => {
+                        console.log('공유 실패:', error);
+                        
+                        // 공유 취소가 아닌 경우에만 대체 방법 사용
+                        if (error.name !== 'AbortError') {
+                            // 카카오톡 공유 사용 (대체)
+                            document.getElementById('kakao-share-btn').click();
+                        }
+                    });
+                } else {
+                    // 카카오톡 공유 사용 (대체)
+                    document.getElementById('kakao-share-btn').click();
+                }
             } else {
-                // 기기가 Web Share API를 지원하지 않으면 카카오 공유 사용
+                // 카카오톡 공유 사용 (대체)
                 document.getElementById('kakao-share-btn').click();
             }
         });
     }
-    
-    // 공유할 URL 설정 - 현재 페이지 URL 사용
-    const shareUrl = window.location.href.split('#')[0];
-    
-    const title = "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}";
-    const description = "{% if result_type %}{{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}";
     
     // 링크 복사 기능
     const linkCopyBtn = document.getElementById('link-copy-btn');
@@ -576,7 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const twitterBtn = document.getElementById('twitter-share-btn');
     if (twitterBtn) {
         twitterBtn.addEventListener('click', function() {
-            const text = encodeURIComponent(title + '\n' + description);
+            const text = encodeURIComponent(title);
             const url = encodeURIComponent(shareUrl);
             const hashtags = encodeURIComponent('얼굴상테스트,새롱');
             
@@ -590,17 +583,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 카카오톡 공유
     try {
-        Kakao.init('{{ kakao_api_key }}'); 
+        Kakao.init('{{ kakao_api_key }}');
+        console.log('Kakao init success:', Kakao.isInitialized());
         
         const kakaoBtn = document.getElementById('kakao-share-btn');
         if (kakaoBtn) {
             kakaoBtn.addEventListener('click', function() {
+                {% with main_image=result_type.images.filter.first %}
                 Kakao.Share.sendDefault({
                     objectType: 'feed',
                     content: {
                         title: title,
                         description: description,
-                        imageUrl: {% with main_image=result_type.images.first %}{% if main_image %}'{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}'{% else %}''{% endif %}{% endwith %},
+                        imageUrl: {% if main_image %}'{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}'{% else %}''{% endif %},
                         link: {
                             mobileWebUrl: shareUrl,
                             webUrl: shareUrl
@@ -617,12 +612,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         {
                             title: '테스트 하기',
                             link: {
-                                mobileWebUrl: '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}',
-                                webUrl: '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}'
+                                mobileWebUrl: testUrl,
+                                webUrl: testUrl
                             }
                         }
                     ]
                 });
+                {% endwith %}
             });
         }
     } catch (e) {
@@ -633,17 +629,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function copyToClipboard(text) {
         try {
             navigator.clipboard.writeText(text).then(function() {
+                console.log('클립보드 복사 성공');
                 alert('공유 링크가 복사되었습니다.');
             }).catch(function(err) {
+                console.error('클립보드 API 오류:', err);
                 manualCopy(text);
             });
         } catch (e) {
+            console.error('클립보드 접근 오류:', e);
             manualCopy(text);
         }
     }
     
     // 수동 복사 함수 (navigator.clipboard API 미지원 시)
     function manualCopy(text) {
+        console.log('수동 복사 메서드 사용');
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -654,8 +654,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const successful = document.execCommand('copy');
+            console.log('execCommand 복사 ' + (successful ? '성공' : '실패'));
             alert('공유 링크가 복사되었습니다.');
         } catch (err) {
+            console.error('execCommand 복사 오류:', err);
             alert('공유 링크: ' + text);
         }
         

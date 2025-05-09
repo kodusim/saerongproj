@@ -412,6 +412,18 @@ def result_detail(request, uuid):
         from django.conf import settings
         kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
         
+        # 공유 이미지 URL 절대 경로로 준비 (추가됨)
+        share_image_url = None
+        main_image = result_type.images.filter(is_main=True).first() or result_type.images.first()
+        if main_image:
+            share_image_url = request.build_absolute_uri(main_image.image.url)
+        
+        # 타임스탬프 추가하여 캐시 방지 (추가됨)
+        import time
+        timestamp = int(time.time())
+        if share_image_url:
+            share_image_url = f"{share_image_url}?t={timestamp}"
+            
         context = {
             'face_test': face_test,
             'result_type': result_type,
@@ -421,7 +433,9 @@ def result_detail(request, uuid):
             'examples': result_type.get_examples_list() if result_type else [],
             'kakao_api_key': kakao_api_key,
             'all_results': all_results,
-            'test_result': test_result  # 결과 객체 추가
+            'test_result': test_result,  # 결과 객체 추가
+            'share_image_url': share_image_url,  # 공유용 이미지 URL 추가
+            'timestamp': timestamp  # 타임스탬프 추가
         }
         
         return render(request, 'facetest/result.html', context)
