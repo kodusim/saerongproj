@@ -25,5 +25,6 @@ urlpatterns = [
     path('admin/result-type/<int:type_id>/delete-sub-image/', views.delete_sub_image, name='delete_sub_image'),
     path('tests/', views.test_list, name='test_list'),
     path('tests/<int:test_id>/', views.test_intro, name='test_intro'),
-    path('test/<int:test_id>/', views.test_view, name='test')
+    path('test/<int:test_id>/', views.test_view, name='test'),
+    path('result/<uuid:uuid>/', views.result_detail, name='result_detail'),
 ]

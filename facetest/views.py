@@ -8,8 +8,10 @@ from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q
 import json
+import os  # os 모듈도 필요합니다
 
-from .models import FaceTestModel, FaceResultType, FaceResultImage
+# 모델 임포트 - 여기에 FaceTestResult 추가
+from .models import FaceTestModel, FaceResultType, FaceResultImage, FaceTestResult
 
 # 기존 index 뷰는 그대로 유지
 
@@ -388,22 +390,9 @@ def result(request):
 
 def result_detail(request, uuid):
     """UUID로 얼굴상 분석 결과 조회"""
-    from .models import FaceTestResult
-    
     try:
         # UUID로 결과 조회
         test_result = FaceTestResult.objects.get(uuid=uuid)
-    except FaceTestResult.DoesNotExist:
-        # 결과가 없으면 메인 페이지로 리다이렉트
-        messages.error(request, '요청하신 결과를 찾을 수 없습니다.')
-        return redirect('facetest:index')
-    except Exception as e:
-        # 기타 예외 처리
-        print(f"결과 조회 중 오류 발생: {str(e)}")
-        messages.error(request, '결과를 불러오는 중 오류가 발생했습니다.')
-        return redirect('facetest:index')
-    
-    try:
         face_test = test_result.face_test
         result_type = test_result.result_type
         
@@ -419,7 +408,7 @@ def result_detail(request, uuid):
         # 다른 얼굴상 테스트 목록
         other_tests = FaceTestModel.objects.filter(is_active=True).exclude(id=face_test.id)[:4]
         
-        # 카카오 API 키 가져오기 (설정이 없으면 빈 문자열 반환)
+        # 카카오 API 키 가져오기
         from django.conf import settings
         kakao_api_key = getattr(settings, 'KAKAO_JAVASCRIPT_KEY', '')
         
@@ -436,10 +425,9 @@ def result_detail(request, uuid):
         }
         
         return render(request, 'facetest/result.html', context)
-    except Exception as e:
-        # 결과 처리 중 오류 발생
-        print(f"결과 처리 중 오류 발생: {str(e)}")
-        messages.error(request, '결과 정보를 처리하는 중 오류가 발생했습니다.')
+    except FaceTestResult.DoesNotExist:
+        # 결과가 없으면 메인 페이지로 리다이렉트
+        messages.error(request, '요청하신 결과를 찾을 수 없습니다.')
         return redirect('facetest:index')
 
 def test_intro(request, test_id):

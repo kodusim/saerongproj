@@ -13,35 +13,29 @@
 <meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
 <meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
 
-{% if result_type and result_type.images.first %}
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ result_type.images.first.image.url }}">
-{% else %}
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
-{% endif %}
-
-<!-- Open Graph 메타 태그도 동일하게 수정 -->
-<meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
-<meta property="og:type" content="website">
-{% if test_result %}
-<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'facetest:result_detail' test_result.uuid %}">
-{% else %}
-<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.get_full_path }}">
-{% endif %}
-
 {% if result_type %}
     {% with main_image=result_type.images.first %}
         {% if main_image %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
             <meta property="og:image:width" content="1200">
             <meta property="og:image:height" content="630">
         {% else %}
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
         {% endif %}
     {% endwith %}
 {% else %}
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
     <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
+
+<!-- Open Graph 메타 태그 -->
+<meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
+<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% endblock %}
 
 {% block content %}
 <style>
@@ -498,9 +492,56 @@ crossorigin="anonymous"></script>
 <!-- 공유 기능 스크립트 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 공유할 URL 설정
+    // 모달 관련 스크립트
+    const modal = document.getElementById('resultsModal');
+    const showModalBtn = document.getElementById('showAllResults');
+    const closeModalBtn = document.querySelector('.close-modal');
+    
+    // 모달 열기
+    if (showModalBtn) {
+        showModalBtn.addEventListener('click', function() {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+        });
+    }
+    
+    // 모달 닫기
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // 스크롤 복원
+        });
+    }
+    
+    // 모달 외부 클릭 시 닫기
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+
+    // 웹 공유 API 사용 (기기 지원 시)
+    const webShareBtn = document.getElementById('web-share-btn');
+    if (webShareBtn) {
+        webShareBtn.addEventListener('click', function() {
+            if (navigator.share) {
+                navigator.share({
+                    title: "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}",
+                    text: "{% if result_type %}{{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}",
+                    url: window.location.href
+                })
+                .then(() => console.log('공유 성공'))
+                .catch((error) => console.log('공유 실패:', error));
+            } else {
+                // 기기가 Web Share API를 지원하지 않으면 카카오 공유 사용
+                document.getElementById('kakao-share-btn').click();
+            }
+        });
+    }
+    
+    // 공유할 URL 설정 - 현재 페이지 URL 사용
     const shareUrl = window.location.href.split('#')[0];
-    const testUrl = '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}';
     
     const title = "내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}";
     const description = "{% if result_type %}{{ result_type.description|truncatechars:50|escapejs }}{% else %}얼굴상 분석 결과{% endif %}";
@@ -525,7 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const twitterBtn = document.getElementById('twitter-share-btn');
     if (twitterBtn) {
         twitterBtn.addEventListener('click', function() {
-            // URL 인코딩을 통해 한글 텍스트 처리
             const text = encodeURIComponent(title + '\n' + description);
             const url = encodeURIComponent(shareUrl);
             const hashtags = encodeURIComponent('얼굴상테스트,새롱');
@@ -538,11 +578,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 카카오톡 공유 초기화
+    // 카카오톡 공유
     try {
         Kakao.init('{{ kakao_api_key }}'); 
-
-        // 카카오 버튼
+        
         const kakaoBtn = document.getElementById('kakao-share-btn');
         if (kakaoBtn) {
             kakaoBtn.addEventListener('click', function() {
@@ -568,8 +607,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         {
                             title: '테스트 하기',
                             link: {
-                                mobileWebUrl: testUrl,
-                                webUrl: testUrl
+                                mobileWebUrl: '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}',
+                                webUrl: '{{ request.scheme }}://{{ request.get_host }}{% url "facetest:index" %}'
                             }
                         }
                     ]
@@ -612,5 +651,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.removeChild(textarea);
     }
+});
 </script>
 {% endblock %}
