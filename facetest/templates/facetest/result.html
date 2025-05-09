@@ -3,39 +3,45 @@
 
 {% block title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %} - 새롱{% endblock %}
 
-{% block meta_title %}내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}{% endblock %}
+{% block page_meta %}
+<meta name="title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
+<meta name="description" content="{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
 
-{% block meta_description %}{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}{% endblock %}
-
-{% block extra_head %}
-<!-- Twitter Card 메타 태그 -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:100 }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
+<!-- Open Graph / 소셜 미디어 메타 태그 -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
+<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
+<meta property="og:site_name" content="새롱">
+<meta property="og:locale" content="ko_KR">
 
 {% if result_type %}
     {% with main_image=result_type.images.first %}
         {% if main_image %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
             <meta property="og:image:width" content="1200">
             <meta property="og:image:height" content="630">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ main_image.image.url }}">
         {% else %}
-            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
             <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+            <meta property="og:image:width" content="1200">
+            <meta property="og:image:height" content="630">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
         {% endif %}
     {% endwith %}
 {% else %}
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
     <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/saerong_og_image.png' %}">
 {% endif %}
 
-<!-- Open Graph 메타 태그 -->
-<meta property="og:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
-<meta property="og:description" content="{% if result_type %}{{ result_type.description|truncatechars:100|escapejs }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
-<meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.build_absolute_uri }}">
-{% endblock %}
+<meta name="twitter:title" content="내 얼굴상 테스트 결과: {% if result_type %}{{ result_type.name }}{% else %}얼굴상 분석{% endif %}">
+<meta name="twitter:description" content="{% if result_type %}{{ result_type.description|truncatechars:150|safe|striptags }}{% else %}얼굴상 분석 결과를 확인해보세요!{% endif %}">
+{% endblock page_meta %}
 
 {% block content %}
 <style>
