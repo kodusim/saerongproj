@@ -125,3 +125,8 @@ def robots_txt(request):
         "Sitemap: https://saerong.com/sitemap.xml"
     ]
     return HttpResponse("\n".join(lines), content_type="text/plain")
+
+def ads_txt(request):
+    """Google AdSense ads.txt 파일 제공"""
+    content = "google.com, pub-7308084694640774, DIRECT, f08c47fec0942fa0"
+    return HttpResponse(content, content_type="text/plain")

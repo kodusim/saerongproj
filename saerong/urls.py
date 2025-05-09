@@ -4,7 +4,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from analytics.admin_override import AnalyticsAdminSite
-from core.views import robots_txt
+from core.views import robots_txt, ads_txt
 from django.contrib.sitemaps.views import sitemap
 from core.sitemaps import StaticViewSitemap, PsychoTestSitemap, FaceTestSitemap, CommunityPostSitemap
 
@@ -30,6 +30,7 @@ urlpatterns = [
     path('misc/', include('misc.urls')),
     path('robots.txt', robots_txt),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('ads.txt', ads_txt),    
 ]
 
 # 개발 환경에서 미디어 파일 서빙 설정
