@@ -6,7 +6,7 @@
     <title>{% block title %}Saerong - 데이터 수집 플랫폼{% endblock %}</title>
 
     <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
      crossorigin="anonymous"></script>
 
     <style>
@@ -229,8 +229,46 @@
         </ul>
     </nav>
 
+    <!-- 상단 광고 (728x90 또는 반응형) -->
+    <div class="ad-top">
+        <div class="ad-container">
+            <div>
+                <div class="ad-label">Advertisement</div>
+                <!-- 좌우배너 -->
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-7308084694640774"
+                     data-ad-slot="4815636961"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         {% block content %}{% endblock %}
+    </div>
+
+    <!-- 하단 광고 (728x90 또는 반응형) -->
+    <div class="ad-bottom">
+        <div class="ad-container">
+            <div>
+                <div class="ad-label">Advertisement</div>
+                <!-- 좌우배너 -->
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-7308084694640774"
+                     data-ad-slot="4815636961"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
+        </div>
     </div>
 
     {% block extra_js %}{% endblock %}
