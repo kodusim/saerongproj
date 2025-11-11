@@ -1,0 +1,112 @@
+from celery import shared_task
+from django.utils import timezone
+from datetime import datetime, timedelta
+from sources.models import DataSource
+from collector.models import CollectedData, CrawlLog
+from collector.crawlers import MapleStoryCrawler
+import importlib
+
+
+@shared_task
+def crawl_data_source(source_id):
+    """특정 데이터 소스를 크롤링하는 Task"""
+
+    start_time = timezone.now()
+
+    try:
+        # 데이터 소스 가져오기
+        source = DataSource.objects.get(id=source_id, is_active=True)
+
+        # 크롤러 클래스 가져오기
+        crawler_class = get_crawler_class(source.crawler_class)
+        if not crawler_class:
+            raise Exception(f"Crawler class not found: {source.crawler_class}")
+
+        # 크롤러 실행
+        crawler = crawler_class(source)
+        items = crawler.crawl()
+
+        # 데이터 저장
+        new_count = 0
+        for item in items:
+            hash_key = item.pop('hash_key')
+
+            # 중복 체크
+            if not CollectedData.objects.filter(hash_key=hash_key).exists():
+                CollectedData.objects.create(
+                    source=source,
+                    data=item,
+                    hash_key=hash_key
+                )
+                new_count += 1
+
+        # 마지막 크롤링 시간 업데이트
+        source.last_crawled_at = timezone.now()
+        source.save()
+
+        # 성공 로그 저장
+        end_time = timezone.now()
+        duration = (end_time - start_time).total_seconds()
+
+        CrawlLog.objects.create(
+            source=source,
+            status='success',
+            items_collected=new_count,
+            started_at=start_time,
+            completed_at=end_time,
+            duration_seconds=duration
+        )
+
+        return f"Crawled {new_count} new items from {source.name}"
+
+    except Exception as e:
+        # 실패 로그 저장
+        end_time = timezone.now()
+        duration = (end_time - start_time).total_seconds()
+
+        try:
+            CrawlLog.objects.create(
+                source=source,
+                status='failed',
+                items_collected=0,
+                error_message=str(e),
+                started_at=start_time,
+                completed_at=end_time,
+                duration_seconds=duration
+            )
+        except:
+            pass
+
+        raise
+
+
+@shared_task
+def crawl_all_sources():
+    """모든 활성화된 데이터 소스를 크롤링"""
+    sources = DataSource.objects.filter(is_active=True)
+
+    for source in sources:
+        crawl_data_source.delay(source.id)
+
+    return f"Scheduled crawling for {sources.count()} sources"
+
+
+def get_crawler_class(crawler_path):
+    """크롤러 클래스 경로에서 실제 클래스 가져오기"""
+
+    # 기본 크롤러 매핑
+    crawler_map = {
+        'collector.crawlers.game_crawlers.MapleStoryCrawler': MapleStoryCrawler,
+        'MapleStoryCrawler': MapleStoryCrawler,
+    }
+
+    if crawler_path in crawler_map:
+        return crawler_map[crawler_path]
+
+    # 동적 import 시도
+    try:
+        module_path, class_name = crawler_path.rsplit('.', 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    except Exception:
+        return None

@@ -53,23 +53,18 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # thrid apps
-    "crispy_forms",
-    "crispy_bootstrap5",
-    "django_components",
+    # third party apps
+    "rest_framework",
+    "corsheaders",
     "django_extensions",
-    "template_partials",
-    "django_htmx",
-    'django_summernote',
-    'django.contrib.sitemaps',
+    "django_celery_beat",
+    "django_filters",
     # local apps
-    "accounts",
     "core",
-    "psychotest",
-    "community",
-    "facetest",
+    "sources",
+    "collector",
     "analytics",
-    "misc",
+    "api",
 ]
 
 if DEBUG:
@@ -80,13 +75,12 @@ if DEBUG:
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_htmx.middleware.HtmxMiddleware",
-    "core.middleware.SocialSharingCSPMiddleware",  # 새 미들웨어 추가
 ]
 
 if DEBUG:
@@ -100,7 +94,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "core" / "src-django-components" / "templates",
+            BASE_DIR / "templates",
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -109,7 +103,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "community.context_processors.community_categories",  # 새로 추가하는 부분
             ],
         },
     },
@@ -119,35 +112,15 @@ DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 
 WSGI_APPLICATION = "saerong.wsgi.application"
 
-SUMMERNOTE_CONFIG = {
-    # 에디터 크기 설정
-    'summernote': {
-        'width': '100%',
-        'height': '480',
-        'toolbar': [
-            ['style', ['style']],
-            ['font', ['bold', 'underline', 'clear']],
-            ['fontname', ['fontname']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['table', ['table']],
-            ['insert', ['link', 'picture', 'video']],
-            ['view', ['fullscreen', 'codeview', 'help']],
-        ],
-    },
-    'attachment_filesize_limit': 5 * 1024 * 1024,  # 5MB 제한
-}
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db(
+        'DATABASE_URL',
+        default=f'postgresql://postgres:postgres@localhost:5432/saerong'
+    )
 }
-
-AUTH_USER_MODEL = "accounts.User"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -187,13 +160,7 @@ STATIC_URL = env.str("STATIC_URL", default="static/")
 STATIC_ROOT = env.str("STATIC_ROOT", default=BASE_DIR / "staticfiles")
 
 STATICFILES_DIRS = [
-    BASE_DIR / "core" / "src-django-components",
-]
-
-# django-components 설정을 위해 정의
-STATICFILES_FINDERS = [
-    "django.contrib.staticfiles.finders.FileSystemFinder",
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    BASE_DIR / "static",
 ]
 
 
@@ -209,24 +176,38 @@ MEDIA_ROOT = env.str("MEDIA_ROOT", default=BASE_DIR / "mediafiles")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Django REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+}
 
+# CORS Settings
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
- # django-debug-toolbar
- # https://django-debug-toolbar.readthedocs.io/en/latest/installation.html
+# Celery Configuration
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Seoul'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
-# django-components
- #  - context variable를 resolve하는 방식이 변경
- #    https://github.com/EmilStenstrom/django-components/?tab=readme-ov-file#isolate-components-slots
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
-
-INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
-
-# django-crispy-forms
- 
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
- 
-CRISPY_TEMPLATE_PACK = "bootstrap5"
-
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -236,36 +217,16 @@ LOGGING = {
         },
     },
     'loggers': {
-        'django.db.backends': {
+        'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': env.str('DJANGO_LOG_LEVEL', default='INFO'),
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     },
 }
 
-# 기존
-CSP_FRAME_ANCESTORS = env.list("CSP_FRAME_ANCESTORS", default=[])
-CSP_DEFAULT_SRC = ["'self'"]
-CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'"] + CSP_FRAME_ANCESTORS
-CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"] + CSP_FRAME_ANCESTORS
-CSP_IMG_SRC = ["'self'", "data:"] + CSP_FRAME_ANCESTORS
-
-# 추가
-if not CSP_FRAME_ANCESTORS:
-    CSP_FRAME_ANCESTORS = ["'self'"]
-
-KAKAO_JAVASCRIPT_KEY = env.str("KAKAO_JAVASCRIPT_KEY", default="3fd3d8be1d733c63de14e57eeff76d66")
-# CSP 설정 업데이트 - 소셜 미디어 도메인 추가
-CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "https://t1.kakaocdn.net", "https://developers.kakao.com"] + CSP_FRAME_ANCESTORS
-CSP_IMG_SRC = ["'self'", "data:", "https://developers.kakao.com", "https://*.kakao.com"] + CSP_FRAME_ANCESTORS
-CSP_CONNECT_SRC = ["'self'", "https://*.kakao.com"]
-
-# 이메일 설정
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = env.str("EMAIL_HOST", default="smtp.naver.com")
-EMAIL_PORT = env.int("EMAIL_PORT", default=465)
-EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
-EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=True)
-EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@saerong.com")
+# Debug Toolbar
+INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}대시보드 - Saerong{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem; color: #2c3e50;">데이터 수집 대시보드</h1>
+
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-number">{{ total_data }}</div>
+        <div class="stat-label">수집된 데이터</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-number">{{ total_sources }}</div>
+        <div class="stat-label">활성 데이터 소스</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-number">{{ crawl_stats.total }}</div>
+        <div class="stat-label">총 크롤링 횟수</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">최신 수집 데이터</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>제목</th>
+                <th>카테고리</th>
+                <th>날짜</th>
+                <th>수집 시간</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in latest_data %}
+            <tr>
+                <td>
+                    {% if item.data.url %}
+                    <a href="{{ item.data.url }}" target="_blank" class="notice-link">
+                        {{ item.data.title }}
+                    </a>
+                    {% else %}
+                    {{ item.data.title }}
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-{{ item.data.category }}">
+                        {{ item.data.category }}
+                    </span>
+                </td>
+                <td class="text-muted">{{ item.data.date }}</td>
+                <td class="text-muted">{{ item.collected_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 2rem; color: #6c757d;">
+                    아직 수집된 데이터가 없습니다.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2 class="card-title">API 엔드포인트</h2>
+    <p style="margin-bottom: 1rem; color: #6c757d;">
+        REST API를 통해 수집된 데이터에 접근할 수 있습니다.
+    </p>
+    <ul style="list-style-position: inside; color: #2c3e50;">
+        <li><code>/api/collected-data/</code> - 수집된 모든 데이터</li>
+        <li><code>/api/collected-data/latest/?limit=20</code> - 최신 데이터</li>
+        <li><code>/api/collected-data/by_game/?game=메이플스토리</code> - 게임별 데이터</li>
+        <li><code>/api/crawl-logs/stats/</code> - 크롤링 통계</li>
+        <li><code>/api/sources/</code> - 데이터 소스 목록</li>
+    </ul>
+</div>
+{% endblock %}

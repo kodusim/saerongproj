@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ game_name }} 공지사항 - Saerong{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem; color: #2c3e50;">{{ game_name }} 공지사항</h1>
+
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 10%;">카테고리</th>
+                <th style="width: 50%;">제목</th>
+                <th style="width: 15%;">날짜</th>
+                <th style="width: 25%;">수집 시간</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for notice in notices %}
+            <tr>
+                <td>
+                    <span class="badge badge-{{ notice.data.category }}">
+                        {{ notice.data.category }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{{ notice.data.url }}" target="_blank" class="notice-link">
+                        {{ notice.data.title }}
+                    </a>
+                </td>
+                <td class="text-muted">{{ notice.data.date }}</td>
+                <td class="text-muted">{{ notice.collected_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 2rem; color: #6c757d;">
+                    수집된 공지사항이 없습니다.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2 class="card-title">정보</h2>
+    <p style="color: #6c757d;">
+        이 페이지는 {{ game_name }}의 공식 공지사항을 자동으로 수집하여 보여줍니다.
+        <br>
+        데이터는 10분마다 자동으로 업데이트됩니다.
+    </p>
+</div>
+{% endblock %}

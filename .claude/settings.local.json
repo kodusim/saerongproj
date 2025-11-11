@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(rm:*)",
+      "Bash(python manage.py startapp:*)",
+      "Bash(python manage.py:*)",
+      "Bash(pip install:*)",
+      "Bash(python test_selenium.py:*)",
+      "Bash(notice_section.html)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(taskkill:*)",
+      "Bash(venv\\Scripts\\pip install:*)",
+      "Bash(./venv/Scripts/pip install:*)",
+      "Bash(find:*)",
+      "Bash(./venv/Scripts/python:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

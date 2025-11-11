@@ -1,7 +1,7 @@
 -r common.txt
 
-psycopg2
+# PostgreSQL
+psycopg2-binary==2.9.9
 
-gunicorn
-
-uvicorn[standard]
+# Production Server
+gunicorn==21.2.0
