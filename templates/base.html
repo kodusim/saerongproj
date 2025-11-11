@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Saerong - 데이터 수집 플랫폼{% endblock %}</title>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+     crossorigin="anonymous"></script>
+
     <style>
         * {
             margin: 0;
@@ -176,6 +181,39 @@
         .text-muted {
             color: #6c757d;
             font-size: 0.9rem;
+        }
+
+        /* 광고 영역 스타일 */
+        .ad-container {
+            text-align: center;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ad-top {
+            max-width: 1200px;
+            margin: 1rem auto;
+        }
+
+        .ad-bottom {
+            max-width: 1200px;
+            margin: 2rem auto 1rem;
+        }
+
+        .ad-sidebar {
+            margin: 1.5rem 0;
+        }
+
+        .ad-label {
+            font-size: 0.75rem;
+            color: #999;
+            margin-bottom: 0.5rem;
         }
     </style>
     {% block extra_css %}{% endblock %}
