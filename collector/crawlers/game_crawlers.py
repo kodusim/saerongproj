@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 import requests
+import platform
 from .base import BaseCrawler
 
 
@@ -29,13 +30,16 @@ class MapleStoryCrawler(BaseCrawler):
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         chrome_options.add_argument('--remote-debugging-port=9222')
-        chrome_options.binary_location = '/usr/bin/chromium-browser'
 
-        # 드라이버 초기화 (서버에서는 시스템 chromedriver 사용)
+        # Linux 서버에서만 chromium-browser 경로 지정
+        if platform.system() == 'Linux':
+            chrome_options.binary_location = '/usr/bin/chromium-browser'
+
+        # 드라이버 초기화
         try:
             driver = webdriver.Chrome(options=chrome_options)
         except:
-            # 로컬에서는 webdriver-manager 사용
+            # webdriver-manager로 자동 설치
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -159,7 +163,10 @@ class GenericSeleniumCrawler(BaseCrawler):
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         chrome_options.add_argument('--remote-debugging-port=9222')
-        chrome_options.binary_location = '/usr/bin/chromium-browser'
+
+        # Linux 서버에서만 chromium-browser 경로 지정
+        if platform.system() == 'Linux':
+            chrome_options.binary_location = '/usr/bin/chromium-browser'
 
         try:
             driver = webdriver.Chrome(options=chrome_options)
