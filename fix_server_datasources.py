@@ -60,12 +60,13 @@ sources_config = [
 ]
 
 from sources.models import SubCategory
+from core.models import Category
 
-# Get or create subcategory
-subcategory, _ = SubCategory.objects.get_or_create(
-    slug='game-notice',
-    defaults={'name': '게임 공지사항', 'category_id': 1}
-)
+# Get the Game category
+game_category = Category.objects.get(slug='games')
+
+# Get the MapleStory subcategory
+subcategory = SubCategory.objects.get(slug='maplestory', category=game_category)
 
 for url, name, crawler_type, config in sources_config:
     # Find existing or create new
