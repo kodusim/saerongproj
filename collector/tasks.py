@@ -100,7 +100,7 @@ def get_crawler_class(source):
     """
 
     # crawler_class가 지정된 경우 - 기존 로직 사용
-    if source.crawler_class:
+    if source.crawler_class and source.crawler_class.strip():
         crawler_path = source.crawler_class
 
         # 기본 크롤러 매핑
