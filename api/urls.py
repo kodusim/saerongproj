@@ -5,7 +5,8 @@ from .views import (
     SubCategoryViewSet,
     DataSourceViewSet,
     CollectedDataViewSet,
-    CrawlLogViewSet
+    CrawlLogViewSet,
+    subcategory_data_api
 )
 
 app_name = 'api'
@@ -20,4 +21,5 @@ router.register(r'crawl-logs', CrawlLogViewSet, basename='crawllog')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

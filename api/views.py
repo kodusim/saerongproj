@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from core.models import Category, SubCategory
 from sources.models import DataSource
@@ -13,6 +14,7 @@ from .serializers import (
     CollectedDataListSerializer,
     CrawlLogSerializer
 )
+from .permissions import IsAdminUserWithMessage
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -144,3 +146,49 @@ class CrawlLogViewSet(viewsets.ReadOnlyModelViewSet):
             'average_duration_seconds': round(avg_duration, 2),
             'total_items_collected': total_items,
         })
+
+
+@api_view(['GET'])
+def subcategory_data_api(request, slug):
+    """
+    중분류(SubCategory) 데이터 API
+    각 소분류(DataSource)별로 최신 10개 데이터 반환
+    모바일 앱 알림용
+    """
+    subcategory = get_object_or_404(SubCategory, slug=slug, is_active=True)
+
+    # 활성화된 데이터 소스들 가져오기
+    data_sources = subcategory.data_sources.filter(is_active=True).order_by('name')
+
+    # 각 데이터 소스별로 최신 10개 데이터 수집
+    result_data = {}
+    for source in data_sources:
+        items = CollectedData.objects.filter(
+            source=source
+        ).order_by('-collected_at')[:10]
+
+        # 데이터 포맷팅 (title, url, date, collected_at만 추출)
+        formatted_items = []
+        for item in items:
+            formatted_item = {
+                'title': item.data.get('title', ''),
+                'url': item.data.get('url', ''),
+                'date': item.data.get('date', ''),
+                'collected_at': item.collected_at.isoformat(),
+            }
+            formatted_items.append(formatted_item)
+
+        result_data[source.name] = formatted_items
+
+    response_data = {
+        'subcategory': subcategory.name,
+        'category': subcategory.category.name,
+        'updated_at': CollectedData.objects.filter(
+            source__subcategory=subcategory
+        ).order_by('-collected_at').first().collected_at.isoformat() if CollectedData.objects.filter(
+            source__subcategory=subcategory
+        ).exists() else None,
+        'data': result_data
+    }
+
+    return Response(response_data)

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subcategory.name }} - SAERONG</title>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 0;
+        margin: 0;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 50px;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .back-button {
+        display: inline-block;
+        margin-bottom: 30px;
+        padding: 12px 30px;
+        background: white;
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .back-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .header h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 10px;
+        letter-spacing: -1px;
+    }
+
+    .header p {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 300;
+    }
+
+    .tabs-container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        animation: fadeInUp 0.8s ease 0.2s both;
+    }
+
+    .tabs-header {
+        display: flex;
+        border-bottom: 2px solid #e2e8f0;
+        overflow-x: auto;
+        background: #f7fafc;
+    }
+
+    .tab-button {
+        flex: 1;
+        min-width: 120px;
+        padding: 20px 25px;
+        background: transparent;
+        border: none;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #718096;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 3px solid transparent;
+    }
+
+    .tab-button:hover {
+        color: #667eea;
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+    .tab-button.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+        background: white;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 40px;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .data-list {
+        list-style: none;
+    }
+
+    .data-item {
+        padding: 20px;
+        margin-bottom: 15px;
+        background: #f7fafc;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+
+    .data-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .data-item-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+
+    .data-item-title a {
+        color: #2d3748;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .data-item-title a:hover {
+        color: #667eea;
+    }
+
+    .data-item-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 0.9rem;
+        color: #718096;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #718096;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: #2d3748;
+    }
+
+    .api-docs {
+        max-width: 900px;
+    }
+
+    .api-section {
+        margin-bottom: 40px;
+    }
+
+    .api-section h3 {
+        font-size: 1.8rem;
+        color: #2d3748;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .api-section h4 {
+        font-size: 1.3rem;
+        color: #667eea;
+        margin: 25px 0 15px;
+    }
+
+    .api-section p {
+        line-height: 1.8;
+        color: #4a5568;
+        margin-bottom: 15px;
+    }
+
+    .api-endpoint {
+        background: #2d3748;
+        color: #48bb78;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 1rem;
+        margin: 15px 0;
+        overflow-x: auto;
+    }
+
+    .code-block {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.9rem;
+        margin: 15px 0;
+        overflow-x: auto;
+        line-height: 1.6;
+    }
+
+    .api-params {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+
+    .api-params ul {
+        list-style: none;
+        margin-left: 0;
+    }
+
+    .api-params li {
+        padding: 8px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .api-params li:last-child {
+        border-bottom: none;
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header h1 {
+            font-size: 2rem;
+        }
+
+        .tabs-header {
+            overflow-x: scroll;
+        }
+
+        .tab-button {
+            font-size: 1rem;
+            padding: 15px 20px;
+        }
+
+        .tab-content {
+            padding: 20px;
+        }
+
+        .data-item {
+            padding: 15px;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <a href="/category/{{ category.slug }}/" class="back-button">← {{ category.name }}로 돌아가기</a>
+
+        <h1>{{ subcategory.name }}</h1>
+        {% if subcategory.description %}
+            <p>{{ subcategory.description }}</p>
+        {% endif %}
+    </div>
+
+    <div class="tabs-container">
+        <div class="tabs-header">
+            {% for source_data in sources_with_data %}
+            <button class="tab-button {% if forloop.first %}active{% endif %}"
+                    onclick="switchTab(event, 'tab-{{ forloop.counter0 }}')">
+                {{ source_data.source.name }}
+            </button>
+            {% endfor %}
+            <button class="tab-button" onclick="checkAuthAndShowAPI(event)">
+                API
+            </button>
+        </div>
+
+        {% for source_data in sources_with_data %}
+        <div id="tab-{{ forloop.counter0 }}" class="tab-content {% if forloop.first %}active{% endif %}">
+            {% if source_data.items %}
+                <ul class="data-list">
+                    {% for item in source_data.items %}
+                    <li class="data-item">
+                        <div class="data-item-title">
+                            {% if item.data.url %}
+                                <a href="{{ item.data.url }}" target="_blank">{{ item.data.title }}</a>
+                            {% else %}
+                                {{ item.data.title }}
+                            {% endif %}
+                        </div>
+                        <div class="data-item-meta">
+                            {% if item.data.date %}
+                                <span>📅 {{ item.data.date }}</span>
+                            {% endif %}
+                            <span>🕐 수집: {{ item.collected_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <h3>아직 수집된 데이터가 없습니다</h3>
+                    <p>데이터 수집이 진행 중입니다. 잠시 후 다시 확인해주세요.</p>
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div id="tab-api" class="tab-content">
+            <div class="api-docs">
+                <div class="api-section">
+                    <h3>📡 API 문서</h3>
+                    <p>이 페이지의 데이터를 JSON 형식으로 제공하는 API입니다. 모바일 앱이나 외부 서비스에서 활용할 수 있습니다.</p>
+                </div>
+
+                <div class="api-section">
+                    <h4>엔드포인트</h4>
+                    <div class="api-endpoint">
+                        GET /api/{{ subcategory.slug }}/
+                    </div>
+                </div>
+
+                <div class="api-section">
+                    <h4>응답 형식</h4>
+                    <p>각 데이터 소스별로 최신 10개 항목을 반환합니다.</p>
+                    <div class="code-block">{
+  "subcategory": "{{ subcategory.name }}",
+  "category": "{{ category.name }}",
+  "data": {
+    {% for source_data in sources_with_data %}"{{ source_data.source.name }}": [
+      {
+        "title": "제목",
+        "url": "https://example.com/...",
+        "date": "2024-01-01",
+        "collected_at": "2024-01-01T12:00:00Z"
+      },
+      ...
+    ]{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  }
+}</div>
+                </div>
+
+                <div class="api-section">
+                    <h4>사용 예시</h4>
+                    <p>JavaScript (Fetch API):</p>
+                    <div class="code-block">fetch('/api/{{ subcategory.slug }}/')
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
+    // 데이터 처리 로직
+  });</div>
+
+                    <p>Python (requests):</p>
+                    <div class="code-block">import requests
+
+response = requests.get('https://saerong.com/api/{{ subcategory.slug }}/')
+data = response.json()
+print(data)</div>
+                </div>
+
+                <div class="api-section">
+                    <h4>사용 안내</h4>
+                    <div class="api-params">
+                        <ul>
+                            <li>✅ 인증 없이 사용 가능 (Public API)</li>
+                            <li>⏱️ 데이터는 10분마다 자동으로 업데이트됩니다</li>
+                            <li>📊 각 데이터 소스당 최신 10개 항목 제공</li>
+                            <li>📧 문의: <a href="mailto:farmhoney1298@naver.com" style="color: #667eea; text-decoration: underline;">farmhoney1298@naver.com</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="api-section">
+                    <h4>참고사항</h4>
+                    <div class="api-params">
+                        <ul>
+                            <li>✅ RESTful API 표준 준수</li>
+                            <li>✅ JSON 형식 응답</li>
+                            <li>✅ CORS 허용됨 (Cross-Origin 요청 가능)</li>
+                            <li>⚠️ 과도한 요청 시 제한될 수 있습니다</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 하단 광고 -->
+<div style="max-width: 1400px; margin: 40px auto; text-align: center; padding: 0 20px;">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-7308084694640774"
+         data-ad-slot="4815636961"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+
+<script>
+function switchTab(event, tabId) {
+    // 모든 탭 버튼과 컨텐츠 비활성화
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
+
+    // 선택된 탭 활성화
+    event.currentTarget.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+}
+
+function checkAuthAndShowAPI(event) {
+    // API 탭 안내 팝업
+    const shouldShow = confirm('📡 API 사용 안내\n\n✅ 인증 없이 누구나 사용 가능합니다\n⏱️ 10분마다 자동 업데이트\n📧 문의: farmhoney1298@naver.com\n\nAPI 문서를 보시겠습니까?');
+
+    if (shouldShow) {
+        switchTab(event, 'tab-api');
+    }
+}
+</script>
+
+</body>
+</html>

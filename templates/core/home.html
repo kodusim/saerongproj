@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAERONG - 데이터 API 센터</title>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 0;
+        margin: 0;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 60px 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 80px;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .header h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 20px;
+        letter-spacing: -1px;
+    }
+
+    .header p {
+        font-size: 1.3rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 300;
+    }
+
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 30px;
+        animation: fadeInUp 0.8s ease 0.2s both;
+    }
+
+    .category-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .category-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .category-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .category-card:hover::before {
+        opacity: 1;
+    }
+
+    .category-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
+
+    .category-icon-img {
+        width: 120px;
+        height: 120px;
+        object-fit: contain;
+        margin-bottom: 20px;
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
+
+    .category-card:hover .category-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .category-card:hover .category-icon-img {
+        transform: scale(1.1);
+    }
+
+    .category-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+
+    .category-description {
+        font-size: 0.95rem;
+        color: #718096;
+        line-height: 1.6;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 100px 20px;
+        animation: fadeIn 0.8s ease;
+    }
+
+    .empty-state-icon {
+        font-size: 6rem;
+        margin-bottom: 30px;
+        opacity: 0.3;
+    }
+
+    .empty-state h2 {
+        font-size: 2rem;
+        color: white;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    .empty-state p {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 30px;
+    }
+
+    .admin-button {
+        display: inline-block;
+        padding: 15px 40px;
+        background: white;
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .admin-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        color: #667eea;
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header h1 {
+            font-size: 2.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+        }
+
+        .categories-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .category-card {
+            padding: 30px 20px;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1>SAERONG 데이터 센터</h1>
+        <p>다양한 카테고리의 실시간 데이터를 한눈에</p>
+    </div>
+
+    {% if categories %}
+        <div class="categories-grid">
+            {% for category in categories %}
+            <a href="/category/{{ category.slug }}/" class="category-card" style="text-decoration: none;">
+                {% if category.icon %}
+                    <img src="{{ category.icon.url }}" alt="{{ category.name }}" class="category-icon-img">
+                {% else %}
+                    <div class="category-icon">📊</div>
+                {% endif %}
+                <div class="category-name">{{ category.name }}</div>
+                {% if category.description %}
+                <div class="category-description">{{ category.description }}</div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <h2>아직 추가된 카테고리가 없습니다</h2>
+            <p>관리자 페이지에서 새로운 카테고리를 추가해보세요</p>
+            <a href="/admin/" class="admin-button">관리자 페이지로 이동</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- 하단 광고 -->
+<div style="max-width: 1400px; margin: 40px auto; text-align: center; padding: 0 20px;">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-7308084694640774"
+         data-ad-slot="4815636961"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+
+</body>
+</html>

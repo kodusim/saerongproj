@@ -7,8 +7,8 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="카테고리명")
     slug = models.SlugField(max_length=100, unique=True, verbose_name="슬러그")
     description = models.TextField(blank=True, verbose_name="설명")
-    icon = models.CharField(max_length=50, blank=True, verbose_name="아이콘",
-                           help_text="이모지 또는 아이콘 클래스명")
+    icon = models.ImageField(upload_to='category_icons/', blank=True, null=True, verbose_name="아이콘 이미지",
+                            help_text="카테고리 아이콘 이미지 (권장 크기: 200x200px)")
     is_active = models.BooleanField(default=True, verbose_name="활성화")
     order = models.IntegerField(default=0, verbose_name="정렬 순서")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
