@@ -1,5 +1,7 @@
 from django.db import models
+from django.utils.text import slugify
 from core.models import SubCategory
+import re
 
 
 class DataSource(models.Model):
@@ -20,7 +22,8 @@ class DataSource(models.Model):
     )
     name = models.CharField(max_length=200, verbose_name="데이터 소스명",
                            help_text="예: 리그오브레전드 공지사항")
-    slug = models.SlugField(max_length=200, unique=True, verbose_name="슬러그")
+    slug = models.SlugField(max_length=200, unique=True, blank=True, verbose_name="슬러그",
+                           help_text="비워두면 자동으로 생성됩니다")
     url = models.URLField(max_length=500, verbose_name="크롤링 URL")
     crawler_type = models.CharField(
         max_length=20,
@@ -61,3 +64,26 @@ class DataSource(models.Model):
 
     def __str__(self):
         return f"{self.subcategory} - {self.name}"
+
+    def save(self, *args, **kwargs):
+        """slug가 비어있으면 name에서 자동 생성"""
+        if not self.slug:
+            # 한글 및 영문 유지, 특수문자는 하이픈으로 변경
+            base_slug = re.sub(r'[^\w\s-]', '', self.name)
+            base_slug = re.sub(r'[\s_]+', '-', base_slug)
+            base_slug = base_slug.strip('-').lower()
+
+            # slug가 비어있으면 ID 기반으로 생성
+            if not base_slug:
+                base_slug = f'datasource-{self.id or ""}'
+
+            # 중복 방지를 위해 고유한 slug 생성
+            slug = base_slug
+            counter = 1
+            while DataSource.objects.filter(slug=slug).exclude(id=self.id).exists():
+                slug = f'{base_slug}-{counter}'
+                counter += 1
+
+            self.slug = slug
+
+        super().save(*args, **kwargs)

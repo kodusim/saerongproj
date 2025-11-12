@@ -3,7 +3,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from sources.models import DataSource
 from collector.models import CollectedData, CrawlLog
-from collector.crawlers import MapleStoryCrawler
+from collector.crawlers import MapleStoryCrawler, GenericSeleniumCrawler, GenericRequestsCrawler
 import importlib
 
 
@@ -17,10 +17,10 @@ def crawl_data_source(source_id):
         # 데이터 소스 가져오기
         source = DataSource.objects.get(id=source_id, is_active=True)
 
-        # 크롤러 클래스 가져오기
-        crawler_class = get_crawler_class(source.crawler_class)
+        # 크롤러 클래스 가져오기 (자동 선택 지원)
+        crawler_class = get_crawler_class(source)
         if not crawler_class:
-            raise Exception(f"Crawler class not found: {source.crawler_class}")
+            raise Exception(f"Crawler class not found for source: {source.name}")
 
         # 크롤러 실행
         crawler = crawler_class(source)
@@ -91,22 +91,55 @@ def crawl_all_sources():
     return f"Scheduled crawling for {sources.count()} sources"
 
 
-def get_crawler_class(crawler_path):
-    """크롤러 클래스 경로에서 실제 클래스 가져오기"""
+def get_crawler_class(source):
+    """
+    DataSource 객체에서 적절한 크롤러 클래스 반환
 
-    # 기본 크롤러 매핑
-    crawler_map = {
-        'collector.crawlers.game_crawlers.MapleStoryCrawler': MapleStoryCrawler,
-        'MapleStoryCrawler': MapleStoryCrawler,
-    }
+    crawler_class가 지정되어 있으면 해당 클래스 사용
+    없으면 crawler_type에 따라 자동으로 제네릭 크롤러 선택
+    """
 
-    if crawler_path in crawler_map:
-        return crawler_map[crawler_path]
+    # crawler_class가 지정된 경우 - 기존 로직 사용
+    if source.crawler_class:
+        crawler_path = source.crawler_class
 
-    # 동적 import 시도
-    try:
-        module_path, class_name = crawler_path.rsplit('.', 1)
-        module = importlib.import_module(module_path)
-        return getattr(module, class_name)
-    except Exception:
+        # 기본 크롤러 매핑
+        crawler_map = {
+            'collector.crawlers.game_crawlers.MapleStoryCrawler': MapleStoryCrawler,
+            'MapleStoryCrawler': MapleStoryCrawler,
+            'collector.crawlers.game_crawlers.GenericSeleniumCrawler': GenericSeleniumCrawler,
+            'GenericSeleniumCrawler': GenericSeleniumCrawler,
+            'collector.crawlers.game_crawlers.GenericRequestsCrawler': GenericRequestsCrawler,
+            'GenericRequestsCrawler': GenericRequestsCrawler,
+        }
+
+        if crawler_path in crawler_map:
+            return crawler_map[crawler_path]
+
+        # 동적 import 시도
+        try:
+            module_path, class_name = crawler_path.rsplit('.', 1)
+            module = importlib.import_module(module_path)
+            return getattr(module, class_name)
+        except Exception:
+            return None
+
+    # crawler_class가 없으면 crawler_type에 따라 자동 선택
+    crawler_type = source.crawler_type
+
+    if crawler_type == 'selenium':
+        return GenericSeleniumCrawler
+    elif crawler_type == 'beautifulsoup':
+        return GenericRequestsCrawler
+    elif crawler_type == 'api':
+        raise NotImplementedError(
+            "API 크롤러는 아직 구현되지 않았습니다. "
+            "crawler_class를 직접 지정해주세요."
+        )
+    elif crawler_type == 'rss':
+        raise NotImplementedError(
+            "RSS 크롤러는 아직 구현되지 않았습니다. "
+            "crawler_class를 직접 지정해주세요."
+        )
+    else:
         return None
