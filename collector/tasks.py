@@ -82,13 +82,29 @@ def crawl_data_source(source_id):
 
 @shared_task
 def crawl_all_sources():
-    """모든 활성화된 데이터 소스를 크롤링"""
+    """
+    모든 활성화된 데이터 소스를 크롤링
+    각 소스의 crawl_interval 설정에 따라 크롤링 시간이 된 것만 실행
+    """
     sources = DataSource.objects.filter(is_active=True)
 
+    crawled_count = 0
     for source in sources:
-        crawl_data_source.delay(source.id)
+        # 마지막 크롤링 시간 확인
+        if source.last_crawled_at is None:
+            # 한 번도 크롤링 안 했으면 바로 실행
+            crawl_data_source.delay(source.id)
+            crawled_count += 1
+        else:
+            # 마지막 크롤링으로부터 설정된 시간이 지났는지 확인
+            time_since_last_crawl = timezone.now() - source.last_crawled_at
+            minutes_since_last_crawl = time_since_last_crawl.total_seconds() / 60
 
-    return f"Scheduled crawling for {sources.count()} sources"
+            if minutes_since_last_crawl >= source.crawl_interval:
+                crawl_data_source.delay(source.id)
+                crawled_count += 1
+
+    return f"Scheduled crawling for {crawled_count}/{sources.count()} sources"
 
 
 def get_crawler_class(source):
