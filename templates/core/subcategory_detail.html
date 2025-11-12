@@ -316,6 +316,19 @@
         {% endif %}
     </div>
 
+    <!-- 상단 광고 -->
+    <div style="margin: 30px 0; text-align: center;">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-7308084694640774"
+             data-ad-slot="4815636961"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
     <div class="tabs-container">
         <div class="tabs-header">
             {% for source_data in sources_with_data %}
@@ -470,12 +483,17 @@ function switchTab(event, tabId) {
 }
 
 function checkAuthAndShowAPI(event) {
-    // API 탭 안내 팝업
-    const shouldShow = confirm('📡 API 사용 안내\n\n✅ 인증 없이 누구나 사용 가능합니다\n⏱️ 10분마다 자동 업데이트\n📧 문의: farmhoney1298@naver.com\n\nAPI 문서를 보시겠습니까?');
+    {% if user.is_staff %}
+        // Admin 로그인 됨 - API 문서 보여주기
+        const shouldShow = confirm('📡 API 사용 안내\n\n✅ 인증 없이 누구나 사용 가능합니다\n⏱️ 10분마다 자동 업데이트\n📧 문의: farmhoney1298@naver.com\n\nAPI 문서를 보시겠습니까?');
 
-    if (shouldShow) {
-        switchTab(event, 'tab-api');
-    }
+        if (shouldShow) {
+            switchTab(event, 'tab-api');
+        }
+    {% else %}
+        // Admin 로그인 안됨 - 승인 요청 메시지
+        alert('📡 API 접근 권한이 필요합니다\n\nfarmhoney1298@naver.com으로 연락주시면 승인해드립니다.');
+    {% endif %}
 }
 </script>
 
