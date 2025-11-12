@@ -26,9 +26,9 @@ def crawl_data_source(source_id):
         crawler = crawler_class(source)
         items = crawler.crawl()
 
-        # 데이터 저장
+        # 데이터 저장 (역순으로 저장하여 최신 항목이 가장 최근 collected_at을 갖도록 함)
         new_count = 0
-        for item in items:
+        for item in reversed(items):
             hash_key = item.pop('hash_key')
 
             # 중복 체크
