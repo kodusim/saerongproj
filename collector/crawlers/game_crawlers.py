@@ -18,7 +18,7 @@ class MapleStoryCrawler(BaseCrawler):
 
     def fetch(self) -> str:
         """메이플스토리 공지사항 페이지 가져오기 (Selenium)"""
-        # Chrome 옵션 설정
+        # Chrome 옵션 설정 (메모리 최적화)
         chrome_options = Options()
         chrome_options.add_argument('--headless')  # 백그라운드 실행
         chrome_options.add_argument('--no-sandbox')
@@ -27,9 +27,19 @@ class MapleStoryCrawler(BaseCrawler):
         chrome_options.add_argument('--disable-software-rasterizer')
         chrome_options.add_argument('--disable-extensions')
         chrome_options.add_argument('--disable-setuid-sandbox')
-        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--window-size=1280,720')  # 창 크기 축소
         chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        chrome_options.add_argument('--remote-debugging-port=9222')
+
+        # 메모리 사용량 최적화 옵션
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-sync')
+        chrome_options.add_argument('--metrics-recording-only')
+        chrome_options.add_argument('--mute-audio')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--disable-features=TranslateUI')
+        chrome_options.add_argument('--disable-ipc-flooding-protection')
+        chrome_options.add_argument('--disable-renderer-backgrounding')
 
         # Linux 서버에서만 chromium-browser 경로 지정
         if platform.system() == 'Linux':
@@ -152,6 +162,7 @@ class GenericSeleniumCrawler(BaseCrawler):
 
     def fetch(self) -> str:
         """Selenium으로 페이지 가져오기"""
+        # Chrome 옵션 설정 (메모리 최적화)
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
@@ -160,9 +171,19 @@ class GenericSeleniumCrawler(BaseCrawler):
         chrome_options.add_argument('--disable-software-rasterizer')
         chrome_options.add_argument('--disable-extensions')
         chrome_options.add_argument('--disable-setuid-sandbox')
-        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--window-size=1280,720')  # 창 크기 축소
         chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        chrome_options.add_argument('--remote-debugging-port=9222')
+
+        # 메모리 사용량 최적화 옵션
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-sync')
+        chrome_options.add_argument('--metrics-recording-only')
+        chrome_options.add_argument('--mute-audio')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--disable-features=TranslateUI')
+        chrome_options.add_argument('--disable-ipc-flooding-protection')
+        chrome_options.add_argument('--disable-renderer-backgrounding')
 
         # Linux 서버에서만 chromium-browser 경로 지정
         if platform.system() == 'Linux':
