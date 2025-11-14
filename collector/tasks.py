@@ -57,6 +57,12 @@ def crawl_data_source(source_id):
             duration_seconds=duration
         )
 
+        # 다음 크롤링 자동 예약 (crawl_interval 분 후)
+        crawl_data_source.apply_async(
+            (source_id,),
+            countdown=source.crawl_interval * 60  # 분 → 초 변환
+        )
+
         return f"Crawled {new_count} new items from {source.name}"
 
     except Exception as e:
@@ -74,6 +80,13 @@ def crawl_data_source(source_id):
                 completed_at=end_time,
                 duration_seconds=duration
             )
+
+            # 실패해도 다음 크롤링 예약 (30분 후 재시도)
+            retry_interval = 30  # 분
+            crawl_data_source.apply_async(
+                (source_id,),
+                countdown=retry_interval * 60
+            )
         except:
             pass
 
@@ -85,6 +98,10 @@ def crawl_all_sources():
     """
     모든 활성화된 데이터 소스를 크롤링
     각 소스의 crawl_interval 설정에 따라 크롤링 시간이 된 것만 실행
+
+    **이 함수는 더 이상 주기적으로 실행되지 않습니다.**
+    **각 크롤링이 끝나면 자동으로 다음 크롤링을 예약합니다.**
+    **이 함수는 수동 실행용 또는 초기 크롤링 시작용으로만 사용됩니다.**
     """
     sources = DataSource.objects.filter(is_active=True)
 
@@ -105,6 +122,21 @@ def crawl_all_sources():
                 crawled_count += 1
 
     return f"Scheduled crawling for {crawled_count}/{sources.count()} sources"
+
+
+@shared_task
+def start_all_crawlers():
+    """
+    모든 활성화된 데이터 소스의 크롤링 체인을 시작
+    서버 재시작 후 또는 새 소스 추가 시 사용
+    """
+    sources = DataSource.objects.filter(is_active=True)
+
+    for source in sources:
+        # 각 소스의 크롤링을 즉시 시작 (자동으로 다음 크롤링도 예약됨)
+        crawl_data_source.delay(source.id)
+
+    return f"Started crawling chain for {sources.count()} sources"
 
 
 def get_crawler_class(source):

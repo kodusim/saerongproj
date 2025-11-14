@@ -14,16 +14,11 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 # Celery Beat 스케줄 설정
+# **주의: 이제 각 크롤링이 끝나면 자동으로 다음 크롤링을 예약합니다.**
+# **주기적인 Beat 스케줄은 필요 없습니다.**
 app.conf.beat_schedule = {
-    'crawl-all-sources-every-10-minutes': {
-        'task': 'collector.tasks.crawl_all_sources',
-        'schedule': 600.0,  # 10분마다 (초 단위)
-    },
-    # 추가 예시: 매일 새벽 2시에 전체 크롤링
-    # 'crawl-all-sources-daily': {
-    #     'task': 'collector.tasks.crawl_all_sources',
-    #     'schedule': crontab(hour=2, minute=0),
-    # },
+    # 기존 10분마다 크롤링 체크 방식 제거
+    # 각 소스가 자신의 crawl_interval에 맞춰 자동으로 다음 크롤링을 예약함
 }
 
 app.conf.timezone = 'Asia/Seoul'

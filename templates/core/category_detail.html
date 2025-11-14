@@ -224,6 +224,177 @@
         }
     }
 
+    .api-button {
+        padding: 15px 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: 2px solid white;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .api-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 40px;
+        position: relative;
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .modal-close:hover {
+        background: #e0e0e0;
+        transform: rotate(90deg);
+    }
+
+    .api-doc-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+
+    .api-doc-subtitle {
+        font-size: 1.1rem;
+        color: #718096;
+        margin-bottom: 30px;
+    }
+
+    .api-section {
+        margin-bottom: 35px;
+    }
+
+    .api-section h3 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .api-endpoint {
+        background: #f7fafc;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+
+    .api-method {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-right: 10px;
+    }
+
+    .api-method.get {
+        background: #48bb78;
+        color: white;
+    }
+
+    .api-method.post {
+        background: #4299e1;
+        color: white;
+    }
+
+    .api-method.delete {
+        background: #f56565;
+        color: white;
+    }
+
+    .api-path {
+        font-family: 'Courier New', monospace;
+        font-size: 1rem;
+        color: #2d3748;
+    }
+
+    .api-description {
+        margin-top: 10px;
+        color: #4a5568;
+        line-height: 1.6;
+    }
+
+    .code-block {
+        background: #2d3748;
+        color: #f7fafc;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+
+    .auth-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background: #fbd38d;
+        color: #744210;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
     @media (max-width: 768px) {
         .header h1 {
             font-size: 2rem;
@@ -241,6 +412,14 @@
         .subcategories-grid {
             grid-template-columns: 1fr;
         }
+
+        .modal-content {
+            padding: 25px;
+        }
+
+        .api-doc-title {
+            font-size: 1.5rem;
+        }
     }
 </style>
 
@@ -257,6 +436,14 @@
 
         {% if category.description %}
             <p>{{ category.description }}</p>
+        {% endif %}
+
+        {% if user.is_staff and category.slug == 'games' %}
+        <div style="margin-top: 20px;">
+            <button onclick="showGameHoneyAPI()" class="api-button">
+                📡 Game Honey API
+            </button>
+        </div>
         {% endif %}
     </div>
 
@@ -327,6 +514,264 @@
          (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
 </div>
+
+<!-- Game Honey API 문서 모달 -->
+<div id="apiModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeGameHoneyAPI()">×</button>
+
+        <h2 class="api-doc-title">🍯 Game Honey API 문서</h2>
+        <p class="api-doc-subtitle">모바일 앱에서 게임 소식을 구독하고 알림을 받을 수 있는 API</p>
+
+        <!-- 1. 게임 목록 API -->
+        <div class="api-section">
+            <h3>1. 게임 목록 조회</h3>
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method get">GET</span>
+                    <span class="api-path">/api/games/</span>
+                </div>
+                <p class="api-description">사용 가능한 모든 게임 목록을 조회합니다.</p>
+                <div class="code-block">{
+  "results": [
+    {
+      "id": 1,
+      "game_id": "maplestory",
+      "display_name": "메이플스토리",
+      "icon_url": "https://...",
+      "categories": ["공지사항", "업데이트", "이벤트"]
+    }
+  ]
+}</div>
+            </div>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method get">GET</span>
+                    <span class="api-path">/api/games/{game_id}/</span>
+                </div>
+                <p class="api-description">특정 게임의 상세 정보를 조회합니다.</p>
+                <div class="code-block">GET /api/games/maplestory/
+
+{
+  "id": 1,
+  "game_id": "maplestory",
+  "display_name": "메이플스토리",
+  "icon_url": "https://...",
+  "categories": ["공지사항", "업데이트", "이벤트"]
+}</div>
+            </div>
+        </div>
+
+        <!-- 2. 구독 관리 API -->
+        <div class="api-section">
+            <h3>2. 구독 관리</h3>
+            <span class="auth-badge">🔒 로그인 필요</span>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method get">GET</span>
+                    <span class="api-path">/api/subscriptions/</span>
+                </div>
+                <p class="api-description">현재 사용자의 구독 목록을 조회합니다.</p>
+                <div class="code-block">{
+  "results": [
+    {
+      "id": 1,
+      "game": 1,
+      "game_id": "maplestory",
+      "game_name": "메이플스토리",
+      "category": "공지사항",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}</div>
+            </div>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method post">POST</span>
+                    <span class="api-path">/api/subscriptions/</span>
+                </div>
+                <p class="api-description">새로운 구독을 추가합니다.</p>
+                <div class="code-block">POST /api/subscriptions/
+Content-Type: application/json
+
+{
+  "game_id": "maplestory",
+  "category": "공지사항"
+}
+
+Response:
+{
+  "id": 1,
+  "game": 1,
+  "game_id": "maplestory",
+  "game_name": "메이플스토리",
+  "category": "공지사항",
+  "created_at": "2024-01-15T10:30:00Z"
+}</div>
+            </div>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method delete">DELETE</span>
+                    <span class="api-path">/api/subscriptions/{id}/</span>
+                </div>
+                <p class="api-description">구독을 취소합니다.</p>
+                <div class="code-block">DELETE /api/subscriptions/1/
+
+Response: 204 No Content</div>
+            </div>
+        </div>
+
+        <!-- 3. 알림 피드 API -->
+        <div class="api-section">
+            <h3>3. 알림 피드</h3>
+            <span class="auth-badge">🔒 로그인 필요</span>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method get">GET</span>
+                    <span class="api-path">/api/notifications/</span>
+                </div>
+                <p class="api-description">구독한 게임의 최신 소식을 가져옵니다.</p>
+                <div class="code-block">GET /api/notifications/?limit=50
+
+[
+  {
+    "game": "메이플스토리",
+    "game_id": "maplestory",
+    "category": "공지사항",
+    "title": "정기점검 안내",
+    "url": "https://maplestory.nexon.com/...",
+    "date": "2024-01-15",
+    "collected_at": "2024-01-15T10:30:00Z"
+  }
+]</div>
+            </div>
+        </div>
+
+        <!-- 4. 푸시 토큰 관리 -->
+        <div class="api-section">
+            <h3>4. 푸시 토큰 관리</h3>
+            <span class="auth-badge">🔒 로그인 필요</span>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method post">POST</span>
+                    <span class="api-path">/api/push-tokens/</span>
+                </div>
+                <p class="api-description">FCM 푸시 토큰을 등록합니다.</p>
+                <div class="code-block">POST /api/push-tokens/
+Content-Type: application/json
+
+{
+  "token": "fcm_token_here",
+  "device_type": "android"  // "android" or "ios"
+}
+
+Response:
+{
+  "id": 1,
+  "token": "fcm_token_here",
+  "device_type": "android",
+  "created_at": "2024-01-15T10:30:00Z"
+}</div>
+            </div>
+
+            <div class="api-endpoint">
+                <div>
+                    <span class="api-method delete">DELETE</span>
+                    <span class="api-path">/api/push-tokens/{id}/</span>
+                </div>
+                <p class="api-description">푸시 토큰을 삭제합니다.</p>
+            </div>
+        </div>
+
+        <!-- 5. 인증 -->
+        <div class="api-section">
+            <h3>5. 인증</h3>
+            <div class="api-endpoint">
+                <p class="api-description">
+                    <strong>Django Session 인증</strong><br>
+                    현재 API는 Django의 기본 세션 인증을 사용합니다.
+                    로그인 후 세션 쿠키를 통해 인증됩니다.
+                </p>
+                <div class="code-block">// 요청 시 쿠키 포함
+fetch('/api/subscriptions/', {
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})</div>
+            </div>
+        </div>
+
+        <!-- 사용 예시 -->
+        <div class="api-section">
+            <h3>6. 사용 예시</h3>
+            <div class="api-endpoint">
+                <p class="api-description"><strong>전체 플로우 예시</strong></p>
+                <div class="code-block">// 1. 게임 목록 조회
+const games = await fetch('/api/games/').then(r => r.json());
+
+// 2. 메이플스토리 공지사항 구독
+await fetch('/api/subscriptions/', {
+  method: 'POST',
+  credentials: 'include',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    game_id: 'maplestory',
+    category: '공지사항'
+  })
+});
+
+// 3. 알림 피드 확인
+const feed = await fetch('/api/notifications/?limit=20', {
+  credentials: 'include'
+}).then(r => r.json());
+
+// 4. 푸시 토큰 등록
+await fetch('/api/push-tokens/', {
+  method: 'POST',
+  credentials: 'include',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    token: 'your_fcm_token',
+    device_type: 'android'
+  })
+});</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showGameHoneyAPI() {
+        document.getElementById('apiModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeGameHoneyAPI() {
+        document.getElementById('apiModal').classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+
+    // 모달 배경 클릭 시 닫기
+    document.getElementById('apiModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeGameHoneyAPI();
+        }
+    });
+
+    // ESC 키로 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeGameHoneyAPI();
+        }
+    });
+</script>
 
 </body>
 </html>

@@ -41,9 +41,9 @@ class MapleStoryCrawler(BaseCrawler):
         chrome_options.add_argument('--disable-ipc-flooding-protection')
         chrome_options.add_argument('--disable-renderer-backgrounding')
 
-        # Linux 서버에서만 chromium-browser 경로 지정
+        # Linux 서버에서만 google-chrome 경로 지정
         if platform.system() == 'Linux':
-            chrome_options.binary_location = '/usr/bin/chromium-browser'
+            chrome_options.binary_location = '/usr/bin/google-chrome'
 
         # 드라이버 초기화
         try:
@@ -185,9 +185,9 @@ class GenericSeleniumCrawler(BaseCrawler):
         chrome_options.add_argument('--disable-ipc-flooding-protection')
         chrome_options.add_argument('--disable-renderer-backgrounding')
 
-        # Linux 서버에서만 chromium-browser 경로 지정
+        # Linux 서버에서만 google-chrome 경로 지정
         if platform.system() == 'Linux':
-            chrome_options.binary_location = '/usr/bin/chromium-browser'
+            chrome_options.binary_location = '/usr/bin/google-chrome'
 
         try:
             driver = webdriver.Chrome(options=chrome_options)
