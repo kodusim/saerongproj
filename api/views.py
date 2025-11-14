@@ -1,18 +1,25 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from core.models import Category, SubCategory
 from sources.models import DataSource
 from collector.models import CollectedData, CrawlLog
+from .models import Game, GameCategory, Subscription, PushToken
 from .serializers import (
     CategorySerializer,
     SubCategorySerializer,
     DataSourceSerializer,
     CollectedDataSerializer,
     CollectedDataListSerializer,
-    CrawlLogSerializer
+    CrawlLogSerializer,
+    GameSerializer,
+    SubscriptionSerializer,
+    SubscriptionCreateSerializer,
+    PushTokenSerializer,
+    NotificationSerializer
 )
 from .permissions import IsAdminUserWithMessage
 
@@ -192,3 +199,143 @@ def subcategory_data_api(request, slug):
     }
 
     return Response(response_data)
+
+
+# ============================================
+# Game Honey API Views
+# ============================================
+
+class GameViewSet(viewsets.ReadOnlyModelViewSet):
+    """게임 목록 API"""
+    queryset = Game.objects.filter(is_active=True)
+    serializer_class = GameSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'game_id'
+
+
+class SubscriptionViewSet(viewsets.ModelViewSet):
+    """구독 관리 API"""
+    serializer_class = SubscriptionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """현재 사용자의 구독 목록만 반환"""
+        return Subscription.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        """생성 시에는 SubscriptionCreateSerializer 사용"""
+        if self.action == 'create':
+            return SubscriptionCreateSerializer
+        return SubscriptionSerializer
+
+    def perform_create(self, serializer):
+        """구독 생성 시 user 자동 설정"""
+        serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """구독 취소"""
+        subscription = self.get_object()
+
+        # 본인의 구독인지 확인 (get_queryset에서 이미 필터링되지만 재확인)
+        if subscription.user != request.user:
+            return Response(
+                {'error': '권한이 없습니다.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        subscription.delete()
+        return Response({'success': True}, status=status.HTTP_204_NO_CONTENT)
+
+
+class PushTokenViewSet(viewsets.ModelViewSet):
+    """푸시 토큰 관리 API"""
+    serializer_class = PushTokenSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'delete']  # PUT/PATCH 제외
+
+    def get_queryset(self):
+        """현재 사용자의 푸시 토큰만 반환"""
+        return PushToken.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """푸시 토큰 등록/업데이트"""
+        token = request.data.get('token')
+        device_type = request.data.get('device_type', 'android')
+
+        if not token:
+            return Response(
+                {'error': 'token이 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 기존 토큰이 있으면 업데이트, 없으면 생성
+        push_token, created = PushToken.objects.update_or_create(
+            token=token,
+            defaults={
+                'user': request.user,
+                'device_type': device_type
+            }
+        )
+
+        serializer = self.get_serializer(push_token)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notifications_feed(request):
+    """
+    알림 피드 API
+    현재 사용자가 구독한 게임+카테고리의 최신 소식 반환
+    """
+    # 사용자의 구독 목록 조회
+    subscriptions = Subscription.objects.filter(user=request.user).select_related('game')
+
+    # 구독한 게임+카테고리의 최신 데이터 수집
+    notifications = []
+
+    for sub in subscriptions:
+        # 해당 게임의 SubCategory 찾기
+        try:
+            subcategory = SubCategory.objects.get(
+                name__icontains=sub.game.display_name,
+                is_active=True
+            )
+        except (SubCategory.DoesNotExist, SubCategory.MultipleObjectsReturned):
+            continue
+
+        # 해당 카테고리의 DataSource 찾기
+        data_sources = subcategory.data_sources.filter(
+            name__icontains=sub.category,
+            is_active=True
+        )
+
+        for source in data_sources:
+            # 최신 데이터 10개 가져오기
+            items = CollectedData.objects.filter(
+                source=source
+            ).order_by('-collected_at')[:10]
+
+            for item in items:
+                notifications.append({
+                    'game': sub.game.display_name,
+                    'game_id': sub.game.game_id,
+                    'category': sub.category,
+                    'title': item.data.get('title', ''),
+                    'url': item.data.get('url', ''),
+                    'date': item.data.get('date', ''),
+                    'collected_at': item.collected_at
+                })
+
+    # 최신순 정렬
+    notifications.sort(key=lambda x: x['collected_at'], reverse=True)
+
+    # 페이지네이션 (선택적)
+    limit = int(request.query_params.get('limit', 50))
+    notifications = notifications[:limit]
+
+    serializer = NotificationSerializer(notifications, many=True)
+    return Response(serializer.data)
