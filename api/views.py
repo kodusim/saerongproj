@@ -1,13 +1,16 @@
+import base64
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from core.models import Category, SubCategory
 from sources.models import DataSource
 from collector.models import CollectedData, CrawlLog
-from .models import Game, GameCategory, Subscription, PushToken
+from .models import Game, GameCategory, Subscription, PushToken, UserProfile
 from .serializers import (
     CategorySerializer,
     SubCategorySerializer,
@@ -339,3 +342,102 @@ def notifications_feed(request):
 
     serializer = NotificationSerializer(notifications, many=True)
     return Response(serializer.data)
+
+
+# ============================================
+# Toss Disconnect Callback
+# ============================================
+
+def verify_basic_auth(request):
+    """
+    Basic Auth 검증
+    """
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+
+    if not auth_header.startswith('Basic '):
+        return False
+
+    try:
+        # "Basic " 제거하고 base64 디코딩
+        encoded_credentials = auth_header[6:]
+        decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+        username, password = decoded_credentials.split(':', 1)
+
+        # 환경 변수와 비교
+        expected_username = settings.TOSS_DISCONNECT_CALLBACK_USERNAME
+        expected_password = settings.TOSS_DISCONNECT_CALLBACK_PASSWORD
+
+        return username == expected_username and password == expected_password
+    except Exception as e:
+        print(f"Basic Auth verification failed: {e}")
+        return False
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def toss_disconnect_callback(request):
+    """
+    토스 연결 끊기 콜백
+
+    사용자가 토스앱에서 Game Honey 연결을 끊거나 회원 탈퇴할 때 호출됨
+    """
+    # 1. Basic Auth 검증
+    if not verify_basic_auth(request):
+        return Response(
+            {'error': 'Unauthorized'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    # 2. userKey 추출
+    user_key = request.data.get('userKey')
+    if not user_key:
+        return Response(
+            {'error': 'userKey is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # 3. 사용자 찾기 (UserProfile을 통해)
+        # UserProfile에서 toss_user_key로 찾기
+        profile = UserProfile.objects.get(toss_user_key=user_key)
+        user = profile.user
+
+        # 4. 트랜잭션으로 모든 데이터 삭제
+        with transaction.atomic():
+            # 4-1. 구독 정보 삭제
+            user.game_subscriptions.all().delete()
+
+            # 4-2. 푸시 토큰 삭제
+            user.push_tokens.all().delete()
+
+            # 4-3. 프로필 삭제
+            profile.delete()
+
+            # 4-4. 사용자 삭제
+            user.delete()
+
+        # 5. 로깅
+        print(f"User {user_key} disconnected from Toss successfully")
+
+        # 6. 성공 응답
+        return Response(
+            {'success': True, 'message': 'User disconnected successfully'},
+            status=status.HTTP_200_OK
+        )
+
+    except UserProfile.DoesNotExist:
+        # 사용자가 이미 삭제되었거나 존재하지 않는 경우
+        # 토스 입장에서는 성공으로 처리
+        print(f"User {user_key} not found, but returning success")
+        return Response(
+            {'success': True, 'message': 'User not found but considered as disconnected'},
+            status=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        # 예상치 못한 에러
+        print(f"Error in toss_disconnect_callback: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

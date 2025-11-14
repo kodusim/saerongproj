@@ -10,7 +10,8 @@ from .views import (
     GameViewSet,
     SubscriptionViewSet,
     PushTokenViewSet,
-    notifications_feed
+    notifications_feed,
+    toss_disconnect_callback
 )
 
 app_name = 'api'
@@ -31,5 +32,6 @@ router.register(r'push-tokens', PushTokenViewSet, basename='pushtoken')
 urlpatterns = [
     path('', include(router.urls)),
     path('notifications/', notifications_feed, name='notifications'),  # 알림 피드 API
+    path('auth/disconnect-callback', toss_disconnect_callback, name='toss-disconnect-callback'),  # 토스 연결 끊기 콜백
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

@@ -233,3 +233,7 @@ LOGGING = {
 
 # Debug Toolbar
 INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
+
+# Toss Disconnect Callback Authentication
+TOSS_DISCONNECT_CALLBACK_USERNAME = env.str('TOSS_DISCONNECT_CALLBACK_USERNAME', default='gamehoney')
+TOSS_DISCONNECT_CALLBACK_PASSWORD = env.str('TOSS_DISCONNECT_CALLBACK_PASSWORD', default='')
