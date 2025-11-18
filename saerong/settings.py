@@ -254,6 +254,10 @@ TOSS_LOGIN_BASE_URL = env.str('TOSS_LOGIN_BASE_URL', default='https://apps-in-to
 TOSS_DECRYPT_KEY = env.str('TOSS_DECRYPT_KEY', default='')
 TOSS_DECRYPT_AAD = env.str('TOSS_DECRYPT_AAD', default='TOSS')
 
+# Toss mTLS 인증서 경로
+TOSS_MTLS_CERT_PATH = env.str('TOSS_MTLS_CERT_PATH', default='')
+TOSS_MTLS_KEY_PATH = env.str('TOSS_MTLS_KEY_PATH', default='')
+
 # JWT Authentication
 JWT_SECRET_KEY = env.str('JWT_SECRET_KEY', default=SECRET_KEY)
 JWT_ALGORITHM = env.str('JWT_ALGORITHM', default='HS256')

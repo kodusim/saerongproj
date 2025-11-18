@@ -14,6 +14,25 @@ User = get_user_model()
 
 
 # ============================================
+# mTLS 인증서 헬퍼
+# ============================================
+
+def _get_mtls_cert() -> Optional[Tuple[str, str]]:
+    """
+    mTLS 인증서 경로 가져오기
+
+    Returns:
+        (cert_path, key_path) 튜플 또는 None
+    """
+    if hasattr(settings, 'TOSS_MTLS_CERT_PATH') and hasattr(settings, 'TOSS_MTLS_KEY_PATH'):
+        cert_path = settings.TOSS_MTLS_CERT_PATH
+        key_path = settings.TOSS_MTLS_KEY_PATH
+        if cert_path and key_path:
+            return (cert_path, key_path)
+    return None
+
+
+# ============================================
 # 토스 개인정보 복호화
 # ============================================
 
@@ -77,6 +96,7 @@ def get_toss_access_token(authorization_code: str, referrer: str) -> Dict:
             "referrer": referrer
         },
         headers={"Content-Type": "application/json"},
+        cert=_get_mtls_cert(),
         timeout=10
     )
 
@@ -113,6 +133,7 @@ def refresh_toss_access_token(refresh_token: str) -> Dict:
         url,
         json={"refreshToken": refresh_token},
         headers={"Content-Type": "application/json"},
+        cert=_get_mtls_cert(),
         timeout=10
     )
 
@@ -153,6 +174,7 @@ def get_toss_user_info(access_token: str) -> Dict:
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
         },
+        cert=_get_mtls_cert(),
         timeout=10
     )
 
