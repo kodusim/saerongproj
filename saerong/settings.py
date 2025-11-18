@@ -202,6 +202,12 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
+# 앱인토스 도메인 패턴 허용
+CORS_ALLOWED_ORIGIN_REGEXES = env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[
+    r"^https://.*\.private-apps\.tossmini\.com$",  # 앱인토스 서브도메인
+    r"^https://.*\.apps-in-toss\.com$",            # 앱인토스 대체 도메인
+])
+
 # Celery Configuration
 CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
