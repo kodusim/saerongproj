@@ -441,3 +441,228 @@ def toss_disconnect_callback(request):
             {'error': 'Internal server error'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================
+# Toss Login API
+# ============================================
+
+from api.toss_auth import (
+    get_toss_access_token,
+    refresh_toss_access_token,
+    get_toss_user_info,
+    get_or_create_user_from_toss,
+    create_jwt_token,
+    get_user_from_token
+)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def toss_login(request):
+    """
+    토스 로그인 API
+
+    앱에서 appLogin()으로 받은 authorizationCode를 전송하면
+    JWT 토큰을 발급합니다.
+
+    Request:
+        {
+            "authorizationCode": "abc123...",
+            "referrer": "DEFAULT" | "SANDBOX"
+        }
+
+    Response:
+        {
+            "access_token": "eyJ...",
+            "refresh_token": "eyJ...",
+            "user": {
+                "id": 1,
+                "username": "toss_443731104",
+                "toss_user_key": 443731104
+            }
+        }
+    """
+    authorization_code = request.data.get('authorizationCode')
+    referrer = request.data.get('referrer', 'DEFAULT')
+
+    if not authorization_code:
+        return Response(
+            {'error': 'authorizationCode is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # 1. 토스 API에서 AccessToken 발급
+        toss_token_data = get_toss_access_token(authorization_code, referrer)
+        toss_access_token = toss_token_data['accessToken']
+        toss_refresh_token = toss_token_data['refreshToken']
+
+        # 2. 토스 API에서 사용자 정보 조회
+        toss_user_info = get_toss_user_info(toss_access_token)
+        user_key = toss_user_info['userKey']
+
+        # 3. 사용자 찾기 또는 생성
+        user, created = get_or_create_user_from_toss(user_key, toss_user_info)
+
+        # 4. 토스 토큰 저장 (UserProfile에)
+        user.profile.toss_access_token = toss_access_token
+        user.profile.toss_refresh_token = toss_refresh_token
+        user.profile.save()
+
+        # 5. JWT 토큰 발급 (우리 서버용)
+        access_token = create_jwt_token(user.id, 'access')
+        refresh_token = create_jwt_token(user.id, 'refresh')
+
+        # 6. 응답
+        return Response({
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'toss_user_key': user_key,
+                'name': user.first_name,
+                'is_new': created
+            }
+        }, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        print(f"Error in toss_login: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def refresh_token(request):
+    """
+    JWT 토큰 갱신 API
+
+    Request:
+        {
+            "refresh_token": "eyJ..."
+        }
+
+    Response:
+        {
+            "access_token": "eyJ...(새로운 토큰)"
+        }
+    """
+    refresh_token = request.data.get('refresh_token')
+
+    if not refresh_token:
+        return Response(
+            {'error': 'refresh_token is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # JWT 토큰에서 사용자 찾기
+        user = get_user_from_token(refresh_token)
+
+        if not user:
+            return Response(
+                {'error': 'Invalid refresh token'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # 새 AccessToken 발급
+        new_access_token = create_jwt_token(user.id, 'access')
+
+        return Response({
+            'access_token': new_access_token
+        }, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    except Exception as e:
+        print(f"Error in refresh_token: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user(request):
+    """
+    현재 로그인한 사용자 정보 조회 API
+
+    Header:
+        Authorization: Bearer <jwt_token>
+
+    Response:
+        {
+            "id": 1,
+            "username": "toss_443731104",
+            "name": "김토스",
+            "toss_user_key": 443731104
+        }
+    """
+    try:
+        user = request.user
+        profile = user.profile
+
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'name': user.first_name or user.username,
+            'toss_user_key': profile.toss_user_key
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error in get_current_user: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    """
+    로그아웃 API
+
+    Header:
+        Authorization: Bearer <jwt_token>
+
+    Response:
+        {
+            "success": true
+        }
+    """
+    try:
+        # 여기서는 JWT 토큰을 무효화하지 않습니다
+        # (Stateless JWT의 특성상, 토큰은 만료될 때까지 유효)
+        # 필요시 Redis 등을 사용해 블랙리스트 관리 가능
+
+        # 토스 Access Token 삭제 (선택사항)
+        # user = request.user
+        # user.profile.toss_access_token = ''
+        # user.profile.toss_refresh_token = ''
+        # user.profile.save()
+
+        return Response({
+            'success': True,
+            'message': 'Logged out successfully'
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error in logout: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -237,3 +237,14 @@ INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
 # Toss Disconnect Callback Authentication
 TOSS_DISCONNECT_CALLBACK_USERNAME = env.str('TOSS_DISCONNECT_CALLBACK_USERNAME', default='gamehoney')
 TOSS_DISCONNECT_CALLBACK_PASSWORD = env.str('TOSS_DISCONNECT_CALLBACK_PASSWORD', default='')
+
+# Toss Login API
+TOSS_LOGIN_BASE_URL = env.str('TOSS_LOGIN_BASE_URL', default='https://apps-in-toss-api.toss.im')
+TOSS_DECRYPT_KEY = env.str('TOSS_DECRYPT_KEY', default='')
+TOSS_DECRYPT_AAD = env.str('TOSS_DECRYPT_AAD', default='TOSS')
+
+# JWT Authentication
+JWT_SECRET_KEY = env.str('JWT_SECRET_KEY', default=SECRET_KEY)
+JWT_ALGORITHM = env.str('JWT_ALGORITHM', default='HS256')
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = env.int('JWT_ACCESS_TOKEN_EXPIRE_MINUTES', default=60)
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = env.int('JWT_REFRESH_TOKEN_EXPIRE_DAYS', default=30)

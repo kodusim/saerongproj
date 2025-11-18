@@ -11,7 +11,11 @@ from .views import (
     SubscriptionViewSet,
     PushTokenViewSet,
     notifications_feed,
-    toss_disconnect_callback
+    toss_disconnect_callback,
+    toss_login,
+    refresh_token,
+    get_current_user,
+    logout
 )
 
 app_name = 'api'
@@ -32,6 +36,13 @@ router.register(r'push-tokens', PushTokenViewSet, basename='pushtoken')
 urlpatterns = [
     path('', include(router.urls)),
     path('notifications/', notifications_feed, name='notifications'),  # 알림 피드 API
+
+    # Toss Authentication
+    path('auth/toss/login', toss_login, name='toss-login'),  # 토스 로그인
+    path('auth/refresh', refresh_token, name='refresh-token'),  # 토큰 갱신
+    path('auth/me', get_current_user, name='current-user'),  # 현재 사용자 정보
+    path('auth/logout', logout, name='logout'),  # 로그아웃
     path('auth/disconnect-callback', toss_disconnect_callback, name='toss-disconnect-callback'),  # 토스 연결 끊기 콜백
+
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
