@@ -483,12 +483,13 @@ def toss_login(request):
             }
         }
     """
-    authorization_code = request.data.get('authorizationCode')
+    # CamelCaseJSONParser가 authorizationCode를 authorization_code로 변환함
+    authorization_code = request.data.get('authorization_code')
     referrer = request.data.get('referrer', 'DEFAULT')
 
     if not authorization_code:
         return Response(
-            {'error': 'authorizationCode is required'},
+            {'error': 'authorization_code is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
