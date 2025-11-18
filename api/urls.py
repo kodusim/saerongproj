@@ -38,7 +38,7 @@ urlpatterns = [
     path('notifications/', notifications_feed, name='notifications'),  # 알림 피드 API
 
     # Toss Authentication
-    path('auth/toss/login', toss_login, name='toss-login'),  # 토스 로그인
+    path('auth/login', toss_login, name='toss-login'),  # 토스 로그인
     path('auth/refresh', refresh_token, name='refresh-token'),  # 토큰 갱신
     path('auth/me', get_current_user, name='current-user'),  # 현재 사용자 정보
     path('auth/logout', logout, name='logout'),  # 로그아웃
