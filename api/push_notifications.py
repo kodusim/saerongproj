@@ -157,10 +157,21 @@ def notify_subscribers(collected_data):
         # 구독자가 없으면 알림 발송 안 함
         return False
 
-    # 4. 토스 user_key 추출 (UserProfile에서)
+    # 4. 토스 user_key 추출 (UserProfile에서) + 프리미엄 사용자만 필터링
+    from api.models import PremiumSubscription
+
     user_keys = []
     for user in subscribers:
         try:
+            # 4-1. 프리미엄 구독 확인
+            if not hasattr(user, 'premium_subscription'):
+                continue  # 프리미엄 구독 없음
+
+            premium = user.premium_subscription
+            if not premium.is_active():
+                continue  # 만료된 프리미엄
+
+            # 4-2. 토스 user_key 확인
             if hasattr(user, 'profile') and user.profile.toss_user_key:
                 user_keys.append(user.profile.toss_user_key)
         except Exception:
