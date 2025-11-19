@@ -909,7 +909,38 @@ def test_push_notification(request):
         body = request.data.get('body', '이것은 테스트 푸시 알림입니다.')
 
         # 사용자의 toss_user_key 확인
-        if not hasattr(user, 'profile') or not user.profile.toss_user_key:
+        user_key = None
+
+        # 1. 현재 사용자가 toss_user_key를 가지고 있으면 사용
+        if hasattr(user, 'profile') and user.profile.toss_user_key:
+            user_key = user.profile.toss_user_key
+
+        # 2. 관리자 사용자인 경우, 자신의 toss_user_key로 테스트
+        elif user.is_staff or user.is_superuser:
+            # 관리자 본인의 UserProfile에서 toss_user_key 찾기
+            try:
+                from api.models import UserProfile
+                admin_profile = UserProfile.objects.filter(user=user).first()
+                if admin_profile and admin_profile.toss_user_key:
+                    user_key = admin_profile.toss_user_key
+                else:
+                    # 관리자도 toss_user_key가 없으면, 첫 번째 활성 사용자로 테스트
+                    first_profile = UserProfile.objects.filter(toss_user_key__isnull=False).first()
+                    if first_profile:
+                        user_key = first_profile.toss_user_key
+                        print(f"[Admin Test] Using first available user_key: {user_key}")
+                    else:
+                        return Response({
+                            'error': '테스트할 사용자가 없습니다. 토스 로그인한 사용자가 필요합니다.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                print(f"Error finding test user_key: {e}")
+                return Response({
+                    'error': f'사용자 조회 실패: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # 3. 일반 사용자인데 toss_user_key가 없으면 에러
+        else:
             return Response(
                 {'error': '토스 로그인이 필요합니다. (user_key 없음)'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -918,7 +949,7 @@ def test_push_notification(request):
         # 푸시 알림 발송
         from api.push_notifications import send_toss_push_notification
 
-        user_keys = [user.profile.toss_user_key]
+        user_keys = [user_key]
         data = {
             "test": True,
             "url": "https://saerong.com"
@@ -935,7 +966,7 @@ def test_push_notification(request):
             return Response({
                 'success': True,
                 'message': '푸시 알림 발송 완료',
-                'user_key': user.profile.toss_user_key,
+                'user_key': user_key,
                 'title': title,
                 'body': body
             }, status=status.HTTP_200_OK)
