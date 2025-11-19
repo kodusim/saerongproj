@@ -78,8 +78,8 @@ class UserProfile(models.Model):
     """사용자 프로필 확장 (Toss 인증용)"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="사용자")
     toss_user_key = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name="토스 사용자 키")
-    toss_access_token = models.CharField(max_length=500, blank=True, verbose_name="토스 액세스 토큰")
-    toss_refresh_token = models.CharField(max_length=500, blank=True, verbose_name="토스 리프레시 토큰")
+    toss_access_token = models.TextField(blank=True, verbose_name="토스 액세스 토큰")
+    toss_refresh_token = models.TextField(blank=True, verbose_name="토스 리프레시 토큰")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
