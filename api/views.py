@@ -231,6 +231,37 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             return SubscriptionCreateSerializer
         return SubscriptionSerializer
 
+    def create(self, request, *args, **kwargs):
+        """구독 생성 (등급 제한 적용)"""
+        from django.utils import timezone
+
+        # 1. 활성 구독권 확인
+        try:
+            premium = PremiumSubscription.objects.get(user=request.user)
+            if not premium.is_active:
+                # 만료된 구독권 삭제
+                premium.delete()
+                raise PremiumSubscription.DoesNotExist
+        except PremiumSubscription.DoesNotExist:
+            return Response(
+                {'error': '구독하려면 광고를 시청하거나 프리미엄을 구매해주세요.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # 2. 광고 구독자 제한 확인 (1개 게임만)
+        if premium.subscription_type == 'free_ad':
+            current_count = Subscription.objects.filter(user=request.user).values('game').distinct().count()
+            if current_count >= 1:
+                return Response(
+                    {'error': '광고 구독은 1개 게임만 구독할 수 있습니다. 프리미엄을 구매하면 무제한으로 구독할 수 있어요.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # 3. 중복 구독 방지는 SubscriptionCreateSerializer의 get_or_create()에서 처리됨
+
+        # 4. 구독 생성
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         """구독 생성 시 user 자동 설정"""
         serializer.save(user=self.request.user)
@@ -690,11 +721,17 @@ def premium_status(request):
         {
             "isPremium": true,
             "expiresAt": "2025-12-19T00:00:00Z",
-            "subscriptionType": "free_ad"
+            "subscriptionType": "free_ad",
+            "maxGames": 1,  // free_ad: 1, premium: null (무제한)
+            "subscribedGamesCount": 0,
+            "canSubscribeMore": true
         }
     """
     try:
         user = request.user
+
+        # 현재 구독 중인 게임 수 계산
+        subscribed_games_count = Subscription.objects.filter(user=user).values('game').distinct().count()
 
         try:
             subscription = PremiumSubscription.objects.get(user=user)
@@ -705,20 +742,38 @@ def premium_status(request):
                 return Response({
                     'is_premium': False,
                     'expires_at': None,
-                    'subscription_type': None
+                    'subscription_type': None,
+                    'max_games': None,
+                    'subscribed_games_count': subscribed_games_count,
+                    'can_subscribe_more': False
                 }, status=status.HTTP_200_OK)
+
+            # 구독 유형에 따른 최대 게임 수 설정
+            max_games = 1 if subscription.subscription_type == 'free_ad' else None
+
+            # 추가 구독 가능 여부
+            if subscription.subscription_type == 'free_ad':
+                can_subscribe_more = subscribed_games_count < 1
+            else:  # premium
+                can_subscribe_more = True
 
             return Response({
                 'is_premium': True,
                 'expires_at': subscription.expires_at,
-                'subscription_type': subscription.subscription_type
+                'subscription_type': subscription.subscription_type,
+                'max_games': max_games,
+                'subscribed_games_count': subscribed_games_count,
+                'can_subscribe_more': can_subscribe_more
             }, status=status.HTTP_200_OK)
 
         except PremiumSubscription.DoesNotExist:
             return Response({
                 'is_premium': False,
                 'expires_at': None,
-                'subscription_type': None
+                'subscription_type': None,
+                'max_games': None,
+                'subscribed_games_count': subscribed_games_count,
+                'can_subscribe_more': False
             }, status=status.HTTP_200_OK)
 
     except Exception as e:
