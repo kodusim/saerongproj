@@ -177,8 +177,8 @@ def notify_subscribers(collected_data):
     # 6. 추가 데이터 (클릭 시 이동할 URL 등)
     data = {
         "url": collected_data.data.get('url', ''),
-        "gameId": game.game_id,
-        "category": category,
+        "game_id": game.display_name,  # 게임 이름 (예: "메이플스토리")
+        "category": category,           # 카테고리 이름 (예: "공지사항")
     }
 
     # 7. 푸시 알림 발송
