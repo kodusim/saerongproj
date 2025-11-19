@@ -952,7 +952,9 @@ def test_push_notification(request):
         user_keys = [user_key]
         data = {
             "test": True,
-            "url": "https://saerong.com"
+            "url": "https://saerong.com",
+            "game_id": "게임 허니",
+            "category": "테스트 알림"
         }
 
         success = send_toss_push_notification(
