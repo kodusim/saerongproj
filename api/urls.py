@@ -18,7 +18,8 @@ from .views import (
     logout,
     premium_status,
     grant_premium,
-    test_push_notification
+    test_push_notification,
+    api_guide
 )
 
 app_name = 'api'
@@ -53,6 +54,9 @@ urlpatterns = [
 
     # Test APIs (개발/디버깅용)
     path('test/push/', test_push_notification, name='test-push'),  # 푸시 알림 테스트
+
+    # API 가이드 (관리자 전용)
+    path('guide/', api_guide, name='api-guide'),  # Game Honey API 가이드
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

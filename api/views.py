@@ -953,3 +953,28 @@ def test_push_notification(request):
             {'error': f'Internal server error: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
+
+
+@staff_member_required
+def api_guide(request):
+    """
+    Game Honey API 가이드 페이지 (관리자 전용)
+
+    GET /api/guide/
+    """
+    from django.contrib.auth.models import User
+
+    # 통계 데이터
+    games_count = Game.objects.filter(is_active=True).count()
+    users_count = User.objects.count()
+    subscriptions_count = Subscription.objects.count()
+
+    return render(request, 'api/api_guide.html', {
+        'games_count': games_count,
+        'users_count': users_count,
+        'subscriptions_count': subscriptions_count,
+    })
