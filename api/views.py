@@ -953,7 +953,7 @@ def test_push_notification(request):
         data = {
             "test": True,
             "url": "https://saerong.com",
-            "game_id": "게임 허니",
+            "game_id": "게임 하니",
             "category": "테스트 알림"
         }
 
