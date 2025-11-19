@@ -89,3 +89,32 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+class PremiumSubscription(models.Model):
+    """프리미엄 구독 정보"""
+    SUBSCRIPTION_TYPES = [
+        ('free_ad', '광고 시청 무료 (7일)'),
+        ('premium', '프리미엄 구독 (30일)'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='premium_subscription', verbose_name="사용자")
+    subscription_type = models.CharField(max_length=20, choices=SUBSCRIPTION_TYPES, verbose_name="구독 유형")
+    expires_at = models.DateTimeField(verbose_name="만료일시")
+    order_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="주문 ID")  # 인앱결제 주문 ID
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+
+    class Meta:
+        verbose_name = "프리미엄 구독"
+        verbose_name_plural = "프리미엄 구독 목록"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_subscription_type_display()} (만료: {self.expires_at})"
+
+    @property
+    def is_active(self):
+        """현재 활성화된 구독인지 확인"""
+        from django.utils import timezone
+        return self.expires_at > timezone.now()

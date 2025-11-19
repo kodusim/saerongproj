@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from core.models import Category, SubCategory
 from sources.models import DataSource
 from collector.models import CollectedData, CrawlLog
-from .models import Game, GameCategory, Subscription, PushToken, UserProfile
+from .models import Game, GameCategory, Subscription, PushToken, UserProfile, PremiumSubscription
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -188,3 +188,23 @@ class NotificationSerializer(serializers.Serializer):
     url = serializers.URLField()
     date = serializers.CharField()
     collected_at = serializers.DateTimeField()
+
+
+class PremiumSubscriptionSerializer(serializers.ModelSerializer):
+    """프리미엄 구독 Serializer"""
+    is_premium = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PremiumSubscription
+        fields = ['id', 'subscription_type', 'expires_at', 'is_premium', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def get_is_premium(self, obj):
+        """현재 활성화된 구독인지 확인"""
+        return obj.is_active
+
+
+class PremiumGrantSerializer(serializers.Serializer):
+    """프리미엄 구독권 부여 Serializer"""
+    subscription_type = serializers.ChoiceField(choices=['free_ad', 'premium'])
+    order_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)

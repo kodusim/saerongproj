@@ -667,3 +667,156 @@ def logout(request):
             {'error': 'Internal server error'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================
+# Premium Subscription API
+# ============================================
+
+from .models import PremiumSubscription
+from .serializers import PremiumSubscriptionSerializer, PremiumGrantSerializer
+from datetime import timedelta
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def premium_status(request):
+    """
+    프리미엄 구독 상태 조회 API
+
+    GET /api/premium/status/
+
+    Response:
+        {
+            "isPremium": true,
+            "expiresAt": "2025-12-19T00:00:00Z",
+            "subscriptionType": "free_ad"
+        }
+    """
+    try:
+        user = request.user
+
+        try:
+            subscription = PremiumSubscription.objects.get(user=user)
+
+            # 만료된 구독은 삭제
+            if not subscription.is_active:
+                subscription.delete()
+                return Response({
+                    'is_premium': False,
+                    'expires_at': None,
+                    'subscription_type': None
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                'is_premium': True,
+                'expires_at': subscription.expires_at,
+                'subscription_type': subscription.subscription_type
+            }, status=status.HTTP_200_OK)
+
+        except PremiumSubscription.DoesNotExist:
+            return Response({
+                'is_premium': False,
+                'expires_at': None,
+                'subscription_type': None
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error in premium_status: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def grant_premium(request):
+    """
+    프리미엄 구독권 부여 API
+
+    POST /api/premium/grant/
+
+    Request:
+        {
+            "subscriptionType": "free_ad",  // "free_ad" (7일) 또는 "premium" (30일)
+            "orderId": "uuid-v7"  // 인앱결제 주문 ID (결제 검증용, optional)
+        }
+
+    Response:
+        {
+            "expiresAt": "2025-12-26T00:00:00Z"
+        }
+    """
+    serializer = PremiumGrantSerializer(data=request.data)
+
+    if not serializer.is_valid():
+        return Response(
+            {'error': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = request.user
+        subscription_type = serializer.validated_data['subscription_type']
+        order_id = serializer.validated_data.get('order_id')
+
+        # premium 구독의 경우 order_id 필수
+        if subscription_type == 'premium' and not order_id:
+            return Response(
+                {'error': 'order_id is required for premium subscription'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # premium 구독의 경우 결제 검증 (TODO: Apps in Toss 결제 검증 API 연동)
+        if subscription_type == 'premium' and order_id:
+            # TODO: 토스 인앱결제 검증 API 호출
+            # https://developers-apps-in-toss.toss.im/iap/develop
+            # verified = verify_iap_purchase(order_id)
+            # if not verified:
+            #     return Response({'error': 'Invalid order'}, status=status.HTTP_400_BAD_REQUEST)
+            pass
+
+        # 구독 기간 설정
+        from django.utils import timezone
+        now = timezone.now()
+
+        if subscription_type == 'free_ad':
+            duration = timedelta(days=7)
+        else:  # premium
+            duration = timedelta(days=30)
+
+        # 기존 구독이 있으면 만료일 연장, 없으면 새로 생성
+        try:
+            subscription = PremiumSubscription.objects.get(user=user)
+
+            # 활성화된 구독이 있으면 만료일 연장
+            if subscription.is_active:
+                subscription.expires_at = subscription.expires_at + duration
+            else:
+                # 만료된 구독이면 현재 시각부터 새로 시작
+                subscription.expires_at = now + duration
+
+            subscription.subscription_type = subscription_type
+            subscription.order_id = order_id
+            subscription.save()
+
+        except PremiumSubscription.DoesNotExist:
+            # 새 구독 생성
+            subscription = PremiumSubscription.objects.create(
+                user=user,
+                subscription_type=subscription_type,
+                expires_at=now + duration,
+                order_id=order_id
+            )
+
+        return Response({
+            'expires_at': subscription.expires_at
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error in grant_premium: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
