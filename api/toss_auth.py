@@ -24,11 +24,18 @@ def _get_mtls_cert() -> Optional[Tuple[str, str]]:
     Returns:
         (cert_path, key_path) 튜플 또는 None
     """
-    if hasattr(settings, 'TOSS_MTLS_CERT_PATH') and hasattr(settings, 'TOSS_MTLS_KEY_PATH'):
-        cert_path = settings.TOSS_MTLS_CERT_PATH
-        key_path = settings.TOSS_MTLS_KEY_PATH
-        if cert_path and key_path:
-            return (cert_path, key_path)
+    # 먼저 TOSS_CERT_PATH 확인 (통일된 변수명)
+    cert_path = getattr(settings, 'TOSS_CERT_PATH', None)
+    key_path = getattr(settings, 'TOSS_KEY_PATH', None)
+
+    # 없으면 TOSS_MTLS_CERT_PATH 확인 (레거시)
+    if not (cert_path and key_path):
+        cert_path = getattr(settings, 'TOSS_MTLS_CERT_PATH', None)
+        key_path = getattr(settings, 'TOSS_MTLS_KEY_PATH', None)
+
+    if cert_path and key_path:
+        return (cert_path, key_path)
+
     return None
 
 
