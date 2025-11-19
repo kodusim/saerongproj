@@ -294,7 +294,7 @@ def get_or_create_user_from_toss(user_key: int, user_info: Dict) -> Tuple[User, 
         # profile.save()
 
     except UserProfile.DoesNotExist:
-        # 새 사용자 생성
+        # 새 사용자 생성 또는 기존 User에 Profile 재생성
         username = f"toss_{user_key}"
 
         # 이름 복호화 (있으면)
@@ -305,17 +305,22 @@ def get_or_create_user_from_toss(user_key: int, user_info: Dict) -> Tuple[User, 
             except:
                 pass
 
-        user = User.objects.create_user(
-            username=username,
-            first_name=display_name[:30]  # Django User 필드 길이 제한
-        )
+        # User가 이미 존재하는지 확인 (Profile만 삭제된 경우)
+        try:
+            user = User.objects.get(username=username)
+            created = False
+        except User.DoesNotExist:
+            # 완전히 새로운 사용자 생성
+            user = User.objects.create_user(
+                username=username,
+                first_name=display_name[:30]  # Django User 필드 길이 제한
+            )
+            created = True
 
-        # UserProfile 생성
-        UserProfile.objects.create(
+        # UserProfile 생성 (없으면)
+        UserProfile.objects.get_or_create(
             user=user,
-            toss_user_key=user_key
+            defaults={'toss_user_key': user_key}
         )
-
-        created = True
 
     return user, created
