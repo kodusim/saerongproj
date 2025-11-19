@@ -194,7 +194,8 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.MultiPartParser',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'api.authentication.JWTAuthentication',  # JWT 토큰 인증 (우선순위 높음)
+        'rest_framework.authentication.SessionAuthentication',  # 관리자 페이지용
     ],
 }
 

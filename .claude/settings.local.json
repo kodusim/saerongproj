@@ -1,33 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout:*)",
-      "Bash(rm:*)",
-      "Bash(python manage.py startapp:*)",
-      "Bash(python manage.py:*)",
-      "Bash(pip install:*)",
-      "Bash(python test_selenium.py:*)",
-      "Bash(notice_section.html)",
-      "Bash(cat:*)",
-      "Bash(curl:*)",
-      "Bash(python:*)",
-      "Bash(taskkill:*)",
-      "Bash(venv\\Scripts\\pip install:*)",
-      "Bash(./venv/Scripts/pip install:*)",
-      "Bash(find:*)",
-      "Bash(./venv/Scripts/python:*)",
-      "Bash(netstat:*)",
-      "Bash(findstr:*)",
-      "Bash(ssh:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push)",
-      "Bash(scp:*)",
-      "Bash(ping:*)",
-      "Bash(python3:*)",
-      "Bash(./venv/Scripts/pip:*)",
-      "Bash(dir %USERPROFILE%.ssh*.pem 2)",
-      "Bash(nul)"
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
