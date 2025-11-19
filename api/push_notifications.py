@@ -6,18 +6,16 @@ from django.conf import settings
 from .models import Game, Subscription
 
 
-# SubCategory 이름 → Game game_id 매핑
-SUBCATEGORY_TO_GAME_MAPPING = {
-    "메이플스토리": "maplestory",
-    # 향후 다른 게임 추가 시 여기에 추가
-    # "로스트아크": "lostark",
-    # "던전앤파이터": "dungeon_and_fighter",
-}
-
-
 def get_game_from_subcategory(subcategory):
     """
     SubCategory에서 Game 객체 추출
+
+    SubCategory.slug를 Game.game_id로 매핑합니다.
+    예: SubCategory(slug='maplestory') → Game(game_id='maplestory')
+
+    **자동 매핑 규칙:**
+    - 새 게임 추가 시: SubCategory 생성 시 slug를 game_id와 동일하게 설정
+    - 하드코딩 불필요, DB에 추가만 하면 자동으로 연동됨
 
     Args:
         subcategory: SubCategory 객체
@@ -25,13 +23,13 @@ def get_game_from_subcategory(subcategory):
     Returns:
         Game 객체 또는 None
     """
-    game_id = SUBCATEGORY_TO_GAME_MAPPING.get(subcategory.name)
-    if not game_id:
-        return None
+    # SubCategory.slug를 game_id로 사용 (자동 매핑)
+    game_id = subcategory.slug
 
     try:
         return Game.objects.get(game_id=game_id, is_active=True)
     except Game.DoesNotExist:
+        # 매칭되는 Game이 없으면 None 반환 (푸시 알림 스킵)
         return None
 
 
