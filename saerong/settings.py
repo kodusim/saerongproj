@@ -259,6 +259,10 @@ TOSS_DECRYPT_AAD = env.str('TOSS_DECRYPT_AAD', default='TOSS')
 TOSS_MTLS_CERT_PATH = env.str('TOSS_MTLS_CERT_PATH', default='')
 TOSS_MTLS_KEY_PATH = env.str('TOSS_MTLS_KEY_PATH', default='')
 
+# mTLS 인증서 경로 (push_notifications.py에서 사용)
+TOSS_CERT_PATH = env.str('TOSS_CERT_PATH', default='')
+TOSS_KEY_PATH = env.str('TOSS_KEY_PATH', default='')
+
 # JWT Authentication
 JWT_SECRET_KEY = env.str('JWT_SECRET_KEY', default=SECRET_KEY)
 JWT_ALGORITHM = env.str('JWT_ALGORITHM', default='HS256')

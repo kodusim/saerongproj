@@ -54,13 +54,13 @@ def get_subscribers_for_news(game, category):
 
 def send_toss_push_notification(user_keys, title, body, data=None):
     """
-    토스 메신저 API를 통해 푸시 알림 발송
+    토스 메신저 API를 통해 푸시 알림 발송 (템플릿 기반)
 
     Args:
         user_keys: 토스 사용자 키 리스트 (BigInteger)
-        title: 알림 제목
-        body: 알림 본문
-        data: 추가 데이터 (딕셔너리, optional)
+        title: 알림 제목 (템플릿에서는 사용 안 함)
+        body: 알림 본문 (템플릿에서는 사용 안 함)
+        data: 추가 데이터 (game_id, category 등)
 
     Returns:
         성공 여부 (boolean)
@@ -68,11 +68,10 @@ def send_toss_push_notification(user_keys, title, body, data=None):
     if not user_keys:
         return True
 
-    # 토스 메신저 API 엔드포인트
-    # https://toss.im/tossim-console/docs/apps-in-toss/push
-    url = "https://toss.im/api/v1/apps-in-toss/push"
+    # 토스 메신저 API 엔드포인트 (템플릿 기반)
+    base_url = "https://apps-in-toss-api.toss.im"
 
-    # mTLS 인증서 경로 (settings에서 가져오기)
+    # mTLS 인증서 경로
     cert_path = getattr(settings, 'TOSS_CERT_PATH', None)
     key_path = getattr(settings, 'TOSS_KEY_PATH', None)
 
@@ -80,36 +79,54 @@ def send_toss_push_notification(user_keys, title, body, data=None):
         print("Warning: Toss mTLS certificates not configured. Skipping push notification.")
         return False
 
-    # 요청 페이로드
-    payload = {
-        "userKeys": user_keys,  # 토스 사용자 키 리스트
-        "notification": {
-            "title": title,
-            "body": body,
+    success_count = 0
+
+    # 각 사용자에게 개별 발송
+    for user_key in user_keys:
+        # 템플릿 코드: gamehoney-news
+        template_code = "gamehoney-news"
+
+        # 템플릿 변수
+        context = {}
+        if data:
+            context["game_id"] = data.get("game_id", "게임")
+            context["category"] = data.get("category", "소식")
+
+        # 요청 페이로드
+        payload = {
+            "templateSetCode": template_code,
+            "context": context
         }
-    }
 
-    if data:
-        payload["data"] = data
+        # 헤더에 user_key 추가
+        headers = {
+            "Content-Type": "application/json",
+            "x-toss-user-key": str(user_key)
+        }
 
-    try:
-        response = requests.post(
-            url,
-            json=payload,
-            cert=(cert_path, key_path),  # mTLS 인증서
-            timeout=10
-        )
+        try:
+            response = requests.post(
+                f"{base_url}/api-partner/v1/apps-in-toss/messenger/send-message",
+                json=payload,
+                headers=headers,
+                cert=(cert_path, key_path),
+                timeout=10
+            )
 
-        if response.status_code == 200:
-            print(f"Push notification sent successfully to {len(user_keys)} users")
-            return True
-        else:
-            print(f"Failed to send push notification: {response.status_code} - {response.text}")
-            return False
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("resultType") == "SUCCESS":
+                    print(f"Push notification sent to user {user_key}")
+                    success_count += 1
+                else:
+                    print(f"Failed to send to user {user_key}: {result}")
+            else:
+                print(f"Failed to send push to user {user_key}: {response.status_code} - {response.text}")
 
-    except Exception as e:
-        print(f"Error sending push notification: {e}")
-        return False
+        except Exception as e:
+            print(f"Error sending push to user {user_key}: {e}")
+
+    return success_count > 0
 
 
 def notify_subscribers(collected_data):
