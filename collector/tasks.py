@@ -33,12 +33,20 @@ def crawl_data_source(source_id):
 
             # 중복 체크
             if not CollectedData.objects.filter(hash_key=hash_key).exists():
-                CollectedData.objects.create(
+                collected_data = CollectedData.objects.create(
                     source=source,
                     data=item,
                     hash_key=hash_key
                 )
                 new_count += 1
+
+                # 새 데이터 생성 시 구독자들에게 푸시 알림 발송
+                try:
+                    from api.push_notifications import notify_subscribers
+                    notify_subscribers(collected_data)
+                except Exception as e:
+                    # 푸시 알림 실패해도 크롤링은 계속 진행
+                    print(f"Failed to send push notification: {e}")
 
         # 마지막 크롤링 시간 업데이트
         source.last_crawled_at = timezone.now()
