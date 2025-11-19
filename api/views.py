@@ -875,3 +875,81 @@ def grant_premium(request):
             {'error': 'Internal server error'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================
+# 테스트 API (개발/디버깅용)
+# ============================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def test_push_notification(request):
+    """
+    푸시 알림 테스트 API (개발/디버깅용)
+
+    POST /api/test/push/
+
+    Request:
+        {
+            "title": "테스트 제목",
+            "body": "테스트 본문" (optional)
+        }
+
+    Response:
+        {
+            "success": true,
+            "message": "푸시 알림 발송 완료",
+            "user_key": 123456789,
+            "title": "테스트 제목"
+        }
+    """
+    try:
+        user = request.user
+        title = request.data.get('title', '[테스트] 푸시 알림 테스트')
+        body = request.data.get('body', '이것은 테스트 푸시 알림입니다.')
+
+        # 사용자의 toss_user_key 확인
+        if not hasattr(user, 'profile') or not user.profile.toss_user_key:
+            return Response(
+                {'error': '토스 로그인이 필요합니다. (user_key 없음)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 푸시 알림 발송
+        from api.push_notifications import send_toss_push_notification
+
+        user_keys = [user.profile.toss_user_key]
+        data = {
+            "test": True,
+            "url": "https://saerong.com"
+        }
+
+        success = send_toss_push_notification(
+            user_keys=user_keys,
+            title=title,
+            body=body,
+            data=data
+        )
+
+        if success:
+            return Response({
+                'success': True,
+                'message': '푸시 알림 발송 완료',
+                'user_key': user.profile.toss_user_key,
+                'title': title,
+                'body': body
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'error': '푸시 알림 발송 실패 (토스 API 에러 또는 인증서 미설정)'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except Exception as e:
+        print(f"Error in test_push_notification: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

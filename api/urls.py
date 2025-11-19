@@ -17,7 +17,8 @@ from .views import (
     get_current_user,
     logout,
     premium_status,
-    grant_premium
+    grant_premium,
+    test_push_notification
 )
 
 app_name = 'api'
@@ -49,6 +50,9 @@ urlpatterns = [
     # Premium Subscription
     path('premium/status/', premium_status, name='premium-status'),  # 프리미엄 구독 상태 조회
     path('premium/grant/', grant_premium, name='grant-premium'),  # 프리미엄 구독권 부여
+
+    # Test APIs (개발/디버깅용)
+    path('test/push/', test_push_notification, name='test-push'),  # 푸시 알림 테스트
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
