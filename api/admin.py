@@ -43,8 +43,38 @@ class PushTokenAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'toss_user_key', 'created_at']
+    list_display = ['user', 'toss_user_key', 'created_at', 'has_premium']
     list_filter = ['created_at']
     search_fields = ['user__username', 'toss_user_key']
     ordering = ['-created_at']
     raw_id_fields = ['user']
+
+    # 삭제 권한 제한 (슈퍼유저만 삭제 가능)
+    def has_delete_permission(self, request, obj=None):
+        # 테스트 계정만 삭제 가능하도록 제한 (선택사항)
+        if obj and obj.user.is_superuser:
+            return False  # 슈퍼유저 프로필은 삭제 불가
+        return request.user.is_superuser
+
+    def has_premium(self, obj):
+        """프리미엄 구독 여부"""
+        try:
+            return '✅' if obj.user.premium_subscription.is_active() else '❌'
+        except:
+            return '❌'
+    has_premium.short_description = '프리미엄'
+
+    # 경고 메시지 추가
+    def get_deleted_objects(self, objs, request):
+        """삭제 확인 페이지에 경고 표시"""
+        deleted_objects, model_count, perms_needed, protected = super().get_deleted_objects(objs, request)
+
+        # 경고 메시지 추가
+        warnings = [
+            "⚠️ UserProfile 삭제 시 주의사항:",
+            "- 해당 사용자는 재로그인 시 자동으로 Profile이 재생성됩니다",
+            "- 구독 정보는 유지되지만 프리미엄 정보는 함께 삭제됩니다",
+            "- 삭제 대신 User를 비활성화(is_active=False)하는 것을 권장합니다"
+        ]
+
+        return (warnings + list(deleted_objects), model_count, perms_needed, protected)
