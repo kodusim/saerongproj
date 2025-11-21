@@ -15,7 +15,7 @@
 
 1. **프리미엄 상태 관리**
    - `PremiumSubscription` 모델
-   - 구독 유형: `free_ad` (광고 7일), `premium` (유료 30일)
+   - 구독 유형: `free_ad` (광고 7일), `premium` (유료 180일)
    - 만료일 관리
 
 2. **구독 제한 검증**
@@ -242,7 +242,7 @@ async function checkPremiumStatus() {
 │   ↓                           │
 │ POST /api/premium/activate-subscription/│
 │   ↓                           │
-│ premium 프리미엄 활성화 (30일)│
+│ premium 프리미엄 활성화 (180일)│
 └───────────────────────────────┘
     ↓
 게임 소식 구독

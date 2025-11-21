@@ -220,7 +220,7 @@ Authorization: Bearer {accessToken}
 {
   "isPremium": true,
   "expiresAt": "2025-12-26T00:00:00Z",
-  "subscriptionType": "free_ad",  // "free_ad" (7일) 또는 "premium" (30일)
+  "subscriptionType": "free_ad",  // "free_ad" (7일) 또는 "premium" (180일)
   "maxGames": 1,                   // free_ad: 1, premium: null (무제한)
   "subscribedGamesCount": 0,
   "canSubscribeMore": true
@@ -264,7 +264,7 @@ Authorization: Bearer {accessToken}
 
 **구독 기간:**
 - `free_ad`: 7일
-- `premium`: 30일
+- `premium`: 180일
 
 **자동 연장:**
 - 기존 활성 구독이 있으면 만료일에서 연장

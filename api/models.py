@@ -95,7 +95,7 @@ class PremiumSubscription(models.Model):
     """프리미엄 구독 정보"""
     SUBSCRIPTION_TYPES = [
         ('free_ad', '광고 시청 무료 (7일)'),
-        ('premium', '프리미엄 구독 (30일)'),
+        ('premium', '프리미엄 구독 (180일)'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='premium_subscription', verbose_name="사용자")

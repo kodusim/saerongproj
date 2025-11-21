@@ -794,7 +794,7 @@ def grant_premium(request):
 
     Request:
         {
-            "subscriptionType": "free_ad",  // "free_ad" (7일) 또는 "premium" (30일)
+            "subscriptionType": "free_ad",  // "free_ad" (7일) 또는 "premium" (180일)
             "orderId": "uuid-v7"  // 인앱결제 주문 ID (결제 검증용, optional)
         }
 
@@ -839,7 +839,7 @@ def grant_premium(request):
         if subscription_type == 'free_ad':
             duration = timedelta(days=7)
         else:  # premium
-            duration = timedelta(days=30)
+            duration = timedelta(days=180)
 
         # 기존 구독이 있으면 업그레이드/갱신, 없으면 새로 생성
         try:
