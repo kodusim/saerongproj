@@ -18,6 +18,7 @@ from .views import (
     logout,
     premium_status,
     grant_premium,
+    cancel_premium,
     test_push_notification,
     api_guide
 )
@@ -51,6 +52,7 @@ urlpatterns = [
     # Premium Subscription
     path('premium/status/', premium_status, name='premium-status'),  # 프리미엄 구독 상태 조회
     path('premium/grant/', grant_premium, name='grant-premium'),  # 프리미엄 구독권 부여
+    path('premium/cancel/', cancel_premium, name='cancel-premium'),  # 프리미엄 구독 취소
 
     # Test APIs (개발/디버깅용)
     path('test/push/', test_push_notification, name='test-push'),  # 푸시 알림 테스트

@@ -841,20 +841,33 @@ def grant_premium(request):
         else:  # premium
             duration = timedelta(days=30)
 
-        # 기존 구독이 있으면 만료일 연장, 없으면 새로 생성
+        # 기존 구독이 있으면 업그레이드/갱신, 없으면 새로 생성
         try:
             subscription = PremiumSubscription.objects.get(user=user)
 
-            # 활성화된 구독이 있으면 만료일 연장
-            if subscription.is_active:
-                subscription.expires_at = subscription.expires_at + duration
-            else:
-                # 만료된 구독이면 현재 시각부터 새로 시작
+            # 광고 → 프리미엄 전환: 기존 광고 구독 취소하고 새로 시작
+            if subscription.subscription_type == 'free_ad' and subscription_type == 'premium':
+                subscription.subscription_type = subscription_type
                 subscription.expires_at = now + duration
+                subscription.order_id = order_id
+                subscription.save()
 
-            subscription.subscription_type = subscription_type
-            subscription.order_id = order_id
-            subscription.save()
+            # 같은 타입 갱신: 만료일 연장
+            elif subscription.subscription_type == subscription_type:
+                if subscription.is_active():
+                    subscription.expires_at = subscription.expires_at + duration
+                else:
+                    # 만료된 구독이면 현재 시각부터 새로 시작
+                    subscription.expires_at = now + duration
+                subscription.order_id = order_id
+                subscription.save()
+
+            # 프리미엄 → 광고 다운그레이드 방지
+            elif subscription.subscription_type == 'premium' and subscription_type == 'free_ad':
+                return Response(
+                    {'error': '프리미엄 구독 중에는 광고 구독을 사용할 수 없습니다.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         except PremiumSubscription.DoesNotExist:
             # 새 구독 생성
@@ -871,6 +884,49 @@ def grant_premium(request):
 
     except Exception as e:
         print(f"Error in grant_premium: {e}")
+        return Response(
+            {'error': 'Internal server error'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_premium(request):
+    """
+    프리미엄 구독 취소 API
+
+    POST /api/premium/cancel/
+
+    Response:
+        {
+            "success": true,
+            "message": "구독이 취소되었습니다."
+        }
+    """
+    try:
+        user = request.user
+
+        # 프리미엄 구독 찾기
+        try:
+            subscription = PremiumSubscription.objects.get(user=user)
+
+            # 구독 삭제 (즉시 만료)
+            subscription.delete()
+
+            return Response({
+                'success': True,
+                'message': '구독이 취소되었습니다.'
+            }, status=status.HTTP_200_OK)
+
+        except PremiumSubscription.DoesNotExist:
+            return Response(
+                {'error': '활성 구독이 없습니다.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    except Exception as e:
+        print(f"Error in cancel_premium: {e}")
         return Response(
             {'error': 'Internal server error'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
