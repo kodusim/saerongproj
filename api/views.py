@@ -235,7 +235,27 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         """구독 생성 (등급 제한 적용)"""
         from django.utils import timezone
 
-        # 1. 활성 구독권 확인
+        # 1. 중복 구독 체크 (이미 구독 중이면 바로 반환)
+        game_id = request.data.get('game_id')
+        category = request.data.get('category')
+
+        if game_id and category:
+            try:
+                game = Game.objects.get(game_id=game_id)
+                existing = Subscription.objects.filter(
+                    user=request.user,
+                    game=game,
+                    category=category
+                ).first()
+
+                if existing:
+                    # 이미 구독 중이면 200 OK로 반환
+                    serializer = SubscriptionSerializer(existing)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+            except Game.DoesNotExist:
+                pass  # 게임이 없으면 나중에 Serializer에서 에러 발생
+
+        # 2. 활성 구독권 확인
         try:
             premium = PremiumSubscription.objects.get(user=request.user)
             if not premium.is_active:
@@ -248,7 +268,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # 2. 광고 구독자 제한 확인 (1개 게임만)
+        # 3. 광고 구독자 제한 확인 (1개 게임만)
         if premium.subscription_type == 'free_ad':
             current_count = Subscription.objects.filter(user=request.user).values('game').distinct().count()
             if current_count >= 1:
@@ -256,8 +276,6 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                     {'error': '광고 구독은 1개 게임만 구독할 수 있습니다. 프리미엄을 구매하면 무제한으로 구독할 수 있어요.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-
-        # 3. 중복 구독 방지는 SubscriptionCreateSerializer의 get_or_create()에서 처리됨
 
         # 4. 구독 생성
         return super().create(request, *args, **kwargs)
