@@ -756,13 +756,15 @@ def premium_status(request):
 
             # 만료된 구독은 삭제
             if not subscription.is_active:
+                # 모든 게임 구독도 함께 삭제
+                Subscription.objects.filter(user=user).delete()
                 subscription.delete()
                 return Response({
                     'is_premium': False,
                     'expires_at': None,
                     'subscription_type': None,
                     'max_games': None,
-                    'subscribed_games_count': subscribed_games_count,
+                    'subscribed_games_count': 0,  # 모두 삭제되었으므로 0
                     'can_subscribe_more': False
                 }, status=status.HTTP_200_OK)
 
@@ -929,12 +931,16 @@ def cancel_premium(request):
         try:
             subscription = PremiumSubscription.objects.get(user=user)
 
-            # 구독 삭제 (즉시 만료)
+            # 모든 게임 구독 삭제
+            deleted_count = Subscription.objects.filter(user=user).delete()[0]
+
+            # 프리미엄 구독 삭제 (즉시 만료)
             subscription.delete()
 
             return Response({
                 'success': True,
-                'message': '구독이 취소되었습니다.'
+                'message': f'구독이 취소되었습니다. (게임 구독 {deleted_count}개 삭제)',
+                'deleted_subscriptions': deleted_count
             }, status=status.HTTP_200_OK)
 
         except PremiumSubscription.DoesNotExist:
