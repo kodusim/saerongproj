@@ -11,26 +11,33 @@ def create_game_from_subcategory(sender, instance, created, **kwargs):
     SubCategory가 생성되면 자동으로 Game도 생성
     - slug → game_id
     - name → display_name
+    - icon_image → icon_image (복사)
     """
-    if created:
-        # Category가 'games'인 경우만 Game 생성
-        if instance.category.slug == 'games':
-            game, game_created = Game.objects.get_or_create(
-                game_id=instance.slug,
-                defaults={
-                    'display_name': instance.name,
-                    'is_active': instance.is_active
-                }
-            )
+    # Category가 'games'인 경우만 Game 생성
+    if instance.category.slug == 'games':
+        game, game_created = Game.objects.get_or_create(
+            game_id=instance.slug,
+            defaults={
+                'display_name': instance.name,
+                'is_active': instance.is_active
+            }
+        )
 
-            if game_created:
-                print(f"✅ Auto-created Game: {game.display_name} (game_id: {game.game_id})")
-            else:
-                # 이미 존재하는 경우 display_name 업데이트
-                game.display_name = instance.name
-                game.is_active = instance.is_active
-                game.save()
-                print(f"🔄 Updated existing Game: {game.display_name}")
+        # 아이콘 이미지 복사 (생성 시 또는 업데이트 시 모두)
+        if instance.icon_image:
+            game.icon_image = instance.icon_image
+
+        # 이미 존재하는 경우 정보 업데이트
+        if not game_created:
+            game.display_name = instance.name
+            game.is_active = instance.is_active
+
+        game.save()
+
+        if game_created:
+            print(f"✅ Auto-created Game: {game.display_name} (game_id: {game.game_id})")
+        else:
+            print(f"🔄 Updated existing Game: {game.display_name}")
 
 
 @receiver(post_save, sender=DataSource)

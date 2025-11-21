@@ -1,5 +1,22 @@
 from django.db import models
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
+from PIL import Image
+
+
+def validate_square_image(image):
+    """정사각형 이미지인지 검증"""
+    try:
+        img = Image.open(image)
+        width, height = img.size
+        if width != height:
+            raise ValidationError(
+                f'이미지는 정사각형이어야 합니다. (현재: {width}x{height})'
+            )
+    except Exception as e:
+        if isinstance(e, ValidationError):
+            raise
+        raise ValidationError('올바른 이미지 파일이 아닙니다.')
 
 
 class Category(models.Model):
@@ -39,6 +56,14 @@ class SubCategory(models.Model):
     name = models.CharField(max_length=100, verbose_name="하위 카테고리명")
     slug = models.SlugField(max_length=100, verbose_name="슬러그")
     description = models.TextField(blank=True, verbose_name="설명")
+    icon_image = models.ImageField(
+        upload_to='subcategory_icons/',
+        blank=True,
+        null=True,
+        validators=[validate_square_image],
+        verbose_name="아이콘 이미지",
+        help_text="정사각형 이미지만 업로드 가능 (예: 512x512)"
+    )
     is_active = models.BooleanField(default=True, verbose_name="활성화")
     order = models.IntegerField(default=0, verbose_name="정렬 순서")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
