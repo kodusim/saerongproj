@@ -4,10 +4,20 @@ from .models import Game, GameCategory, Subscription, PushToken, UserProfile
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ['game_id', 'display_name', 'is_active', 'created_at']
+    list_display = ['game_id', 'display_name', 'icon_preview', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['game_id', 'display_name']
     ordering = ['display_name']
+    fields = ['game_id', 'display_name', 'icon_image', 'icon_preview', 'icon_url', 'is_active']
+    readonly_fields = ['icon_preview', 'created_at']
+
+    def icon_preview(self, obj):
+        """아이콘 미리보기"""
+        if obj.icon_image:
+            return f'<img src="{obj.icon_image.url}" width="50" height="50" style="border-radius: 8px;" />'
+        return '이미지 없음'
+    icon_preview.short_description = '아이콘'
+    icon_preview.allow_tags = True
 
 
 @admin.register(GameCategory)

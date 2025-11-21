@@ -1,12 +1,36 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from PIL import Image
+
+
+def validate_square_image(image):
+    """정사각형 이미지인지 검증"""
+    try:
+        img = Image.open(image)
+        width, height = img.size
+        if width != height:
+            raise ValidationError(
+                f'이미지는 정사각형이어야 합니다. (현재: {width}x{height})'
+            )
+    except Exception as e:
+        if isinstance(e, ValidationError):
+            raise
+        raise ValidationError('올바른 이미지 파일이 아닙니다.')
 
 
 class Game(models.Model):
     """게임 정보"""
     game_id = models.CharField(max_length=50, unique=True, verbose_name="게임 ID")  # 'maplestory'
     display_name = models.CharField(max_length=100, verbose_name="표시 이름")  # '메이플스토리'
-    icon_url = models.URLField(blank=True, verbose_name="아이콘 URL")
+    icon_url = models.URLField(blank=True, verbose_name="아이콘 URL (레거시)")
+    icon_image = models.ImageField(
+        upload_to='game_icons/',
+        blank=True,
+        null=True,
+        validators=[validate_square_image],
+        verbose_name="게임 아이콘 이미지"
+    )
     is_active = models.BooleanField(default=True, verbose_name="활성화")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
 

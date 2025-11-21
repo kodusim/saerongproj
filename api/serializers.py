@@ -99,15 +99,25 @@ class GameCategorySerializer(serializers.ModelSerializer):
 class GameSerializer(serializers.ModelSerializer):
     """게임 Serializer"""
     categories = serializers.SerializerMethodField()
+    icon = serializers.SerializerMethodField()
 
     class Meta:
         model = Game
-        fields = ['id', 'game_id', 'display_name', 'icon_url', 'is_active', 'categories', 'created_at']
+        fields = ['id', 'game_id', 'display_name', 'icon_url', 'icon', 'is_active', 'categories', 'created_at']
 
     def get_categories(self, obj):
         """게임의 카테고리 목록 반환"""
         categories = obj.categories.all()
         return [cat.name for cat in categories]
+
+    def get_icon(self, obj):
+        """아이콘 이미지 URL 반환 (업로드된 이미지 우선, 없으면 icon_url)"""
+        request = self.context.get('request')
+        if obj.icon_image:
+            if request:
+                return request.build_absolute_uri(obj.icon_image.url)
+            return obj.icon_image.url
+        return obj.icon_url if obj.icon_url else None
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
