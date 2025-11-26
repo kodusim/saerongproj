@@ -1104,3 +1104,124 @@ def api_guide(request):
         'users_count': users_count,
         'subscriptions_count': subscriptions_count,
     })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def crawler_status(request):
+    """
+    크롤러 상태 API
+
+    GET /api/crawler/status/
+
+    Response:
+        {
+            "is_running": true,
+            "current_task": {
+                "source_id": 52,
+                "source_name": "메이플스토리 공지사항",
+                "game_name": "메이플스토리",
+                "started_at": "2025-11-26T12:34:56Z"
+            },
+            "queue_length": 3,
+            "queued_sources": ["던파 공지", "리니지 공지", ...],
+            "total_sources": 10,
+            "last_crawl_results": [
+                {
+                    "source_name": "메이플스토리 공지사항",
+                    "status": "success",
+                    "items_collected": 5,
+                    "completed_at": "2025-11-26T12:30:00Z"
+                },
+                ...
+            ]
+        }
+    """
+    from saerong.celery import app as celery_app
+    from datetime import datetime
+
+    try:
+        # 1. Celery에서 활성 태스크 조회
+        inspect = celery_app.control.inspect()
+        active_tasks = inspect.active() or {}
+        reserved_tasks = inspect.reserved() or {}  # 대기 중인 태스크
+
+        current_task = None
+        is_running = False
+        queue_length = 0
+        queued_sources = []
+
+        # 활성 태스크 확인
+        for worker, tasks in active_tasks.items():
+            for task in tasks:
+                if task.get('name') == 'collector.tasks.crawl_data_source':
+                    is_running = True
+                    source_id = task['args'][0] if task.get('args') else None
+                    time_start = task.get('time_start')
+
+                    if source_id:
+                        try:
+                            source = DataSource.objects.get(id=source_id)
+                            current_task = {
+                                'source_id': source_id,
+                                'source_name': source.name,
+                                'game_name': source.subcategory.name if source.subcategory else '',
+                                'started_at': datetime.fromtimestamp(time_start).isoformat() if time_start else None
+                            }
+                        except DataSource.DoesNotExist:
+                            current_task = {
+                                'source_id': source_id,
+                                'source_name': '알 수 없음',
+                                'game_name': '',
+                                'started_at': datetime.fromtimestamp(time_start).isoformat() if time_start else None
+                            }
+                    break
+
+        # 대기 중인 태스크 확인
+        for worker, tasks in reserved_tasks.items():
+            for task in tasks:
+                if task.get('name') == 'collector.tasks.crawl_data_source':
+                    queue_length += 1
+                    source_id = task['args'][0] if task.get('args') else None
+                    if source_id:
+                        try:
+                            source = DataSource.objects.get(id=source_id)
+                            queued_sources.append(source.name)
+                        except DataSource.DoesNotExist:
+                            queued_sources.append(f'소스 #{source_id}')
+
+        # 2. 최근 크롤링 결과 조회
+        recent_logs = CrawlLog.objects.select_related('source').order_by('-completed_at')[:10]
+        last_crawl_results = []
+        for log in recent_logs:
+            last_crawl_results.append({
+                'source_name': log.source.name if log.source else '알 수 없음',
+                'status': log.status,
+                'items_collected': log.items_collected,
+                'completed_at': log.completed_at.isoformat() if log.completed_at else None,
+                'duration_seconds': log.duration_seconds
+            })
+
+        # 3. 전체 소스 수
+        total_sources = DataSource.objects.filter(is_active=True).count()
+
+        return Response({
+            'is_running': is_running,
+            'current_task': current_task,
+            'queue_length': queue_length,
+            'queued_sources': queued_sources[:10],  # 최대 10개만
+            'total_sources': total_sources,
+            'last_crawl_results': last_crawl_results
+        })
+
+    except Exception as e:
+        # Celery 연결 실패 등의 경우
+        return Response({
+            'is_running': False,
+            'current_task': None,
+            'queue_length': 0,
+            'queued_sources': [],
+            'total_sources': DataSource.objects.filter(is_active=True).count(),
+            'last_crawl_results': [],
+            'error': str(e)
+        })

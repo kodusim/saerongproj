@@ -20,7 +20,8 @@ from .views import (
     grant_premium,
     cancel_premium,
     test_push_notification,
-    api_guide
+    api_guide,
+    crawler_status
 )
 
 app_name = 'api'
@@ -59,6 +60,9 @@ urlpatterns = [
 
     # API 가이드 (관리자 전용)
     path('guide/', api_guide, name='api-guide'),  # Game Honey API 가이드
+
+    # Crawler Status
+    path('crawler/status/', crawler_status, name='crawler-status'),  # 크롤러 상태 조회
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
