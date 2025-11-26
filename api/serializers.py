@@ -228,3 +228,20 @@ class PremiumGrantSerializer(serializers.Serializer):
     """프리미엄 구독권 부여 Serializer"""
     subscription_type = serializers.ChoiceField(choices=['free_ad', 'premium'])
     order_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    days = serializers.ChoiceField(
+        choices=[30, 90, 180, 365],
+        required=False,
+        help_text="프리미엄 구독 기간 (일). free_ad는 고정 7일, premium은 30/90/180/365일 선택 가능"
+    )
+
+    def validate(self, data):
+        """premium 타입일 때 days 검증"""
+        subscription_type = data.get('subscription_type')
+        days = data.get('days')
+
+        if subscription_type == 'premium' and not days:
+            raise serializers.ValidationError({
+                'days': '프리미엄 구독은 days 파라미터가 필요합니다. (30, 90, 180, 365 중 선택)'
+            })
+
+        return data

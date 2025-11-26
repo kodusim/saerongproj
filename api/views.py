@@ -871,7 +871,8 @@ def grant_premium(request):
         if subscription_type == 'free_ad':
             duration = timedelta(days=7)
         else:  # premium
-            duration = timedelta(days=180)
+            days = serializer.validated_data.get('days', 180)
+            duration = timedelta(days=int(days))
 
         # 기존 구독이 있으면 업그레이드/갱신, 없으면 새로 생성
         try:
