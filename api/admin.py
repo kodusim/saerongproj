@@ -69,7 +69,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     def has_premium(self, obj):
         """프리미엄 구독 여부"""
         try:
-            return '✅' if obj.user.premium_subscription.is_active() else '❌'
+            return '✅' if obj.user.premium_subscription.is_active else '❌'
         except:
             return '❌'
     has_premium.short_description = '프리미엄'

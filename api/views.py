@@ -886,7 +886,7 @@ def grant_premium(request):
 
             # 같은 타입 갱신: 만료일 연장
             elif subscription.subscription_type == subscription_type:
-                if subscription.is_active():
+                if subscription.is_active:
                     subscription.expires_at = subscription.expires_at + duration
                 else:
                     # 만료된 구독이면 현재 시각부터 새로 시작
