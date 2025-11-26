@@ -268,14 +268,26 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # 3. 광고 구독자 제한 확인 (1개 게임만)
+        # 3. 광고 구독자 제한 확인 (1개 게임만, 같은 게임 내 다른 카테고리는 허용)
         if premium.subscription_type == 'free_ad':
-            current_count = Subscription.objects.filter(user=request.user).values('game').distinct().count()
-            if current_count >= 1:
-                return Response(
-                    {'error': '광고 구독은 1개 게임만 구독할 수 있습니다. 프리미엄을 구매하면 무제한으로 구독할 수 있어요.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+            # 현재 구독하려는 게임
+            try:
+                game = Game.objects.get(game_id=game_id)
+                already_subscribed_to_this_game = Subscription.objects.filter(
+                    user=request.user, game=game
+                ).exists()
+            except Game.DoesNotExist:
+                already_subscribed_to_this_game = False
+
+            # 이미 이 게임을 구독 중이면 다른 카테고리 추가 허용
+            if not already_subscribed_to_this_game:
+                # 새로운 게임을 구독하려는 경우에만 제한 확인
+                current_game_count = Subscription.objects.filter(user=request.user).values('game').distinct().count()
+                if current_game_count >= 1:
+                    return Response(
+                        {'error': '광고 구독은 1개 게임만 구독할 수 있습니다. 프리미엄을 구매하면 무제한으로 구독할 수 있어요.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
 
         # 4. 구독 생성
         return super().create(request, *args, **kwargs)
