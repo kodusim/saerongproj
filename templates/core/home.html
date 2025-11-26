@@ -221,12 +221,308 @@
             padding: 30px 20px;
         }
     }
+
+    /* 크롤러 대시보드 스타일 */
+    .crawler-dashboard {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 40px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        animation: fadeInUp 0.6s ease;
+    }
+
+    .crawler-status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #cbd5e0;
+    }
+
+    .status-indicator.running .status-dot {
+        background: #48bb78;
+        animation: pulse 1.5s infinite;
+    }
+
+    .status-indicator.idle .status-dot {
+        background: #a0aec0;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.1); }
+    }
+
+    .crawler-stats {
+        display: flex;
+        gap: 20px;
+    }
+
+    .stat-item {
+        font-size: 0.95rem;
+        color: #718096;
+    }
+
+    .stat-item strong {
+        color: #2d3748;
+    }
+
+    .current-crawl {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 16px;
+        color: white;
+    }
+
+    .crawl-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .crawl-label {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    .crawl-game {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .crawl-source {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .crawl-progress {
+        margin-top: 12px;
+    }
+
+    .progress-bar {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        width: 60%;
+        background: white;
+        border-radius: 2px;
+        animation: progressMove 2s ease-in-out infinite;
+    }
+
+    @keyframes progressMove {
+        0% { width: 20%; margin-left: 0; }
+        50% { width: 60%; margin-left: 20%; }
+        100% { width: 20%; margin-left: 80%; }
+    }
+
+    .queue-list {
+        background: #f7fafc;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+        color: #718096;
+    }
+
+    .queue-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-right: 8px;
+    }
+
+    .recent-crawls {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 16px;
+    }
+
+    .recent-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 12px;
+    }
+
+    .recent-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .recent-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: #f7fafc;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        border-left: 3px solid #cbd5e0;
+    }
+
+    .recent-item.success {
+        border-left-color: #48bb78;
+    }
+
+    .recent-item.failed {
+        border-left-color: #f56565;
+    }
+
+    .recent-item.empty {
+        color: #a0aec0;
+        justify-content: center;
+    }
+
+    .recent-game {
+        font-weight: 600;
+        color: #2d3748;
+        min-width: 80px;
+    }
+
+    .recent-source {
+        color: #718096;
+        flex: 1;
+    }
+
+    .recent-result {
+        font-weight: 500;
+        color: #48bb78;
+        min-width: 70px;
+        text-align: right;
+    }
+
+    .recent-item.failed .recent-result {
+        color: #f56565;
+    }
+
+    .recent-time {
+        color: #a0aec0;
+        font-size: 0.85rem;
+        min-width: 80px;
+        text-align: right;
+    }
+
+    @media (max-width: 768px) {
+        .crawler-status-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .recent-item {
+            flex-wrap: wrap;
+        }
+
+        .recent-source {
+            width: 100%;
+            order: 3;
+        }
+
+        .recent-time {
+            order: 4;
+        }
+    }
 </style>
 
 <div class="container">
     <div class="header">
         <h1>SAERONG 데이터 센터</h1>
         <p>다양한 카테고리의 실시간 데이터를 한눈에</p>
+    </div>
+
+    <!-- 크롤러 상태 대시보드 -->
+    <div class="crawler-dashboard">
+        <div class="crawler-status-header">
+            <div class="status-indicator {% if crawler.is_running %}running{% else %}idle{% endif %}">
+                <span class="status-dot"></span>
+                {% if crawler.is_running %}
+                    크롤링 중
+                {% else %}
+                    대기 중
+                {% endif %}
+            </div>
+            <div class="crawler-stats">
+                <span class="stat-item">전체 소스: <strong>{{ crawler.total_sources }}</strong>개</span>
+                {% if crawler.queue_length > 0 %}
+                <span class="stat-item">대기열: <strong>{{ crawler.queue_length }}</strong>개</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if crawler.is_running and crawler.current_task %}
+        <div class="current-crawl">
+            <div class="crawl-info">
+                <span class="crawl-label">현재 크롤링:</span>
+                <span class="crawl-game">{{ crawler.current_task.game_name }}</span>
+                <span class="crawl-source">{{ crawler.current_task.source_name }}</span>
+            </div>
+            <div class="crawl-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if crawler.queued_sources %}
+        <div class="queue-list">
+            <span class="queue-label">대기 중:</span>
+            {% for item in crawler.queued_sources %}
+            <span class="queue-item">{{ item.game_name }} - {{ item.source_name }}{% if not forloop.last %}, {% endif %}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="recent-crawls">
+            <div class="recent-title">최근 크롤링</div>
+            <div class="recent-list">
+                {% for result in crawler.last_crawl_results %}
+                <div class="recent-item {% if result.status == 'success' %}success{% else %}failed{% endif %}">
+                    <span class="recent-game">{{ result.game_name }}</span>
+                    <span class="recent-source">{{ result.source_name }}</span>
+                    <span class="recent-result">
+                        {% if result.status == 'success' %}
+                            {% if result.items_collected > 0 %}
+                                +{{ result.items_collected }}건
+                            {% else %}
+                                변동없음
+                            {% endif %}
+                        {% else %}
+                            실패
+                        {% endif %}
+                    </span>
+                    <span class="recent-time">{{ result.completed_at|timesince }} 전</span>
+                </div>
+                {% empty %}
+                <div class="recent-item empty">크롤링 기록이 없습니다</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
     <!-- 상단 광고 -->
