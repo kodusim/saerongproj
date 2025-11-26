@@ -3,7 +3,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from sources.models import DataSource
 from collector.models import CollectedData, CrawlLog
-from collector.crawlers import MapleStoryCrawler, GenericSeleniumCrawler, GenericRequestsCrawler
+from collector.crawlers import MapleStoryCrawler, GenericSeleniumCrawler, GenericRequestsCrawler, NaverGameCrawler
 import importlib
 
 
@@ -167,6 +167,8 @@ def get_crawler_class(source):
             'GenericSeleniumCrawler': GenericSeleniumCrawler,
             'collector.crawlers.game_crawlers.GenericRequestsCrawler': GenericRequestsCrawler,
             'GenericRequestsCrawler': GenericRequestsCrawler,
+            'collector.crawlers.game_crawlers.NaverGameCrawler': NaverGameCrawler,
+            'NaverGameCrawler': NaverGameCrawler,
         }
 
         if crawler_path in crawler_map:

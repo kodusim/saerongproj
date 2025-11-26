@@ -377,3 +377,136 @@ class GenericRequestsCrawler(BaseCrawler):
                 continue
 
         return items
+
+
+class NaverGameCrawler(BaseCrawler):
+    """
+    네이버 게임 라운지 크롤러
+
+    네이버 게임 라운지의 게시판을 크롤링합니다.
+    JavaScript 렌더링이 필요하므로 Selenium을 사용합니다.
+
+    config 예시:
+    {
+        "base_url": "https://game.naver.com",
+        "game_name": "세븐나이츠 리버스",
+        "exclude_pinned": true,  # 고정글 제외 여부 (기본: true)
+        "max_items": 20
+    }
+    """
+
+    def fetch(self) -> str:
+        """Selenium으로 페이지 가져오기"""
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+        # 메모리 최적화
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-sync')
+        chrome_options.add_argument('--metrics-recording-only')
+        chrome_options.add_argument('--mute-audio')
+
+        if platform.system() == 'Linux':
+            chrome_options.binary_location = '/usr/bin/google-chrome'
+
+        try:
+            driver = webdriver.Chrome(options=chrome_options)
+        except:
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        try:
+            driver.get(self.data_source.url)
+            time.sleep(10)  # 네이버 게임은 로딩이 느림
+
+            # 스크롤하여 추가 컨텐츠 로드
+            driver.execute_script("window.scrollTo(0, 500);")
+            time.sleep(2)
+
+            html = driver.page_source
+            return html
+
+        finally:
+            driver.quit()
+
+    def parse(self, html: str) -> List[Dict[str, Any]]:
+        """HTML 파싱하여 게시글 추출"""
+        soup = BeautifulSoup(html, 'lxml')
+        items = []
+
+        config = self.data_source.config or {}
+        base_url = config.get('base_url', 'https://game.naver.com')
+        game_name = config.get('game_name', '')
+        exclude_pinned = config.get('exclude_pinned', True)
+        max_items = config.get('max_items', 20)
+
+        # 게시글 행 선택
+        if exclude_pinned:
+            # 고정글 제외: post_board_detail 클래스만 선택 (post_board_fix 제외)
+            rows = soup.select('tr[class*="post_board_detail"]')
+        else:
+            # 모든 글 (고정글 포함)
+            rows = soup.select('tr[class*="post_board_detail"], tr[class*="post_board_fix"]')
+
+        for row in rows[:max_items]:
+            try:
+                # 제목 링크 찾기
+                title_link = row.select_one('a[href*="detail"]')
+                if not title_link:
+                    continue
+
+                title = title_link.get_text(strip=True)
+                if not title or len(title) < 3:
+                    continue
+
+                # URL 추출
+                href = title_link.get('href', '')
+                if href and not href.startswith('http'):
+                    url = base_url + href
+                else:
+                    url = href
+
+                # 날짜 추출 (3번째 td, post_align_center 클래스)
+                date_td = row.select_one('td[class*="post_align_center"]')
+                date = ''
+                if date_td:
+                    date_text = date_td.get_text(strip=True)
+                    # "11.25" 형식을 "2025-11-25"로 변환
+                    if '.' in date_text and len(date_text) <= 5:
+                        parts = date_text.split('.')
+                        if len(parts) == 2:
+                            month, day = parts
+                            from datetime import date as dt_date
+                            year = dt_date.today().year
+                            date = f"{year}-{int(month):02d}-{int(day):02d}"
+                    elif '시간' in date_text or '분' in date_text:
+                        # "3시간 전" 등은 오늘 날짜로
+                        from datetime import date as dt_date
+                        date = dt_date.today().isoformat()
+                    else:
+                        date = date_text
+
+                data = {
+                    'type': 'game_notice',
+                    'title': title,
+                    'url': url,
+                    'date': date,
+                }
+
+                if game_name:
+                    data['game'] = game_name
+
+                items.append(data)
+
+            except Exception as e:
+                continue
+
+        return items
