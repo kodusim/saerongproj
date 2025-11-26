@@ -168,7 +168,7 @@ def notify_subscribers(collected_data):
                 continue  # 프리미엄 구독 없음
 
             premium = user.premium_subscription
-            if not premium.is_active():
+            if not premium.is_active:
                 continue  # 만료된 프리미엄
 
             # 4-2. 토스 user_key 확인
