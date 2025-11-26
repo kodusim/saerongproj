@@ -1,9 +1,56 @@
 import hashlib
+import re
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, date
 import requests
 from bs4 import BeautifulSoup
+
+
+def normalize_date(date_str: str) -> str:
+    """
+    다양한 날짜 형식을 YYYY-MM-DD로 정규화
+
+    지원 형식:
+    - "2025.11.25" → "2025-11-25"
+    - "2025-11-25" → "2025-11-25" (이미 정규화됨)
+    - "PM 02:39", "AM 10:00" → 오늘 날짜 "2025-11-26"
+    - "2025.11.20 ~ 2025.12.18" → 시작일 "2025-11-20"
+    - "11/25" → 올해 날짜 "2025-11-25"
+    - 파싱 실패 시 → 오늘 날짜
+    """
+    if not date_str:
+        return date.today().isoformat()
+
+    date_str = date_str.strip()
+    today = date.today()
+
+    # 1. 이미 정규화된 형식 (YYYY-MM-DD)
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        return date_str
+
+    # 2. YYYY.MM.DD 형식
+    match = re.match(r'^(\d{4})\.(\d{1,2})\.(\d{1,2})', date_str)
+    if match:
+        year, month, day = match.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+
+    # 3. MM/DD 형식 (올해로 가정)
+    match = re.match(r'^(\d{1,2})/(\d{1,2})$', date_str)
+    if match:
+        month, day = match.groups()
+        return f"{today.year}-{int(month):02d}-{int(day):02d}"
+
+    # 4. 시간만 있는 경우 (AM/PM HH:MM) → 오늘 날짜
+    if re.match(r'^(AM|PM)\s*\d{1,2}:\d{2}', date_str, re.IGNORECASE):
+        return today.isoformat()
+
+    # 5. 시간만 있는 경우 (HH:MM) → 오늘 날짜
+    if re.match(r'^\d{1,2}:\d{2}$', date_str):
+        return today.isoformat()
+
+    # 6. 파싱 실패 시 오늘 날짜 반환
+    return today.isoformat()
 
 
 class BaseCrawler(ABC):
@@ -50,10 +97,13 @@ class BaseCrawler(ABC):
             # 2. 파싱
             items = self.parse(html)
 
-            # 3. 유효성 검사 및 해시 생성
+            # 3. 유효성 검사, 날짜 정규화 및 해시 생성
             valid_items = []
             for item in items:
                 if self.validate(item):
+                    # 날짜 정규화 (YYYY-MM-DD 형식으로 통일)
+                    if 'date' in item:
+                        item['date'] = normalize_date(item['date'])
                     item['hash_key'] = self.generate_hash(item)
                     valid_items.append(item)
 
