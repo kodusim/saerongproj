@@ -17,10 +17,20 @@ class CategorySerializer(serializers.ModelSerializer):
 class SubCategorySerializer(serializers.ModelSerializer):
     """서브카테고리 Serializer"""
     category_name = serializers.CharField(source='category.name', read_only=True)
+    icon = serializers.SerializerMethodField()
 
     class Meta:
         model = SubCategory
-        fields = ['id', 'category', 'category_name', 'name', 'slug', 'is_active', 'created_at']
+        fields = ['id', 'category', 'category_name', 'name', 'slug', 'icon', 'is_active', 'created_at']
+
+    def get_icon(self, obj):
+        """아이콘 이미지 URL 반환"""
+        request = self.context.get('request')
+        if obj.icon_image:
+            if request:
+                return request.build_absolute_uri(obj.icon_image.url)
+            return obj.icon_image.url
+        return None
 
 
 class DataSourceSerializer(serializers.ModelSerializer):
