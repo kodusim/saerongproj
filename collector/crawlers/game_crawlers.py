@@ -148,10 +148,11 @@ class GenericSeleniumCrawler(BaseCrawler):
     config 예시:
     {
         "selectors": {
-            "container": ".news_board ul li",  # 목록 아이템 컨테이너
-            "title": "p a span",               # 제목 선택자
-            "url": "p a",                       # URL 링크 선택자
-            "date": ".heart_date dd"           # 날짜 선택자 (선택사항)
+            "container": ".news_board ul li",  # 목록 아이템 컨테이너 (필수)
+            "title": "p a span",               # 제목 선택자 (필수)
+            "url": "p a",                      # URL 선택자 (선택, 비우면 container의 href 사용)
+            "date": ".heart_date dd",          # 날짜 선택자 (선택)
+            "date_attr": "datetime"            # 날짜 속성 (선택, 지정 시 해당 속성값 사용)
         },
         "base_url": "https://maplestory.nexon.com",  # 상대 URL을 절대 URL로 변환할 base
         "wait_selector": ".news_board",      # 로딩 대기할 선택자 (선택사항)
@@ -232,13 +233,12 @@ class GenericSeleniumCrawler(BaseCrawler):
             raise ValueError("config에 'selectors.container'가 필요합니다")
         if not selectors.get('title'):
             raise ValueError("config에 'selectors.title'이 필요합니다")
-        if not selectors.get('url'):
-            raise ValueError("config에 'selectors.url'이 필요합니다")
 
         container_selector = selectors['container']
         title_selector = selectors['title']
-        url_selector = selectors['url']
+        url_selector = selectors.get('url', '')  # 선택사항 (container가 a 태그면 생략 가능)
         date_selector = selectors.get('date', '')
+        date_attr = selectors.get('date_attr', '')  # time 태그의 datetime 속성 등
 
         base_url = config.get('base_url', '')
         game_name = config.get('game_name', '')
@@ -259,11 +259,17 @@ class GenericSeleniumCrawler(BaseCrawler):
                     continue
 
                 # URL 추출
-                url_elem = item.select_one(url_selector)
-                if not url_elem:
+                # url_selector가 비어있으면 container 자체에서 href 추출
+                if url_selector:
+                    url_elem = item.select_one(url_selector)
+                    url = url_elem.get('href', '') if url_elem else ''
+                else:
+                    # container 자체가 a 태그인 경우
+                    url = item.get('href', '')
+
+                if not url:
                     continue
 
-                url = url_elem.get('href', '')
                 if url and base_url and not url.startswith('http'):
                     url = base_url + url if url.startswith('/') else base_url + '/' + url
 
@@ -272,7 +278,11 @@ class GenericSeleniumCrawler(BaseCrawler):
                 if date_selector:
                     date_elem = item.select_one(date_selector)
                     if date_elem:
-                        date = date_elem.get_text(strip=True)
+                        # date_attr가 지정되면 해당 속성값 사용 (예: datetime)
+                        if date_attr:
+                            date = date_elem.get(date_attr, '')
+                        else:
+                            date = date_elem.get_text(strip=True)
 
                 data = {
                     'type': 'game_notice',
@@ -297,7 +307,20 @@ class GenericRequestsCrawler(BaseCrawler):
     범용 Requests 크롤러 (정적 HTML 사이트용, 더 빠름)
 
     JavaScript 렌더링이 필요없는 사이트에 사용
-    config 형식은 GenericSeleniumCrawler와 동일
+
+    config 예시:
+    {
+        "base_url": "https://example.com",
+        "game_name": "게임이름",
+        "selectors": {
+            "container": "a[href*='/news/']",  # 각 게시글 아이템 (필수)
+            "title": "div.title",               # 제목 요소 (필수)
+            "url": "a.link",                    # URL 요소 (선택, 비우면 container의 href 사용)
+            "date": "time",                     # 날짜 요소 (선택)
+            "date_attr": "datetime"             # 날짜 속성 (선택, 지정 시 해당 속성값 사용)
+        },
+        "max_items": 20
+    }
     """
 
     def fetch(self) -> str:
@@ -319,13 +342,12 @@ class GenericRequestsCrawler(BaseCrawler):
             raise ValueError("config에 'selectors.container'가 필요합니다")
         if not selectors.get('title'):
             raise ValueError("config에 'selectors.title'이 필요합니다")
-        if not selectors.get('url'):
-            raise ValueError("config에 'selectors.url'이 필요합니다")
 
         container_selector = selectors['container']
         title_selector = selectors['title']
-        url_selector = selectors['url']
+        url_selector = selectors.get('url', '')  # 선택사항 (container가 a 태그면 생략 가능)
         date_selector = selectors.get('date', '')
+        date_attr = selectors.get('date_attr', '')  # time 태그의 datetime 속성 등
 
         base_url = config.get('base_url', '')
         game_name = config.get('game_name', '')
@@ -346,11 +368,17 @@ class GenericRequestsCrawler(BaseCrawler):
                     continue
 
                 # URL 추출
-                url_elem = item.select_one(url_selector)
-                if not url_elem:
+                # url_selector가 비어있으면 container 자체에서 href 추출
+                if url_selector:
+                    url_elem = item.select_one(url_selector)
+                    url = url_elem.get('href', '') if url_elem else ''
+                else:
+                    # container 자체가 a 태그인 경우
+                    url = item.get('href', '')
+
+                if not url:
                     continue
 
-                url = url_elem.get('href', '')
                 if url and base_url and not url.startswith('http'):
                     url = base_url + url if url.startswith('/') else base_url + '/' + url
 
@@ -359,7 +387,11 @@ class GenericRequestsCrawler(BaseCrawler):
                 if date_selector:
                     date_elem = item.select_one(date_selector)
                     if date_elem:
-                        date = date_elem.get_text(strip=True)
+                        # date_attr가 지정되면 해당 속성값 사용 (예: datetime)
+                        if date_attr:
+                            date = date_elem.get(date_attr, '')
+                        else:
+                            date = date_elem.get_text(strip=True)
 
                 data = {
                     'type': 'game_notice',
