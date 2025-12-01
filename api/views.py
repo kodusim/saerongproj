@@ -442,7 +442,7 @@ def verify_basic_auth(request, app=None):
         return False
 
 
-@api_view(['POST'])
+@api_view(['POST', 'OPTIONS'])
 @permission_classes([AllowAny])
 def toss_disconnect_callback(request, app_id=None):
     """
@@ -458,6 +458,14 @@ def toss_disconnect_callback(request, app_id=None):
     - /api/auth/disconnect-callback (기존 - game_honey)
     - /api/auth/disconnect-callback/<app_id> (새 앱들)
     """
+    # CORS preflight 요청 처리
+    if request.method == 'OPTIONS':
+        response = Response(status=status.HTTP_200_OK)
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+        return response
+
     from common.models import AppUserToken
 
     # 0. 앱 설정 조회
