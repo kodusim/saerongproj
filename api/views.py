@@ -486,6 +486,7 @@ def toss_disconnect_callback(request, app_id=None):
         )
 
     # 2. userKey 추출
+    print(f"Disconnect callback request.data: {request.data}")
     user_key = request.data.get('userKey')
     if not user_key:
         return Response(
