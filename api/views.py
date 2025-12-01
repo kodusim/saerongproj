@@ -409,9 +409,13 @@ def notifications_feed(request):
 # Toss Disconnect Callback
 # ============================================
 
-def verify_basic_auth(request):
+def verify_basic_auth(request, app=None):
     """
     Basic Auth 검증
+
+    Args:
+        request: HTTP request
+        app: TossApp 객체 (None이면 settings 사용)
     """
     auth_header = request.META.get('HTTP_AUTHORIZATION', '')
 
@@ -424,9 +428,13 @@ def verify_basic_auth(request):
         decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
         username, password = decoded_credentials.split(':', 1)
 
-        # 환경 변수와 비교
-        expected_username = settings.TOSS_DISCONNECT_CALLBACK_USERNAME
-        expected_password = settings.TOSS_DISCONNECT_CALLBACK_PASSWORD
+        # 앱별 설정 또는 레거시 settings
+        if app and app.disconnect_callback_username:
+            expected_username = app.disconnect_callback_username
+            expected_password = app.disconnect_callback_password
+        else:
+            expected_username = settings.TOSS_DISCONNECT_CALLBACK_USERNAME
+            expected_password = settings.TOSS_DISCONNECT_CALLBACK_PASSWORD
 
         return username == expected_username and password == expected_password
     except Exception as e:
@@ -436,14 +444,30 @@ def verify_basic_auth(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def toss_disconnect_callback(request):
+def toss_disconnect_callback(request, app_id=None):
     """
     토스 연결 끊기 콜백
 
-    사용자가 토스앱에서 Game Honey 연결을 끊거나 회원 탈퇴할 때 호출됨
+    사용자가 토스앱에서 앱 연결을 끊거나 회원 탈퇴할 때 호출됨
+
+    멀티 앱 지원:
+    - URL에서 app_id를 받으면 해당 앱 설정으로 인증
+    - app_id가 없으면 game_honey 기본값 (하위 호환)
+
+    URL:
+    - /api/auth/disconnect-callback (기존 - game_honey)
+    - /api/auth/disconnect-callback/<app_id> (새 앱들)
     """
+    from common.models import AppUserToken
+
+    # 0. 앱 설정 조회
+    try:
+        app = get_toss_app(app_id) if app_id else get_toss_app(DEFAULT_APP_ID)
+    except ValueError:
+        app = None  # 레거시 모드
+
     # 1. Basic Auth 검증
-    if not verify_basic_auth(request):
+    if not verify_basic_auth(request, app):
         return Response(
             {'error': 'Unauthorized'},
             status=status.HTTP_401_UNAUTHORIZED
@@ -459,28 +483,32 @@ def toss_disconnect_callback(request):
 
     try:
         # 3. 사용자 찾기 (UserProfile을 통해)
-        # UserProfile에서 toss_user_key로 찾기
         profile = UserProfile.objects.get(toss_user_key=user_key)
         user = profile.user
 
-        # 4. 트랜잭션으로 모든 데이터 삭제
+        # 4. 트랜잭션으로 데이터 삭제
         with transaction.atomic():
-            # 4-1. 구독 정보 삭제
-            user.game_subscriptions.all().delete()
+            if app:
+                # 앱별 토큰만 삭제
+                AppUserToken.objects.filter(user=user, app=app).delete()
+                print(f"User {user_key} disconnected from app '{app.app_id}'")
 
-            # 4-2. 푸시 토큰 삭제
-            user.push_tokens.all().delete()
+                # 해당 앱이 game_honey이고 다른 앱 토큰이 없으면 전체 삭제
+                remaining_tokens = AppUserToken.objects.filter(user=user).count()
+                if app.app_id == 'game_honey' and remaining_tokens == 0:
+                    # 게임 하니 전용 데이터 삭제
+                    user.game_subscriptions.all().delete()
+                    user.push_tokens.all().delete()
+            else:
+                # 레거시: 전체 삭제
+                user.game_subscriptions.all().delete()
+                user.push_tokens.all().delete()
+                AppUserToken.objects.filter(user=user).delete()
+                profile.delete()
+                user.delete()
+                print(f"User {user_key} fully disconnected (legacy mode)")
 
-            # 4-3. 프로필 삭제
-            profile.delete()
-
-            # 4-4. 사용자 삭제
-            user.delete()
-
-        # 5. 로깅
-        print(f"User {user_key} disconnected from Toss successfully")
-
-        # 6. 성공 응답
+        # 5. 성공 응답
         return Response(
             {'success': True, 'message': 'User disconnected successfully'},
             status=status.HTTP_200_OK
@@ -488,7 +516,6 @@ def toss_disconnect_callback(request):
 
     except UserProfile.DoesNotExist:
         # 사용자가 이미 삭제되었거나 존재하지 않는 경우
-        # 토스 입장에서는 성공으로 처리
         print(f"User {user_key} not found, but returning success")
         return Response(
             {'success': True, 'message': 'User not found but considered as disconnected'},
@@ -496,7 +523,6 @@ def toss_disconnect_callback(request):
         )
 
     except Exception as e:
-        # 예상치 못한 에러
         print(f"Error in toss_disconnect_callback: {e}")
         return Response(
             {'error': 'Internal server error'},
@@ -509,12 +535,15 @@ def toss_disconnect_callback(request):
 # ============================================
 
 from api.toss_auth import (
+    get_toss_app,
     get_toss_access_token,
     refresh_toss_access_token,
     get_toss_user_info,
     get_or_create_user_from_toss,
     create_jwt_token,
-    get_user_from_token
+    get_user_from_token,
+    save_app_user_token,
+    DEFAULT_APP_ID,
 )
 
 
@@ -527,8 +556,13 @@ def toss_login(request):
     앱에서 appLogin()으로 받은 authorizationCode를 전송하면
     JWT 토큰을 발급합니다.
 
+    멀티 앱 지원:
+    - app_id를 전송하면 해당 앱의 Toss 설정 사용
+    - app_id가 없으면 'game_honey'를 기본값으로 사용 (하위 호환)
+
     Request:
         {
+            "appId": "game_honey",  // 선택 (기본값: game_honey)
             "authorizationCode": "abc123...",
             "referrer": "DEFAULT" | "SANDBOX"
         }
@@ -545,6 +579,7 @@ def toss_login(request):
         }
     """
     # CamelCaseJSONParser가 authorizationCode를 authorization_code로 변환함
+    app_id = request.data.get('app_id', DEFAULT_APP_ID)  # 기본값: game_honey
     authorization_code = request.data.get('authorization_code')
     referrer = request.data.get('referrer', 'DEFAULT')
 
@@ -555,22 +590,23 @@ def toss_login(request):
         )
 
     try:
+        # 0. 앱 설정 조회 (없으면 레거시 모드)
+        app = get_toss_app(app_id)
+
         # 1. 토스 API에서 AccessToken 발급
-        toss_token_data = get_toss_access_token(authorization_code, referrer)
+        toss_token_data = get_toss_access_token(authorization_code, referrer, app)
         toss_access_token = toss_token_data['accessToken']
         toss_refresh_token = toss_token_data['refreshToken']
 
         # 2. 토스 API에서 사용자 정보 조회
-        toss_user_info = get_toss_user_info(toss_access_token)
+        toss_user_info = get_toss_user_info(toss_access_token, app)
         user_key = toss_user_info['userKey']
 
         # 3. 사용자 찾기 또는 생성
-        user, created = get_or_create_user_from_toss(user_key, toss_user_info)
+        user, created = get_or_create_user_from_toss(user_key, toss_user_info, app)
 
-        # 4. 토스 토큰 저장 (UserProfile에)
-        user.profile.toss_access_token = toss_access_token
-        user.profile.toss_refresh_token = toss_refresh_token
-        user.profile.save()
+        # 4. 토스 토큰 저장 (앱별로 저장)
+        save_app_user_token(user, app, toss_access_token, toss_refresh_token)
 
         # 5. JWT 토큰 발급 (우리 서버용)
         access_token = create_jwt_token(user.id, 'access')
@@ -665,17 +701,36 @@ def get_current_user(request):
     Header:
         Authorization: Bearer <jwt_token>
 
-    Response:
+    Response (200):
         {
             "id": 1,
             "username": "toss_443731104",
             "name": "김토스",
             "toss_user_key": 443731104
         }
+
+    Response (401):
+        - 토큰 만료/무효: IsAuthenticated에서 자동 처리
+        - 토스 연결 해제된 유저: {"error": "Toss account disconnected"}
     """
     try:
         user = request.user
+
+        # 프로필 존재 여부 확인
+        if not hasattr(user, 'profile'):
+            return Response(
+                {'error': 'User profile not found'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         profile = user.profile
+
+        # 토스 연결 해제 여부 확인 (toss_user_key가 None이면 연결 해제됨)
+        if profile.toss_user_key is None:
+            return Response(
+                {'error': 'Toss account disconnected'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         return Response({
             'id': user.id,
