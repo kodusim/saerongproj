@@ -458,13 +458,16 @@ def toss_disconnect_callback(request, app_id=None):
     - /api/auth/disconnect-callback (기존 - game_honey)
     - /api/auth/disconnect-callback/<app_id> (새 앱들)
     """
-    # CORS preflight 요청 처리
-    if request.method == 'OPTIONS':
-        response = Response(status=status.HTTP_200_OK)
+    # CORS 헤더 추가 헬퍼 함수
+    def add_cors_headers(response):
         response['Access-Control-Allow-Origin'] = '*'
         response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
         return response
+
+    # CORS preflight 요청 처리
+    if request.method == 'OPTIONS':
+        return add_cors_headers(Response(status=status.HTTP_200_OK))
 
     # common 모듈 import (없으면 None)
     try:
@@ -480,19 +483,19 @@ def toss_disconnect_callback(request, app_id=None):
 
     # 1. Basic Auth 검증
     if not verify_basic_auth(request, app):
-        return Response(
+        return add_cors_headers(Response(
             {'error': 'Unauthorized'},
             status=status.HTTP_401_UNAUTHORIZED
-        )
+        ))
 
     # 2. userKey 추출 (camelCase와 snake_case 모두 지원)
     user_key = request.data.get('userKey') or request.data.get('user_key')
     if not user_key:
         print(f"Disconnect callback - missing userKey. request.data: {request.data}")
-        return Response(
+        return add_cors_headers(Response(
             {'error': 'userKey is required'},
             status=status.HTTP_400_BAD_REQUEST
-        )
+        ))
 
     # 3. referrer 로깅 (연결 해제 사유)
     referrer = request.data.get('referrer') or request.data.get('referrer', 'UNKNOWN')
@@ -533,26 +536,26 @@ def toss_disconnect_callback(request, app_id=None):
 
                 print(f"User {user_key} disconnected (legacy mode) - profile preserved")
 
-        # 5. 성공 응답
-        return Response(
+        # 6. 성공 응답
+        return add_cors_headers(Response(
             {'success': True, 'message': 'User disconnected successfully'},
             status=status.HTTP_200_OK
-        )
+        ))
 
     except UserProfile.DoesNotExist:
         # 사용자가 이미 삭제되었거나 존재하지 않는 경우
         print(f"User {user_key} not found, but returning success")
-        return Response(
+        return add_cors_headers(Response(
             {'success': True, 'message': 'User not found but considered as disconnected'},
             status=status.HTTP_200_OK
-        )
+        ))
 
     except Exception as e:
         print(f"Error in toss_disconnect_callback: {e}")
-        return Response(
+        return add_cors_headers(Response(
             {'error': 'Internal server error'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        ))
 
 
 # ============================================
