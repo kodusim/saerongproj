@@ -485,17 +485,17 @@ def toss_disconnect_callback(request, app_id=None):
             status=status.HTTP_401_UNAUTHORIZED
         )
 
-    # 2. userKey 추출
-    print(f"Disconnect callback request.data: {request.data}")
-    user_key = request.data.get('userKey')
+    # 2. userKey 추출 (camelCase와 snake_case 모두 지원)
+    user_key = request.data.get('userKey') or request.data.get('user_key')
     if not user_key:
+        print(f"Disconnect callback - missing userKey. request.data: {request.data}")
         return Response(
             {'error': 'userKey is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     # 3. referrer 로깅 (연결 해제 사유)
-    referrer = request.data.get('referrer', 'UNKNOWN')
+    referrer = request.data.get('referrer') or request.data.get('referrer', 'UNKNOWN')
     print(f"Disconnect callback: userKey={user_key}, referrer={referrer}")
 
     try:
