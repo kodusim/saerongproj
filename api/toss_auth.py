@@ -32,12 +32,17 @@ def get_toss_app(app_id: str = None):
         app_id: 앱 ID (없으면 'game_honey')
 
     Returns:
-        TossApp 객체
+        TossApp 객체 또는 None (레거시 모드)
 
     Raises:
         ValueError: 앱을 찾을 수 없거나 비활성화된 경우
     """
-    from common.models import TossApp
+    # common 모듈 import 시도 (없으면 레거시 모드)
+    try:
+        from common.models import TossApp
+    except ImportError:
+        # common 모듈이 없으면 레거시 모드
+        return None
 
     if not app_id:
         app_id = DEFAULT_APP_ID

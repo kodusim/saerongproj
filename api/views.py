@@ -466,12 +466,16 @@ def toss_disconnect_callback(request, app_id=None):
         response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
         return response
 
-    from common.models import AppUserToken
+    # common 모듈 import (없으면 None)
+    try:
+        from common.models import AppUserToken
+    except ImportError:
+        AppUserToken = None
 
     # 0. 앱 설정 조회
     try:
         app = get_toss_app(app_id) if app_id else get_toss_app(DEFAULT_APP_ID)
-    except ValueError:
+    except (ValueError, Exception):
         app = None  # 레거시 모드
 
     # 1. Basic Auth 검증
@@ -489,15 +493,19 @@ def toss_disconnect_callback(request, app_id=None):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    # 3. referrer 로깅 (연결 해제 사유)
+    referrer = request.data.get('referrer', 'UNKNOWN')
+    print(f"Disconnect callback: userKey={user_key}, referrer={referrer}")
+
     try:
-        # 3. 사용자 찾기 (UserProfile을 통해)
+        # 4. 사용자 찾기 (UserProfile을 통해)
         profile = UserProfile.objects.get(toss_user_key=user_key)
         user = profile.user
 
-        # 4. 트랜잭션으로 데이터 삭제
+        # 5. 트랜잭션으로 데이터 삭제
         with transaction.atomic():
-            if app:
-                # 앱별 토큰만 삭제
+            if app and AppUserToken:
+                # 앱별 토큰만 삭제 (멀티 앱 모드)
                 AppUserToken.objects.filter(user=user, app=app).delete()
                 print(f"User {user_key} disconnected from app '{app.app_id}'")
 
@@ -508,13 +516,21 @@ def toss_disconnect_callback(request, app_id=None):
                     user.game_subscriptions.all().delete()
                     user.push_tokens.all().delete()
             else:
-                # 레거시: 전체 삭제
+                # 레거시 모드: 토스 연결 해제 (사용자 데이터 보존)
+                # toss_user_key를 None으로 설정하여 연결 해제 상태로 표시
+                profile.toss_user_key = None
+                profile.toss_access_token = ''
+                profile.toss_refresh_token = ''
+                profile.save()
+
+                # 프리미엄 구독도 취소
+                if hasattr(user, 'premium_subscription'):
+                    user.premium_subscription.delete()
+
+                # 게임 구독 삭제
                 user.game_subscriptions.all().delete()
-                user.push_tokens.all().delete()
-                AppUserToken.objects.filter(user=user).delete()
-                profile.delete()
-                user.delete()
-                print(f"User {user_key} fully disconnected (legacy mode)")
+
+                print(f"User {user_key} disconnected (legacy mode) - profile preserved")
 
         # 5. 성공 응답
         return Response(
