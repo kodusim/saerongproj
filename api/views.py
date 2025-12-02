@@ -1,4 +1,5 @@
 import base64
+import json
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -6,6 +7,9 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.db import transaction
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django_filters.rest_framework import DjangoFilterBackend
 from core.models import Category, SubCategory
 from sources.models import DataSource
@@ -442,52 +446,13 @@ def verify_basic_auth(request, app=None):
         return False
 
 
-@api_view(['POST', 'OPTIONS'])
-@permission_classes([AllowAny])
+@csrf_exempt
 def toss_disconnect_callback(request, app_id=None):
     """
-    토스 연결 끊기 콜백
+    토스 연결 끊기 콜백 (Django 기본 뷰 - 모든 Content-Type 지원)
 
     사용자가 토스앱에서 앱 연결을 끊거나 회원 탈퇴할 때 호출됨
-
-    멀티 앱 지원:
-    - URL에서 app_id를 받으면 해당 앱 설정으로 인증
-    - app_id가 없으면 game_honey 기본값 (하위 호환)
-
-    URL:
-    - /api/auth/disconnect-callback (기존 - game_honey)
-    - /api/auth/disconnect-callback/<app_id> (새 앱들)
     """
-    # CORS 헤더 추가 헬퍼 함수
-    # 토스 콘솔 테스트 시 Origin이 https://apps-in-toss.toss.im
-    # credentials(Basic Auth) 포함 요청 시 Access-Control-Allow-Origin에 * 사용 불가
-    def add_cors_headers(response):
-        # 토스 관련 허용 도메인 목록
-        allowed_origins = [
-            'https://apps-in-toss.toss.im',
-            'https://developers-apps-in-toss.toss.im',
-            'https://console.toss.im',
-            'https://business.toss.im',
-        ]
-
-        # 요청 Origin 확인
-        origin = request.META.get('HTTP_ORIGIN', '')
-
-        if origin in allowed_origins:
-            response['Access-Control-Allow-Origin'] = origin
-        else:
-            # 허용되지 않은 Origin이거나 없는 경우 (서버-서버 통신)
-            response['Access-Control-Allow-Origin'] = '*'
-
-        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
-        response['Access-Control-Allow-Credentials'] = 'true'
-        return response
-
-    # CORS preflight 요청 처리
-    if request.method == 'OPTIONS':
-        return add_cors_headers(Response(status=status.HTTP_200_OK))
-
     # common 모듈 import (없으면 None)
     try:
         from common.models import AppUserToken
@@ -502,7 +467,7 @@ def toss_disconnect_callback(request, app_id=None):
 
     # 1. Basic Auth 검증
     if not verify_basic_auth(request, app):
-        return add_cors_headers(Response(
+        return JsonResponse(
             {
                 'resultType': 'FAIL',
                 'error': {
@@ -510,14 +475,28 @@ def toss_disconnect_callback(request, app_id=None):
                     'message': 'Invalid Basic Auth credentials'
                 }
             },
-            status=status.HTTP_401_UNAUTHORIZED
-        ))
+            status=401
+        )
 
-    # 2. userKey 추출 (camelCase와 snake_case 모두 지원)
-    user_key = request.data.get('userKey') or request.data.get('user_key')
+    # 2. 요청 본문 파싱 (JSON 또는 form-data)
+    try:
+        content_type = request.content_type or ''
+        if 'application/json' in content_type:
+            data = json.loads(request.body.decode('utf-8'))
+        else:
+            # form-urlencoded 또는 기타
+            data = dict(request.POST)
+            # POST dict는 리스트로 값을 반환하므로 첫 번째 값만 추출
+            data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in data.items()}
+    except Exception as e:
+        print(f"Failed to parse request body: {e}")
+        data = {}
+
+    # userKey 추출 (camelCase와 snake_case 모두 지원)
+    user_key = data.get('userKey') or data.get('user_key')
     if not user_key:
-        print(f"Disconnect callback - missing userKey. request.data: {request.data}")
-        return add_cors_headers(Response(
+        print(f"Disconnect callback - missing userKey. data: {data}, body: {request.body[:200]}")
+        return JsonResponse(
             {
                 'resultType': 'FAIL',
                 'error': {
@@ -525,11 +504,11 @@ def toss_disconnect_callback(request, app_id=None):
                     'message': 'userKey is required'
                 }
             },
-            status=status.HTTP_400_BAD_REQUEST
-        ))
+            status=400
+        )
 
     # 3. referrer 로깅 (연결 해제 사유)
-    referrer = request.data.get('referrer') or request.data.get('referrer', 'UNKNOWN')
+    referrer = data.get('referrer', 'UNKNOWN')
     print(f"Disconnect callback: userKey={user_key}, referrer={referrer}")
 
     try:
@@ -552,7 +531,6 @@ def toss_disconnect_callback(request, app_id=None):
                     user.push_tokens.all().delete()
             else:
                 # 레거시 모드: 토스 연결 해제 (사용자 데이터 보존)
-                # toss_user_key를 None으로 설정하여 연결 해제 상태로 표시
                 profile.toss_user_key = None
                 profile.toss_access_token = ''
                 profile.toss_refresh_token = ''
@@ -567,33 +545,23 @@ def toss_disconnect_callback(request, app_id=None):
 
                 print(f"User {user_key} disconnected (legacy mode) - profile preserved")
 
-        # 6. 성공 응답 (토스 API 스펙에 맞는 형식)
-        return add_cors_headers(Response(
-            {
-                'resultType': 'SUCCESS',
-                'success': {
-                    'userKey': user_key
-                }
-            },
-            status=status.HTTP_200_OK
-        ))
+        # 6. 성공 응답
+        return JsonResponse({
+            'resultType': 'SUCCESS',
+            'success': {'userKey': user_key}
+        })
 
     except UserProfile.DoesNotExist:
-        # 사용자가 이미 삭제되었거나 존재하지 않는 경우에도 SUCCESS 반환
+        # 사용자가 존재하지 않아도 SUCCESS 반환
         print(f"User {user_key} not found, but returning success")
-        return add_cors_headers(Response(
-            {
-                'resultType': 'SUCCESS',
-                'success': {
-                    'userKey': user_key
-                }
-            },
-            status=status.HTTP_200_OK
-        ))
+        return JsonResponse({
+            'resultType': 'SUCCESS',
+            'success': {'userKey': user_key}
+        })
 
     except Exception as e:
         print(f"Error in toss_disconnect_callback: {e}")
-        return add_cors_headers(Response(
+        return JsonResponse(
             {
                 'resultType': 'FAIL',
                 'error': {
@@ -601,8 +569,8 @@ def toss_disconnect_callback(request, app_id=None):
                     'message': str(e)
                 }
             },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        ))
+            status=500
+        )
 
 
 # ============================================
