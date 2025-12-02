@@ -484,7 +484,13 @@ def toss_disconnect_callback(request, app_id=None):
     # 1. Basic Auth 검증
     if not verify_basic_auth(request, app):
         return add_cors_headers(Response(
-            {'error': 'Unauthorized'},
+            {
+                'resultType': 'FAIL',
+                'error': {
+                    'reason': 'UNAUTHORIZED',
+                    'message': 'Invalid Basic Auth credentials'
+                }
+            },
             status=status.HTTP_401_UNAUTHORIZED
         ))
 
@@ -493,7 +499,13 @@ def toss_disconnect_callback(request, app_id=None):
     if not user_key:
         print(f"Disconnect callback - missing userKey. request.data: {request.data}")
         return add_cors_headers(Response(
-            {'error': 'userKey is required'},
+            {
+                'resultType': 'FAIL',
+                'error': {
+                    'reason': 'INVALID_REQUEST',
+                    'message': 'userKey is required'
+                }
+            },
             status=status.HTTP_400_BAD_REQUEST
         ))
 
@@ -536,24 +548,40 @@ def toss_disconnect_callback(request, app_id=None):
 
                 print(f"User {user_key} disconnected (legacy mode) - profile preserved")
 
-        # 6. 성공 응답
+        # 6. 성공 응답 (토스 API 스펙에 맞는 형식)
         return add_cors_headers(Response(
-            {'success': True, 'message': 'User disconnected successfully'},
+            {
+                'resultType': 'SUCCESS',
+                'success': {
+                    'userKey': user_key
+                }
+            },
             status=status.HTTP_200_OK
         ))
 
     except UserProfile.DoesNotExist:
-        # 사용자가 이미 삭제되었거나 존재하지 않는 경우
+        # 사용자가 이미 삭제되었거나 존재하지 않는 경우에도 SUCCESS 반환
         print(f"User {user_key} not found, but returning success")
         return add_cors_headers(Response(
-            {'success': True, 'message': 'User not found but considered as disconnected'},
+            {
+                'resultType': 'SUCCESS',
+                'success': {
+                    'userKey': user_key
+                }
+            },
             status=status.HTTP_200_OK
         ))
 
     except Exception as e:
         print(f"Error in toss_disconnect_callback: {e}")
         return add_cors_headers(Response(
-            {'error': 'Internal server error'},
+            {
+                'resultType': 'FAIL',
+                'error': {
+                    'reason': 'INTERNAL_ERROR',
+                    'message': str(e)
+                }
+            },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         ))
 
