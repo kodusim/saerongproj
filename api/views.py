@@ -459,10 +459,29 @@ def toss_disconnect_callback(request, app_id=None):
     - /api/auth/disconnect-callback/<app_id> (새 앱들)
     """
     # CORS 헤더 추가 헬퍼 함수
+    # 토스 콘솔 테스트 시 Origin이 https://apps-in-toss.toss.im
+    # credentials(Basic Auth) 포함 요청 시 Access-Control-Allow-Origin에 * 사용 불가
     def add_cors_headers(response):
-        response['Access-Control-Allow-Origin'] = '*'
+        # 토스 관련 허용 도메인 목록
+        allowed_origins = [
+            'https://apps-in-toss.toss.im',
+            'https://developers-apps-in-toss.toss.im',
+            'https://console.toss.im',
+            'https://business.toss.im',
+        ]
+
+        # 요청 Origin 확인
+        origin = request.META.get('HTTP_ORIGIN', '')
+
+        if origin in allowed_origins:
+            response['Access-Control-Allow-Origin'] = origin
+        else:
+            # 허용되지 않은 Origin이거나 없는 경우 (서버-서버 통신)
+            response['Access-Control-Allow-Origin'] = '*'
+
         response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+        response['Access-Control-Allow-Credentials'] = 'true'
         return response
 
     # CORS preflight 요청 처리
