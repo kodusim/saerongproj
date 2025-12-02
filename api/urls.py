@@ -48,7 +48,8 @@ urlpatterns = [
     path('auth/refresh', refresh_token, name='refresh-token'),  # 토큰 갱신
     path('auth/me', get_current_user, name='current-user'),  # 현재 사용자 정보
     path('auth/logout', logout, name='logout'),  # 로그아웃
-    path('auth/disconnect-callback', toss_disconnect_callback, name='toss-disconnect-callback'),  # 토스 연결 끊기 콜백
+    path('auth/disconnect-callback', toss_disconnect_callback, name='toss-disconnect-callback'),  # 토스 연결 끊기 콜백 (기존 - game_honey)
+    path('auth/disconnect-callback/<str:app_id>', toss_disconnect_callback, name='toss-disconnect-callback-app'),  # 토스 연결 끊기 콜백 (앱별)
 
     # Premium Subscription
     path('premium/status/', premium_status, name='premium-status'),  # 프리미엄 구독 상태 조회

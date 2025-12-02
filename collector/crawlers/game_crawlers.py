@@ -149,7 +149,7 @@ class GenericSeleniumCrawler(BaseCrawler):
     {
         "selectors": {
             "container": ".news_board ul li",  # 목록 아이템 컨테이너 (필수)
-            "title": "p a span",               # 제목 선택자 (필수)
+            "title": "p a span",               # 제목 선택자 (선택, 비우면 container 텍스트 사용)
             "url": "p a",                      # URL 선택자 (선택, 비우면 container의 href 사용)
             "date": ".heart_date dd",          # 날짜 선택자 (선택)
             "date_attr": "datetime"            # 날짜 속성 (선택, 지정 시 해당 속성값 사용)
@@ -157,7 +157,8 @@ class GenericSeleniumCrawler(BaseCrawler):
         "base_url": "https://maplestory.nexon.com",  # 상대 URL을 절대 URL로 변환할 base
         "wait_selector": ".news_board",      # 로딩 대기할 선택자 (선택사항)
         "game_name": "메이플스토리",         # 게임명 (선택사항)
-        "max_items": 20                      # 수집할 최대 개수 (기본: 20)
+        "max_items": 20,                     # 수집할 최대 개수 (기본: 20)
+        "exclude_url_pattern": "isNotice=1"  # URL에 포함되면 제외할 패턴 (선택사항)
     }
     """
 
@@ -231,11 +232,9 @@ class GenericSeleniumCrawler(BaseCrawler):
 
         if not selectors.get('container'):
             raise ValueError("config에 'selectors.container'가 필요합니다")
-        if not selectors.get('title'):
-            raise ValueError("config에 'selectors.title'이 필요합니다")
 
         container_selector = selectors['container']
-        title_selector = selectors['title']
+        title_selector = selectors.get('title', '')  # 선택사항 (비우면 container 텍스트 사용)
         url_selector = selectors.get('url', '')  # 선택사항 (container가 a 태그면 생략 가능)
         date_selector = selectors.get('date', '')
         date_attr = selectors.get('date_attr', '')  # time 태그의 datetime 속성 등
@@ -243,22 +242,14 @@ class GenericSeleniumCrawler(BaseCrawler):
         base_url = config.get('base_url', '')
         game_name = config.get('game_name', '')
         max_items = config.get('max_items', 20)
+        exclude_url_pattern = config.get('exclude_url_pattern', '')  # URL 제외 패턴
 
         # 컨테이너 아이템들 찾기
         notice_items = soup.select(container_selector)
 
         for item in notice_items[:max_items]:
             try:
-                # 제목 추출
-                title_elem = item.select_one(title_selector)
-                if not title_elem:
-                    continue
-
-                title = title_elem.get_text(strip=True)
-                if not title or len(title) < 3:
-                    continue
-
-                # URL 추출
+                # URL 추출 (제목보다 먼저 - exclude_url_pattern 체크를 위해)
                 # url_selector가 비어있으면 container 자체에서 href 추출
                 if url_selector:
                     url_elem = item.select_one(url_selector)
@@ -272,6 +263,21 @@ class GenericSeleniumCrawler(BaseCrawler):
 
                 if url and base_url and not url.startswith('http'):
                     url = base_url + url if url.startswith('/') else base_url + '/' + url
+
+                # URL 제외 패턴 체크
+                if exclude_url_pattern and exclude_url_pattern in url:
+                    continue
+
+                # 제목 추출
+                if title_selector:
+                    title_elem = item.select_one(title_selector)
+                    title = title_elem.get_text(strip=True) if title_elem else ''
+                else:
+                    # title_selector가 비어있으면 container 자체의 텍스트 사용
+                    title = item.get_text(strip=True)
+
+                if not title or len(title) < 3:
+                    continue
 
                 # 날짜 추출 (선택사항)
                 date = ''
@@ -314,12 +320,13 @@ class GenericRequestsCrawler(BaseCrawler):
         "game_name": "게임이름",
         "selectors": {
             "container": "a[href*='/news/']",  # 각 게시글 아이템 (필수)
-            "title": "div.title",               # 제목 요소 (필수)
+            "title": "div.title",               # 제목 요소 (선택, 비우면 container 텍스트 사용)
             "url": "a.link",                    # URL 요소 (선택, 비우면 container의 href 사용)
             "date": "time",                     # 날짜 요소 (선택)
             "date_attr": "datetime"             # 날짜 속성 (선택, 지정 시 해당 속성값 사용)
         },
-        "max_items": 20
+        "max_items": 20,
+        "exclude_url_pattern": "isNotice=1"    # URL에 포함되면 제외할 패턴 (선택사항)
     }
     """
 
@@ -340,11 +347,9 @@ class GenericRequestsCrawler(BaseCrawler):
 
         if not selectors.get('container'):
             raise ValueError("config에 'selectors.container'가 필요합니다")
-        if not selectors.get('title'):
-            raise ValueError("config에 'selectors.title'이 필요합니다")
 
         container_selector = selectors['container']
-        title_selector = selectors['title']
+        title_selector = selectors.get('title', '')  # 선택사항 (비우면 container 텍스트 사용)
         url_selector = selectors.get('url', '')  # 선택사항 (container가 a 태그면 생략 가능)
         date_selector = selectors.get('date', '')
         date_attr = selectors.get('date_attr', '')  # time 태그의 datetime 속성 등
@@ -352,22 +357,14 @@ class GenericRequestsCrawler(BaseCrawler):
         base_url = config.get('base_url', '')
         game_name = config.get('game_name', '')
         max_items = config.get('max_items', 20)
+        exclude_url_pattern = config.get('exclude_url_pattern', '')  # URL 제외 패턴
 
         # 컨테이너 아이템들 찾기
         notice_items = soup.select(container_selector)
 
         for item in notice_items[:max_items]:
             try:
-                # 제목 추출
-                title_elem = item.select_one(title_selector)
-                if not title_elem:
-                    continue
-
-                title = title_elem.get_text(strip=True)
-                if not title or len(title) < 3:
-                    continue
-
-                # URL 추출
+                # URL 추출 (제목보다 먼저 - exclude_url_pattern 체크를 위해)
                 # url_selector가 비어있으면 container 자체에서 href 추출
                 if url_selector:
                     url_elem = item.select_one(url_selector)
@@ -381,6 +378,21 @@ class GenericRequestsCrawler(BaseCrawler):
 
                 if url and base_url and not url.startswith('http'):
                     url = base_url + url if url.startswith('/') else base_url + '/' + url
+
+                # URL 제외 패턴 체크
+                if exclude_url_pattern and exclude_url_pattern in url:
+                    continue
+
+                # 제목 추출
+                if title_selector:
+                    title_elem = item.select_one(title_selector)
+                    title = title_elem.get_text(strip=True) if title_elem else ''
+                else:
+                    # title_selector가 비어있으면 container 자체의 텍스트 사용
+                    title = item.get_text(strip=True)
+
+                if not title or len(title) < 3:
+                    continue
 
                 # 날짜 추출 (선택사항)
                 date = ''

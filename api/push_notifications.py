@@ -98,6 +98,10 @@ def send_toss_push_notification(user_keys, title, body, data=None):
             "context": context
         }
 
+        # scheme이 있으면 딥링크 설정 (알림 클릭 시 해당 화면으로 이동)
+        if data and data.get("scheme"):
+            payload["scheme"] = data.get("scheme")
+
         # 헤더에 user_key 추가
         headers = {
             "Content-Type": "application/json",
@@ -186,10 +190,12 @@ def notify_subscribers(collected_data):
     body = collected_data.data.get('title', '새로운 소식이 있습니다')
 
     # 6. 추가 데이터 (클릭 시 이동할 URL 등)
+    # scheme: 앱 내 딥링크 경로 (예: /game/maplestory)
     data = {
         "url": collected_data.data.get('url', ''),
         "game_id": game.display_name,  # 게임 이름 (예: "메이플스토리")
         "category": category,           # 카테고리 이름 (예: "공지사항")
+        "scheme": f"/game/{game.game_id}",  # 딥링크: /game/maplestory, /game/lol 등
     }
 
     # 7. 푸시 알림 발송

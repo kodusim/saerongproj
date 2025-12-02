@@ -13,9 +13,13 @@ def normalize_date(date_str: str) -> str:
 
     지원 형식:
     - "2025.11.25" → "2025-11-25"
+    - "2025. 11. 25." → "2025-11-25" (공백 포함)
     - "2025-11-25" → "2025-11-25" (이미 정규화됨)
+    - "202511.20" → "2025-11-20" (FC온라인 업데이트 형식)
     - "PM 02:39", "AM 10:00" → 오늘 날짜 "2025-11-26"
     - "2025.11.20 ~ 2025.12.18" → 시작일 "2025-11-20"
+    - "2025. 11. 19. ~ 12. 24." → 시작일 "2025-11-19"
+    - "2025-11-20 ~ 2025-12-03" → 시작일 "2025-11-20"
     - "11/25" → 올해 날짜 "2025-11-25"
     - 파싱 실패 시 → 오늘 날짜
     """
@@ -29,27 +33,38 @@ def normalize_date(date_str: str) -> str:
     if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
         return date_str
 
-    # 2. YYYY.MM.DD 형식
-    match = re.match(r'^(\d{4})\.(\d{1,2})\.(\d{1,2})', date_str)
+    # 2. YYYY.MM.DD 또는 YYYY. MM. DD. 형식 (공백/마침표 허용)
+    match = re.match(r'^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.?', date_str)
     if match:
         year, month, day = match.groups()
         return f"{year}-{int(month):02d}-{int(day):02d}"
 
-    # 3. MM/DD 형식 (올해로 가정)
+    # 3. YYYYMM.DD 형식 (FC온라인 업데이트 - year와 month가 붙어있음)
+    match = re.match(r'^(\d{4})(\d{2})\.(\d{1,2})$', date_str)
+    if match:
+        year, month, day = match.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+
+    # 4. YYYY-MM-DD ~ YYYY-MM-DD 형식 (기간, 시작일 추출)
+    match = re.match(r'^(\d{4}-\d{2}-\d{2})\s*~', date_str)
+    if match:
+        return match.group(1)
+
+    # 5. MM/DD 형식 (올해로 가정)
     match = re.match(r'^(\d{1,2})/(\d{1,2})$', date_str)
     if match:
         month, day = match.groups()
         return f"{today.year}-{int(month):02d}-{int(day):02d}"
 
-    # 4. 시간만 있는 경우 (AM/PM HH:MM) → 오늘 날짜
+    # 6. 시간만 있는 경우 (AM/PM HH:MM) → 오늘 날짜
     if re.match(r'^(AM|PM)\s*\d{1,2}:\d{2}', date_str, re.IGNORECASE):
         return today.isoformat()
 
-    # 5. 시간만 있는 경우 (HH:MM) → 오늘 날짜
+    # 7. 시간만 있는 경우 (HH:MM) → 오늘 날짜
     if re.match(r'^\d{1,2}:\d{2}$', date_str):
         return today.isoformat()
 
-    # 6. 파싱 실패 시 오늘 날짜 반환
+    # 8. 파싱 실패 시 오늘 날짜 반환
     return today.isoformat()
 
 

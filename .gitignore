@@ -8,3 +8,5 @@ mediafiles
 .DS_Store
 .python-version
 draft_models.py
+node_modules/
+game_honey_alarm/

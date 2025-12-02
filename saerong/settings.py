@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_filters",
     # local apps
+    "common",
     "core",
     "sources",
     "collector",
@@ -201,13 +202,23 @@ REST_FRAMEWORK = {
 
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+
+# 토스 관련 도메인 (콘솔 테스트용 + 실제 앱인토스 도메인)
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
+    'https://apps-in-toss.toss.im',             # 토스 콘솔 테스트
+    'https://developers-apps-in-toss.toss.im',  # 토스 개발자 콘솔
+    'https://console.toss.im',                  # 토스 콘솔
+    'https://business.toss.im',                 # 토스 비즈니스
+])
 
 # 앱인토스 도메인 패턴 허용
 CORS_ALLOWED_ORIGIN_REGEXES = env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[
     r"^https://.*\.private-apps\.tossmini\.com$",  # 앱인토스 서브도메인
     r"^https://.*\.apps-in-toss\.com$",            # 앱인토스 대체 도메인
 ])
+
+# CORS credentials 허용 (Basic Auth 등)
+CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
 CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")

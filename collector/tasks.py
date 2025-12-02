@@ -28,8 +28,11 @@ def crawl_data_source(source_id):
 
         # 데이터 저장 (역순으로 저장하여 최신 항목이 가장 최근 collected_at을 갖도록 함)
         new_count = 0
+        current_urls = set()  # 현재 크롤링된 URL들 수집
+
         for item in reversed(items):
             hash_key = item.pop('hash_key')
+            current_urls.add(item.get('url', ''))
 
             # 중복 체크
             if not CollectedData.objects.filter(hash_key=hash_key).exists():
@@ -47,6 +50,9 @@ def crawl_data_source(source_id):
                 except Exception as e:
                     # 푸시 알림 실패해도 크롤링은 계속 진행
                     print(f"Failed to send push notification: {e}")
+
+        # 삭제된 게시글 정리 (원본 사이트에서 삭제된 게시글 제거)
+        deleted_count = cleanup_deleted_posts(source, current_urls)
 
         # 마지막 크롤링 시간 업데이트
         source.last_crawled_at = timezone.now()
@@ -71,7 +77,10 @@ def crawl_data_source(source_id):
             countdown=source.crawl_interval * 60  # 분 → 초 변환
         )
 
-        return f"Crawled {new_count} new items from {source.name}"
+        result_msg = f"Crawled {new_count} new items from {source.name}"
+        if deleted_count > 0:
+            result_msg += f", deleted {deleted_count} old items"
+        return result_msg
 
     except Exception as e:
         # 실패 로그 저장
@@ -201,3 +210,37 @@ def get_crawler_class(source):
         )
     else:
         return None
+
+
+def cleanup_deleted_posts(source, current_urls):
+    """
+    원본 사이트에서 삭제된 게시글을 DB에서 제거
+
+    Args:
+        source: DataSource 객체
+        current_urls: 현재 크롤링에서 수집된 URL들의 집합
+
+    Returns:
+        삭제된 게시글 수
+    """
+    if not current_urls:
+        # 크롤링 결과가 비어있으면 삭제하지 않음 (크롤링 실패 방지)
+        return 0
+
+    # 최소 수집 개수 확인 (너무 적으면 크롤링 실패로 간주)
+    min_items = 3
+    if len(current_urls) < min_items:
+        return 0
+
+    # 해당 소스의 기존 데이터 중 현재 URL에 없는 것들 찾기
+    existing_data = CollectedData.objects.filter(source=source)
+
+    deleted_count = 0
+    for data in existing_data:
+        url = data.data.get('url', '')
+        if url and url not in current_urls:
+            data.delete()
+            deleted_count += 1
+            print(f"Deleted old post: {data.data.get('title', '')[:30]}")
+
+    return deleted_count

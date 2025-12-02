@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(chmod:*)",
+      "Bash(git push:*)",
+      "Bash(ssh ubuntu@saerong.com:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(cat:*)",
+      "Bash(xargs cat:*)",
+      "Bash(python:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
