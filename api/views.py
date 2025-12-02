@@ -478,23 +478,27 @@ def toss_disconnect_callback(request, app_id=None):
             status=401
         )
 
-    # 2. 요청 본문 파싱 (JSON 또는 form-data)
+    # 2. 요청 본문 파싱 (JSON 우선, form-data 폴백)
+    data = {}
     try:
-        content_type = request.content_type or ''
-        if 'application/json' in content_type:
+        # 먼저 JSON 파싱 시도 (Content-Type 무관하게)
+        if request.body:
             data = json.loads(request.body.decode('utf-8'))
-        else:
-            # form-urlencoded 또는 기타
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        # JSON 파싱 실패 시 form-data 시도
+        try:
             data = dict(request.POST)
-            # POST dict는 리스트로 값을 반환하므로 첫 번째 값만 추출
             data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in data.items()}
-    except Exception as e:
-        print(f"Failed to parse request body: {e}")
-        data = {}
+        except Exception as e:
+            print(f"Failed to parse request body: {e}")
+            data = {}
 
     # userKey 추출 (camelCase와 snake_case 모두 지원)
-    user_key = data.get('userKey') or data.get('user_key')
-    if not user_key:
+    # 주의: userKey가 0일 수 있으므로 None 체크만 해야 함
+    user_key = data.get('userKey')
+    if user_key is None:
+        user_key = data.get('user_key')
+    if user_key is None:
         print(f"Disconnect callback - missing userKey. data: {data}, body: {request.body[:200]}")
         return JsonResponse(
             {
