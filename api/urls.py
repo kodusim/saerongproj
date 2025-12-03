@@ -21,7 +21,8 @@ from .views import (
     cancel_premium,
     test_push_notification,
     api_guide,
-    crawler_status
+    crawler_status,
+    kamis_daily_prices,
 )
 
 app_name = 'api'
@@ -64,6 +65,9 @@ urlpatterns = [
 
     # Crawler Status
     path('crawler/status/', crawler_status, name='crawler-status'),  # 크롤러 상태 조회
+
+    # KAMIS API 프록시 (요즘농가용)
+    path('kamis/daily-prices/', kamis_daily_prices, name='kamis-daily-prices'),  # KAMIS 일별 시세
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

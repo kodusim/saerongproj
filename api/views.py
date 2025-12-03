@@ -1327,3 +1327,85 @@ def crawler_status(request):
             'last_crawl_results': [],
             'error': str(e)
         })
+
+
+# ============================================
+# KAMIS API 프록시 (요즘농가용)
+# ============================================
+
+from django.core.cache import cache
+
+KAMIS_API_KEY = 'c575388f-9b9d-403e-a654-9c0ea9a3ea7e'
+KAMIS_API_ID = 'nowfarm'
+KAMIS_CACHE_TIMEOUT = 600  # 10분 캐싱
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def kamis_daily_prices(request):
+    """
+    KAMIS 일별 시세 API 프록시 (요즘농가 앱용)
+
+    GET /api/kamis/daily-prices/
+
+    KAMIS API를 직접 호출하면 CORS 에러가 발생하므로
+    서버에서 프록시 역할을 수행합니다.
+
+    Response:
+        KAMIS API 응답 그대로 전달
+        {
+            "condition": [["20251203"]],
+            "error_code": "000",
+            "price": [
+                {
+                    "product_cls_code": "01",
+                    "category_code": "100",
+                    "category_name": "식량작물",
+                    "item_name": "쌀/20kg",
+                    "dpr1": "62,451",
+                    ...
+                },
+                ...
+            ]
+        }
+    """
+    # 캐시 확인
+    cache_key = 'kamis_daily_prices'
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(cached_data)
+
+    try:
+        url = 'https://www.kamis.or.kr/service/price/xml.do'
+        params = {
+            'action': 'dailySalesList',
+            'p_cert_key': KAMIS_API_KEY,
+            'p_cert_id': KAMIS_API_ID,
+            'p_returntype': 'json',
+        }
+
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 캐시 저장 (10분)
+        cache.set(cache_key, data, KAMIS_CACHE_TIMEOUT)
+
+        return Response(data)
+
+    except requests.exceptions.Timeout:
+        return Response(
+            {'error': 'KAMIS API 요청 시간 초과'},
+            status=status.HTTP_504_GATEWAY_TIMEOUT
+        )
+    except requests.exceptions.RequestException as e:
+        return Response(
+            {'error': f'KAMIS API 요청 실패: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except ValueError as e:
+        return Response(
+            {'error': f'KAMIS API 응답 파싱 실패: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
