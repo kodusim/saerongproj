@@ -1340,6 +1340,11 @@ KAMIS_API_KEY = 'c575388f-9b9d-403e-a654-9c0ea9a3ea7e'
 KAMIS_API_ID = 'nowfarm'
 KAMIS_CACHE_TIMEOUT = 600  # 10분 캐싱
 
+# 네이버 데이터랩 API (트렌드 모아용)
+NAVER_CLIENT_ID = 'FKU9jm9M6kSqZn6LDzNJ'
+NAVER_CLIENT_SECRET = 'wjJ_ehMvIk'
+NAVER_DATALAB_CACHE_TIMEOUT = 3600  # 1시간 캐싱
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -1409,4 +1414,334 @@ def kamis_daily_prices(request):
         return Response(
             {'error': f'KAMIS API 응답 파싱 실패: {str(e)}'},
             status=status.HTTP_502_BAD_GATEWAY
+        )
+
+
+# ============================================
+# 네이버 데이터랩 API 프록시 (트렌드 모아용)
+# ============================================
+
+def _get_naver_headers():
+    """네이버 API 공통 헤더"""
+    return {
+        'X-Naver-Client-Id': NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+        'Content-Type': 'application/json',
+    }
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def naver_category_trend(request):
+    """
+    네이버 쇼핑 카테고리 트렌드 API 프록시 (트렌드 모아 앱용)
+
+    POST /api/naver/category-trend/
+
+    Request:
+        {
+            "categories": [
+                { "name": "패션", "code": "50000000" },
+                { "name": "가전", "code": "50000003" }
+            ],
+            "startDate": "2024-06-01",
+            "endDate": "2024-12-03",
+            "timeUnit": "month",
+            "ages": [],
+            "gender": ""
+        }
+
+    Response:
+        {
+            "results": [
+                {
+                    "title": "패션",
+                    "category": ["50000000"],
+                    "data": [
+                        { "period": "2024-06-01", "ratio": 85.5 }
+                    ]
+                }
+            ]
+        }
+    """
+    try:
+        categories = request.data.get('categories', [])
+        start_date = request.data.get('start_date', request.data.get('startDate'))
+        end_date = request.data.get('end_date', request.data.get('endDate'))
+        time_unit = request.data.get('time_unit', request.data.get('timeUnit', 'month'))
+        ages = request.data.get('ages', [])
+        gender = request.data.get('gender', '')
+
+        if not categories or not start_date or not end_date:
+            return Response(
+                {'error': 'categories, startDate, endDate are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 캐시 키 생성
+        cache_key = f"naver_category_trend_{hash(str(categories))}_{start_date}_{end_date}_{time_unit}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        # 네이버 API 요청 포맷
+        naver_request = {
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": time_unit,
+            "category": [
+                {"name": cat['name'], "param": [cat['code']]}
+                for cat in categories
+            ],
+        }
+
+        # 선택적 파라미터
+        if ages:
+            naver_request["ages"] = ages
+        if gender:
+            naver_request["gender"] = gender
+
+        url = 'https://openapi.naver.com/v1/datalab/shopping/categories'
+        response = requests.post(url, headers=_get_naver_headers(), json=naver_request, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 응답 포맷 변환
+        result = {"results": []}
+        for item in data.get('results', []):
+            result["results"].append({
+                "title": item.get('title'),
+                "category": item.get('category'),
+                "data": item.get('data', [])
+            })
+
+        # 캐시 저장
+        cache.set(cache_key, result, NAVER_DATALAB_CACHE_TIMEOUT)
+
+        return Response(result)
+
+    except requests.exceptions.Timeout:
+        return Response(
+            {'error': '네이버 API 요청 시간 초과'},
+            status=status.HTTP_504_GATEWAY_TIMEOUT
+        )
+    except requests.exceptions.RequestException as e:
+        return Response(
+            {'error': f'네이버 API 요청 실패: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in naver_category_trend: {e}")
+        return Response(
+            {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def naver_keyword_trend(request):
+    """
+    네이버 쇼핑 카테고리별 키워드 트렌드 API 프록시 (트렌드 모아 앱용)
+
+    POST /api/naver/keyword-trend/
+
+    Request:
+        {
+            "categoryCode": "50000000",
+            "keywords": [
+                { "name": "패딩", "param": ["패딩"] },
+                { "name": "코트", "param": ["코트"] }
+            ],
+            "startDate": "2024-06-01",
+            "endDate": "2024-12-03",
+            "timeUnit": "month",
+            "ages": [],
+            "gender": ""
+        }
+
+    Response:
+        {
+            "results": [
+                {
+                    "title": "패딩",
+                    "keyword": ["패딩"],
+                    "data": [
+                        { "period": "2024-06-01", "ratio": 45.2 }
+                    ]
+                }
+            ]
+        }
+    """
+    try:
+        category_code = request.data.get('category_code', request.data.get('categoryCode'))
+        keywords = request.data.get('keywords', [])
+        start_date = request.data.get('start_date', request.data.get('startDate'))
+        end_date = request.data.get('end_date', request.data.get('endDate'))
+        time_unit = request.data.get('time_unit', request.data.get('timeUnit', 'month'))
+        ages = request.data.get('ages', [])
+        gender = request.data.get('gender', '')
+
+        if not category_code or not keywords or not start_date or not end_date:
+            return Response(
+                {'error': 'categoryCode, keywords, startDate, endDate are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 캐시 키 생성
+        cache_key = f"naver_keyword_trend_{category_code}_{hash(str(keywords))}_{start_date}_{end_date}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        # 네이버 API 요청 포맷
+        naver_request = {
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": time_unit,
+            "category": category_code,
+            "keyword": keywords,
+        }
+
+        # 선택적 파라미터
+        if ages:
+            naver_request["ages"] = ages
+        if gender:
+            naver_request["gender"] = gender
+
+        url = 'https://openapi.naver.com/v1/datalab/shopping/category/keywords'
+        response = requests.post(url, headers=_get_naver_headers(), json=naver_request, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 응답 포맷 변환
+        result = {"results": []}
+        for item in data.get('results', []):
+            result["results"].append({
+                "title": item.get('title'),
+                "keyword": item.get('keyword'),
+                "data": item.get('data', [])
+            })
+
+        # 캐시 저장
+        cache.set(cache_key, result, NAVER_DATALAB_CACHE_TIMEOUT)
+
+        return Response(result)
+
+    except requests.exceptions.Timeout:
+        return Response(
+            {'error': '네이버 API 요청 시간 초과'},
+            status=status.HTTP_504_GATEWAY_TIMEOUT
+        )
+    except requests.exceptions.RequestException as e:
+        return Response(
+            {'error': f'네이버 API 요청 실패: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in naver_keyword_trend: {e}")
+        return Response(
+            {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def naver_search_trend(request):
+    """
+    네이버 검색어 트렌드 API 프록시 (트렌드 모아 앱 - 선물추천용)
+
+    POST /api/naver/search-trend/
+
+    Request:
+        {
+            "keywordGroups": [
+                { "groupName": "에어팟", "keywords": ["에어팟"] },
+                { "groupName": "향수", "keywords": ["향수"] }
+            ],
+            "startDate": "2024-06-01",
+            "endDate": "2024-12-03",
+            "timeUnit": "month"
+        }
+
+    Response:
+        {
+            "results": [
+                {
+                    "title": "에어팟",
+                    "keywords": ["에어팟"],
+                    "data": [
+                        { "period": "2024-06-01", "ratio": 100 }
+                    ]
+                }
+            ]
+        }
+    """
+    try:
+        keyword_groups = request.data.get('keyword_groups', request.data.get('keywordGroups', []))
+        start_date = request.data.get('start_date', request.data.get('startDate'))
+        end_date = request.data.get('end_date', request.data.get('endDate'))
+        time_unit = request.data.get('time_unit', request.data.get('timeUnit', 'month'))
+
+        if not keyword_groups or not start_date or not end_date:
+            return Response(
+                {'error': 'keywordGroups, startDate, endDate are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 캐시 키 생성
+        cache_key = f"naver_search_trend_{hash(str(keyword_groups))}_{start_date}_{end_date}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        # 네이버 API 요청 포맷
+        naver_request = {
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": time_unit,
+            "keywordGroups": [
+                {"groupName": kg.get('groupName', kg.get('group_name')), "keywords": kg.get('keywords')}
+                for kg in keyword_groups
+            ],
+        }
+
+        url = 'https://openapi.naver.com/v1/datalab/search'
+        response = requests.post(url, headers=_get_naver_headers(), json=naver_request, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 응답 포맷 변환
+        result = {"results": []}
+        for item in data.get('results', []):
+            result["results"].append({
+                "title": item.get('title'),
+                "keywords": item.get('keywords'),
+                "data": item.get('data', [])
+            })
+
+        # 캐시 저장
+        cache.set(cache_key, result, NAVER_DATALAB_CACHE_TIMEOUT)
+
+        return Response(result)
+
+    except requests.exceptions.Timeout:
+        return Response(
+            {'error': '네이버 API 요청 시간 초과'},
+            status=status.HTTP_504_GATEWAY_TIMEOUT
+        )
+    except requests.exceptions.RequestException as e:
+        return Response(
+            {'error': f'네이버 API 요청 실패: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in naver_search_trend: {e}")
+        return Response(
+            {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

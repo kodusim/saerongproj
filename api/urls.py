@@ -23,6 +23,10 @@ from .views import (
     api_guide,
     crawler_status,
     kamis_daily_prices,
+    # 네이버 데이터랩 API (트렌드 모아용)
+    naver_category_trend,
+    naver_keyword_trend,
+    naver_search_trend,
 )
 
 app_name = 'api'
@@ -68,6 +72,11 @@ urlpatterns = [
 
     # KAMIS API 프록시 (요즘농가용)
     path('kamis/daily-prices/', kamis_daily_prices, name='kamis-daily-prices'),  # KAMIS 일별 시세
+
+    # 네이버 데이터랩 API 프록시 (트렌드 모아용)
+    path('naver/category-trend/', naver_category_trend, name='naver-category-trend'),  # 쇼핑 카테고리 트렌드
+    path('naver/keyword-trend/', naver_keyword_trend, name='naver-keyword-trend'),  # 쇼핑 키워드 트렌드
+    path('naver/search-trend/', naver_search_trend, name='naver-search-trend'),  # 검색어 트렌드
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
