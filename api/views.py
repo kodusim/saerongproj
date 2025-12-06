@@ -1757,18 +1757,22 @@ def naver_search_trend(request):
 # OpenAI 레시피 API (냉장고요리사용)
 # ============================================
 
-RECOMMEND_PROMPT = """당신은 한국 요리 전문가입니다.
-사용자가 제공한 재료로 만들 수 있는 요리를 5~7개 추천해주세요.
+# mode별 프롬프트 (v3)
+RECOMMEND_PROMPTS = {
+    'strict': """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료만 사용해서 만들 수 있는 요리를 5~7개 추천해주세요.
 
 [재료]
 {ingredients}
 
 [조건]
-- 제공된 재료만으로 만들 수 있는 요리
+- 반드시 제공된 재료만 사용 (추가 재료 없이)
 - 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
 - 한국 가정에서 쉽게 만들 수 있는 요리 위주
 - 난이도는 "쉬움", "보통", "어려움" 중 하나
 - 시간은 분 단위 숫자만
+- usedIngredients: 실제 사용되는 재료 목록
+- additionalIngredients: 빈 배열 (strict 모드이므로)
 
 [응답 형식 - 반드시 JSON만 출력]
 {{
@@ -1777,11 +1781,77 @@ RECOMMEND_PROMPT = """당신은 한국 요리 전문가입니다.
       "name": "요리명",
       "description": "한 줄 설명 (15자 이내)",
       "difficulty": "쉬움",
-      "time": 15
+      "time": 15,
+      "usedIngredients": ["계란", "파"],
+      "additionalIngredients": []
+    }}
+  ]
+}}
+""",
+    'flexible': """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료를 기반으로, 1~2개 정도 간단한 재료만 추가하면 만들 수 있는 요리를 5~7개 추천해주세요.
+
+[재료]
+{ingredients}
+
+[조건]
+- 제공된 재료를 주로 사용하되, 간단한 재료 1~2개 추가 가능
+- 추가 재료는 흔히 구할 수 있는 것으로 (예: 부침가루, 밀가루, 계란 등)
+- 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
+- 한국 가정에서 쉽게 만들 수 있는 요리 위주
+- 난이도는 "쉬움", "보통", "어려움" 중 하나
+- 시간은 분 단위 숫자만
+- usedIngredients: 제공된 재료 중 실제 사용되는 것
+- additionalIngredients: 추가로 필요한 재료 (1~2개)
+
+[응답 형식 - 반드시 JSON만 출력]
+{{
+  "recipes": [
+    {{
+      "name": "요리명",
+      "description": "한 줄 설명 (15자 이내)",
+      "difficulty": "쉬움",
+      "time": 15,
+      "usedIngredients": ["계란", "파"],
+      "additionalIngredients": ["부침가루"]
+    }}
+  ]
+}}
+""",
+    'open': """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료를 활용하여, 더 맛있게 만들 수 있는 요리를 5~7개 추천해주세요.
+재료 추가에 제한이 없으므로 다양한 요리를 추천해주세요.
+
+[재료]
+{ingredients}
+
+[조건]
+- 제공된 재료를 활용하되, 필요한 재료는 자유롭게 추가
+- 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
+- 한국 가정에서 쉽게 만들 수 있는 요리 위주
+- 난이도는 "쉬움", "보통", "어려움" 중 하나
+- 시간은 분 단위 숫자만
+- usedIngredients: 제공된 재료 중 실제 사용되는 것
+- additionalIngredients: 추가로 필요한 재료 목록
+
+[응답 형식 - 반드시 JSON만 출력]
+{{
+  "recipes": [
+    {{
+      "name": "요리명",
+      "description": "한 줄 설명 (15자 이내)",
+      "difficulty": "쉬움",
+      "time": 15,
+      "usedIngredients": ["계란", "파"],
+      "additionalIngredients": ["돼지고기", "양배추", "부침가루"]
     }}
   ]
 }}
 """
+}
+
+# 레거시 호환용 (기본값)
+RECOMMEND_PROMPT = RECOMMEND_PROMPTS['flexible']
 
 DETAIL_PROMPT = """당신은 한국 요리 전문가입니다.
 아래 요리의 상세 레시피를 알려주세요.
@@ -2181,8 +2251,10 @@ def carrot_history(request):
 # 레시피 API 수정 (당근 차감 로직 추가)
 # ============================================
 
-ANOTHER_RECIPE_PROMPT = """당신은 한국 요리 전문가입니다.
-사용자가 제공한 재료로 만들 수 있는 요리를 3~5개 추천해주세요.
+# mode별 ANOTHER 프롬프트 (v3)
+ANOTHER_RECIPE_PROMPTS = {
+    'strict': """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료만 사용해서 만들 수 있는 요리를 3~5개 추천해주세요.
 
 [재료]
 {ingredients}
@@ -2192,7 +2264,7 @@ ANOTHER_RECIPE_PROMPT = """당신은 한국 요리 전문가입니다.
 
 [조건]
 - 제외할 요리 목록에 있는 요리는 절대 추천하지 마세요
-- 제공된 재료만으로 만들 수 있는 요리
+- 반드시 제공된 재료만 사용 (추가 재료 없이)
 - 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
 - 한국 가정에서 쉽게 만들 수 있는 요리 위주
 - 난이도는 "쉬움", "보통", "어려움" 중 하나
@@ -2205,34 +2277,121 @@ ANOTHER_RECIPE_PROMPT = """당신은 한국 요리 전문가입니다.
       "name": "요리명",
       "description": "한 줄 설명 (15자 이내)",
       "difficulty": "쉬움",
-      "time": 15
+      "time": 15,
+      "usedIngredients": ["계란", "파"],
+      "additionalIngredients": []
+    }}
+  ]
+}}
+""",
+    'flexible': """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료를 기반으로, 1~2개 정도 간단한 재료만 추가하면 만들 수 있는 요리를 3~5개 추천해주세요.
+
+[재료]
+{ingredients}
+
+[제외할 요리 - 이미 추천한 요리]
+{exclude_recipes}
+
+[조건]
+- 제외할 요리 목록에 있는 요리는 절대 추천하지 마세요
+- 제공된 재료를 주로 사용하되, 간단한 재료 1~2개 추가 가능
+- 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
+- 한국 가정에서 쉽게 만들 수 있는 요리 위주
+- 난이도는 "쉬움", "보통", "어려움" 중 하나
+- 시간은 분 단위 숫자만
+
+[응답 형식 - 반드시 JSON만 출력]
+{{
+  "recipes": [
+    {{
+      "name": "요리명",
+      "description": "한 줄 설명 (15자 이내)",
+      "difficulty": "쉬움",
+      "time": 15,
+      "usedIngredients": ["계란", "파"],
+      "additionalIngredients": ["부침가루"]
+    }}
+  ]
+}}
+""",
+    'open': """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료를 활용하여, 더 맛있게 만들 수 있는 요리를 3~5개 추천해주세요.
+재료 추가에 제한이 없으므로 다양한 요리를 추천해주세요.
+
+[재료]
+{ingredients}
+
+[제외할 요리 - 이미 추천한 요리]
+{exclude_recipes}
+
+[조건]
+- 제외할 요리 목록에 있는 요리는 절대 추천하지 마세요
+- 제공된 재료를 활용하되, 필요한 재료는 자유롭게 추가
+- 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
+- 한국 가정에서 쉽게 만들 수 있는 요리 위주
+- 난이도는 "쉬움", "보통", "어려움" 중 하나
+- 시간은 분 단위 숫자만
+
+[응답 형식 - 반드시 JSON만 출력]
+{{
+  "recipes": [
+    {{
+      "name": "요리명",
+      "description": "한 줄 설명 (15자 이내)",
+      "difficulty": "쉬움",
+      "time": 15,
+      "usedIngredients": ["계란", "파"],
+      "additionalIngredients": ["돼지고기", "양배추"]
     }}
   ]
 }}
 """
+}
+
+# 레거시 호환용
+ANOTHER_RECIPE_PROMPT = ANOTHER_RECIPE_PROMPTS['flexible']
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def recipe_recommend_with_carrots(request):
     """
-    요리 추천 API (당근 10개 차감)
+    요리 추천 API (당근 10개 차감) - v3
 
     POST /api/recipes/recommend/
 
     Request:
-        { "ingredients": ["계란", "파", "당근", "두부", "양파"] }
+        {
+            "ingredients": ["계란", "파", "당근", "두부", "양파"],
+            "mode": "strict" | "flexible" | "open"  (기본값: flexible)
+        }
 
     Response:
         {
             "success": true,
             "carrotsUsed": 10,
             "carrotsRemaining": 40,
-            "recipes": [...]
+            "recipes": [
+                {
+                    "id": "uuid",
+                    "name": "계란찜",
+                    "description": "부드러운 계란찜",
+                    "difficulty": "쉬움",
+                    "time": 15,
+                    "usedIngredients": ["계란", "파"],
+                    "additionalIngredients": ["부침가루"]
+                }
+            ]
         }
     """
     try:
         ingredients = request.data.get('ingredients', [])
+        mode = request.data.get('mode', 'flexible')  # strict, flexible, open
+
+        # mode 유효성 검사
+        if mode not in ['strict', 'flexible', 'open']:
+            mode = 'flexible'
 
         if not ingredients or len(ingredients) == 0:
             return Response(
@@ -2256,16 +2415,22 @@ def recipe_recommend_with_carrots(request):
                 'carrotsRemaining': balance.balance
             }, status=status.HTTP_402_PAYMENT_REQUIRED)
 
-        # 프롬프트 생성
-        prompt = RECOMMEND_PROMPT.format(ingredients=", ".join(ingredients))
+        # mode에 따른 프롬프트 선택
+        prompt_template = RECOMMEND_PROMPTS.get(mode, RECOMMEND_PROMPTS['flexible'])
+        prompt = prompt_template.format(ingredients=", ".join(ingredients))
 
         # OpenAI API 호출
         result = _call_openai(prompt)
 
-        # 각 레시피에 UUID 추가
+        # 각 레시피에 UUID 추가 및 필드 보장
         recipes = result.get('recipes', [])
         for recipe in recipes:
             recipe['id'] = str(uuid.uuid4())
+            # usedIngredients, additionalIngredients 필드 보장
+            if 'usedIngredients' not in recipe:
+                recipe['usedIngredients'] = []
+            if 'additionalIngredients' not in recipe:
+                recipe['additionalIngredients'] = []
 
         return Response({
             'success': True,
@@ -2298,14 +2463,15 @@ def recipe_recommend_with_carrots(request):
 @permission_classes([IsAuthenticated])
 def recipe_another(request):
     """
-    다른 요리 추천 API (당근 1개 차감)
+    다른 요리 추천 API (당근 1개 차감) - v3
 
     POST /api/recipes/another/
 
     Request:
         {
             "ingredients": ["계란", "파", "당근", "두부", "양파"],
-            "excludeRecipes": ["계란찜", "계란볶음밥"]
+            "excludeRecipes": ["계란찜", "계란볶음밥"],
+            "mode": "strict" | "flexible" | "open"  (기본값: flexible)
         }
 
     Response:
@@ -2313,12 +2479,27 @@ def recipe_another(request):
             "success": true,
             "carrotsUsed": 1,
             "carrotsRemaining": 39,
-            "recipes": [...]
+            "recipes": [
+                {
+                    "id": "uuid",
+                    "name": "계란말이",
+                    "description": "폭신한 계란말이",
+                    "difficulty": "쉬움",
+                    "time": 10,
+                    "usedIngredients": ["계란", "파"],
+                    "additionalIngredients": []
+                }
+            ]
         }
     """
     try:
         ingredients = request.data.get('ingredients', [])
         exclude_recipes = request.data.get('exclude_recipes', request.data.get('excludeRecipes', []))
+        mode = request.data.get('mode', 'flexible')  # strict, flexible, open
+
+        # mode 유효성 검사
+        if mode not in ['strict', 'flexible', 'open']:
+            mode = 'flexible'
 
         if not ingredients or len(ingredients) == 0:
             return Response(
@@ -2342,9 +2523,10 @@ def recipe_another(request):
                 'carrotsRemaining': balance.balance
             }, status=status.HTTP_402_PAYMENT_REQUIRED)
 
-        # 프롬프트 생성
+        # mode에 따른 프롬프트 선택
         exclude_str = ", ".join(exclude_recipes) if exclude_recipes else "없음"
-        prompt = ANOTHER_RECIPE_PROMPT.format(
+        prompt_template = ANOTHER_RECIPE_PROMPTS.get(mode, ANOTHER_RECIPE_PROMPTS['flexible'])
+        prompt = prompt_template.format(
             ingredients=", ".join(ingredients),
             exclude_recipes=exclude_str
         )
@@ -2352,10 +2534,15 @@ def recipe_another(request):
         # OpenAI API 호출
         result = _call_openai(prompt)
 
-        # 각 레시피에 UUID 추가
+        # 각 레시피에 UUID 추가 및 필드 보장
         recipes = result.get('recipes', [])
         for recipe in recipes:
             recipe['id'] = str(uuid.uuid4())
+            # usedIngredients, additionalIngredients 필드 보장
+            if 'usedIngredients' not in recipe:
+                recipe['usedIngredients'] = []
+            if 'additionalIngredients' not in recipe:
+                recipe['additionalIngredients'] = []
 
         return Response({
             'success': True,

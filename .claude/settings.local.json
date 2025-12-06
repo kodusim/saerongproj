@@ -18,7 +18,9 @@
       "Bash(pkill:*)",
       "Bash(perl:*)",
       "Bash(npx granite deploy:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(scp:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
