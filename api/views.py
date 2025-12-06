@@ -1771,16 +1771,16 @@ RECOMMEND_PROMPT = """당신은 한국 요리 전문가입니다.
 - 시간은 분 단위 숫자만
 
 [응답 형식 - 반드시 JSON만 출력]
-{
+{{
   "recipes": [
-    {
+    {{
       "name": "요리명",
       "description": "한 줄 설명 (15자 이내)",
       "difficulty": "쉬움",
       "time": 15
-    }
+    }}
   ]
-}
+}}
 """
 
 DETAIL_PROMPT = """당신은 한국 요리 전문가입니다.
@@ -1798,20 +1798,20 @@ DETAIL_PROMPT = """당신은 한국 요리 전문가입니다.
 - 요리 팁 2~3개 포함
 
 [응답 형식 - 반드시 JSON만 출력]
-{
+{{
   "name": "요리명",
   "description": "한 줄 설명",
   "difficulty": "쉬움/보통/어려움",
   "time": 15,
   "servings": "1인분",
   "ingredients": [
-    {"name": "재료명", "amount": "분량"}
+    {{"name": "재료명", "amount": "분량"}}
   ],
   "steps": [
-    {"step": 1, "description": "조리 과정 설명"}
+    {{"step": 1, "description": "조리 과정 설명"}}
   ],
   "tips": ["요리 팁1", "요리 팁2"]
-}
+}}
 """
 
 
