@@ -15,7 +15,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from core.models import Category, SubCategory
 from sources.models import DataSource
 from collector.models import CollectedData, CrawlLog
-from .models import Game, GameCategory, Subscription, PushToken, UserProfile
+from .models import Game, GameCategory, Subscription, PushToken, UserProfile, CarrotBalance, CarrotTransaction
 from .serializers import (
     CategorySerializer,
     SubCategorySerializer,
@@ -2009,6 +2009,458 @@ def recipe_detail(request):
         )
     except Exception as e:
         print(f"Error in recipe_detail: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ============================================
+# 당근 API (냉장고요리사용)
+# ============================================
+
+# 당근 가격표
+CARROT_PRODUCTS = {
+    'carrots_100': 100,
+    'carrots_1000': 1000,
+    'carrots_5000': 5000,
+    'carrots_10000': 10000,
+}
+
+# 당근 비용
+CARROT_COST_RECOMMEND = 10  # 요리 추천
+CARROT_COST_ANOTHER = 1     # 다른 요리 추천
+CARROT_REWARD_AD = 20       # 광고 보상
+
+
+def _get_or_create_carrot_balance(user):
+    """사용자의 당근 잔액 조회 또는 생성"""
+    balance, created = CarrotBalance.objects.get_or_create(user=user)
+    return balance
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def carrot_balance(request):
+    """
+    당근 잔액 조회 API
+
+    GET /api/carrots/balance/
+
+    Response:
+        { "balance": 50 }
+    """
+    balance = _get_or_create_carrot_balance(request.user)
+    return Response({'balance': balance.balance})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def carrot_reward(request):
+    """
+    광고 시청 보상 API
+
+    POST /api/carrots/reward/
+
+    Request:
+        { "rewardType": "ad_reward" }
+
+    Response:
+        {
+            "success": true,
+            "carrotsEarned": 20,
+            "carrotsTotal": 70
+        }
+    """
+    reward_type = request.data.get('reward_type', request.data.get('rewardType', 'ad_reward'))
+
+    if reward_type != 'ad_reward':
+        return Response(
+            {'success': False, 'error': 'Invalid reward type'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    balance = _get_or_create_carrot_balance(request.user)
+    new_balance = balance.add_carrots(CARROT_REWARD_AD, 'ad_reward')
+
+    return Response({
+        'success': True,
+        'carrotsEarned': CARROT_REWARD_AD,
+        'carrotsTotal': new_balance
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def carrot_purchase(request):
+    """
+    당근 구매 API (인앱결제)
+
+    POST /api/carrots/purchase/
+
+    Request:
+        {
+            "productId": "carrots_1000",
+            "orderId": "toss_order_abc123"
+        }
+
+    Response:
+        {
+            "success": true,
+            "carrotsPurchased": 1000,
+            "carrotsTotal": 1070
+        }
+    """
+    product_id = request.data.get('product_id', request.data.get('productId'))
+    order_id = request.data.get('order_id', request.data.get('orderId'))
+
+    if not product_id:
+        return Response(
+            {'success': False, 'error': 'product_id is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if product_id not in CARROT_PRODUCTS:
+        return Response(
+            {'success': False, 'error': f'Invalid product_id: {product_id}'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    carrots_amount = CARROT_PRODUCTS[product_id]
+    transaction_type = f'purchase_{carrots_amount}'
+
+    balance = _get_or_create_carrot_balance(request.user)
+    new_balance = balance.add_carrots(carrots_amount, transaction_type, order_id)
+
+    return Response({
+        'success': True,
+        'carrotsPurchased': carrots_amount,
+        'carrotsTotal': new_balance
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def carrot_history(request):
+    """
+    당근 거래 내역 조회 API
+
+    GET /api/carrots/history/
+
+    Response:
+        {
+            "results": [
+                {
+                    "id": 1,
+                    "transactionType": "ad_reward",
+                    "transactionTypeDisplay": "광고 시청 보상",
+                    "amount": 20,
+                    "balanceAfter": 70,
+                    "createdAt": "2024-12-06T18:30:00Z"
+                }
+            ]
+        }
+    """
+    transactions = CarrotTransaction.objects.filter(user=request.user)[:50]
+
+    results = []
+    for tx in transactions:
+        results.append({
+            'id': tx.id,
+            'transactionType': tx.transaction_type,
+            'transactionTypeDisplay': tx.get_transaction_type_display(),
+            'amount': tx.amount,
+            'balanceAfter': tx.balance_after,
+            'createdAt': tx.created_at.isoformat()
+        })
+
+    return Response({'results': results})
+
+
+# ============================================
+# 레시피 API 수정 (당근 차감 로직 추가)
+# ============================================
+
+ANOTHER_RECIPE_PROMPT = """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료로 만들 수 있는 요리를 3~5개 추천해주세요.
+
+[재료]
+{ingredients}
+
+[제외할 요리 - 이미 추천한 요리]
+{exclude_recipes}
+
+[조건]
+- 제외할 요리 목록에 있는 요리는 절대 추천하지 마세요
+- 제공된 재료만으로 만들 수 있는 요리
+- 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
+- 한국 가정에서 쉽게 만들 수 있는 요리 위주
+- 난이도는 "쉬움", "보통", "어려움" 중 하나
+- 시간은 분 단위 숫자만
+
+[응답 형식 - 반드시 JSON만 출력]
+{{
+  "recipes": [
+    {{
+      "name": "요리명",
+      "description": "한 줄 설명 (15자 이내)",
+      "difficulty": "쉬움",
+      "time": 15
+    }}
+  ]
+}}
+"""
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def recipe_recommend_with_carrots(request):
+    """
+    요리 추천 API (당근 10개 차감)
+
+    POST /api/recipes/recommend/
+
+    Request:
+        { "ingredients": ["계란", "파", "당근", "두부", "양파"] }
+
+    Response:
+        {
+            "success": true,
+            "carrotsUsed": 10,
+            "carrotsRemaining": 40,
+            "recipes": [...]
+        }
+    """
+    try:
+        ingredients = request.data.get('ingredients', [])
+
+        if not ingredients or len(ingredients) == 0:
+            return Response(
+                {'success': False, 'error': '재료를 1개 이상 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 당근 잔액 확인 및 차감
+        balance = _get_or_create_carrot_balance(request.user)
+        if not balance.use_carrots(CARROT_COST_RECOMMEND, 'recipe_recommend'):
+            return Response({
+                'success': False,
+                'error': '당근이 부족합니다',
+                'carrotsRequired': CARROT_COST_RECOMMEND,
+                'carrotsRemaining': balance.balance
+            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        # 프롬프트 생성
+        prompt = RECOMMEND_PROMPT.format(ingredients=", ".join(ingredients))
+
+        # OpenAI API 호출
+        result = _call_openai(prompt)
+
+        # 각 레시피에 UUID 추가
+        recipes = result.get('recipes', [])
+        for recipe in recipes:
+            recipe['id'] = str(uuid.uuid4())
+
+        return Response({
+            'success': True,
+            'carrotsUsed': CARROT_COST_RECOMMEND,
+            'carrotsRemaining': balance.balance,
+            'recipes': recipes
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error in recipe_recommend_with_carrots: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'OpenAI API 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in recipe_recommend_with_carrots: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def recipe_another(request):
+    """
+    다른 요리 추천 API (당근 1개 차감)
+
+    POST /api/recipes/another/
+
+    Request:
+        {
+            "ingredients": ["계란", "파", "당근", "두부", "양파"],
+            "excludeRecipes": ["계란찜", "계란볶음밥"]
+        }
+
+    Response:
+        {
+            "success": true,
+            "carrotsUsed": 1,
+            "carrotsRemaining": 39,
+            "recipes": [...]
+        }
+    """
+    try:
+        ingredients = request.data.get('ingredients', [])
+        exclude_recipes = request.data.get('exclude_recipes', request.data.get('excludeRecipes', []))
+
+        if not ingredients or len(ingredients) == 0:
+            return Response(
+                {'success': False, 'error': '재료를 1개 이상 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 당근 잔액 확인 및 차감
+        balance = _get_or_create_carrot_balance(request.user)
+        if not balance.use_carrots(CARROT_COST_ANOTHER, 'recipe_another'):
+            return Response({
+                'success': False,
+                'error': '당근이 부족합니다',
+                'carrotsRequired': CARROT_COST_ANOTHER,
+                'carrotsRemaining': balance.balance
+            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        # 프롬프트 생성
+        exclude_str = ", ".join(exclude_recipes) if exclude_recipes else "없음"
+        prompt = ANOTHER_RECIPE_PROMPT.format(
+            ingredients=", ".join(ingredients),
+            exclude_recipes=exclude_str
+        )
+
+        # OpenAI API 호출
+        result = _call_openai(prompt)
+
+        # 각 레시피에 UUID 추가
+        recipes = result.get('recipes', [])
+        for recipe in recipes:
+            recipe['id'] = str(uuid.uuid4())
+
+        return Response({
+            'success': True,
+            'carrotsUsed': CARROT_COST_ANOTHER,
+            'carrotsRemaining': balance.balance,
+            'recipes': recipes
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error in recipe_another: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'OpenAI API 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in recipe_another: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def recipe_detail_auth(request):
+    """
+    레시피 상세 API (로그인 필요, 무료)
+
+    POST /api/recipes/detail/
+
+    Request:
+        {
+            "recipeName": "계란찜",
+            "ingredients": ["계란", "파", "당근", "두부", "양파"]
+        }
+
+    Response:
+        {
+            "success": true,
+            "recipe": { ... }
+        }
+    """
+    try:
+        recipe_name = request.data.get('recipe_name', request.data.get('recipeName'))
+        ingredients = request.data.get('ingredients', [])
+
+        if not recipe_name:
+            return Response(
+                {'success': False, 'error': '요리명을 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not ingredients or len(ingredients) == 0:
+            return Response(
+                {'success': False, 'error': '재료를 1개 이상 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 프롬프트 생성
+        prompt = DETAIL_PROMPT.format(
+            recipe_name=recipe_name,
+            ingredients=", ".join(ingredients)
+        )
+
+        # OpenAI API 호출
+        recipe = _call_openai(prompt)
+
+        # UUID 추가
+        recipe['id'] = str(uuid.uuid4())
+
+        # 현재 당근 잔액도 함께 반환
+        balance = _get_or_create_carrot_balance(request.user)
+
+        return Response({
+            'success': True,
+            'carrotsRemaining': balance.balance,
+            'recipe': recipe
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error in recipe_detail_auth: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'OpenAI API 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in recipe_detail_auth: {e}")
         return Response(
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -27,9 +27,17 @@ from .views import (
     naver_category_trend,
     naver_keyword_trend,
     naver_search_trend,
-    # OpenAI 레시피 API (냉장고요리사용)
+    # OpenAI 레시피 API (냉장고요리사용) - 레거시 (AllowAny)
     recipe_recommend,
     recipe_detail,
+    # 냉장고요리사 API (인증 필요, 당근 시스템)
+    carrot_balance,
+    carrot_reward,
+    carrot_purchase,
+    carrot_history,
+    recipe_recommend_with_carrots,
+    recipe_another,
+    recipe_detail_auth,
 )
 
 app_name = 'api'
@@ -81,9 +89,19 @@ urlpatterns = [
     path('naver/keyword-trend/', naver_keyword_trend, name='naver-keyword-trend'),  # 쇼핑 키워드 트렌드
     path('naver/search-trend/', naver_search_trend, name='naver-search-trend'),  # 검색어 트렌드
 
-    # OpenAI 레시피 API (냉장고요리사용)
-    path('recipes/recommend/', recipe_recommend, name='recipe-recommend'),  # 요리 추천
-    path('recipes/detail/', recipe_detail, name='recipe-detail'),  # 레시피 상세
+    # OpenAI 레시피 API (냉장고요리사용) - 레거시 (AllowAny, 당근 차감 없음)
+    # path('recipes/recommend/', recipe_recommend, name='recipe-recommend'),  # 레거시 - 비활성화
+    # path('recipes/detail/', recipe_detail, name='recipe-detail'),  # 레거시 - 비활성화
+
+    # 냉장고요리사 API (인증 필요, 당근 시스템)
+    path('carrots/balance/', carrot_balance, name='carrot-balance'),  # 당근 잔액 조회
+    path('carrots/reward/', carrot_reward, name='carrot-reward'),  # 광고 보상 (+20)
+    path('carrots/purchase/', carrot_purchase, name='carrot-purchase'),  # 당근 구매
+    path('carrots/history/', carrot_history, name='carrot-history'),  # 거래 내역
+
+    path('recipes/recommend/', recipe_recommend_with_carrots, name='recipe-recommend'),  # 요리 추천 (당근 -10)
+    path('recipes/detail/', recipe_detail_auth, name='recipe-detail'),  # 레시피 상세 (무료)
+    path('recipes/another/', recipe_another, name='recipe-another'),  # 다른 요리 추천 (당근 -1)
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

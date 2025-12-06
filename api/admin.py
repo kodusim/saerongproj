@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Game, GameCategory, Subscription, PushToken, UserProfile
+from .models import Game, GameCategory, Subscription, PushToken, UserProfile, CarrotBalance, CarrotTransaction
 
 
 @admin.register(Game)
@@ -88,3 +88,58 @@ class UserProfileAdmin(admin.ModelAdmin):
         ]
 
         return (warnings + list(deleted_objects), model_count, perms_needed, protected)
+
+
+# ============================================
+# 냉장고요리사 Admin
+# ============================================
+
+@admin.register(CarrotBalance)
+class CarrotBalanceAdmin(admin.ModelAdmin):
+    list_display = ['user', 'balance', 'updated_at', 'created_at']
+    list_filter = ['updated_at', 'created_at']
+    search_fields = ['user__username']
+    ordering = ['-updated_at']
+    raw_id_fields = ['user']
+    readonly_fields = ['created_at', 'updated_at']
+
+    # 관리자가 당근 지급/차감할 수 있도록
+    actions = ['grant_carrots_100', 'grant_carrots_1000']
+
+    def grant_carrots_100(self, request, queryset):
+        for balance in queryset:
+            balance.add_carrots(100, 'admin_grant')
+        self.message_user(request, f"{queryset.count()}명에게 당근 100개를 지급했습니다.")
+    grant_carrots_100.short_description = "선택된 사용자에게 당근 100개 지급"
+
+    def grant_carrots_1000(self, request, queryset):
+        for balance in queryset:
+            balance.add_carrots(1000, 'admin_grant')
+        self.message_user(request, f"{queryset.count()}명에게 당근 1000개를 지급했습니다.")
+    grant_carrots_1000.short_description = "선택된 사용자에게 당근 1000개 지급"
+
+
+@admin.register(CarrotTransaction)
+class CarrotTransactionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'transaction_type', 'amount_display', 'balance_after', 'created_at']
+    list_filter = ['transaction_type', 'created_at']
+    search_fields = ['user__username', 'order_id']
+    ordering = ['-created_at']
+    raw_id_fields = ['user']
+    readonly_fields = ['user', 'transaction_type', 'amount', 'balance_after', 'order_id', 'created_at']
+
+    def amount_display(self, obj):
+        """변동량 표시 (색상으로 구분)"""
+        if obj.amount > 0:
+            return f'+{obj.amount}'
+        return str(obj.amount)
+    amount_display.short_description = '변동량'
+
+    def has_add_permission(self, request):
+        return False  # 직접 추가 불가
+
+    def has_change_permission(self, request, obj=None):
+        return False  # 수정 불가
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser  # 슈퍼유저만 삭제 가능

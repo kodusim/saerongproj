@@ -142,3 +142,99 @@ class PremiumSubscription(models.Model):
         """현재 활성화된 구독인지 확인"""
         from django.utils import timezone
         return self.expires_at > timezone.now()
+
+
+# ============================================
+# 냉장고요리사 (Refrigerator Chef) 모델
+# ============================================
+
+class CarrotBalance(models.Model):
+    """당근 잔액 (냉장고요리사용)"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='carrot_balance',
+        verbose_name="사용자"
+    )
+    balance = models.IntegerField(default=0, verbose_name="당근 잔액")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+
+    class Meta:
+        verbose_name = "당근 잔액"
+        verbose_name_plural = "당근 잔액 목록"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.balance}개"
+
+    def add_carrots(self, amount: int, transaction_type: str, order_id: str = None):
+        """당근 추가 (광고 보상, 구매 등)"""
+        self.balance += amount
+        self.save()
+        CarrotTransaction.objects.create(
+            user=self.user,
+            transaction_type=transaction_type,
+            amount=amount,
+            balance_after=self.balance,
+            order_id=order_id
+        )
+        return self.balance
+
+    def use_carrots(self, amount: int, transaction_type: str) -> bool:
+        """당근 사용 (레시피 추천 등). 성공 시 True, 잔액 부족 시 False"""
+        if self.balance < amount:
+            return False
+        self.balance -= amount
+        self.save()
+        CarrotTransaction.objects.create(
+            user=self.user,
+            transaction_type=transaction_type,
+            amount=-amount,
+            balance_after=self.balance
+        )
+        return True
+
+
+class CarrotTransaction(models.Model):
+    """당근 거래 내역"""
+    TRANSACTION_TYPES = [
+        ('ad_reward', '광고 시청 보상'),
+        ('recipe_recommend', '요리 추천'),
+        ('recipe_another', '다른 요리 추천'),
+        ('purchase_100', '당근 100개 구매'),
+        ('purchase_1000', '당근 1000개 구매'),
+        ('purchase_5000', '당근 5000개 구매'),
+        ('purchase_10000', '당근 10000개 구매'),
+        ('admin_grant', '관리자 지급'),
+        ('admin_deduct', '관리자 차감'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='carrot_transactions',
+        verbose_name="사용자"
+    )
+    transaction_type = models.CharField(
+        max_length=30,
+        choices=TRANSACTION_TYPES,
+        verbose_name="거래 유형"
+    )
+    amount = models.IntegerField(verbose_name="변동량")  # +면 획득, -면 사용
+    balance_after = models.IntegerField(verbose_name="거래 후 잔액")
+    order_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="주문 ID"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="거래일시")
+
+    class Meta:
+        verbose_name = "당근 거래 내역"
+        verbose_name_plural = "당근 거래 내역 목록"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        sign = '+' if self.amount > 0 else ''
+        return f"{self.user.username} - {self.get_transaction_type_display()} ({sign}{self.amount})"
