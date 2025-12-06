@@ -1831,7 +1831,21 @@ def _call_openai(prompt: str) -> dict:
     )
 
     content = response.choices[0].message.content
-    return json.loads(content.strip())
+    print(f"OpenAI raw response: {repr(content)}")  # 디버그 로깅
+
+    # JSON 파싱 시도
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        # 마크다운 코드 블록 제거 후 재시도
+        cleaned = content.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return json.loads(cleaned.strip())
 
 
 @api_view(['POST'])

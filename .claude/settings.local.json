@@ -12,7 +12,13 @@
       "Bash(cat:*)",
       "Bash(xargs cat:*)",
       "Bash(python:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(dir:*)",
+      "Bash(node -e:*)",
+      "Bash(pkill:*)",
+      "Bash(perl:*)",
+      "Bash(npx granite deploy:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
