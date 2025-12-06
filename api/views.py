@@ -1822,19 +1822,15 @@ def _call_openai(prompt: str) -> dict:
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful Korean cooking assistant. Always respond in valid JSON format only."},
+            {"role": "system", "content": "You are a helpful Korean cooking assistant. Always respond in valid JSON format only. Do not use markdown code blocks."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        max_tokens=2000
+        max_tokens=2000,
+        response_format={"type": "json_object"}
     )
 
     content = response.choices[0].message.content
-    # JSON 파싱 (마크다운 코드블록 제거)
-    if content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
     return json.loads(content.strip())
 
 
