@@ -1336,13 +1336,13 @@ def crawler_status(request):
 
 from django.core.cache import cache
 
-KAMIS_API_KEY = 'c575388f-9b9d-403e-a654-9c0ea9a3ea7e'
-KAMIS_API_ID = 'nowfarm'
+KAMIS_API_KEY = getattr(settings, 'KAMIS_API_KEY', '')
+KAMIS_API_ID = getattr(settings, 'KAMIS_API_ID', 'nowfarm')
 KAMIS_CACHE_TIMEOUT = 600  # 10분 캐싱
 
 # 네이버 데이터랩 API (트렌드 모아용)
-NAVER_CLIENT_ID = 'FKU9jm9M6kSqZn6LDzNJ'
-NAVER_CLIENT_SECRET = 'wjJ_ehMvIk'
+NAVER_CLIENT_ID = getattr(settings, 'NAVER_CLIENT_ID', '')
+NAVER_CLIENT_SECRET = getattr(settings, 'NAVER_CLIENT_SECRET', '')
 NAVER_DATALAB_CACHE_TIMEOUT = 3600  # 1시간 캐싱
 
 # OpenAI API (냉장고요리사용)

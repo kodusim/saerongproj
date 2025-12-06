@@ -1,0 +1,23 @@
+{
+  "name": "ai-photo-studio-backend",
+  "version": "1.0.0",
+  "description": "AI Photo Studio Backend for Toss Apps",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["ai", "profile", "toss", "gemini"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.5.1",
+    "busboy": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "mime-types": "^2.1.35"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

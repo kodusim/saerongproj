@@ -9,4 +9,7 @@ mediafiles
 .python-version
 draft_models.py
 node_modules/
-game_honey_alarm/
+game_honey_alarm/mtls/
+*.key
+*.crt
+*.pem

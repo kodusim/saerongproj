@@ -1,0 +1,44 @@
+{
+  "name": "Game Honey",
+  "displayName": "게임 하니",
+  "appName": "gamehoney",
+  "version": "1.1.0",
+  "description": "내가 원하는 게임의 소식을 알림으로",
+  "entry": "dist/web/index.html",
+  "icon": "https://static.toss.im/appsintoss/6735/aa394266-f7f7-4184-bbbc-ba8809b31734.png",
+  "bridgeView": {
+    "type": "basic",
+    "backgroundColor": "#FDB300",
+    "logo": "https://static.toss.im/appsintoss/6735/aa394266-f7f7-4184-bbbc-ba8809b31734.png"
+  },
+  "navigationBar": {
+    "backgroundColor": "#FFFFFF",
+    "titleColor": "#191F28",
+    "showBackButton": true,
+    "showHomeButton": false,
+    "showCloseButton": true,
+    "showMoreButton": true
+  },
+  "permissions": [
+    "storage",
+    "network"
+  ],
+  "category": ["생활 > 취미", "생활 > 콘텐츠"],
+  "keywords": [
+    "게임",
+    "game",
+    "이슈",
+    "알림",
+    "공지사항",
+    "메이플스토리",
+    "로스트아크",
+    "업데이트",
+    "이벤트"
+  ],
+  "contact": {
+    "email": "farmhoney1298@naver.com"
+  },
+  "minAge": 19,
+  "minAppVersion": "1.0.0",
+  "supportedOrientations": ["portrait"]
+}

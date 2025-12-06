@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s \"c:\\Users\\sangk\\OneDrive\\Desktop\\app_in_toss\\game_honey_alarm\")",
+      "Bash(npm create:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(cat:*)",
+      "Bash(del granite.config.ts)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 8812 -Force\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 26232 -Force\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

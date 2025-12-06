@@ -282,3 +282,11 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS = env.int('JWT_REFRESH_TOKEN_EXPIRE_DAYS', default
 
 # OpenAI API (냉장고요리사용)
 OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')
+
+# KAMIS API (요즘농가용)
+KAMIS_API_KEY = env.str('KAMIS_API_KEY', default='')
+KAMIS_API_ID = env.str('KAMIS_API_ID', default='nowfarm')
+
+# 네이버 데이터랩 API (트렌드 모아용)
+NAVER_CLIENT_ID = env.str('NAVER_CLIENT_ID', default='')
+NAVER_CLIENT_SECRET = env.str('NAVER_CLIENT_SECRET', default='')

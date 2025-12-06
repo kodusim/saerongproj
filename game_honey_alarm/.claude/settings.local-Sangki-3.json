@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s \"c:\\Users\\sangk\\OneDrive\\Desktop\\app_in_toss\\game_honey_alarm\")",
+      "Bash(npm install)",
+      "Bash(dir:*)",
+      "Bash(npx @granite-js/cli dev)",
+      "Bash(nul)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(timeout /t 10 /nobreak)",
+      "Bash(powershell -Command \"cd ''c:\\Users\\USER\\OneDrive\\app_in_toss\\game_honey_alarm''; Remove-Item -Recurse -Force node_modules; Remove-Item -Force package-lock.json\")",
+      "Bash(npm install:*)",
+      "Bash(findstr:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(npm run build:*)",
+      "Bash(npm run deploy:*)",
+      "Bash(cat:*)",
+      "Bash(npx ait build --help:*)",
+      "Bash(npx ait --help:*)",
+      "Bash(npx ait:*)",
+      "Bash(npx granite:*)",
+      "Bash(npm ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
