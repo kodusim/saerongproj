@@ -1345,6 +1345,12 @@ NAVER_CLIENT_ID = 'FKU9jm9M6kSqZn6LDzNJ'
 NAVER_CLIENT_SECRET = 'wjJ_ehMvIk'
 NAVER_DATALAB_CACHE_TIMEOUT = 3600  # 1시간 캐싱
 
+# OpenAI API (냉장고요리사용)
+import openai
+import uuid
+
+OPENAI_API_KEY = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else ''
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -1743,5 +1749,257 @@ def naver_search_trend(request):
         print(f"Error in naver_search_trend: {e}")
         return Response(
             {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ============================================
+# OpenAI 레시피 API (냉장고요리사용)
+# ============================================
+
+RECOMMEND_PROMPT = """당신은 한국 요리 전문가입니다.
+사용자가 제공한 재료로 만들 수 있는 요리를 5~7개 추천해주세요.
+
+[재료]
+{ingredients}
+
+[조건]
+- 제공된 재료만으로 만들 수 있는 요리
+- 기본 조미료(소금, 설탕, 간장, 식용유 등)는 있다고 가정
+- 한국 가정에서 쉽게 만들 수 있는 요리 위주
+- 난이도는 "쉬움", "보통", "어려움" 중 하나
+- 시간은 분 단위 숫자만
+
+[응답 형식 - 반드시 JSON만 출력]
+{
+  "recipes": [
+    {
+      "name": "요리명",
+      "description": "한 줄 설명 (15자 이내)",
+      "difficulty": "쉬움",
+      "time": 15
+    }
+  ]
+}
+"""
+
+DETAIL_PROMPT = """당신은 한국 요리 전문가입니다.
+아래 요리의 상세 레시피를 알려주세요.
+
+[요리명]
+{recipe_name}
+
+[사용 가능한 재료]
+{ingredients}
+
+[조건]
+- 기본 조미료는 있다고 가정
+- 초보자도 따라할 수 있게 단계별로 설명
+- 요리 팁 2~3개 포함
+
+[응답 형식 - 반드시 JSON만 출력]
+{
+  "name": "요리명",
+  "description": "한 줄 설명",
+  "difficulty": "쉬움/보통/어려움",
+  "time": 15,
+  "servings": "1인분",
+  "ingredients": [
+    {"name": "재료명", "amount": "분량"}
+  ],
+  "steps": [
+    {"step": 1, "description": "조리 과정 설명"}
+  ],
+  "tips": ["요리 팁1", "요리 팁2"]
+}
+"""
+
+
+def _call_openai(prompt: str) -> dict:
+    """OpenAI API 호출 헬퍼 함수"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful Korean cooking assistant. Always respond in valid JSON format only."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=2000
+    )
+
+    content = response.choices[0].message.content
+    # JSON 파싱 (마크다운 코드블록 제거)
+    if content.startswith("```"):
+        content = content.split("```")[1]
+        if content.startswith("json"):
+            content = content[4:]
+    return json.loads(content.strip())
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def recipe_recommend(request):
+    """
+    요리 추천 API (냉장고요리사 앱용)
+
+    POST /api/recipes/recommend/
+
+    Request:
+        {
+            "ingredients": ["계란", "파", "당근", "두부", "양파"]
+        }
+
+    Response:
+        {
+            "success": true,
+            "recipes": [
+                {
+                    "id": "uuid-1234",
+                    "name": "계란찜",
+                    "description": "부드럽고 담백한 계란찜",
+                    "difficulty": "쉬움",
+                    "time": 15
+                }
+            ]
+        }
+    """
+    try:
+        ingredients = request.data.get('ingredients', [])
+
+        if not ingredients or len(ingredients) == 0:
+            return Response(
+                {'success': False, 'error': '재료를 1개 이상 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 프롬프트 생성
+        prompt = RECOMMEND_PROMPT.format(ingredients=", ".join(ingredients))
+
+        # OpenAI API 호출
+        result = _call_openai(prompt)
+
+        # 각 레시피에 UUID 추가
+        recipes = result.get('recipes', [])
+        for recipe in recipes:
+            recipe['id'] = str(uuid.uuid4())
+
+        return Response({
+            'success': True,
+            'recipes': recipes
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error in recipe_recommend: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'OpenAI API 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in recipe_recommend: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def recipe_detail(request):
+    """
+    레시피 상세 API (냉장고요리사 앱용)
+
+    POST /api/recipes/detail/
+
+    Request:
+        {
+            "recipe_name": "계란찜",
+            "ingredients": ["계란", "파", "당근", "두부", "양파"]
+        }
+
+    Response:
+        {
+            "success": true,
+            "recipe": {
+                "id": "uuid-1234",
+                "name": "계란찜",
+                "description": "부드럽고 담백한 계란찜",
+                "difficulty": "쉬움",
+                "time": 15,
+                "servings": "1인분",
+                "ingredients": [...],
+                "steps": [...],
+                "tips": [...]
+            }
+        }
+    """
+    try:
+        recipe_name = request.data.get('recipe_name', request.data.get('recipeName'))
+        ingredients = request.data.get('ingredients', [])
+
+        if not recipe_name:
+            return Response(
+                {'success': False, 'error': '요리명을 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not ingredients or len(ingredients) == 0:
+            return Response(
+                {'success': False, 'error': '재료를 1개 이상 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 프롬프트 생성
+        prompt = DETAIL_PROMPT.format(
+            recipe_name=recipe_name,
+            ingredients=", ".join(ingredients)
+        )
+
+        # OpenAI API 호출
+        recipe = _call_openai(prompt)
+
+        # UUID 추가
+        recipe['id'] = str(uuid.uuid4())
+
+        return Response({
+            'success': True,
+            'recipe': recipe
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error in recipe_detail: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'OpenAI API 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"Error in recipe_detail: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

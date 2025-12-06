@@ -27,6 +27,9 @@ from .views import (
     naver_category_trend,
     naver_keyword_trend,
     naver_search_trend,
+    # OpenAI 레시피 API (냉장고요리사용)
+    recipe_recommend,
+    recipe_detail,
 )
 
 app_name = 'api'
@@ -77,6 +80,10 @@ urlpatterns = [
     path('naver/category-trend/', naver_category_trend, name='naver-category-trend'),  # 쇼핑 카테고리 트렌드
     path('naver/keyword-trend/', naver_keyword_trend, name='naver-keyword-trend'),  # 쇼핑 키워드 트렌드
     path('naver/search-trend/', naver_search_trend, name='naver-search-trend'),  # 검색어 트렌드
+
+    # OpenAI 레시피 API (냉장고요리사용)
+    path('recipes/recommend/', recipe_recommend, name='recipe-recommend'),  # 요리 추천
+    path('recipes/detail/', recipe_detail, name='recipe-detail'),  # 레시피 상세
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
