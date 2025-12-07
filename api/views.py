@@ -705,25 +705,28 @@ def refresh_token(request):
 
     Request:
         {
-            "refresh_token": "eyJ..."
+            "refreshToken": "eyJ..."  (camelCase 권장)
+            또는 "refresh_token": "eyJ..."  (snake_case 호환)
         }
 
     Response:
         {
-            "access_token": "eyJ...(새로운 토큰)"
+            "accessToken": "eyJ...(새로운 액세스 토큰)",
+            "refreshToken": "eyJ...(새로운 리프레시 토큰)"
         }
     """
-    refresh_token = request.data.get('refresh_token')
+    # camelCase와 snake_case 모두 지원
+    token = request.data.get('refreshToken') or request.data.get('refresh_token')
 
-    if not refresh_token:
+    if not token:
         return Response(
-            {'error': 'refresh_token is required'},
+            {'error': 'refreshToken is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     try:
         # JWT 토큰에서 사용자 찾기
-        user = get_user_from_token(refresh_token)
+        user = get_user_from_token(token)
 
         if not user:
             return Response(
@@ -731,11 +734,13 @@ def refresh_token(request):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # 새 AccessToken 발급
+        # 새 AccessToken 및 RefreshToken 발급
         new_access_token = create_jwt_token(user.id, 'access')
+        new_refresh_token = create_jwt_token(user.id, 'refresh')
 
         return Response({
-            'access_token': new_access_token
+            'accessToken': new_access_token,
+            'refreshToken': new_refresh_token
         }, status=status.HTTP_200_OK)
 
     except ValueError as e:
