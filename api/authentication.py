@@ -24,17 +24,21 @@ class JWTAuthentication(authentication.BaseAuthentication):
             (user, token) 튜플 또는 None
         """
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        path = request.path
 
         if not auth_header:
+            print(f"[JWTAuth] No auth header for {path}")
             return None
 
         # "Bearer <token>" 형식 파싱
         parts = auth_header.split()
 
         if len(parts) == 0:
+            print(f"[JWTAuth] Empty auth header parts for {path}")
             return None
 
         if parts[0].lower() != self.keyword.lower():
+            print(f"[JWTAuth] Wrong keyword '{parts[0]}' for {path}")
             return None
 
         if len(parts) == 1:
@@ -44,16 +48,23 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
         try:
             token = parts[1]
+            token_preview = token[:20] + '...' if len(token) > 20 else token
+            print(f"[JWTAuth] Validating token for {path}: {token_preview}")
+
             user = get_user_from_token(token)
 
             if user is None:
+                print(f"[JWTAuth] User not found for token on {path}")
                 raise exceptions.AuthenticationFailed('Invalid token or user does not exist.')
 
+            print(f"[JWTAuth] Authenticated user {user.id} for {path}")
             return (user, token)
 
         except ValueError as e:
+            print(f"[JWTAuth] ValueError for {path}: {e}")
             raise exceptions.AuthenticationFailed(str(e))
         except Exception as e:
+            print(f"[JWTAuth] Exception for {path}: {e}")
             raise exceptions.AuthenticationFailed(f'Token validation failed: {str(e)}')
 
     def authenticate_header(self, request):
