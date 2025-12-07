@@ -239,3 +239,35 @@ class CarrotTransaction(models.Model):
     def __str__(self):
         sign = '+' if self.amount > 0 else ''
         return f"{self.user.username} - {self.get_transaction_type_display()} ({sign}{self.amount})"
+
+
+class SavedRecipe(models.Model):
+    """저장된 레시피 (냉장고요리사용)"""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='saved_recipes',
+        verbose_name="사용자"
+    )
+    recipe_id = models.CharField(max_length=100, verbose_name="레시피 ID")  # 프론트에서 생성한 UUID
+    name = models.CharField(max_length=100, verbose_name="요리명")
+    description = models.CharField(max_length=200, verbose_name="설명")
+    difficulty = models.CharField(max_length=20, verbose_name="난이도")
+    time = models.IntegerField(verbose_name="조리시간(분)")
+    servings = models.CharField(max_length=20, verbose_name="인분")
+    # JSON 필드로 복잡한 데이터 저장
+    ingredients = models.JSONField(default=list, verbose_name="재료 목록")  # [{name, amount}, ...]
+    steps = models.JSONField(default=list, verbose_name="조리 단계")  # [{step, description}, ...]
+    tips = models.JSONField(default=list, verbose_name="요리 팁")  # [string, ...]
+    used_ingredients = models.JSONField(default=list, verbose_name="사용 재료")  # [string, ...]
+    additional_ingredients = models.JSONField(default=list, verbose_name="추가 재료")  # [string, ...]
+    saved_at = models.DateTimeField(auto_now_add=True, verbose_name="저장일시")
+
+    class Meta:
+        verbose_name = "저장된 레시피"
+        verbose_name_plural = "저장된 레시피 목록"
+        unique_together = ('user', 'recipe_id')
+        ordering = ['-saved_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"

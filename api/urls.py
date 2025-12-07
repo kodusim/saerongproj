@@ -38,6 +38,9 @@ from .views import (
     recipe_recommend_with_carrots,
     recipe_another,
     recipe_detail_auth,
+    saved_recipes_list,
+    saved_recipe_create,
+    saved_recipe_delete,
 )
 
 app_name = 'api'
@@ -102,6 +105,9 @@ urlpatterns = [
     path('recipes/recommend/', recipe_recommend_with_carrots, name='recipe-recommend'),  # 요리 추천 (당근 -10)
     path('recipes/detail/', recipe_detail_auth, name='recipe-detail'),  # 레시피 상세 (무료)
     path('recipes/another/', recipe_another, name='recipe-another'),  # 다른 요리 추천 (당근 -1)
+    path('recipes/saved/', saved_recipes_list, name='saved-recipes-list'),  # 저장된 레시피 목록 (GET)
+    path('recipes/saved/create/', saved_recipe_create, name='saved-recipe-create'),  # 레시피 저장 (POST)
+    path('recipes/saved/<str:recipe_id>/', saved_recipe_delete, name='saved-recipe-delete'),  # 저장된 레시피 삭제 (DELETE)
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

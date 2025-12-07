@@ -2663,3 +2663,160 @@ def recipe_detail_auth(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================
+# 저장된 레시피 API (냉장고요리사용)
+# ============================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def saved_recipes_list(request):
+    """
+    저장된 레시피 목록 조회
+
+    GET /api/recipes/saved/
+
+    Response:
+        {
+            "success": true,
+            "recipes": [
+                {
+                    "id": "uuid",
+                    "name": "계란찜",
+                    "description": "부드러운 계란찜",
+                    "difficulty": "쉬움",
+                    "time": 15,
+                    "servings": "2인분",
+                    "ingredients": [...],
+                    "steps": [...],
+                    "tips": [...],
+                    "usedIngredients": [...],
+                    "additionalIngredients": [...],
+                    "savedAt": "2024-12-07T12:00:00Z"
+                }
+            ]
+        }
+    """
+    from api.models import SavedRecipe
+
+    recipes = SavedRecipe.objects.filter(user=request.user)
+    recipe_list = []
+    for r in recipes:
+        recipe_list.append({
+            'id': r.recipe_id,
+            'name': r.name,
+            'description': r.description,
+            'difficulty': r.difficulty,
+            'time': r.time,
+            'servings': r.servings,
+            'ingredients': r.ingredients,
+            'steps': r.steps,
+            'tips': r.tips,
+            'usedIngredients': r.used_ingredients,
+            'additionalIngredients': r.additional_ingredients,
+            'savedAt': r.saved_at.isoformat()
+        })
+
+    return Response({
+        'success': True,
+        'recipes': recipe_list
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def saved_recipe_create(request):
+    """
+    레시피 저장
+
+    POST /api/recipes/saved/
+
+    Request:
+        {
+            "id": "uuid",
+            "name": "계란찜",
+            "description": "부드러운 계란찜",
+            "difficulty": "쉬움",
+            "time": 15,
+            "servings": "2인분",
+            "ingredients": [{name, amount}, ...],
+            "steps": [{step, description}, ...],
+            "tips": [...],
+            "usedIngredients": [...],
+            "additionalIngredients": [...]
+        }
+
+    Response:
+        {
+            "success": true,
+            "message": "레시피가 저장되었습니다"
+        }
+    """
+    from api.models import SavedRecipe
+
+    recipe_id = request.data.get('id')
+    name = request.data.get('name')
+
+    if not recipe_id or not name:
+        return Response(
+            {'success': False, 'error': 'id와 name은 필수입니다'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 이미 저장된 레시피인지 확인
+    if SavedRecipe.objects.filter(user=request.user, recipe_id=recipe_id).exists():
+        return Response(
+            {'success': False, 'error': '이미 저장된 레시피입니다'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    SavedRecipe.objects.create(
+        user=request.user,
+        recipe_id=recipe_id,
+        name=name,
+        description=request.data.get('description', ''),
+        difficulty=request.data.get('difficulty', '보통'),
+        time=request.data.get('time', 0),
+        servings=request.data.get('servings', '1인분'),
+        ingredients=request.data.get('ingredients', []),
+        steps=request.data.get('steps', []),
+        tips=request.data.get('tips', []),
+        used_ingredients=request.data.get('usedIngredients', request.data.get('used_ingredients', [])),
+        additional_ingredients=request.data.get('additionalIngredients', request.data.get('additional_ingredients', []))
+    )
+
+    return Response({
+        'success': True,
+        'message': '레시피가 저장되었습니다'
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def saved_recipe_delete(request, recipe_id):
+    """
+    저장된 레시피 삭제
+
+    DELETE /api/recipes/saved/<recipe_id>/
+
+    Response:
+        {
+            "success": true,
+            "message": "레시피가 삭제되었습니다"
+        }
+    """
+    from api.models import SavedRecipe
+
+    try:
+        recipe = SavedRecipe.objects.get(user=request.user, recipe_id=recipe_id)
+        recipe.delete()
+        return Response({
+            'success': True,
+            'message': '레시피가 삭제되었습니다'
+        })
+    except SavedRecipe.DoesNotExist:
+        return Response(
+            {'success': False, 'error': '저장된 레시피를 찾을 수 없습니다'},
+            status=status.HTTP_404_NOT_FOUND
+        )
