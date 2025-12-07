@@ -198,6 +198,7 @@ class CarrotBalance(models.Model):
 class CarrotTransaction(models.Model):
     """당근 거래 내역"""
     TRANSACTION_TYPES = [
+        ('welcome_bonus', '첫 로그인 보너스'),
         ('ad_reward', '광고 시청 보상'),
         ('recipe_recommend', '요리 추천'),
         ('recipe_another', '다른 요리 추천'),

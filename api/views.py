@@ -656,11 +656,21 @@ def toss_login(request):
         # 4. 토스 토큰 저장 (앱별로 저장)
         save_app_user_token(user, app, toss_access_token, toss_refresh_token)
 
-        # 5. JWT 토큰 발급 (우리 서버용)
+        # 5. refrigeratorchef 앱 첫 로그인 시 당근 20개 지급
+        welcome_carrots = 0
+        if app_id == 'refrigeratorchef':
+            from api.models import CarrotBalance
+            balance, balance_created = CarrotBalance.objects.get_or_create(user=user)
+            if balance_created:
+                # 첫 CarrotBalance 생성 = 첫 로그인
+                balance.add_carrots(20, 'welcome_bonus')
+                welcome_carrots = 20
+
+        # 6. JWT 토큰 발급 (우리 서버용)
         access_token = create_jwt_token(user.id, 'access')
         refresh_token = create_jwt_token(user.id, 'refresh')
 
-        # 6. 응답
+        # 7. 응답
         return Response({
             'access_token': access_token,
             'refresh_token': refresh_token,
@@ -670,7 +680,8 @@ def toss_login(request):
                 'toss_user_key': user_key,
                 'name': user.first_name,
                 'is_new': created
-            }
+            },
+            'welcomeCarrots': welcome_carrots  # 첫 로그인 시 지급된 당근 (0이면 기존 회원)
         }, status=status.HTTP_200_OK)
 
     except ValueError as e:
