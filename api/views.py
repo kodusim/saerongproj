@@ -528,12 +528,23 @@ def toss_disconnect_callback(request, app_id=None):
                 AppUserToken.objects.filter(user=user, app=app).delete()
                 print(f"User {user_key} disconnected from app '{app.app_id}'")
 
-                # 해당 앱이 game_honey이고 다른 앱 토큰이 없으면 전체 삭제
+                # 다른 앱 토큰이 없으면 profile도 초기화 (토스 연결 완전 해제)
                 remaining_tokens = AppUserToken.objects.filter(user=user).count()
-                if app.app_id == 'game_honey' and remaining_tokens == 0:
-                    # 게임 하니 전용 데이터 삭제
+                if remaining_tokens == 0:
+                    # 모든 앱에서 연결 해제됨 - profile 초기화
+                    profile.toss_user_key = None
+                    profile.toss_access_token = ''
+                    profile.toss_refresh_token = ''
+                    profile.save()
+                    print(f"User {user_key} - all app tokens deleted, profile reset")
+
+                # 해당 앱이 game_honey면 게임 관련 데이터도 삭제
+                if app.app_id == 'game_honey':
                     user.game_subscriptions.all().delete()
                     user.push_tokens.all().delete()
+                    if hasattr(user, 'premium_subscription'):
+                        user.premium_subscription.delete()
+                    print(f"User {user_key} - game_honey data deleted")
             else:
                 # 레거시 모드: 토스 연결 해제 (사용자 데이터 보존)
                 profile.toss_user_key = None
