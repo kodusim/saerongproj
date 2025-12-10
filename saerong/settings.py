@@ -201,7 +201,8 @@ REST_FRAMEWORK = {
 }
 
 # CORS Settings
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# 프로덕션에서도 모든 Origin 허용 (토스 앱 WebView의 Origin을 파악하기 어려움)
+CORS_ALLOW_ALL_ORIGINS = True
 
 # 토스 관련 도메인 (콘솔 테스트용 + 실제 앱인토스 도메인)
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
@@ -215,6 +216,8 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
 CORS_ALLOWED_ORIGIN_REGEXES = env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[
     r"^https://.*\.private-apps\.tossmini\.com$",  # 앱인토스 서브도메인
     r"^https://.*\.apps-in-toss\.com$",            # 앱인토스 대체 도메인
+    r"^https://.*\.toss\.im$",                     # 모든 토스 서브도메인
+    r"^https://.*\.toss\.co\.kr$",                 # 토스 한국 도메인
 ])
 
 # CORS credentials 허용 (Basic Auth 등)
