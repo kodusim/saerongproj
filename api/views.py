@@ -2930,13 +2930,19 @@ def worryhoney_consult(request):
     Request:
         {
             "category": "연애" | "사업" | "회사" | "학업" | "기타 카테고리",
-            "mode": "advice" | "listen",
+            "mode": "power_t" | "teacher" | "power_f" | "friend",
             "messages": [
                 { "role": "user", "content": "첫 번째 고민 내용" },
                 { "role": "assistant", "content": "AI의 첫 번째 응답" },
                 { "role": "user", "content": "후속 질문" }
             ]
         }
+
+    Modes:
+        - power_t: 팩폭작렬 파워 T (냉철, 논리적, 직설)
+        - teacher: 고민상담 선생님 (따뜻, 체계적, 인생선배)
+        - power_f: 공감백퍼 파워 F (감정공감, 위로, 리액션)
+        - friend: 친한친구와 수다 (반말, 캐주얼, 친구)
 
     Response:
         {
@@ -2946,7 +2952,7 @@ def worryhoney_consult(request):
     """
     try:
         category = request.data.get('category', '')
-        mode = request.data.get('mode', 'advice')
+        mode = request.data.get('mode', 'power_f')  # 기본값: 공감백퍼 파워 F
         messages = request.data.get('messages', [])
 
         # 유효성 검사
@@ -2956,9 +2962,10 @@ def worryhoney_consult(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if mode not in ['advice', 'listen']:
+        valid_modes = ['power_t', 'teacher', 'power_f', 'friend']
+        if mode not in valid_modes:
             return Response(
-                {'success': False, 'error': 'mode는 advice 또는 listen이어야 합니다'},
+                {'success': False, 'error': f'mode는 {", ".join(valid_modes)} 중 하나여야 합니다'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
