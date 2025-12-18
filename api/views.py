@@ -2836,3 +2836,134 @@ def saved_recipe_delete(request, recipe_id):
             {'success': False, 'error': '저장된 레시피를 찾을 수 없습니다'},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+# =============================================================================
+# 고민하니 (WorryHoney) API
+# =============================================================================
+
+WORRYHONEY_SYSTEM_PROMPTS = {
+    "advice": """당신은 따뜻하고 전문적인 심리상담사입니다.
+사용자의 고민에 대해 구체적이고 실용적인 조언을 제공합니다.
+
+[응답 원칙]
+- 공감으로 시작하여 신뢰감 형성
+- 문제의 핵심을 파악하고 구체적인 해결책 제시
+- 실천 가능한 단계별 조언 포함
+- 희망적이고 긍정적인 방향 제시
+- 2~4 문단으로 간결하게 응답
+- 존댓말 사용""",
+
+    "listen": """당신은 따뜻하고 공감 능력이 뛰어난 경청자입니다.
+사용자의 이야기를 들어주고 감정을 수용합니다.
+
+[응답 원칙]
+- 판단하지 않고 있는 그대로 수용
+- 사용자의 감정을 인정하고 공감 표현
+- "그랬구나", "많이 힘들었겠다" 같은 공감 표현 사용
+- 해결책보다는 감정적 지지에 집중
+- 2~3 문단으로 따뜻하게 응답
+- 존댓말 사용"""
+}
+
+WORRYHONEY_CATEGORY_CONTEXT = {
+    "연애": "연애, 짝사랑, 이별, 썸, 데이트 관련 고민",
+    "사업": "창업, 사업 운영, 투자, 비즈니스 결정 관련 고민",
+    "회사": "직장생활, 상사/동료 관계, 이직, 업무 스트레스 관련 고민",
+    "학업": "공부, 시험, 진로, 학교생활 관련 고민"
+}
+
+
+def _call_openai_chat(messages: list, system_prompt: str) -> str:
+    """OpenAI API 채팅 호출 (고민하니용)"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    # 시스템 메시지 + 대화 히스토리
+    full_messages = [{"role": "system", "content": system_prompt}] + messages
+
+    response = client.chat.completions.create(
+        model="gpt-5-nano",
+        messages=full_messages,
+        temperature=0.8,  # 좀 더 자연스러운 응답
+        max_tokens=1000,
+    )
+
+    content = response.choices[0].message.content
+    print(f"[WorryHoney] OpenAI response: {repr(content[:100])}...")
+    return content.strip()
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def worryhoney_consult(request):
+    """
+    고민하니 상담 API
+
+    POST /api/worryhoney/consult/
+
+    Request:
+        {
+            "category": "연애" | "사업" | "회사" | "학업" | "기타 카테고리",
+            "mode": "advice" | "listen",
+            "messages": [
+                { "role": "user", "content": "첫 번째 고민 내용" },
+                { "role": "assistant", "content": "AI의 첫 번째 응답" },
+                { "role": "user", "content": "후속 질문" }
+            ]
+        }
+
+    Response:
+        {
+            "success": true,
+            "response": "AI의 상담 응답 텍스트"
+        }
+    """
+    try:
+        category = request.data.get('category', '')
+        mode = request.data.get('mode', 'advice')
+        messages = request.data.get('messages', [])
+
+        # 유효성 검사
+        if not messages or len(messages) == 0:
+            return Response(
+                {'success': False, 'error': '메시지가 필요합니다'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if mode not in ['advice', 'listen']:
+            return Response(
+                {'success': False, 'error': 'mode는 advice 또는 listen이어야 합니다'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 시스템 프롬프트 구성
+        base_prompt = WORRYHONEY_SYSTEM_PROMPTS[mode]
+        category_context = WORRYHONEY_CATEGORY_CONTEXT.get(category, f"'{category}' 관련 고민")
+        system_prompt = f"{base_prompt}\n\n[상담 분야]\n{category_context}"
+
+        # OpenAI API 호출
+        ai_response = _call_openai_chat(messages, system_prompt)
+
+        return Response({
+            'success': True,
+            'response': ai_response
+        })
+
+    except openai.APIError as e:
+        print(f"[WorryHoney] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[WorryHoney] Error: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
