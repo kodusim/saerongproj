@@ -2884,8 +2884,8 @@ def _call_openai_chat(messages: list, system_prompt: str) -> str:
     response = client.chat.completions.create(
         model="gpt-5-nano",
         messages=full_messages,
-        max_completion_tokens=1000,  # GPT-5는 max_completion_tokens 사용
-        # GPT-5-nano는 temperature 지원 안함 (기본값 1 사용)
+        max_completion_tokens=4096,  # GPT-5는 reasoning tokens도 포함하므로 넉넉히 설정
+        reasoning_effort="low",  # 빈 응답 방지 - reasoning 최소화
     )
 
     content = response.choices[0].message.content
