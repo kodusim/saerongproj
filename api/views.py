@@ -3257,6 +3257,7 @@ def _call_openai_mbtilab(prompt: str) -> dict:
 def mbtilab_analyze(request):
     """MBTI연구소 분석 API"""
     try:
+        print(f"[MBTILab] Request data: {request.data}")
         my_mbti = request.data.get('myMbti', '')
         target_mbti = request.data.get('targetMbti', '')
         relation = request.data.get('relation', '')
