@@ -3141,18 +3141,32 @@ def dreammoa_interpret(request):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+        # 육하원칙을 자연스러운 문장으로 조합
+        who = dream.get('who')
+        when = dream.get('when')
+        where = dream.get('where')
+        what = dream.get('what')
+        how = dream.get('how')
+        feeling = dream.get('feeling')
+
+        # 자연스러운 꿈 설명 문장 생성
+        dream_sentence = f"{when}에 {where}에서 "
+        if who and who != "기억 안 남":
+            dream_sentence += f"{who}와(과) 함께 "
+        if what and what != "기억 안 남":
+            dream_sentence += f"{what}이(가) 나왔고, "
+        if how and how != "기억 안 남":
+            dream_sentence += f"{how} 상황이었어요. "
+        if feeling and feeling != "기억 안 남":
+            dream_sentence += f"그때 느낀 감정은 {feeling}이었어요."
+
         # 프롬프트 생성
         prompt = f"""다음 꿈 내용을 해몽해주세요:
 
-[꿈 정보]
-- 등장인물: {dream.get('who')}
-- 시간대: {dream.get('when')}
-- 장소: {dream.get('where')}
-- 등장물: {dream.get('what')}
-- 상황: {dream.get('how')}
-- 감정: {dream.get('feeling')}
+"{dream_sentence}"
 
-위 정보를 종합하여 해몽 결과를 JSON 형식으로 응답해주세요."""
+위 꿈 내용을 바탕으로 해몽 결과를 JSON 형식으로 응답해주세요.
+interpretation에는 꿈의 요소들을 자연스럽게 엮어서 해석해주세요."""
 
         print(f"[DreamMoa] Interpreting dream: {dream}")
 
