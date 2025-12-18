@@ -3258,10 +3258,10 @@ def mbtilab_analyze(request):
     """MBTI연구소 분석 API"""
     try:
         print(f"[MBTILab] Request data: {request.data}")
-        my_mbti = request.data.get('myMbti', '')
-        target_mbti = request.data.get('targetMbti', '')
+        my_mbti = request.data.get('myMbti') or request.data.get('my_mbti', '')
+        target_mbti = request.data.get('targetMbti') or request.data.get('target_mbti', '')
         relation = request.data.get('relation', '')
-        relation_name = request.data.get('relationName', '')
+        relation_name = request.data.get('relationName') or request.data.get('relation_name', '')
         question = request.data.get('question', '')
 
         if not all([my_mbti, target_mbti, relation_name, question]):
