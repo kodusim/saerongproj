@@ -1923,7 +1923,7 @@ def _call_openai(prompt: str) -> dict:
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        max_tokens=2000,
+        max_completion_tokens=2000,  # GPT-5는 max_completion_tokens 사용
         response_format={"type": "json_object"}
     )
 
@@ -2885,7 +2885,7 @@ def _call_openai_chat(messages: list, system_prompt: str) -> str:
         model="gpt-5-nano",
         messages=full_messages,
         temperature=0.8,  # 좀 더 자연스러운 응답
-        max_tokens=1000,
+        max_completion_tokens=1000,  # GPT-5는 max_completion_tokens 사용
     )
 
     content = response.choices[0].message.content
