@@ -1923,6 +1923,7 @@ def _call_openai(prompt: str) -> dict:
             {"role": "user", "content": prompt}
         ],
         max_completion_tokens=2000,  # GPT-5는 max_completion_tokens 사용
+        reasoning_effort="low",  # GPT-5 reasoning 모델 필수 파라미터
         response_format={"type": "json_object"}
         # GPT-5-nano는 temperature 지원 안함 (기본값 1 사용)
     )
