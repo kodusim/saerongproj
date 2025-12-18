@@ -1917,7 +1917,7 @@ def _call_openai(prompt: str) -> dict:
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-nano",
         messages=[
             {"role": "system", "content": "You are a helpful Korean cooking assistant. Always respond in valid JSON format only. Do not use markdown code blocks."},
             {"role": "user", "content": prompt}
