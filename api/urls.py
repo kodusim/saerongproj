@@ -45,6 +45,8 @@ from .views import (
     worryhoney_consult,
     # 드림모아 API
     dreammoa_interpret,
+    # MBTI연구소 API
+    mbtilab_analyze,
 )
 
 app_name = 'api'
@@ -118,6 +120,9 @@ urlpatterns = [
 
     # 드림모아 API (DreamMoa)
     path('dreammoa/interpret/', dreammoa_interpret, name='dreammoa-interpret'),  # 꿈 해몽
+
+    # MBTI연구소 API (MBTILab)
+    path('mbtilab/analyze/', mbtilab_analyze, name='mbtilab-analyze'),  # MBTI 분석
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

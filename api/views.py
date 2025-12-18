@@ -3197,3 +3197,129 @@ interpretation에는 꿈의 요소들을 자연스럽게 엮어서 해석해주�
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ==================== MBTI연구소 API ====================
+
+MBTILAB_SYSTEM_PROMPT = """당신은 MBTI 전문가이자 연애/관계 상담사입니다.
+사용자의 MBTI와 상대방의 MBTI, 그리고 둘의 관계 유형을 바탕으로 상대방의 심리를 분석하고 조언을 제공합니다.
+
+[분석 원칙]
+1. 상대방 MBTI의 특성을 기반으로 행동/심리를 설명
+2. 두 MBTI 간의 상호작용 패턴 고려
+3. 관계 유형(썸/연애/친구/직장)에 맞는 맞춤 조언
+4. 긍정적이고 건설적인 방향으로 안내
+5. 공감하면서도 실질적인 도움이 되는 조언
+
+[응답 형식 - 반드시 JSON만 출력]
+{
+  "targetAnalysis": "상대방 MBTI 심리 분석 (3-4문장)",
+  "advice": "맞춤 조언 (3-4문장)",
+  "keyPoints": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"],
+  "compatibility": "두 MBTI의 궁합 한줄평"
+}"""
+
+
+def _call_openai_mbtilab(prompt: str) -> dict:
+    """OpenAI API 호출 (MBTI연구소용 - JSON 응답)"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    response = client.chat.completions.create(
+        model="gpt-5-nano",
+        messages=[
+            {"role": "system", "content": MBTILAB_SYSTEM_PROMPT},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=2000,
+        reasoning_effort="low",
+        response_format={"type": "json_object"}
+    )
+
+    content = response.choices[0].message.content
+    print(f"[MBTILab] OpenAI raw response: {repr(content[:200])}...")
+
+    # JSON 파싱
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        cleaned = content.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return json.loads(cleaned.strip())
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def mbtilab_analyze(request):
+    """MBTI연구소 분석 API"""
+    try:
+        my_mbti = request.data.get('myMbti', '')
+        target_mbti = request.data.get('targetMbti', '')
+        relation = request.data.get('relation', '')
+        relation_name = request.data.get('relationName', '')
+        question = request.data.get('question', '')
+
+        if not all([my_mbti, target_mbti, relation_name, question]):
+            return Response(
+                {'success': False, 'error': '필수 필드가 누락되었습니다'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        valid_mbtis = [
+            'INTJ', 'INTP', 'ENTJ', 'ENTP',
+            'INFJ', 'INFP', 'ENFJ', 'ENFP',
+            'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+            'ISTP', 'ISFP', 'ESTP', 'ESFP'
+        ]
+        if my_mbti.upper() not in valid_mbtis or target_mbti.upper() not in valid_mbtis:
+            return Response(
+                {'success': False, 'error': '유효하지 않은 MBTI입니다'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        prompt = f"""[상황]
+- 내 MBTI: {my_mbti}
+- 상대방 MBTI: {target_mbti}
+- 관계: {relation_name}
+- 질문: {question}
+
+위 상황을 바탕으로 상대방의 심리를 분석하고 조언해주세요."""
+
+        print(f"[MBTILab] Analyzing: {my_mbti} -> {target_mbti} ({relation_name})")
+
+        result = _call_openai_mbtilab(prompt)
+        print(f"[MBTILab] Result: {result}")
+
+        return Response({
+            'success': True,
+            'result': result
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"[MBTILab] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[MBTILab] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[MBTILab] Error: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
