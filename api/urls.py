@@ -43,6 +43,8 @@ from .views import (
     saved_recipe_delete,
     # 고민하니 API
     worryhoney_consult,
+    # 드림모아 API
+    dreammoa_interpret,
 )
 
 app_name = 'api'
@@ -113,6 +115,9 @@ urlpatterns = [
 
     # 고민하니 API (WorryHoney)
     path('worryhoney/consult/', worryhoney_consult, name='worryhoney-consult'),  # AI 상담
+
+    # 드림모아 API (DreamMoa)
+    path('dreammoa/interpret/', dreammoa_interpret, name='dreammoa-interpret'),  # 꿈 해몽
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

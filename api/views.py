@@ -3028,3 +3028,158 @@ def worryhoney_consult(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# =============================================================================
+# 드림모아 (DreamMoa) API - 꿈 해몽
+# =============================================================================
+
+DREAMMOA_SYSTEM_PROMPT = """당신은 동양/서양 꿈 해몽 전문가입니다.
+사용자가 제공한 꿈 정보를 바탕으로 해몽을 제공합니다.
+
+[응답 규칙]
+- 꿈의 요소들을 종합하여 의미있는 해석 제공
+- 긍정적이고 희망적인 메시지 중심
+- type은 "길몽", "평몽", "흉몽" 중 하나
+- emoji는 type에 맞게 선택 (길몽: 🌟/🍀/✨, 평몽: 🌙/💭/🔮, 흉몽: ⚠️/🌑/💫)
+- summary는 한줄 요약 (20자 내외)
+- interpretation은 상세 해몽 (3~4문장)
+- advice는 오늘의 조언 (2~3문장)
+- 한국어로 응답
+
+[응답 형식 - 반드시 JSON만 출력]
+{
+  "type": "길몽",
+  "emoji": "🌟",
+  "summary": "좋은 일이 생길 징조입니다!",
+  "interpretation": "이 꿈은 긍정적인 변화와 새로운 시작을 의미합니다...",
+  "advice": "오늘 하루 긍정적인 마음으로 보내시면 좋겠습니다..."
+}"""
+
+
+def _call_openai_dreammoa(prompt: str) -> dict:
+    """OpenAI API 호출 (드림모아용 - JSON 응답)"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    response = client.chat.completions.create(
+        model="gpt-5-nano",
+        messages=[
+            {"role": "system", "content": DREAMMOA_SYSTEM_PROMPT},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=2000,
+        reasoning_effort="low",
+        response_format={"type": "json_object"}
+    )
+
+    content = response.choices[0].message.content
+    print(f"[DreamMoa] OpenAI raw response: {repr(content[:200])}...")
+
+    # JSON 파싱
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        # 마크다운 코드 블록 제거 후 재시도
+        cleaned = content.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return json.loads(cleaned.strip())
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def dreammoa_interpret(request):
+    """
+    드림모아 꿈 해몽 API
+
+    POST /api/dreammoa/interpret/
+
+    Request:
+        {
+            "dream": {
+                "who": "가족",
+                "when": "밤",
+                "where": "집",
+                "what": "물",
+                "how": "도망치기",
+                "feeling": "무서움"
+            }
+        }
+
+    Response:
+        {
+            "success": true,
+            "result": {
+                "type": "길몽",
+                "emoji": "🌟",
+                "summary": "좋은 일이 생길 징조입니다!",
+                "interpretation": "상세 해몽...",
+                "advice": "오늘의 조언..."
+            }
+        }
+    """
+    try:
+        dream = request.data.get('dream', {})
+
+        # 필수 필드 확인
+        required_fields = ['who', 'when', 'where', 'what', 'how', 'feeling']
+        missing_fields = [f for f in required_fields if not dream.get(f)]
+
+        if missing_fields:
+            return Response(
+                {'success': False, 'error': f'필수 필드가 누락되었습니다: {", ".join(missing_fields)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 프롬프트 생성
+        prompt = f"""다음 꿈 내용을 해몽해주세요:
+
+[꿈 정보]
+- 등장인물: {dream.get('who')}
+- 시간대: {dream.get('when')}
+- 장소: {dream.get('where')}
+- 등장물: {dream.get('what')}
+- 상황: {dream.get('how')}
+- 감정: {dream.get('feeling')}
+
+위 정보를 종합하여 해몽 결과를 JSON 형식으로 응답해주세요."""
+
+        print(f"[DreamMoa] Interpreting dream: {dream}")
+
+        # OpenAI API 호출 (JSON 응답)
+        result = _call_openai_dreammoa(prompt)
+        print(f"[DreamMoa] Result: {result}")
+
+        return Response({
+            'success': True,
+            'result': result
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"[DreamMoa] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[DreamMoa] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[DreamMoa] Error: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
