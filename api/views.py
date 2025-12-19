@@ -4131,7 +4131,7 @@ def interviewmoa_questions(request):
             status=status.HTTP_502_BAD_GATEWAY
         )
     except Exception as e:
-        print(f"[InterviewMoa] Error: {e}")
+        print(f"[InterviewMoa Questions] Error: {e}")
         import traceback
         traceback.print_exc()
         return Response(
@@ -4266,13 +4266,320 @@ def interviewmoa_evaluate(request):
             status=status.HTTP_502_BAD_GATEWAY
         )
     except openai.APIError as e:
-        print(f"[InterviewMoa] OpenAI API error: {e}")
+        print(f"[InterviewMoa Evaluate] OpenAI API error: {e}")
         return Response(
             {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
             status=status.HTTP_502_BAD_GATEWAY
         )
     except Exception as e:
-        print(f"[InterviewMoa] Error: {e}")
+        print(f"[InterviewMoa Evaluate] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ============================================================
+# 말투교정 (AccentReduction) API
+# ============================================================
+
+ACCENT_CATEGORY_NAMES = {
+    'company': '회사',
+    'research': '연구',
+    'school': '학교',
+    'parttime': '알바',
+    'friends': '친구',
+    'ceremony': '경조사',
+    'custom': '직접입력',
+}
+
+ACCENT_SUBCATEGORY_NAMES = {
+    # 회사
+    'boss': '상사에게',
+    'colleague': '동료에게',
+    'client': '거래처에',
+    'email': '업무이메일',
+    # 연구
+    'professor': '교수님께',
+    'researcher': '연구원에게',
+    'academic': '논문/학술',
+    # 학교
+    'teacher': '선생님께',
+    'senior': '선배에게',
+    'junior': '후배에게',
+    'assignment': '과제',
+    # 알바
+    'owner': '사장님께',
+    'customer': '손님에게',
+    'schedule': '스케줄',
+    # 친구
+    'daily': '일상',
+    'apology': '사과',
+    'request': '부탁',
+    # 경조사
+    'wedding': '결혼',
+    'birthday': '생일',
+    'condolence': '조의',
+    'promotion': '승진',
+    # 직접입력
+    'custom': '직접입력',
+}
+
+ACCENT_PROMPTS = {
+    'company': {
+        'boss': """상사에게 보내는 메시지입니다.
+- 존댓말(합쇼체/해요체) 사용
+- 격식있고 예의바른 표현
+- 업무적이면서도 공손한 어투""",
+        'colleague': """동료에게 보내는 메시지입니다.
+- 존댓말(해요체) 사용
+- 친근하면서도 예의있는 표현
+- 협조적인 어투""",
+        'client': """거래처/클라이언트에게 보내는 메시지입니다.
+- 격식있는 존댓말(합쇼체) 사용
+- 비즈니스 매너를 갖춘 표현
+- 전문적이고 신뢰감 있는 어투""",
+        'email': """업무 이메일입니다.
+- 격식있는 문어체 사용
+- 명확하고 간결한 표현
+- 이메일 형식에 맞는 구조""",
+    },
+    'research': {
+        'professor': """교수님께 보내는 메시지입니다.
+- 최고 존칭 사용
+- 학문적 예의를 갖춘 표현
+- 공손하고 격식있는 어투""",
+        'researcher': """연구원/동료 연구자에게 보내는 메시지입니다.
+- 존댓말 사용
+- 학술적이면서 친근한 표현
+- 협력적인 어투""",
+        'academic': """논문/학술 문서입니다.
+- 학술적 문어체 사용
+- 객관적이고 논리적인 표현
+- 전문 용어 적절히 사용""",
+    },
+    'school': {
+        'teacher': """선생님께 보내는 메시지입니다.
+- 최고 존칭 사용
+- 공손하고 예의바른 표현
+- 학생으로서 예의를 갖춘 어투""",
+        'senior': """선배에게 보내는 메시지입니다.
+- 존댓말 사용
+- 친근하면서도 예의있는 표현
+- 후배로서 예의를 갖춘 어투""",
+        'junior': """후배에게 보내는 메시지입니다.
+- 해요체 또는 반말 사용 가능
+- 친근하고 따뜻한 표현
+- 선배로서 배려있는 어투""",
+        'assignment': """과제/리포트입니다.
+- 학술적 문어체 사용
+- 논리적이고 명확한 표현
+- 과제 형식에 맞는 구조""",
+    },
+    'parttime': {
+        'owner': """사장님/점장님께 보내는 메시지입니다.
+- 존댓말(합쇼체/해요체) 사용
+- 공손하고 성실한 표현
+- 직원으로서 예의를 갖춘 어투""",
+        'customer': """손님에게 하는 말입니다.
+- 존댓말 사용
+- 친절하고 서비스 마인드 있는 표현
+- 고객 응대에 적합한 어투""",
+        'schedule': """스케줄/근무 관련 메시지입니다.
+- 존댓말 사용
+- 명확하고 간결한 표현
+- 업무적인 어투""",
+    },
+    'friends': {
+        'daily': """친구에게 보내는 일상 메시지입니다.
+- 반말 또는 친근한 해요체
+- 편안하고 자연스러운 표현
+- 친근한 어투""",
+        'apology': """친구에게 사과하는 메시지입니다.
+- 진심어린 사과 표현
+- 솔직하고 진정성 있는 표현
+- 관계 회복을 위한 어투""",
+        'request': """친구에게 부탁하는 메시지입니다.
+- 친근하면서도 정중한 표현
+- 부담주지 않는 표현
+- 배려있는 어투""",
+    },
+    'ceremony': {
+        'wedding': """결혼 축하 메시지입니다.
+- 격식있는 축하 표현
+- 진심어린 축복의 말
+- 경사에 어울리는 어투""",
+        'birthday': """생일 축하 메시지입니다.
+- 따뜻한 축하 표현
+- 진심어린 축복의 말
+- 상대방과의 관계에 맞는 어투""",
+        'condolence': """조의/위로 메시지입니다.
+- 격식있는 애도 표현
+- 진심어린 위로의 말
+- 조심스럽고 예의바른 어투""",
+        'promotion': """승진 축하 메시지입니다.
+- 격식있는 축하 표현
+- 진심어린 축하의 말
+- 비즈니스 관계에 맞는 어투""",
+    },
+}
+
+
+def _call_openai_accent(message: str, context: str) -> dict:
+    """말투교정용 OpenAI API 호출 헬퍼 함수"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    system_prompt = """당신은 한국어 말투 교정 전문가입니다.
+사용자의 메시지를 상황에 맞는 적절한 말투로 교정해주세요.
+
+응답 형식 (JSON):
+{
+    "correctedMessage": "교정된 메시지",
+    "tips": ["교정 팁1", "교정 팁2", "교정 팁3"]
+}
+
+규칙:
+1. 원본 메시지의 의미와 내용을 유지하면서 말투만 교정
+2. 상황에 맞는 적절한 존칭과 어미 사용
+3. 자연스럽고 실제로 사용할 수 있는 표현으로 교정
+4. 교정 팁은 2-3개 제공 (왜 이렇게 바꿨는지 설명)
+
+중요: 반드시 유효한 JSON 형식으로만 응답하세요."""
+
+    prompt = f"""{context}
+
+원본 메시지:
+"{message}"
+
+위 메시지를 상황에 맞게 교정해주세요."""
+
+    print(f"[AccentReduction] Calling OpenAI with message length: {len(message)}")
+
+    response = client.chat.completions.create(
+        model="gpt-5-nano",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=2000,
+        reasoning_effort="low",
+        response_format={"type": "json_object"}
+    )
+
+    print(f"[AccentReduction] finish_reason: {response.choices[0].finish_reason}")
+
+    content = response.choices[0].message.content
+
+    if not content:
+        raise ValueError("OpenAI returned empty response")
+
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        cleaned = content.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return json.loads(cleaned.strip())
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def accentreduction_correct(request):
+    """
+    말투 교정 API
+
+    POST /api/accentreduction/correct/
+
+    Request:
+        {
+            "category": "company",
+            "categoryName": "회사",
+            "subCategory": "boss",
+            "subCategoryName": "상사에게",
+            "situation": "업무 보고",
+            "message": "팀장님 그 건 제가 내일까지 해놓을게요"
+        }
+
+    Response:
+        {
+            "correctedMessage": "팀장님, 해당 건은 내일까지 완료하여 보고드리겠습니다.",
+            "tips": ["존칭 사용으로 예의를 갖추었습니다", ...]
+        }
+    """
+    try:
+        # DRF가 camelCase를 snake_case로 변환하므로 둘 다 지원
+        category = request.data.get('category') or request.data.get('category', '')
+        category_name = request.data.get('categoryName') or request.data.get('category_name', '')
+        sub_category = request.data.get('subCategory') or request.data.get('sub_category', '')
+        sub_category_name = request.data.get('subCategoryName') or request.data.get('sub_category_name', '')
+        situation = request.data.get('situation', '')
+        message = request.data.get('message', '')
+
+        print(f"[AccentReduction] Request - category: {category}, subCategory: {sub_category}, message length: {len(message)}")
+
+        if not message or not message.strip():
+            return Response(
+                {'success': False, 'error': '교정할 메시지를 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not category:
+            return Response(
+                {'success': False, 'error': '카테고리를 선택해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 컨텍스트 생성
+        cat_display = category_name or ACCENT_CATEGORY_NAMES.get(category, category)
+        subcat_display = sub_category_name or ACCENT_SUBCATEGORY_NAMES.get(sub_category, sub_category)
+
+        # 프롬프트 컨텍스트 선택
+        if category == 'custom':
+            context = f"""직접 입력한 상황입니다.
+상황 설명: {situation if situation else '일반적인 상황'}
+- 상황에 맞는 적절한 말투로 교정해주세요."""
+        else:
+            category_prompts = ACCENT_PROMPTS.get(category, {})
+            base_context = category_prompts.get(sub_category, f"{cat_display}에서 {subcat_display} 메시지입니다.")
+
+            context = base_context
+            if situation:
+                context += f"\n상황: {situation}"
+
+        # OpenAI API 호출
+        result = _call_openai_accent(message, context)
+
+        return Response({
+            'correctedMessage': result.get('correctedMessage', ''),
+            'tips': result.get('tips', [])
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"[AccentReduction] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[AccentReduction] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[AccentReduction] Error: {e}")
         import traceback
         traceback.print_exc()
         return Response(

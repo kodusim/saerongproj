@@ -52,6 +52,8 @@ from .views import (
     # 면접모아 API
     interviewmoa_questions,
     interviewmoa_evaluate,
+    # 말투교정 API
+    accentreduction_correct,
 )
 
 app_name = 'api'
@@ -135,6 +137,9 @@ urlpatterns = [
     # 면접모아 API (InterviewMoa)
     path('interviewmoa/questions/', interviewmoa_questions, name='interviewmoa-questions'),  # 면접 질문 생성
     path('interviewmoa/evaluate/', interviewmoa_evaluate, name='interviewmoa-evaluate'),  # 면접 평가
+
+    # 말투교정 API (AccentReduction)
+    path('accentreduction/correct/', accentreduction_correct, name='accentreduction-correct'),  # 말투 교정
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
