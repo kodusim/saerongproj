@@ -1924,7 +1924,7 @@ def _call_openai(prompt: str) -> dict:
             {"role": "system", "content": "You are a helpful Korean cooking assistant. Always respond in valid JSON format only. Do not use markdown code blocks."},
             {"role": "user", "content": prompt}
         ],
-        max_completion_tokens=2000,  # GPT-5는 max_completion_tokens 사용
+        max_completion_tokens=5000,  # GPT-5 reasoning 모델: reasoning + output 토큰 합계 (2000은 부족함)
         reasoning_effort="low",  # GPT-5 reasoning 모델 필수 파라미터
         response_format={"type": "json_object"}
         # GPT-5-nano는 temperature 지원 안함 (기본값 1 사용)
