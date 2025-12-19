@@ -1916,6 +1916,8 @@ def _call_openai(prompt: str) -> dict:
     """OpenAI API 호출 헬퍼 함수"""
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
+    print(f"[Recipe] Calling OpenAI with prompt length: {len(prompt)}")
+
     response = client.chat.completions.create(
         model="gpt-5-nano",
         messages=[
@@ -1928,8 +1930,18 @@ def _call_openai(prompt: str) -> dict:
         # GPT-5-nano는 temperature 지원 안함 (기본값 1 사용)
     )
 
+    # 전체 응답 디버깅
+    print(f"[Recipe] OpenAI response model: {response.model}")
+    print(f"[Recipe] OpenAI finish_reason: {response.choices[0].finish_reason}")
+    print(f"[Recipe] OpenAI usage: {response.usage}")
+
     content = response.choices[0].message.content
-    print(f"OpenAI raw response: {repr(content)}")  # 디버그 로깅
+    print(f"[Recipe] OpenAI raw content: {repr(content)}")  # 디버그 로깅
+
+    # content가 None이거나 빈 경우 처리
+    if not content:
+        print(f"[Recipe] WARNING: Empty content received! Full response: {response}")
+        raise ValueError("OpenAI returned empty response")
 
     # JSON 파싱 시도
     try:
