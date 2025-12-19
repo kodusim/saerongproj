@@ -4062,14 +4062,11 @@ def interviewmoa_questions(request):
         }
     """
     try:
-        # 디버그: raw request data 출력
-        print(f"[InterviewMoa] Raw request.data: {request.data}")
-        print(f"[InterviewMoa] Content-Type: {request.content_type}")
-
-        company_type = request.data.get('companyType', '')
-        company_name = request.data.get('companyName', '')
-        job_type = request.data.get('jobType', '')
-        job_name = request.data.get('jobName', '')
+        # DRF가 camelCase를 snake_case로 변환하므로 둘 다 지원
+        company_type = request.data.get('companyType') or request.data.get('company_type', '')
+        company_name = request.data.get('companyName') or request.data.get('company_name', '')
+        job_type = request.data.get('jobType') or request.data.get('job_type', '')
+        job_name = request.data.get('jobName') or request.data.get('job_name', '')
 
         print(f"[InterviewMoa] Questions request - companyType: {company_type}, companyName: {company_name}, jobType: {job_type}, jobName: {job_name}")
 
@@ -4179,10 +4176,11 @@ def interviewmoa_evaluate(request):
         }
     """
     try:
-        company_type = request.data.get('companyType', '')
-        company_name = request.data.get('companyName', '')
-        job_type = request.data.get('jobType', '')
-        job_name = request.data.get('jobName', '')
+        # DRF가 camelCase를 snake_case로 변환하므로 둘 다 지원
+        company_type = request.data.get('companyType') or request.data.get('company_type', '')
+        company_name = request.data.get('companyName') or request.data.get('company_name', '')
+        job_type = request.data.get('jobType') or request.data.get('job_type', '')
+        job_name = request.data.get('jobName') or request.data.get('job_name', '')
         answers = request.data.get('answers', [])
 
         print(f"[InterviewMoa] Evaluate request - companyType: {company_type}, jobType: {job_type}, answers count: {len(answers)}")
