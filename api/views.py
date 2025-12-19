@@ -4062,6 +4062,10 @@ def interviewmoa_questions(request):
         }
     """
     try:
+        # 디버그: raw request data 출력
+        print(f"[InterviewMoa] Raw request.data: {request.data}")
+        print(f"[InterviewMoa] Content-Type: {request.content_type}")
+
         company_type = request.data.get('companyType', '')
         company_name = request.data.get('companyName', '')
         job_type = request.data.get('jobType', '')
