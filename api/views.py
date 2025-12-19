@@ -3972,3 +3972,308 @@ def hustlemate_generate(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================================
+# 면접모아 (InterviewMoa) API
+# ============================================================
+
+COMPANY_TYPE_NAMES = {
+    'large': '대기업',
+    'mid': '중견기업',
+    'small': '중소기업',
+    'public': '공공기관',
+    'startup': '스타트업',
+    'custom': '직접입력',
+}
+
+JOB_TYPE_NAMES = {
+    'research': '연구',
+    'accounting': '회계',
+    'management': '경영',
+    'design': '디자인',
+    'webdev': '웹개발',
+    'appdev': '앱개발',
+    'office': '사무직',
+    'marketing': '마케팅',
+    'sales': '영업',
+    'custom': '직접입력',
+}
+
+
+def _call_openai_interview(prompt: str, system_prompt: str, max_tokens: int = 3000) -> dict:
+    """면접모아용 OpenAI API 호출 헬퍼 함수"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    print(f"[InterviewMoa] Calling OpenAI with prompt length: {len(prompt)}")
+
+    response = client.chat.completions.create(
+        model="gpt-5-nano",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=max_tokens,
+        reasoning_effort="low",
+        response_format={"type": "json_object"}
+    )
+
+    print(f"[InterviewMoa] finish_reason: {response.choices[0].finish_reason}")
+    print(f"[InterviewMoa] usage: {response.usage}")
+
+    content = response.choices[0].message.content
+    print(f"[InterviewMoa] content length: {len(content) if content else 0}")
+
+    if not content:
+        raise ValueError("OpenAI returned empty response")
+
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        cleaned = content.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return json.loads(cleaned.strip())
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def interviewmoa_questions(request):
+    """
+    면접 질문 생성 API
+
+    POST /api/interviewmoa/questions/
+
+    Request:
+        {
+            "companyType": "large",
+            "companyName": "삼성전자",
+            "jobType": "webdev",
+            "jobName": "프론트엔드 개발자"
+        }
+
+    Response:
+        {
+            "questions": ["질문1", "질문2", "질문3", "질문4", "질문5"]
+        }
+    """
+    try:
+        company_type = request.data.get('companyType', '')
+        company_name = request.data.get('companyName', '')
+        job_type = request.data.get('jobType', '')
+        job_name = request.data.get('jobName', '')
+
+        print(f"[InterviewMoa] Questions request - companyType: {company_type}, companyName: {company_name}, jobType: {job_type}, jobName: {job_name}")
+
+        if not company_type or not job_type:
+            return Response(
+                {'success': False, 'error': '기업 유형과 직무 유형을 선택해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 기업명/직무명 결정
+        company_display = company_name if company_type == 'custom' and company_name else COMPANY_TYPE_NAMES.get(company_type, company_type)
+        job_display = job_name if job_type == 'custom' and job_name else JOB_TYPE_NAMES.get(job_type, job_type)
+
+        system_prompt = """당신은 한국의 채용 면접 전문가입니다.
+기업 유형과 직무에 맞는 실제 면접에서 나올 수 있는 심층 질문을 생성합니다.
+
+응답 형식 (JSON):
+{
+    "questions": ["질문1", "질문2", "질문3", "질문4", "질문5"]
+}
+
+중요: 반드시 5개의 질문을 생성하세요. 유효한 JSON 형식으로만 응답하세요."""
+
+        prompt = f"""다음 조건에 맞는 면접 질문 5개를 생성해주세요.
+
+기업 유형: {company_display}
+{f'기업명: {company_name}' if company_name else ''}
+직무: {job_display}
+{f'상세 직무: {job_name}' if job_name and job_type == 'custom' else ''}
+
+요구사항:
+1. 해당 기업 유형의 조직 문화와 특성을 반영한 질문
+2. 해당 직무에서 요구되는 역량을 평가하는 질문
+3. 경험, 역량, 상황대처, 가치관 등 다양한 유형의 질문 포함
+4. 구체적이고 답변하기에 적절한 난이도의 질문
+5. 실제 면접에서 자주 나오는 형태의 질문"""
+
+        result = _call_openai_interview(prompt, system_prompt, max_tokens=2000)
+
+        questions = result.get('questions', [])
+
+        return Response({
+            'questions': questions
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"[InterviewMoa] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[InterviewMoa] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[InterviewMoa] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def interviewmoa_evaluate(request):
+    """
+    면접 평가 및 피드백 API
+
+    POST /api/interviewmoa/evaluate/
+
+    Request:
+        {
+            "companyType": "large",
+            "companyName": "삼성전자",
+            "jobType": "webdev",
+            "jobName": "프론트엔드 개발자",
+            "answers": [
+                {"question": "질문1", "answer": "답변1"},
+                ...
+            ]
+        }
+
+    Response:
+        {
+            "totalScore": 78,
+            "passed": true,
+            "feedbacks": [
+                {
+                    "question": "질문1",
+                    "answer": "답변1",
+                    "score": 85,
+                    "feedback": "피드백 내용"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        company_type = request.data.get('companyType', '')
+        company_name = request.data.get('companyName', '')
+        job_type = request.data.get('jobType', '')
+        job_name = request.data.get('jobName', '')
+        answers = request.data.get('answers', [])
+
+        print(f"[InterviewMoa] Evaluate request - companyType: {company_type}, jobType: {job_type}, answers count: {len(answers)}")
+
+        if not answers or len(answers) == 0:
+            return Response(
+                {'success': False, 'error': '답변 내용을 입력해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 기업명/직무명 결정
+        company_display = company_name if company_type == 'custom' and company_name else COMPANY_TYPE_NAMES.get(company_type, company_type)
+        job_display = job_name if job_type == 'custom' and job_name else JOB_TYPE_NAMES.get(job_type, job_type)
+
+        system_prompt = """당신은 한국의 채용 면접 평가 전문가입니다.
+면접 답변을 평가하고 구체적인 피드백을 제공합니다.
+
+응답 형식 (JSON):
+{
+    "feedbacks": [
+        {
+            "question": "질문 내용",
+            "answer": "답변 내용",
+            "score": 0-100 사이 점수,
+            "feedback": "구체적인 피드백"
+        }
+    ]
+}
+
+평가 기준:
+- 답변의 구체성 (경험, 수치, 사례 포함 여부)
+- 논리적 구조 (STAR 기법 등)
+- 직무 연관성
+- 전달력과 설득력
+
+중요: 유효한 JSON 형식으로만 응답하세요."""
+
+        # 답변 목록 포맷팅
+        answers_text = ""
+        for i, item in enumerate(answers, 1):
+            q = item.get('question', '')
+            a = item.get('answer', '')
+            answers_text += f"\n[질문 {i}]\n{q}\n\n[답변 {i}]\n{a}\n"
+
+        prompt = f"""다음 면접 답변들을 평가해주세요.
+
+기업 유형: {company_display}
+{f'기업명: {company_name}' if company_name else ''}
+직무: {job_display}
+
+{answers_text}
+
+각 답변에 대해:
+1. 0-100점 사이로 점수를 매겨주세요
+2. 좋은 점과 개선할 점을 포함한 구체적인 피드백을 작성해주세요
+3. 해당 기업 유형과 직무 맥락에서 평가해주세요"""
+
+        result = _call_openai_interview(prompt, system_prompt, max_tokens=5000)
+
+        feedbacks = result.get('feedbacks', [])
+
+        # 총점 계산
+        scores = [f.get('score', 0) for f in feedbacks if isinstance(f.get('score'), (int, float))]
+        total_score = round(sum(scores) / len(scores)) if scores else 0
+        passed = total_score >= 70
+
+        return Response({
+            'totalScore': total_score,
+            'passed': passed,
+            'feedbacks': feedbacks
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"[InterviewMoa] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[InterviewMoa] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[InterviewMoa] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

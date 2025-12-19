@@ -49,6 +49,9 @@ from .views import (
     mbtilab_analyze,
     # 부업메이트 API
     hustlemate_generate,
+    # 면접모아 API
+    interviewmoa_questions,
+    interviewmoa_evaluate,
 )
 
 app_name = 'api'
@@ -128,6 +131,10 @@ urlpatterns = [
 
     # 부업메이트 API (HustleMate)
     path('hustlemate/generate/', hustlemate_generate, name='hustlemate-generate'),  # 콘텐츠 생성
+
+    # 면접모아 API (InterviewMoa)
+    path('interviewmoa/questions/', interviewmoa_questions, name='interviewmoa-questions'),  # 면접 질문 생성
+    path('interviewmoa/evaluate/', interviewmoa_evaluate, name='interviewmoa-evaluate'),  # 면접 평가
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
