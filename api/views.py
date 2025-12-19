@@ -3325,3 +3325,638 @@ def mbtilab_analyze(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================================
+# 부업메이트 (HustleMate) API
+# ============================================================
+
+HUSTLEMATE_PROMPTS = {
+    # 블로그 카테고리
+    'blog': {
+        'default': """당신은 네이버 블로그 전문 작성자입니다.
+
+작성 규칙:
+- 말투: 친근한 ~해요체, 적절한 감탄사 활용
+- 분량: 800자 이내
+- SEO 최적화된 자연스러운 글
+
+입력 정보:
+{inputs_text}
+
+위 정보로 블로그 포스팅을 작성해주세요. 반드시 800자 이내로 작성하세요.""",
+
+        '맛집': """당신은 네이버 블로그 맛집 리뷰 전문 작성자입니다.
+
+작성 규칙:
+- 말투: 친근한 ~해요체, 감탄사 활용 (와~ 진짜 맛있었어요!)
+- 구조: 인트로→가게정보→메뉴소개→맛평가→분위기→총평
+- 분량: 800자 이내
+- 특징: 생생한 경험담, 솔직한 리뷰
+
+입력 정보:
+{inputs_text}
+
+위 정보로 맛집 블로그 포스팅을 작성해주세요.""",
+
+        '제품': """당신은 네이버 블로그 제품 리뷰 전문 작성자입니다.
+
+작성 규칙:
+- 말투: 친근하면서 신뢰감 있는 ~해요체
+- 구조: 구매계기→개봉기→사용후기→장단점→추천대상
+- 분량: 800자 이내
+- 특징: 실사용 경험, 객관적 평가
+
+입력 정보:
+{inputs_text}
+
+위 정보로 제품 리뷰 블로그 포스팅을 작성해주세요.""",
+
+        '여행': """당신은 네이버 블로그 여행 리뷰 전문 작성자입니다.
+
+작성 규칙:
+- 말투: 설렘 가득한 ~해요체
+- 구조: 여행개요→일정→명소소개→맛집/숙소→꿀팁→총평
+- 분량: 800자 이내
+- 특징: 생생한 여행기, 실용적 정보
+
+입력 정보:
+{inputs_text}
+
+위 정보로 여행 블로그 포스팅을 작성해주세요.""",
+
+        '일상': """당신은 네이버 블로그 일상 포스팅 전문 작성자입니다.
+
+작성 규칙:
+- 말투: 편안하고 친근한 ~해요체
+- 구조: 자연스러운 일기체
+- 분량: 800자 이내
+- 특징: 공감되는 일상, 따뜻한 감성
+
+입력 정보:
+{inputs_text}
+
+위 정보로 일상 블로그 포스팅을 작성해주세요.""",
+
+        '정보': """당신은 네이버 블로그 정보성 콘텐츠 전문 작성자입니다.
+
+작성 규칙:
+- 말투: 전문적이면서 친근한 ~해요체
+- 구조: 서론→본론(핵심정보)→결론(요약)
+- 분량: 800자 이내
+- 특징: 정확한 정보, 이해하기 쉬운 설명
+
+입력 정보:
+{inputs_text}
+
+위 정보로 정보성 블로그 포스팅을 작성해주세요.""",
+    },
+
+    # 유튜브 카테고리
+    'youtube': {
+        'default': """당신은 유튜브 영상 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 훅(관심끌기)→인트로→본론→아웃트로(구독유도)
+- 분량: 800자 이내
+- 특징: 시청자 참여 유도, 자연스러운 말투
+
+입력 정보:
+{inputs_text}
+
+위 정보로 유튜브 영상 대본을 작성해주세요.""",
+
+        '정보튜토리얼': """당신은 유튜브 정보/튜토리얼 영상 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 훅→문제제시→해결방법→단계별설명→마무리
+- 분량: 800자 이내
+- 특징: 명확한 설명, 실용적 정보
+
+입력 정보:
+{inputs_text}
+
+위 정보로 튜토리얼 영상 대본을 작성해주세요.""",
+
+        '리뷰언박싱': """당신은 유튜브 리뷰/언박싱 영상 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 티저→언박싱→첫인상→상세리뷰→총평
+- 분량: 800자 이내
+- 특징: 솔직한 평가, 구매 결정에 도움
+
+입력 정보:
+{inputs_text}
+
+위 정보로 리뷰 영상 대본을 작성해주세요.""",
+
+        '브이로그': """당신은 유튜브 브이로그 영상 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 인트로→일상장면들→하이라이트→마무리
+- 분량: 800자 이내
+- 특징: 자연스러운 나레이션, 감성적
+
+입력 정보:
+{inputs_text}
+
+위 정보로 브이로그 대본을 작성해주세요.""",
+
+        '먹방': """당신은 유튜브 먹방 영상 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 음식소개→먹는장면설명→맛표현→총평
+- 분량: 800자 이내
+- 특징: 생생한 맛 표현, ASMR 요소
+
+입력 정보:
+{inputs_text}
+
+위 정보로 먹방 영상 대본을 작성해주세요.""",
+
+        '숏츠': """당신은 유튜브 쇼츠 영상 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 강렬한훅(1초)→핵심내용→CTA
+- 분량: 300자 이내 (60초 영상)
+- 특징: 임팩트 있는 시작, 빠른 전개
+
+입력 정보:
+{inputs_text}
+
+위 정보로 쇼츠 영상 대본을 작성해주세요. 반드시 300자 이내로!""",
+    },
+
+    # 쿠팡파트너스 카테고리
+    'coupang': {
+        'default': """당신은 쿠팡파트너스 마케팅 콘텐츠 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 관심끌기→상품소개→혜택강조→구매유도
+- 분량: 500자 이내
+- 특징: 구매 욕구 자극, 혜택 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 쿠팡파트너스 홍보 콘텐츠를 작성해주세요.""",
+
+        '고가전자제품': """당신은 고가 전자제품 쿠팡파트너스 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 필요성→스펙비교→가성비분석→구매링크유도
+- 분량: 500자 이내
+- 특징: 신뢰성, 전문적 분석
+
+입력 정보:
+{inputs_text}
+
+위 정보로 고가 전자제품 홍보 콘텐츠를 작성해주세요.""",
+
+        '가성비템': """당신은 가성비 상품 쿠팡파트너스 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 발견계기→가격비교→실사용후기→강력추천
+- 분량: 500자 이내
+- 특징: 가격 메리트 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 가성비 상품 홍보 콘텐츠를 작성해주세요.""",
+
+        '시즌아이템': """당신은 시즌 아이템 쿠팡파트너스 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 시즌필수템→지금사야하는이유→품절주의→구매유도
+- 분량: 500자 이내
+- 특징: 긴급성, 시즌 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 시즌 아이템 홍보 콘텐츠를 작성해주세요.""",
+
+        '반복구매': """당신은 반복구매 상품 쿠팡파트너스 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 생활필수품→정기배송혜택→가격비교→로켓배송강조
+- 분량: 500자 이내
+- 특징: 편리함, 경제성
+
+입력 정보:
+{inputs_text}
+
+위 정보로 반복구매 상품 홍보 콘텐츠를 작성해주세요.""",
+
+        '틈새상품': """당신은 틈새 상품 쿠팡파트너스 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 이런게있었어?→숨은보석발견→사용후기→공유
+- 분량: 500자 이내
+- 특징: 신기함, 발견의 즐거움
+
+입력 정보:
+{inputs_text}
+
+위 정보로 틈새 상품 홍보 콘텐츠를 작성해주세요.""",
+    },
+
+    # 스마트스토어 카테고리
+    'smartstore': {
+        'default': """당신은 네이버 스마트스토어 상품 상세페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 헤드카피→상품특징→상세설명→구매혜택→후기유도
+- 분량: 800자 이내
+- 특징: 구매전환 최적화, SEO 키워드 포함
+- 추가: 검색용 키워드 5개 제안
+
+입력 정보:
+{inputs_text}
+
+위 정보로 스마트스토어 상품 설명을 작성하고, 마지막에 추천 키워드 5개를 제시해주세요.""",
+
+        '패션의류': """당신은 패션/의류 스마트스토어 상세페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 스타일포인트→소재/핏→코디제안→사이즈가이드
+- 분량: 800자 이내
+- 특징: 감성적 표현, 착용감 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 패션 상품 설명을 작성하고, 마지막에 추천 키워드 5개를 제시해주세요.""",
+
+        '식품건강': """당신은 식품/건강 스마트스토어 상세페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 원산지/성분→효능→섭취방법→보관법→인증정보
+- 분량: 800자 이내
+- 특징: 신뢰성, 안전성 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 식품 상품 설명을 작성하고, 마지막에 추천 키워드 5개를 제시해주세요.""",
+
+        '뷰티화장품': """당신은 뷰티/화장품 스마트스토어 상세페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 피부고민→성분분석→사용법→비포애프터→피부타입
+- 분량: 800자 이내
+- 특징: 효과 강조, 성분 신뢰
+
+입력 정보:
+{inputs_text}
+
+위 정보로 뷰티 상품 설명을 작성하고, 마지막에 추천 키워드 5개를 제시해주세요.""",
+
+        '생활용품': """당신은 생활용품 스마트스토어 상세페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 생활불편해결→제품특징→사용장면→규격정보
+- 분량: 800자 이내
+- 특징: 실용성, 편리함 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 생활용품 상품 설명을 작성하고, 마지막에 추천 키워드 5개를 제시해주세요.""",
+
+        '디지털가전': """당신은 디지털/가전 스마트스토어 상세페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 핵심스펙→차별점→사용시나리오→AS정보
+- 분량: 800자 이내
+- 특징: 기술력, 신뢰성 강조
+
+입력 정보:
+{inputs_text}
+
+위 정보로 디지털 상품 설명을 작성하고, 마지막에 추천 키워드 5개를 제시해주세요.""",
+    },
+
+    # 전자책/온라인강의 카테고리
+    'ebook': {
+        'default': """당신은 전자책/온라인강의 판매 페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 타겟고민공감→해결책제시→커리큘럼→강사소개→수강혜택
+- 분량: 800자 이내
+- 특징: 변화 약속, 신뢰 구축
+
+입력 정보:
+{inputs_text}
+
+위 정보로 전자책/강의 소개 페이지를 작성해주세요.""",
+
+        '자기계발': """당신은 자기계발 콘텐츠 판매 페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 현재고민→변화가능성→구체적방법→성공사례→시작유도
+- 분량: 800자 이내
+- 특징: 동기부여, 실행 가능성
+
+입력 정보:
+{inputs_text}
+
+위 정보로 자기계발 콘텐츠 소개를 작성해주세요.""",
+
+        '재테크': """당신은 재테크 콘텐츠 판매 페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 재정고민→수익가능성→구체적전략→실적증명→시작방법
+- 분량: 800자 이내
+- 특징: 수익 강조, 신뢰성
+
+입력 정보:
+{inputs_text}
+
+위 정보로 재테크 콘텐츠 소개를 작성해주세요.""",
+
+        'IT개발': """당신은 IT/개발 콘텐츠 판매 페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 시장수요→스킬습득→커리큘럼→포트폴리오→취업/이직연계
+- 분량: 800자 이내
+- 특징: 실무 중심, 커리어 연결
+
+입력 정보:
+{inputs_text}
+
+위 정보로 IT 강의 소개를 작성해주세요.""",
+
+        '마케팅': """당신은 마케팅 콘텐츠 판매 페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 마케팅트렌드→실전노하우→케이스스터디→성과증명
+- 분량: 800자 이내
+- 특징: 트렌드, 실전 적용
+
+입력 정보:
+{inputs_text}
+
+위 정보로 마케팅 강의 소개를 작성해주세요.""",
+
+        '취미': """당신은 취미 콘텐츠 판매 페이지 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 취미의즐거움→배움의과정→완성작품→커뮤니티
+- 분량: 800자 이내
+- 특징: 즐거움, 성취감
+
+입력 정보:
+{inputs_text}
+
+위 정보로 취미 강의 소개를 작성해주세요.""",
+    },
+
+    # 인스타그램/숏폼 카테고리
+    'instagram': {
+        'default': """당신은 인스타그램/숏폼 콘텐츠 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 훅→핵심메시지→CTA
+- 분량: 300자 이내
+- 특징: 짧고 임팩트 있게, 해시태그 필수
+- 해시태그 10개 포함
+
+입력 정보:
+{inputs_text}
+
+위 정보로 인스타그램 포스팅을 작성하고, 마지막에 해시태그 10개를 추가해주세요.""",
+
+        '피드카드뉴스': """당신은 인스타그램 카드뉴스 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 제목슬라이드→내용슬라이드(3-5장)→CTA슬라이드
+- 분량: 슬라이드당 50자 이내
+- 특징: 정보 전달, 저장 유도
+
+입력 정보:
+{inputs_text}
+
+위 정보로 카드뉴스 슬라이드별 텍스트를 작성하고, 해시태그 10개를 추가해주세요.""",
+
+        '릴스': """당신은 인스타그램 릴스 대본 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 훅(1초)→본론(25초)→CTA(4초)
+- 분량: 200자 이내
+- 특징: 트렌디, 중독성
+
+입력 정보:
+{inputs_text}
+
+위 정보로 릴스 대본을 작성하고, 해시태그 10개를 추가해주세요.""",
+
+        '스토리': """당신은 인스타그램 스토리 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 관심끌기→내용→상호작용유도
+- 분량: 100자 이내
+- 특징: 즉각적, 참여 유도
+
+입력 정보:
+{inputs_text}
+
+위 정보로 스토리 텍스트를 작성하고, 해시태그 5개를 추가해주세요.""",
+
+        '협찬광고': """당신은 인스타그램 협찬/광고 콘텐츠 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 자연스러운도입→제품경험→솔직후기→추천
+- 분량: 300자 이내
+- 특징: 자연스러움, 신뢰감 (유료광고 표시 포함)
+
+입력 정보:
+{inputs_text}
+
+위 정보로 협찬 포스팅을 작성하고, 해시태그 10개를 추가해주세요. (유료광고 표시 포함)""",
+
+        '일상': """당신은 인스타그램 일상 포스팅 전문 작성자입니다.
+
+작성 규칙:
+- 구조: 감성문구→일상이야기→마무리
+- 분량: 200자 이내
+- 특징: 공감, 감성
+
+입력 정보:
+{inputs_text}
+
+위 정보로 일상 포스팅을 작성하고, 해시태그 10개를 추가해주세요.""",
+    },
+}
+
+
+def _call_openai_hustlemate(prompt: str, max_tokens: int = 1500) -> dict:
+    """부업메이트용 OpenAI API 호출 헬퍼 함수"""
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    system_prompt = """당신은 콘텐츠 마케팅 전문가입니다.
+사용자의 요청에 따라 블로그, 유튜브, 쿠팡파트너스, 스마트스토어, 전자책, 인스타그램 등 다양한 플랫폼에 최적화된 콘텐츠를 작성합니다.
+
+응답 형식 (JSON):
+{
+    "content": "생성된 콘텐츠 본문",
+    "hashtags": ["#해시태그1", "#해시태그2", ...],  // 인스타그램인 경우만
+    "keywords": ["키워드1", "키워드2", ...]  // 스마트스토어인 경우만
+}
+
+중요: 반드시 유효한 JSON 형식으로만 응답하세요. 마크다운 코드블록을 사용하지 마세요."""
+
+    response = client.chat.completions.create(
+        model="gpt-5-nano",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=max_tokens,
+        reasoning_effort="low",
+        response_format={"type": "json_object"}
+    )
+
+    content = response.choices[0].message.content
+    print(f"[HustleMate] OpenAI raw response: {repr(content[:200])}...")
+
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        cleaned = content.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return json.loads(cleaned.strip())
+
+
+def _format_inputs(inputs: dict) -> str:
+    """inputs 딕셔너리를 프롬프트용 텍스트로 변환"""
+    lines = []
+    for key, value in inputs.items():
+        if value:
+            lines.append(f"- {key}: {value}")
+    return "\n".join(lines) if lines else "- 정보 없음"
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def hustlemate_generate(request):
+    """
+    부업메이트 콘텐츠 생성 API
+
+    POST /api/hustlemate/generate/
+
+    Request:
+        {
+            "category": "blog" | "youtube" | "coupang" | "smartstore" | "ebook" | "instagram",
+            "subCategory": "맛집" | "제품" | ... (카테고리별 상이),
+            "inputs": { ... 카테고리별 입력 필드 }
+        }
+
+    Response:
+        {
+            "success": true,
+            "result": {
+                "content": "생성된 콘텐츠",
+                "hashtags": [...],  // 인스타그램만
+                "keywords": [...]   // 스마트스토어만
+            }
+        }
+    """
+    try:
+        category = request.data.get('category', '')
+        sub_category = request.data.get('subCategory', 'default')
+        inputs = request.data.get('inputs', {})
+
+        print(f"[HustleMate] Request - category: {category}, subCategory: {sub_category}")
+        print(f"[HustleMate] Inputs: {inputs}")
+
+        # 필수 필드 검증
+        if not category:
+            return Response(
+                {'success': False, 'error': '카테고리를 선택해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if category not in HUSTLEMATE_PROMPTS:
+            return Response(
+                {'success': False, 'error': f'지원하지 않는 카테고리입니다: {category}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not inputs:
+            return Response(
+                {'success': False, 'error': '입력 정보를 제공해주세요'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not OPENAI_API_KEY:
+            return Response(
+                {'success': False, 'error': 'OpenAI API 키가 설정되지 않았습니다'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 프롬프트 선택 (서브카테고리가 없으면 default 사용)
+        category_prompts = HUSTLEMATE_PROMPTS[category]
+
+        # 직접입력인 경우 default 사용
+        if sub_category == '직접입력':
+            sub_category = 'default'
+
+        prompt_template = category_prompts.get(sub_category, category_prompts.get('default'))
+
+        # inputs를 텍스트로 변환
+        inputs_text = _format_inputs(inputs)
+
+        # 프롬프트 생성
+        prompt = prompt_template.format(inputs_text=inputs_text)
+
+        # 토큰 설정 (숏폼은 짧게)
+        max_tokens = 1000 if category == 'instagram' or sub_category == '숏츠' else 1500
+
+        # OpenAI API 호출
+        result = _call_openai_hustlemate(prompt, max_tokens)
+
+        # 응답 구성
+        response_data = {
+            'success': True,
+            'result': {
+                'content': result.get('content', '')
+            }
+        }
+
+        # 인스타그램인 경우 해시태그 추가
+        if category == 'instagram':
+            response_data['result']['hashtags'] = result.get('hashtags', [])
+
+        # 스마트스토어인 경우 키워드 추가
+        if category == 'smartstore':
+            response_data['result']['keywords'] = result.get('keywords', [])
+
+        return Response(response_data)
+
+    except json.JSONDecodeError as e:
+        print(f"[HustleMate] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[HustleMate] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[HustleMate] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
