@@ -4586,3 +4586,188 @@ def accentreduction_correct(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# =============================================================================
+# 스트레스코치 API (StressCoach)
+# =============================================================================
+
+STRESS_CATEGORY_NAMES = {
+    'work': '직장/업무',
+    'relationship': '대인관계',
+    'health': '건강',
+    'finance': '경제/돈',
+    'study': '학업',
+    'custom': '직접입력',
+}
+
+STRESS_CAUSE_NAMES = {
+    'work': {
+        'deadline': '마감 압박',
+        'workload': '업무 과부하',
+        'coworker': '동료 관계',
+        'boss': '상사 관계',
+    },
+    'relationship': {
+        'family': '가족 관계',
+        'friend': '친구 관계',
+        'lover': '연인 관계',
+        'social': '사회적 관계',
+    },
+    'health': {
+        'sleep': '수면 문제',
+        'fatigue': '피로/지침',
+        'illness': '질병/건강',
+        'diet': '식습관',
+    },
+    'finance': {
+        'expense': '지출/소비',
+        'debt': '빚/부채',
+        'income': '수입/급여',
+        'future': '미래 불안',
+    },
+    'study': {
+        'exam': '시험',
+        'assignment': '과제',
+        'grade': '성적',
+        'career': '진로/취업',
+    },
+}
+
+
+def _call_openai_stresscoach(category_name: str, cause_name: str, stress_level: int, description: str) -> dict:
+    """스트레스코치 OpenAI API 호출"""
+    client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    stress_descriptions = {
+        1: '가벼운',
+        2: '약간의',
+        3: '보통의',
+        4: '높은',
+        5: '매우 심한',
+    }
+    stress_desc = stress_descriptions.get(stress_level, '보통의')
+
+    system_prompt = """당신은 공감능력이 뛰어난 스트레스 관리 전문 코치입니다.
+사용자의 스트레스 상황을 분석하고, 따뜻하면서도 실용적인 조언을 제공해주세요.
+
+반드시 다음 JSON 형식으로만 응답하세요:
+{
+  "analysis": "스트레스 상황 분석 (2-3문장, 공감하며 상황을 정리)",
+  "advice": "맞춤 조언 (2-3문장, 구체적이고 실행 가능한 조언)",
+  "keywords": ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5"]
+}
+
+keywords 규칙:
+- 사용자의 스트레스와 관련된 핵심 단어 5~8개
+- 부정적인 감정이나 원인을 나타내는 단어 포함 (예: 압박, 불안, 갈등)
+- 사용자가 버블 터뜨리기로 해소할 수 있도록 짧은 단어로 구성
+- 각 키워드는 2-4글자로 간결하게"""
+
+    user_prompt = f"""[스트레스 상황]
+카테고리: {category_name}
+원인: {cause_name}
+스트레스 강도: {stress_level}/5 ({stress_desc} 스트레스)
+
+상세 설명:
+{description}
+
+위 상황에 대해 분석하고 조언해주세요."""
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-nano",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        max_completion_tokens=2000,
+        temperature=0.7,
+        response_format={"type": "json_object"},
+        reasoning_effort="low"
+    )
+
+    content = response.choices[0].message.content
+    print(f"[StressCoach] OpenAI response: {content[:200]}...")
+
+    return json.loads(content)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def stresscoach_analyze(request):
+    """
+    스트레스코치 - 스트레스 분석 및 조언 API
+
+    POST /api/stresscoach/analyze/
+    """
+    try:
+        # DRF가 camelCase를 snake_case로 변환하므로 둘 다 지원
+        category = request.data.get('category') or request.data.get('category', '')
+        category_name = request.data.get('categoryName') or request.data.get('category_name', '')
+        cause = request.data.get('cause') or request.data.get('cause', '')
+        cause_name = request.data.get('causeName') or request.data.get('cause_name', '')
+        stress_level = request.data.get('stressLevel') or request.data.get('stress_level', 3)
+        description = request.data.get('description', '')
+
+        print(f"[StressCoach] Request - category: {category}, cause: {cause}, level: {stress_level}")
+
+        # 필수 필드 검증
+        if not category or not description:
+            return Response(
+                {'success': False, 'error': '필수 필드가 누락되었습니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 스트레스 레벨 검증
+        try:
+            stress_level = int(stress_level)
+            if stress_level < 1 or stress_level > 5:
+                stress_level = 3
+        except (ValueError, TypeError):
+            stress_level = 3
+
+        # 카테고리/원인 이름 처리
+        if not category_name:
+            category_name = STRESS_CATEGORY_NAMES.get(category, category)
+
+        if not cause_name:
+            if category in STRESS_CAUSE_NAMES and cause in STRESS_CAUSE_NAMES[category]:
+                cause_name = STRESS_CAUSE_NAMES[category][cause]
+            else:
+                cause_name = cause if cause else '기타'
+
+        # OpenAI API 호출
+        result = _call_openai_stresscoach(category_name, cause_name, stress_level, description)
+
+        # 키워드가 부족하면 기본값 추가
+        keywords = result.get('keywords', [])
+        if len(keywords) < 5:
+            default_keywords = ['스트레스', '걱정', '불안', '긴장', '압박']
+            keywords.extend(default_keywords[:5 - len(keywords)])
+
+        return Response({
+            'analysis': result.get('analysis', ''),
+            'advice': result.get('advice', ''),
+            'keywords': keywords[:8]  # 최대 8개
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"[StressCoach] JSON parse error: {e}")
+        return Response(
+            {'success': False, 'error': 'AI 응답 파싱 실패'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except openai.APIError as e:
+        print(f"[StressCoach] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[StressCoach] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -54,6 +54,8 @@ from .views import (
     interviewmoa_evaluate,
     # 말투교정 API
     accentreduction_correct,
+    # 스트레스코치 API
+    stresscoach_analyze,
 )
 
 app_name = 'api'
@@ -140,6 +142,9 @@ urlpatterns = [
 
     # 말투교정 API (AccentReduction)
     path('accentreduction/correct/', accentreduction_correct, name='accentreduction-correct'),  # 말투 교정
+
+    # 스트레스코치 API (StressCoach)
+    path('stresscoach/analyze/', stresscoach_analyze, name='stresscoach-analyze'),  # 스트레스 분석
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
