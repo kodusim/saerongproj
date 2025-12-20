@@ -4680,10 +4680,9 @@ keywords 규칙:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        max_completion_tokens=2000,
+        max_tokens=1000,
         temperature=0.7,
-        response_format={"type": "json_object"},
-        reasoning_effort="low"
+        response_format={"type": "json_object"}
     )
 
     content = response.choices[0].message.content
