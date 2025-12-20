@@ -4675,14 +4675,14 @@ keywords 규칙:
 위 상황에 대해 분석하고 조언해주세요."""
 
     response = client.chat.completions.create(
-        model="gpt-4.1-nano",
+        model="gpt-5-nano",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        max_tokens=1000,
-        temperature=0.7,
-        response_format={"type": "json_object"}
+        max_completion_tokens=5000,
+        response_format={"type": "json_object"},
+        reasoning_effort="low"
     )
 
     content = response.choices[0].message.content
