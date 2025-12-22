@@ -4779,6 +4779,21 @@ def stresscoach_analyze(request):
 from .models import IssueCategory, Issue
 from django.db.models import Q
 from datetime import timedelta
+import re
+
+
+def _convert_media_urls_to_absolute(content: str, base_url: str = 'https://saerong.com') -> str:
+    """
+    Summernote 에디터에서 저장된 상대 경로 이미지를 절대 경로로 변환
+    /media/... -> https://saerong.com/media/...
+    """
+    if not content:
+        return content
+
+    # /media/로 시작하는 src 속성을 절대 경로로 변환
+    pattern = r'src="(/media/[^"]+)"'
+    replacement = f'src="{base_url}\\1"'
+    return re.sub(pattern, replacement, content)
 
 
 @api_view(['GET'])
@@ -4909,10 +4924,13 @@ def issuemoa_issue_detail(request, issue_id):
         # 조회수 증가
         issue.increment_view()
 
+        # 이미지 상대 경로를 절대 경로로 변환
+        content_with_absolute_urls = _convert_media_urls_to_absolute(issue.content)
+
         return Response({
             'id': issue.id,
             'title': issue.title,
-            'content': issue.content,
+            'content': content_with_absolute_urls,
             'date': issue.created_at.strftime('%Y-%m-%d'),
             'viewCount': issue.view_count,
             'category': issue.category.category_id

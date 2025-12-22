@@ -20,7 +20,10 @@
       "Bash(npx granite deploy:*)",
       "Bash(npm run build:*)",
       "Bash(scp:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(./node_modules/.bin/granite build:*)",
+      "Bash(find:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []
