@@ -4770,3 +4770,254 @@ def stresscoach_analyze(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# =============================================================================
+# 이슈모아 API (IssueMoa)
+# =============================================================================
+
+from .models import IssueCategory, Issue
+from django.db.models import Q
+from datetime import timedelta
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def issuemoa_categories(request):
+    """
+    이슈모아 - 카테고리 목록 조회 API
+
+    GET /api/issuemoa/categories/
+    """
+    try:
+        categories = IssueCategory.objects.filter(is_active=True).order_by('order', 'name')
+
+        result = [{
+            'id': cat.category_id,
+            'name': cat.name,
+            'icon': cat.icon
+        } for cat in categories]
+
+        return Response({'categories': result})
+
+    except Exception as e:
+        print(f"[IssueMoa Categories] Error: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def issuemoa_issues(request):
+    """
+    이슈모아 - 이슈 목록 조회 API
+
+    GET /api/issuemoa/issues/?category=entertainment&sort=latest&search=검색어&page=1&limit=20
+    """
+    try:
+        category_id = request.query_params.get('category', '')
+        sort = request.query_params.get('sort', 'latest')
+        search = request.query_params.get('search', '')
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 20))
+
+        # 필수 파라미터 검증
+        if not category_id:
+            return Response(
+                {'success': False, 'error': 'category 파라미터가 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 카테고리 조회
+        try:
+            category = IssueCategory.objects.get(category_id=category_id, is_active=True)
+        except IssueCategory.DoesNotExist:
+            return Response(
+                {'success': False, 'error': '존재하지 않는 카테고리입니다.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 이슈 목록 조회
+        issues = Issue.objects.filter(category=category, is_published=True)
+
+        # 검색 필터
+        if search:
+            issues = issues.filter(
+                Q(title__icontains=search) | Q(preview__icontains=search)
+            )
+
+        # 정렬
+        if sort == 'popular':
+            # 인기순: 최근 일주일 내 조회수 증가량 기준
+            issues = issues.order_by('-weekly_view_count', '-created_at')
+        else:
+            # 최신순 (기본값)
+            issues = issues.order_by('-created_at')
+
+        # 전체 개수
+        total_count = issues.count()
+
+        # 페이지네이션
+        offset = (page - 1) * limit
+        issues = issues[offset:offset + limit]
+
+        result = [{
+            'id': issue.id,
+            'title': issue.title,
+            'preview': issue.preview,
+            'date': issue.created_at.strftime('%Y-%m-%d'),
+            'viewCount': issue.view_count
+        } for issue in issues]
+
+        has_next = offset + limit < total_count
+
+        return Response({
+            'issues': result,
+            'totalCount': total_count,
+            'hasNext': has_next
+        })
+
+    except Exception as e:
+        print(f"[IssueMoa Issues] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def issuemoa_issue_detail(request, issue_id):
+    """
+    이슈모아 - 이슈 상세 조회 API
+
+    GET /api/issuemoa/issues/{id}/
+    """
+    try:
+        try:
+            issue = Issue.objects.select_related('category').get(id=issue_id, is_published=True)
+        except Issue.DoesNotExist:
+            return Response(
+                {'success': False, 'error': '존재하지 않는 이슈입니다.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 조회수 증가
+        issue.increment_view()
+
+        return Response({
+            'id': issue.id,
+            'title': issue.title,
+            'content': issue.content,
+            'date': issue.created_at.strftime('%Y-%m-%d'),
+            'viewCount': issue.view_count,
+            'category': issue.category.category_id
+        })
+
+    except Exception as e:
+        print(f"[IssueMoa Detail] Error: {e}")
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def issuemoa_weekly_summary(request):
+    """
+    이슈모아 - 주간 이슈 요약 API (GPT 분석)
+
+    POST /api/issuemoa/weekly-summary/
+    """
+    try:
+        category_id = request.data.get('category', '')
+
+        if not category_id:
+            return Response(
+                {'success': False, 'error': 'category 필드가 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 카테고리 조회
+        try:
+            category = IssueCategory.objects.get(category_id=category_id, is_active=True)
+        except IssueCategory.DoesNotExist:
+            return Response(
+                {'success': False, 'error': '존재하지 않는 카테고리입니다.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 최근 일주일 이슈 조회
+        from django.utils import timezone
+        one_week_ago = timezone.now() - timedelta(days=7)
+        issues = Issue.objects.filter(
+            category=category,
+            is_published=True,
+            created_at__gte=one_week_ago
+        ).order_by('-view_count')[:20]  # 상위 20개
+
+        if not issues.exists():
+            return Response({
+                'summary': f'이번 주 {category.name} 관련 이슈가 없습니다.',
+                'period': f'{one_week_ago.strftime("%Y-%m-%d")} ~ {timezone.now().strftime("%Y-%m-%d")}',
+                'issueCount': 0
+            })
+
+        # 이슈 내용 수집
+        issue_texts = []
+        for issue in issues:
+            import re
+            clean_content = re.sub(r'<[^>]+>', '', issue.content)[:500]
+            issue_texts.append(f"- {issue.title}: {clean_content}")
+
+        issues_content = "\n".join(issue_texts)
+
+        # OpenAI API 호출
+        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        system_prompt = f"""당신은 {category.name} 분야 전문 뉴스 분석가입니다.
+주어진 이슈들을 분석하여 핵심 내용을 요약해주세요.
+
+응답 규칙:
+- 3-5문장으로 간결하게 요약
+- 가장 중요한 이슈 2-3개를 중심으로 정리
+- 트렌드나 공통 주제가 있다면 언급
+- 반말이 아닌 존댓말로 작성"""
+
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"이번 주 {category.name} 이슈들입니다:\n\n{issues_content}\n\n위 이슈들을 요약해주세요."}
+            ],
+            max_completion_tokens=5000,
+            reasoning_effort="low"
+        )
+
+        summary = response.choices[0].message.content
+
+        return Response({
+            'summary': summary,
+            'period': f'{one_week_ago.strftime("%Y-%m-%d")} ~ {timezone.now().strftime("%Y-%m-%d")}',
+            'issueCount': issues.count()
+        })
+
+    except openai.APIError as e:
+        print(f"[IssueMoa Summary] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[IssueMoa Summary] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

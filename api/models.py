@@ -271,3 +271,65 @@ class SavedRecipe(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.name}"
+
+
+# ============================================
+# 이슈모아 (IssueMoa) 모델
+# ============================================
+
+class IssueCategory(models.Model):
+    """이슈 카테고리"""
+    category_id = models.CharField(max_length=50, unique=True, verbose_name="카테고리 ID")  # 'entertainment', 'game', 'economy'
+    name = models.CharField(max_length=50, verbose_name="카테고리명")  # '연예', '게임', '경제'
+    icon = models.CharField(max_length=10, default='📰', verbose_name="아이콘")  # 이모지
+    order = models.IntegerField(default=0, verbose_name="정렬 순서")
+    is_active = models.BooleanField(default=True, verbose_name="활성화")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
+
+    class Meta:
+        verbose_name = "이슈 카테고리"
+        verbose_name_plural = "이슈 카테고리 목록"
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return f"{self.icon} {self.name}"
+
+
+class Issue(models.Model):
+    """이슈 게시글"""
+    category = models.ForeignKey(
+        IssueCategory,
+        on_delete=models.CASCADE,
+        related_name='issues',
+        verbose_name="카테고리"
+    )
+    title = models.CharField(max_length=200, verbose_name="제목")
+    content = models.TextField(verbose_name="내용")  # Summernote HTML 저장
+    preview = models.CharField(max_length=100, blank=True, verbose_name="미리보기")  # 자동 생성 가능
+    view_count = models.IntegerField(default=0, verbose_name="조회수")
+    weekly_view_count = models.IntegerField(default=0, verbose_name="주간 조회수")  # 인기순 정렬용
+    is_published = models.BooleanField(default=True, verbose_name="공개")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="작성일")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+
+    class Meta:
+        verbose_name = "이슈"
+        verbose_name_plural = "이슈 목록"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.category.name}] {self.title}"
+
+    def save(self, *args, **kwargs):
+        # 미리보기 자동 생성 (HTML 태그 제거 후 100자)
+        if not self.preview and self.content:
+            import re
+            clean_text = re.sub(r'<[^>]+>', '', self.content)
+            self.preview = clean_text[:100].strip()
+        super().save(*args, **kwargs)
+
+    def increment_view(self):
+        """조회수 증가"""
+        self.view_count += 1
+        self.weekly_view_count += 1
+        self.save(update_fields=['view_count', 'weekly_view_count'])

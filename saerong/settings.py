@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "django_celery_beat",
     "django_filters",
+    "django_summernote",
     # local apps
     "common",
     "core",
@@ -293,3 +294,29 @@ KAMIS_API_ID = env.str('KAMIS_API_ID', default='nowfarm')
 # 네이버 데이터랩 API (트렌드 모아용)
 NAVER_CLIENT_ID = env.str('NAVER_CLIENT_ID', default='')
 NAVER_CLIENT_SECRET = env.str('NAVER_CLIENT_SECRET', default='')
+
+# Summernote 에디터 설정 (이슈모아용)
+SUMMERNOTE_CONFIG = {
+    'summernote': {
+        'width': '100%',
+        'height': '400',
+        'toolbar': [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['fontsize', ['fontsize']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture', 'video']],
+            ['view', ['fullscreen', 'codeview', 'help']],
+        ],
+        'fontNames': ['맑은 고딕', 'Noto Sans KR', 'Arial', 'Helvetica'],
+        'fontSizes': ['8', '9', '10', '11', '12', '14', '16', '18', '24', '36'],
+        'lang': 'ko-KR',
+    },
+    'attachment_require_authentication': True,
+    'attachment_filesize_limit': 5 * 1024 * 1024,  # 5MB
+}
+
+X_FRAME_OPTIONS = 'SAMEORIGIN'  # Summernote iframe 허용

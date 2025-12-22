@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import Game, GameCategory, Subscription, PushToken, UserProfile, CarrotBalance, CarrotTransaction
+from django.utils.html import format_html
+from django_summernote.admin import SummernoteModelAdmin
+from .models import (
+    Game, GameCategory, Subscription, PushToken, UserProfile,
+    CarrotBalance, CarrotTransaction, IssueCategory, Issue
+)
 
 
 @admin.register(Game)
@@ -143,3 +148,57 @@ class CarrotTransactionAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser  # 슈퍼유저만 삭제 가능
+
+
+# ============================================
+# 이슈모아 Admin (Summernote 에디터)
+# ============================================
+
+@admin.register(IssueCategory)
+class IssueCategoryAdmin(admin.ModelAdmin):
+    list_display = ['icon', 'name', 'category_id', 'order', 'is_active', 'issue_count', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    list_editable = ['order', 'is_active']
+    search_fields = ['name', 'category_id']
+    ordering = ['order', 'name']
+
+    def issue_count(self, obj):
+        """해당 카테고리의 이슈 수"""
+        return obj.issues.count()
+    issue_count.short_description = '이슈 수'
+
+
+@admin.register(Issue)
+class IssueAdmin(SummernoteModelAdmin):
+    summernote_fields = ('content',)  # Summernote 에디터 적용 필드
+
+    list_display = ['title', 'category', 'view_count', 'weekly_view_count', 'is_published', 'created_at']
+    list_filter = ['category', 'is_published', 'created_at']
+    list_editable = ['is_published']
+    search_fields = ['title', 'content', 'preview']
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('category', 'title', 'is_published')
+        }),
+        ('내용', {
+            'fields': ('content', 'preview'),
+            'description': '미리보기는 비워두면 내용에서 자동 생성됩니다.'
+        }),
+        ('통계', {
+            'fields': ('view_count', 'weekly_view_count'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    readonly_fields = ['view_count', 'weekly_view_count']
+
+    # 주간 조회수 초기화 액션
+    actions = ['reset_weekly_views']
+
+    def reset_weekly_views(self, request, queryset):
+        queryset.update(weekly_view_count=0)
+        self.message_user(request, f"{queryset.count()}개 이슈의 주간 조회수를 초기화했습니다.")
+    reset_weekly_views.short_description = "선택된 이슈의 주간 조회수 초기화"

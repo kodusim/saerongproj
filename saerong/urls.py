@@ -11,6 +11,7 @@ urlpatterns = [
     path("subcategory/<slug:slug>/", subcategory_detail, name="subcategory_detail"),  # 중분류 상세
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
+    path("summernote/", include("django_summernote.urls")),  # Summernote 에디터
     path("api/", include("api.urls")),  # API 엔드포인트
 ]
 

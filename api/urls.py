@@ -56,6 +56,11 @@ from .views import (
     accentreduction_correct,
     # 스트레스코치 API
     stresscoach_analyze,
+    # 이슈모아 API
+    issuemoa_categories,
+    issuemoa_issues,
+    issuemoa_issue_detail,
+    issuemoa_weekly_summary,
 )
 
 app_name = 'api'
@@ -145,6 +150,12 @@ urlpatterns = [
 
     # 스트레스코치 API (StressCoach)
     path('stresscoach/analyze/', stresscoach_analyze, name='stresscoach-analyze'),  # 스트레스 분석
+
+    # 이슈모아 API (IssueMoa)
+    path('issuemoa/categories/', issuemoa_categories, name='issuemoa-categories'),  # 카테고리 목록
+    path('issuemoa/issues/', issuemoa_issues, name='issuemoa-issues'),  # 이슈 목록
+    path('issuemoa/issues/<int:issue_id>/', issuemoa_issue_detail, name='issuemoa-issue-detail'),  # 이슈 상세
+    path('issuemoa/weekly-summary/', issuemoa_weekly_summary, name='issuemoa-weekly-summary'),  # 주간 요약
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]
