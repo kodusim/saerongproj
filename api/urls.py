@@ -61,6 +61,8 @@ from .views import (
     issuemoa_issues,
     issuemoa_issue_detail,
     issuemoa_weekly_summary,
+    # PDF 분석 API (Python GUI용)
+    analyze_pdf,
 )
 
 app_name = 'api'
@@ -156,6 +158,9 @@ urlpatterns = [
     path('issuemoa/issues/', issuemoa_issues, name='issuemoa-issues'),  # 이슈 목록
     path('issuemoa/issues/<int:issue_id>/', issuemoa_issue_detail, name='issuemoa-issue-detail'),  # 이슈 상세
     path('issuemoa/weekly-summary/', issuemoa_weekly_summary, name='issuemoa-weekly-summary'),  # 주간 요약
+
+    # PDF 분석 API (Python GUI용)
+    path('analyze-pdf/', analyze_pdf, name='analyze-pdf'),  # PDF 분석
 
     path('<slug:slug>/', subcategory_data_api, name='subcategory-data'),  # 중분류 데이터 API
 ]

@@ -5039,3 +5039,174 @@ def issuemoa_weekly_summary(request):
             {'success': False, 'error': f'서버 오류: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# =============================================================================
+# PDF 분석 API (Python GUI용)
+# =============================================================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def analyze_pdf(request):
+    """
+    PDF 분석 API - 표 추출 및 분석
+
+    POST /api/analyze-pdf/
+    Content-Type: multipart/form-data
+
+    Parameters:
+        - file: PDF 파일 (필수)
+        - command: 사용자 명령어 (필수, 예: "표를 추출해줘")
+
+    Returns:
+        {
+            "success": true,
+            "sheets": [
+                {
+                    "sheet_name": "시트 이름",
+                    "headers": ["열1", "열2"],
+                    "rows": [["값1", "값2"], ...]
+                }
+            ],
+            "summary": "처리 결과 요약"
+        }
+    """
+    try:
+        # 파일 및 명령어 검증
+        if 'file' not in request.FILES:
+            return Response(
+                {'success': False, 'error': 'PDF 파일이 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        command = request.data.get('command', '')
+        if not command:
+            return Response(
+                {'success': False, 'error': 'command 필드가 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        pdf_file = request.FILES['file']
+
+        # 파일 크기 제한 (20MB)
+        if pdf_file.size > 20 * 1024 * 1024:
+            return Response(
+                {'success': False, 'error': '파일 크기는 20MB 이하여야 합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # PDF 확장자 확인
+        if not pdf_file.name.lower().endswith('.pdf'):
+            return Response(
+                {'success': False, 'error': 'PDF 파일만 업로드 가능합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # pdfplumber로 PDF에서 텍스트 및 표 추출
+        import pdfplumber
+        import io
+
+        pdf_content = pdf_file.read()
+        extracted_tables = []
+        full_text = []
+
+        with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+            for page_num, page in enumerate(pdf.pages, 1):
+                # 텍스트 추출
+                page_text = page.extract_text()
+                if page_text:
+                    full_text.append(f"[페이지 {page_num}]\n{page_text}")
+
+                # 표 추출
+                tables = page.extract_tables()
+                for table_idx, table in enumerate(tables):
+                    if table and len(table) > 0:
+                        # 첫 번째 행을 헤더로 사용
+                        headers = table[0] if table[0] else []
+                        rows = table[1:] if len(table) > 1 else []
+
+                        # None 값을 빈 문자열로 변환
+                        headers = [str(h) if h else '' for h in headers]
+                        rows = [[str(cell) if cell else '' for cell in row] for row in rows]
+
+                        extracted_tables.append({
+                            'sheet_name': f'페이지{page_num}_표{table_idx + 1}',
+                            'headers': headers,
+                            'rows': rows
+                        })
+
+        # 추출된 내용을 OpenAI에 전달하여 분석
+        combined_text = '\n\n'.join(full_text)
+
+        # 텍스트가 너무 길면 잘라내기 (토큰 제한)
+        max_text_length = 15000
+        if len(combined_text) > max_text_length:
+            combined_text = combined_text[:max_text_length] + "\n\n... (이하 생략)"
+
+        # 표 정보를 문자열로 변환
+        tables_info = ""
+        if extracted_tables:
+            tables_info = "\n\n[추출된 표 정보]\n"
+            for table in extracted_tables:
+                tables_info += f"\n{table['sheet_name']}:\n"
+                tables_info += f"헤더: {', '.join(table['headers'])}\n"
+                tables_info += f"데이터 행 수: {len(table['rows'])}개\n"
+
+        # OpenAI API 호출
+        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        system_prompt = """당신은 PDF 문서 분석 전문가입니다.
+사용자가 업로드한 PDF의 내용과 추출된 표 정보를 바탕으로 사용자의 요청을 수행해주세요.
+
+응답 규칙:
+1. 사용자의 명령에 맞게 정확하게 분석
+2. 표 데이터가 있다면 구조화하여 정리
+3. 핵심 내용을 간결하게 요약
+4. 한국어로 응답"""
+
+        user_message = f"""[사용자 명령]
+{command}
+
+[PDF 내용]
+{combined_text}
+{tables_info}
+
+위 PDF 내용을 바탕으로 사용자의 요청을 수행해주세요."""
+
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            max_completion_tokens=5000,
+            reasoning_effort="low"
+        )
+
+        summary = response.choices[0].message.content
+
+        return Response({
+            'success': True,
+            'sheets': extracted_tables,
+            'summary': summary
+        })
+
+    except ImportError:
+        return Response(
+            {'success': False, 'error': 'pdfplumber 라이브러리가 설치되지 않았습니다.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    except openai.APIError as e:
+        print(f"[PDF Analyze] OpenAI API error: {e}")
+        return Response(
+            {'success': False, 'error': f'AI 서비스 오류: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        print(f"[PDF Analyze] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'success': False, 'error': f'서버 오류: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
