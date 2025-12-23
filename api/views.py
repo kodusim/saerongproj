@@ -5174,13 +5174,12 @@ def analyze_pdf(request):
 위 PDF 내용을 바탕으로 사용자의 요청을 수행해주세요."""
 
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_completion_tokens=16000,
-            reasoning_effort="low"
+            max_tokens=4000
         )
 
         summary = response.choices[0].message.content
