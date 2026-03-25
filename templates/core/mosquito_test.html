@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAERONG - 모기 테스트</title>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 0;
+        margin: 0;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 60px 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 30px;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .header h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 20px;
+        letter-spacing: -1px;
+    }
+
+    .header p {
+        font-size: 1.3rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 300;
+    }
+
+    .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 50px;
+        animation: fadeInUp 0.6s ease 0.1s both;
+    }
+
+    .nav-tab {
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .nav-tab:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .nav-tab.active {
+        background: white;
+        color: #667eea;
+        border-color: white;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .test-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 800px;
+        margin: 0 auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        animation: fadeInUp 0.8s ease 0.2s both;
+    }
+
+    .test-card h2 {
+        font-size: 1.8rem;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+
+    .test-card .subtitle {
+        color: #718096;
+        font-size: 1rem;
+        margin-bottom: 30px;
+    }
+
+    .question-section {
+        margin-bottom: 30px;
+    }
+
+    .question {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 15px;
+    }
+
+    .question-number {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 28px;
+        font-size: 0.85rem;
+        margin-right: 10px;
+    }
+
+    .options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .option-label {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 1rem;
+        color: #4a5568;
+    }
+
+    .option-label:hover {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+    .option-label input[type="radio"] {
+        margin-right: 12px;
+        accent-color: #667eea;
+        width: 18px;
+        height: 18px;
+    }
+
+    .option-label.selected {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.08);
+        color: #2d3748;
+        font-weight: 500;
+    }
+
+    .submit-btn {
+        display: block;
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.15rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 30px;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* 결과 영역 */
+    .result-section {
+        display: none;
+        text-align: center;
+        padding: 40px 20px;
+        animation: fadeInUp 0.5s ease;
+    }
+
+    .result-section.show {
+        display: block;
+    }
+
+    .result-icon {
+        font-size: 5rem;
+        margin-bottom: 20px;
+    }
+
+    .result-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+
+    .result-score {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+    }
+
+    .result-desc {
+        font-size: 1.1rem;
+        color: #718096;
+        line-height: 1.7;
+        margin-bottom: 25px;
+    }
+
+    .retry-btn {
+        display: inline-block;
+        padding: 12px 30px;
+        background: transparent;
+        color: #667eea;
+        border: 2px solid #667eea;
+        border-radius: 50px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .retry-btn:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .progress-bar-container {
+        background: #e2e8f0;
+        border-radius: 10px;
+        height: 8px;
+        margin-bottom: 30px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 10px;
+        transition: width 0.4s ease;
+    }
+
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .header h1 { font-size: 2.2rem; }
+        .header p { font-size: 1rem; }
+        .test-card { padding: 25px 20px; }
+        .test-card h2 { font-size: 1.4rem; }
+        .nav-tabs { gap: 10px; }
+        .nav-tab { padding: 10px 20px; font-size: 0.95rem; }
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1>SAERONG 데이터 센터</h1>
+        <p>다양한 카테고리의 실시간 데이터를 한눈에</p>
+    </div>
+
+    <!-- 네비게이션 탭 -->
+    <div class="nav-tabs">
+        <a href="/" class="nav-tab">데이터 센터</a>
+        <a href="/mosquito-test/" class="nav-tab active">모기 테스트</a>
+    </div>
+
+    <div class="test-card">
+        <!-- 진행 바 -->
+        <div class="progress-bar-container">
+            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <h2>나는 모기에게 얼마나 잘 물릴까?</h2>
+        <p class="subtitle">간단한 질문에 답하고 당신의 모기 유혹 지수를 알아보세요</p>
+
+        <form id="mosquitoForm">
+            <!-- Q1 -->
+            <div class="question-section" data-q="1">
+                <div class="question">
+                    <span class="question-number">1</span>혈액형이 무엇인가요?
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q1" value="4"> O형</label>
+                    <label class="option-label"><input type="radio" name="q1" value="3"> B형</label>
+                    <label class="option-label"><input type="radio" name="q1" value="2"> AB형</label>
+                    <label class="option-label"><input type="radio" name="q1" value="1"> A형</label>
+                </div>
+            </div>
+
+            <!-- Q2 -->
+            <div class="question-section" data-q="2">
+                <div class="question">
+                    <span class="question-number">2</span>체온이 높은 편인가요?
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q2" value="4"> 매우 높다 (37.0 이상)</label>
+                    <label class="option-label"><input type="radio" name="q2" value="3"> 약간 높은 편</label>
+                    <label class="option-label"><input type="radio" name="q2" value="2"> 보통</label>
+                    <label class="option-label"><input type="radio" name="q2" value="1"> 낮은 편</label>
+                </div>
+            </div>
+
+            <!-- Q3 -->
+            <div class="question-section" data-q="3">
+                <div class="question">
+                    <span class="question-number">3</span>땀을 잘 흘리는 편인가요?
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q3" value="4"> 매우 많이 흘린다</label>
+                    <label class="option-label"><input type="radio" name="q3" value="3"> 꽤 흘리는 편</label>
+                    <label class="option-label"><input type="radio" name="q3" value="2"> 보통</label>
+                    <label class="option-label"><input type="radio" name="q3" value="1"> 거의 안 흘린다</label>
+                </div>
+            </div>
+
+            <!-- Q4 -->
+            <div class="question-section" data-q="4">
+                <div class="question">
+                    <span class="question-number">4</span>어두운 색 옷을 자주 입나요?
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q4" value="4"> 거의 항상 검정/어두운 색</label>
+                    <label class="option-label"><input type="radio" name="q4" value="3"> 자주 입는 편</label>
+                    <label class="option-label"><input type="radio" name="q4" value="2"> 반반</label>
+                    <label class="option-label"><input type="radio" name="q4" value="1"> 밝은 색을 선호</label>
+                </div>
+            </div>
+
+            <!-- Q5 -->
+            <div class="question-section" data-q="5">
+                <div class="question">
+                    <span class="question-number">5</span>음주를 자주 하시나요?
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q5" value="4"> 거의 매일</label>
+                    <label class="option-label"><input type="radio" name="q5" value="3"> 주 2~3회</label>
+                    <label class="option-label"><input type="radio" name="q5" value="2"> 가끔</label>
+                    <label class="option-label"><input type="radio" name="q5" value="1"> 안 마심</label>
+                </div>
+            </div>
+
+            <!-- Q6 -->
+            <div class="question-section" data-q="6">
+                <div class="question">
+                    <span class="question-number">6</span>이산화탄소 배출량 (호흡/체격)
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q6" value="4"> 체격이 크고 호흡이 거친 편</label>
+                    <label class="option-label"><input type="radio" name="q6" value="3"> 체격이 큰 편</label>
+                    <label class="option-label"><input type="radio" name="q6" value="2"> 보통 체격</label>
+                    <label class="option-label"><input type="radio" name="q6" value="1"> 체격이 작은 편</label>
+                </div>
+            </div>
+
+            <!-- Q7 -->
+            <div class="question-section" data-q="7">
+                <div class="question">
+                    <span class="question-number">7</span>야외 활동을 자주 하시나요?
+                </div>
+                <div class="options">
+                    <label class="option-label"><input type="radio" name="q7" value="4"> 매일 야외 활동</label>
+                    <label class="option-label"><input type="radio" name="q7" value="3"> 자주 하는 편</label>
+                    <label class="option-label"><input type="radio" name="q7" value="2"> 가끔</label>
+                    <label class="option-label"><input type="radio" name="q7" value="1"> 거의 실내 생활</label>
+                </div>
+            </div>
+
+            <button type="button" class="submit-btn" id="submitBtn" onclick="showResult()" disabled>결과 보기</button>
+        </form>
+
+        <!-- 결과 -->
+        <div class="result-section" id="resultSection">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-score" id="resultScore"></div>
+            <div class="result-desc" id="resultDesc"></div>
+            <button class="retry-btn" onclick="retryTest()">다시 테스트하기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 하단 광고 -->
+<div style="max-width: 1400px; margin: 40px auto; text-align: center; padding: 0 20px;">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-7308084694640774"
+         data-ad-slot="4815636961"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+
+<script>
+    const totalQuestions = 7;
+    const form = document.getElementById('mosquitoForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const progressBar = document.getElementById('progressBar');
+
+    // 라디오 선택 시 스타일 + 진행바 업데이트
+    form.addEventListener('change', function(e) {
+        if (e.target.type === 'radio') {
+            // 같은 그룹의 다른 라벨 초기화
+            const name = e.target.name;
+            document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+                input.closest('.option-label').classList.remove('selected');
+            });
+            e.target.closest('.option-label').classList.add('selected');
+
+            // 진행바 업데이트
+            const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+            progressBar.style.width = (answered / totalQuestions * 100) + '%';
+
+            // 모두 답했으면 버튼 활성화
+            submitBtn.disabled = (answered < totalQuestions);
+        }
+    });
+
+    function showResult() {
+        let total = 0;
+        for (let i = 1; i <= totalQuestions; i++) {
+            const selected = document.querySelector(`input[name="q${i}"]:checked`);
+            if (selected) total += parseInt(selected.value);
+        }
+
+        const maxScore = totalQuestions * 4;
+        const percent = Math.round((total / maxScore) * 100);
+
+        let icon, title, desc;
+
+        if (percent >= 80) {
+            icon = '🦟🔥';
+            title = '모기 자석 레벨!';
+            desc = '당신은 모기들의 최애입니다. 여름에는 반드시 모기 기피제를 상비하세요! O형 혈액, 높은 체온, 땀, CO2 배출량 등 모기가 좋아하는 조건을 두루 갖추고 있습니다.';
+        } else if (percent >= 60) {
+            icon = '🦟';
+            title = '모기 인기인';
+            desc = '평균 이상으로 모기에게 인기가 많습니다. 야외 활동 시 밝은 옷을 입고 모기 기피제를 사용하면 도움이 됩니다.';
+        } else if (percent >= 40) {
+            icon = '😐';
+            title = '보통 수준';
+            desc = '모기에게 특별히 인기 있지도, 없지도 않습니다. 기본적인 방충 대책만으로도 충분할 수 있어요.';
+        } else {
+            icon = '🛡️';
+            title = '모기 방어막 보유!';
+            desc = '축하합니다! 모기에게 비교적 덜 물리는 체질입니다. 하지만 방심은 금물, 기본 예방은 항상 중요합니다.';
+        }
+
+        document.getElementById('resultIcon').textContent = icon;
+        document.getElementById('resultTitle').textContent = title;
+        document.getElementById('resultScore').textContent = `모기 유혹 지수: ${percent}점`;
+        document.getElementById('resultDesc').textContent = desc;
+
+        document.getElementById('mosquitoForm').style.display = 'none';
+        document.getElementById('resultSection').classList.add('show');
+        progressBar.style.width = '100%';
+    }
+
+    function retryTest() {
+        form.reset();
+        document.querySelectorAll('.option-label').forEach(el => el.classList.remove('selected'));
+        document.getElementById('mosquitoForm').style.display = 'block';
+        document.getElementById('resultSection').classList.remove('show');
+        submitBtn.disabled = true;
+        progressBar.style.width = '0%';
+    }
+</script>
+
+</body>
+</html>

@@ -51,6 +51,40 @@
         font-weight: 300;
     }
 
+    .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 50px;
+        animation: fadeInUp 0.6s ease 0.1s both;
+    }
+
+    .nav-tab {
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .nav-tab:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .nav-tab.active {
+        background: white;
+        color: #667eea;
+        border-color: white;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    }
+
     .categories-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -453,6 +487,12 @@
     <div class="header">
         <h1>SAERONG 데이터 센터</h1>
         <p>다양한 카테고리의 실시간 데이터를 한눈에</p>
+    </div>
+
+    <!-- 네비게이션 탭 -->
+    <div class="nav-tabs">
+        <a href="/" class="nav-tab active">데이터 센터</a>
+        <a href="/mosquito-test/" class="nav-tab">모기 테스트</a>
     </div>
 
     <!-- 크롤러 상태 대시보드 -->

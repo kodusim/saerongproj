@@ -173,6 +173,11 @@ def subcategory_detail(request, slug):
     return render(request, 'core/subcategory_detail.html', context)
 
 
+def mosquito_test(request):
+    """모기 테스트 페이지"""
+    return render(request, 'core/mosquito_test.html')
+
+
 def game_notices(request):
     """게임 공지사항 페이지"""
     # 메이플스토리 공지사항

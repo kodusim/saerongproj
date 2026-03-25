@@ -3,12 +3,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from core.views import dashboard, category_detail, subcategory_detail, game_notices
+from core.views import dashboard, category_detail, subcategory_detail, game_notices, mosquito_test
 
 urlpatterns = [
     path("", dashboard, name="dashboard"),  # 메인 대시보드
     path("category/<slug:slug>/", category_detail, name="category_detail"),  # 대분류 상세
     path("subcategory/<slug:slug>/", subcategory_detail, name="subcategory_detail"),  # 중분류 상세
+    path("mosquito-test/", mosquito_test, name="mosquito_test"),  # 모기 테스트
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터
