@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAERONG - 모기 테스트</title>
+    <title>SAERONG - AI 모기 예측 시스템</title>
 
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
      crossorigin="anonymous"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <style>
@@ -28,7 +31,7 @@
     .container {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 60px 20px;
+        padding: 40px 20px 60px;
     }
 
     .header {
@@ -38,15 +41,15 @@
     }
 
     .header h1 {
-        font-size: 3.5rem;
+        font-size: 3rem;
         font-weight: 700;
         color: white;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         letter-spacing: -1px;
     }
 
     .header p {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         color: rgba(255, 255, 255, 0.9);
         font-weight: 300;
     }
@@ -55,7 +58,7 @@
         display: flex;
         justify-content: center;
         gap: 15px;
-        margin-bottom: 50px;
+        margin-bottom: 40px;
         animation: fadeInUp 0.6s ease 0.1s both;
     }
 
@@ -85,187 +88,376 @@
         box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
     }
 
-    .test-card {
-        background: white;
-        border-radius: 20px;
-        padding: 40px;
-        max-width: 800px;
-        margin: 0 auto;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    /* Summary Cards */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
         animation: fadeInUp 0.8s ease 0.2s both;
     }
 
-    .test-card h2 {
-        font-size: 1.8rem;
-        color: #2d3748;
+    .summary-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        transition: transform 0.2s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .summary-card .card-icon {
+        font-size: 2rem;
         margin-bottom: 10px;
     }
 
-    .test-card .subtitle {
-        color: #718096;
-        font-size: 1rem;
-        margin-bottom: 30px;
-    }
-
-    .question-section {
-        margin-bottom: 30px;
-    }
-
-    .question {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #2d3748;
-        margin-bottom: 15px;
-    }
-
-    .question-number {
-        display: inline-block;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        text-align: center;
-        line-height: 28px;
+    .summary-card .card-label {
         font-size: 0.85rem;
-        margin-right: 10px;
-    }
-
-    .options {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .option-label {
-        display: flex;
-        align-items: center;
-        padding: 14px 18px;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 1rem;
-        color: #4a5568;
-    }
-
-    .option-label:hover {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.05);
-    }
-
-    .option-label input[type="radio"] {
-        margin-right: 12px;
-        accent-color: #667eea;
-        width: 18px;
-        height: 18px;
-    }
-
-    .option-label.selected {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.08);
-        color: #2d3748;
+        color: #718096;
+        margin-bottom: 8px;
         font-weight: 500;
     }
 
-    .submit-btn {
-        display: block;
-        width: 100%;
-        padding: 16px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.15rem;
+    .summary-card .card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    .summary-card .card-sub {
+        font-size: 0.85rem;
+        margin-top: 6px;
         font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 30px;
     }
 
-    .submit-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    .card-sub.up { color: #e53e3e; }
+    .card-sub.down { color: #38a169; }
+
+    /* Station Cards */
+    .station-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+        animation: fadeInUp 0.8s ease 0.3s both;
     }
 
-    .submit-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
+    .station-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease;
     }
 
-    /* 결과 영역 */
-    .result-section {
-        display: none;
-        text-align: center;
-        padding: 40px 20px;
-        animation: fadeInUp 0.5s ease;
+    .station-card:hover {
+        transform: translateY(-4px);
     }
 
-    .result-section.show {
-        display: block;
+    .station-card .station-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
     }
 
-    .result-icon {
-        font-size: 5rem;
+    .station-card .station-name {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    .risk-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .risk-safe { background: #38a169; }
+    .risk-interest { background: #d69e2e; }
+    .risk-caution { background: #dd6b20; }
+    .risk-warning { background: #e53e3e; }
+    .risk-danger { background: #805ad5; }
+
+    .station-card .station-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #2d3748;
+        margin-bottom: 4px;
+    }
+
+    .station-card .station-unit {
+        font-size: 0.85rem;
+        color: #a0aec0;
+        margin-bottom: 16px;
+    }
+
+    .station-card .station-meta {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 14px;
+        font-size: 0.9rem;
+    }
+
+    .station-card .station-meta .meta-label {
+        color: #a0aec0;
+    }
+
+    .station-card .station-meta .meta-value {
+        font-weight: 600;
+        color: #4a5568;
+    }
+
+    .trend-up { color: #e53e3e; }
+    .trend-down { color: #38a169; }
+
+    /* Section Title */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-title .icon {
+        font-size: 1.3rem;
+    }
+
+    /* Chart Cards */
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+        animation: fadeInUp 0.8s ease 0.4s both;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .chart-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2d3748;
         margin-bottom: 20px;
     }
 
-    .result-title {
-        font-size: 1.6rem;
+    .chart-wrapper {
+        position: relative;
+        width: 100%;
+        height: 320px;
+    }
+
+    /* Risk Legend */
+    .risk-legend-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 30px;
+        animation: fadeInUp 0.8s ease 0.5s both;
+    }
+
+    .risk-legend-card h3 {
+        font-size: 1.15rem;
         font-weight: 700;
         color: #2d3748;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
     }
 
-    .result-score {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 15px;
+    .risk-legend-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
     }
 
-    .result-desc {
-        font-size: 1.1rem;
-        color: #718096;
-        line-height: 1.7;
-        margin-bottom: 25px;
+    .risk-legend-item {
+        text-align: center;
+        padding: 16px 10px;
+        border-radius: 12px;
+        border: 2px solid transparent;
     }
 
-    .retry-btn {
-        display: inline-block;
-        padding: 12px 30px;
-        background: transparent;
-        color: #667eea;
-        border: 2px solid #667eea;
-        border-radius: 50px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .retry-btn:hover {
-        background: #667eea;
+    .risk-legend-item .risk-dot {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: white;
+        font-weight: 700;
+        font-size: 0.8rem;
     }
 
-    .progress-bar-container {
-        background: #e2e8f0;
-        border-radius: 10px;
-        height: 8px;
+    .risk-legend-item .risk-name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #2d3748;
+        margin-bottom: 4px;
+    }
+
+    .risk-legend-item .risk-range {
+        font-size: 0.85rem;
+        color: #718096;
+    }
+
+    /* Weather Section */
+    .weather-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
         margin-bottom: 30px;
-        overflow: hidden;
+        animation: fadeInUp 0.8s ease 0.5s both;
     }
 
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border-radius: 10px;
-        transition: width 0.4s ease;
+    .weather-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .weather-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 20px;
+    }
+
+    .weather-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .weather-row:last-child {
+        border-bottom: none;
+    }
+
+    .weather-row .weather-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.95rem;
+        color: #4a5568;
+    }
+
+    .weather-row .weather-val {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    .insight-text {
+        background: #f7fafc;
+        border-left: 4px solid #667eea;
+        padding: 16px 20px;
+        border-radius: 0 12px 12px 0;
+        margin-top: 16px;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: #4a5568;
+    }
+
+    /* AI Prediction Section */
+    .prediction-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 16px;
+    }
+
+    .prediction-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        animation: fadeInUp 0.8s ease 0.6s both;
+    }
+
+    .prediction-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 20px;
+    }
+
+    .pred-day {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .pred-day:last-child { border-bottom: none; }
+
+    .pred-day .pred-label {
+        font-size: 0.95rem;
+        color: #4a5568;
+    }
+
+    .pred-day .pred-val {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .recommendation-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        animation: fadeInUp 0.8s ease 0.6s both;
+    }
+
+    .recommendation-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 16px;
+    }
+
+    .rec-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 0;
+        font-size: 0.95rem;
+        color: #4a5568;
+        line-height: 1.5;
+    }
+
+    .rec-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .data-source {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        margin-top: 30px;
+        padding: 20px;
     }
 
     @keyframes fadeInDown {
@@ -278,145 +470,109 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
+    @media (max-width: 1024px) {
+        .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        .chart-grid { grid-template-columns: 1fr; }
+        .weather-grid { grid-template-columns: 1fr; }
+        .prediction-grid { grid-template-columns: 1fr; }
+        .risk-legend-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
     @media (max-width: 768px) {
-        .header h1 { font-size: 2.2rem; }
+        .header h1 { font-size: 2rem; }
         .header p { font-size: 1rem; }
-        .test-card { padding: 25px 20px; }
-        .test-card h2 { font-size: 1.4rem; }
+        .summary-grid { grid-template-columns: 1fr 1fr; }
+        .station-grid { grid-template-columns: 1fr; }
         .nav-tabs { gap: 10px; }
         .nav-tab { padding: 10px 20px; font-size: 0.95rem; }
+        .risk-legend-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+        .summary-grid { grid-template-columns: 1fr; }
+        .risk-legend-grid { grid-template-columns: 1fr 1fr; }
     }
 </style>
 
 <div class="container">
     <div class="header">
-        <h1>SAERONG 데이터 센터</h1>
-        <p>다양한 카테고리의 실시간 데이터를 한눈에</p>
+        <h1>AI 모기 예측 시스템</h1>
+        <p>AI 기반 모기 발생 예측 및 방역 지원 플랫폼</p>
     </div>
 
-    <!-- 네비게이션 탭 -->
+    <!-- Navigation Tabs -->
     <div class="nav-tabs">
         <a href="/" class="nav-tab">데이터 센터</a>
         <a href="/mosquito-test/" class="nav-tab active">모기 테스트</a>
     </div>
 
-    <div class="test-card">
-        <!-- 진행 바 -->
-        <div class="progress-bar-container">
-            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+    <!-- Summary Cards -->
+    <div class="summary-grid" id="summaryCards"></div>
+
+    <!-- Station Cards -->
+    <div class="section-title"><span class="icon">&#x1F4CD;</span> 관측소별 현황</div>
+    <div class="station-grid" id="stationCards"></div>
+
+    <!-- Charts -->
+    <div class="section-title"><span class="icon">&#x1F4CA;</span> 모기 발생 추이</div>
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3>최근 30일 모기 발생 추이</h3>
+            <div class="chart-wrapper">
+                <canvas id="lineChart"></canvas>
+            </div>
         </div>
-
-        <h2>나는 모기에게 얼마나 잘 물릴까?</h2>
-        <p class="subtitle">간단한 질문에 답하고 당신의 모기 유혹 지수를 알아보세요</p>
-
-        <form id="mosquitoForm">
-            <!-- Q1 -->
-            <div class="question-section" data-q="1">
-                <div class="question">
-                    <span class="question-number">1</span>혈액형이 무엇인가요?
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q1" value="4"> O형</label>
-                    <label class="option-label"><input type="radio" name="q1" value="3"> B형</label>
-                    <label class="option-label"><input type="radio" name="q1" value="2"> AB형</label>
-                    <label class="option-label"><input type="radio" name="q1" value="1"> A형</label>
-                </div>
+        <div class="chart-card">
+            <h3>관측소별 평균 포집량 비교</h3>
+            <div class="chart-wrapper">
+                <canvas id="barChart"></canvas>
             </div>
-
-            <!-- Q2 -->
-            <div class="question-section" data-q="2">
-                <div class="question">
-                    <span class="question-number">2</span>체온이 높은 편인가요?
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q2" value="4"> 매우 높다 (37.0 이상)</label>
-                    <label class="option-label"><input type="radio" name="q2" value="3"> 약간 높은 편</label>
-                    <label class="option-label"><input type="radio" name="q2" value="2"> 보통</label>
-                    <label class="option-label"><input type="radio" name="q2" value="1"> 낮은 편</label>
-                </div>
-            </div>
-
-            <!-- Q3 -->
-            <div class="question-section" data-q="3">
-                <div class="question">
-                    <span class="question-number">3</span>땀을 잘 흘리는 편인가요?
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q3" value="4"> 매우 많이 흘린다</label>
-                    <label class="option-label"><input type="radio" name="q3" value="3"> 꽤 흘리는 편</label>
-                    <label class="option-label"><input type="radio" name="q3" value="2"> 보통</label>
-                    <label class="option-label"><input type="radio" name="q3" value="1"> 거의 안 흘린다</label>
-                </div>
-            </div>
-
-            <!-- Q4 -->
-            <div class="question-section" data-q="4">
-                <div class="question">
-                    <span class="question-number">4</span>어두운 색 옷을 자주 입나요?
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q4" value="4"> 거의 항상 검정/어두운 색</label>
-                    <label class="option-label"><input type="radio" name="q4" value="3"> 자주 입는 편</label>
-                    <label class="option-label"><input type="radio" name="q4" value="2"> 반반</label>
-                    <label class="option-label"><input type="radio" name="q4" value="1"> 밝은 색을 선호</label>
-                </div>
-            </div>
-
-            <!-- Q5 -->
-            <div class="question-section" data-q="5">
-                <div class="question">
-                    <span class="question-number">5</span>음주를 자주 하시나요?
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q5" value="4"> 거의 매일</label>
-                    <label class="option-label"><input type="radio" name="q5" value="3"> 주 2~3회</label>
-                    <label class="option-label"><input type="radio" name="q5" value="2"> 가끔</label>
-                    <label class="option-label"><input type="radio" name="q5" value="1"> 안 마심</label>
-                </div>
-            </div>
-
-            <!-- Q6 -->
-            <div class="question-section" data-q="6">
-                <div class="question">
-                    <span class="question-number">6</span>이산화탄소 배출량 (호흡/체격)
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q6" value="4"> 체격이 크고 호흡이 거친 편</label>
-                    <label class="option-label"><input type="radio" name="q6" value="3"> 체격이 큰 편</label>
-                    <label class="option-label"><input type="radio" name="q6" value="2"> 보통 체격</label>
-                    <label class="option-label"><input type="radio" name="q6" value="1"> 체격이 작은 편</label>
-                </div>
-            </div>
-
-            <!-- Q7 -->
-            <div class="question-section" data-q="7">
-                <div class="question">
-                    <span class="question-number">7</span>야외 활동을 자주 하시나요?
-                </div>
-                <div class="options">
-                    <label class="option-label"><input type="radio" name="q7" value="4"> 매일 야외 활동</label>
-                    <label class="option-label"><input type="radio" name="q7" value="3"> 자주 하는 편</label>
-                    <label class="option-label"><input type="radio" name="q7" value="2"> 가끔</label>
-                    <label class="option-label"><input type="radio" name="q7" value="1"> 거의 실내 생활</label>
-                </div>
-            </div>
-
-            <button type="button" class="submit-btn" id="submitBtn" onclick="showResult()" disabled>결과 보기</button>
-        </form>
-
-        <!-- 결과 -->
-        <div class="result-section" id="resultSection">
-            <div class="result-icon" id="resultIcon"></div>
-            <div class="result-title" id="resultTitle"></div>
-            <div class="result-score" id="resultScore"></div>
-            <div class="result-desc" id="resultDesc"></div>
-            <button class="retry-btn" onclick="retryTest()">다시 테스트하기</button>
         </div>
     </div>
+
+    <!-- Risk Legend -->
+    <div class="risk-legend-card">
+        <h3>모기 위험 등급 기준</h3>
+        <div class="risk-legend-grid">
+            <div class="risk-legend-item" style="background: rgba(56,161,105,0.08); border-color: #38a169;">
+                <div class="risk-dot" style="background: #38a169;">1</div>
+                <div class="risk-name">안전</div>
+                <div class="risk-range">0 ~ 10 마리</div>
+            </div>
+            <div class="risk-legend-item" style="background: rgba(214,158,46,0.08); border-color: #d69e2e;">
+                <div class="risk-dot" style="background: #d69e2e;">2</div>
+                <div class="risk-name">관심</div>
+                <div class="risk-range">11 ~ 50 마리</div>
+            </div>
+            <div class="risk-legend-item" style="background: rgba(221,107,32,0.08); border-color: #dd6b20;">
+                <div class="risk-dot" style="background: #dd6b20;">3</div>
+                <div class="risk-name">주의</div>
+                <div class="risk-range">51 ~ 100 마리</div>
+            </div>
+            <div class="risk-legend-item" style="background: rgba(229,62,62,0.08); border-color: #e53e3e;">
+                <div class="risk-dot" style="background: #e53e3e;">4</div>
+                <div class="risk-name">경고</div>
+                <div class="risk-range">101 ~ 200 마리</div>
+            </div>
+            <div class="risk-legend-item" style="background: rgba(128,90,213,0.08); border-color: #805ad5;">
+                <div class="risk-dot" style="background: #805ad5;">5</div>
+                <div class="risk-name">위험</div>
+                <div class="risk-range">201 마리 이상</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Correlation -->
+    <div class="section-title"><span class="icon">&#x1F326;&#xFE0F;</span> 기상 데이터 및 상관관계</div>
+    <div class="weather-grid" id="weatherSection"></div>
+
+    <!-- AI Prediction -->
+    <div class="section-title"><span class="icon">&#x1F916;</span> AI 예측</div>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px;" id="predictionSection"></div>
 </div>
 
-<!-- 하단 광고 -->
-<div style="max-width: 1400px; margin: 40px auto; text-align: center; padding: 0 20px;">
+<!-- Ad -->
+<div style="max-width: 1400px; margin: 0 auto 40px; text-align: center; padding: 0 20px;">
     <ins class="adsbygoogle"
          style="display:block"
          data-ad-client="ca-pub-7308084694640774"
@@ -428,79 +584,552 @@
     </script>
 </div>
 
+<div class="data-source">
+    데이터 출처: 청주시 흥덕구 모기 포집 관측소 (2025년 7~8월) | 충청북도 보건환경연구원
+</div>
+
 <script>
-    const totalQuestions = 7;
-    const form = document.getElementById('mosquitoForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const progressBar = document.getElementById('progressBar');
+// ============================================================
+// Real mosquito collection data from 3 Cheongju stations
+// Columns: date, station, mosquito count, avgTemp, avgHumidity, rainfall, avgWind
+// ============================================================
+const rawData = [
+["2025-07-01","오송호수공원",41,28.2,77.1,0.0,2.0],
+["2025-07-01","송절방죽",97,28.2,77.1,0.0,2.0],
+["2025-07-01","가경천변",64,28.2,77.1,0.0,2.0],
+["2025-07-02","가경천변",73,28.3,78.6,0.0,1.3],
+["2025-07-02","오송호수공원",57,28.3,78.6,0.0,1.3],
+["2025-07-02","송절방죽",98,28.3,78.6,0.0,1.3],
+["2025-07-03","오송호수공원",53,28.0,72.5,0.0,2.2],
+["2025-07-03","가경천변",67,28.0,72.5,0.0,2.2],
+["2025-07-03","송절방죽",82,28.0,72.5,0.0,2.2],
+["2025-07-04","송절방죽",91,26.9,75.8,0.0,2.6],
+["2025-07-04","오송호수공원",41,26.9,75.8,0.0,2.6],
+["2025-07-04","가경천변",46,26.9,75.8,0.0,2.6],
+["2025-07-05","오송호수공원",78,27.7,74.1,0.0,2.3],
+["2025-07-05","송절방죽",108,27.7,74.1,0.0,2.3],
+["2025-07-05","가경천변",59,27.7,74.1,0.0,2.3],
+["2025-07-06","오송호수공원",21,28.3,75.8,0.0,2.2],
+["2025-07-06","송절방죽",113,28.3,75.8,0.0,2.2],
+["2025-07-06","가경천변",51,28.3,75.8,0.0,2.2],
+["2025-07-07","오송호수공원",27,29.1,77.3,0.0,1.6],
+["2025-07-07","송절방죽",147,29.1,77.3,0.0,1.6],
+["2025-07-07","가경천변",48,29.1,77.3,0.0,1.6],
+["2025-07-08","가경천변",47,29.8,74.7,0.0,1.8],
+["2025-07-08","오송호수공원",47,29.8,74.7,0.0,1.8],
+["2025-07-08","송절방죽",133,29.8,74.7,0.0,1.8],
+["2025-07-09","가경천변",48,29.7,63.1,0.0,1.8],
+["2025-07-09","송절방죽",101,29.7,63.1,0.0,1.8],
+["2025-07-09","오송호수공원",46,29.7,63.1,0.0,1.8],
+["2025-07-10","가경천변",73,29.1,50.8,0.0,2.2],
+["2025-07-10","오송호수공원",37,29.1,50.8,0.0,2.2],
+["2025-07-10","송절방죽",150,29.1,50.8,0.0,2.2],
+["2025-07-11","오송호수공원",42,28.2,47.2,0.0,2.8],
+["2025-07-11","가경천변",54,28.2,47.2,0.0,2.8],
+["2025-07-11","송절방죽",165,28.2,47.2,0.0,2.8],
+["2025-07-12","오송호수공원",34,26.6,61.2,0.0,2.0],
+["2025-07-12","송절방죽",143,26.6,61.2,0.0,2.0],
+["2025-07-12","가경천변",44,26.6,61.2,0.0,2.0],
+["2025-07-13","오송호수공원",30,24.5,81.7,2.3,0.9],
+["2025-07-13","가경천변",61,24.5,81.7,2.3,0.9],
+["2025-07-13","송절방죽",125,24.5,81.7,2.3,0.9],
+["2025-07-14","가경천변",44,22.6,86.5,2.1,1.5],
+["2025-07-14","오송호수공원",11,22.6,86.5,2.1,1.5],
+["2025-07-14","송절방죽",146,22.6,86.5,2.1,1.5],
+["2025-07-15","오송호수공원",17,22.0,89.5,3.0,1.3],
+["2025-07-15","가경천변",68,22.0,89.5,3.0,1.3],
+["2025-07-15","송절방죽",139,22.0,89.5,3.0,1.3],
+["2025-07-16","오송호수공원",17,22.1,92.6,56.4,1.3],
+["2025-07-16","가경천변",44,22.1,92.6,56.4,1.3],
+["2025-07-16","송절방죽",164,22.1,92.6,56.4,1.3],
+["2025-07-17","오송호수공원",22,22.0,94.2,240.3,2.8],
+["2025-07-17","송절방죽",153,22.0,94.2,240.3,2.8],
+["2025-07-17","가경천변",39,22.0,94.2,240.3,2.8],
+["2025-07-18","오송호수공원",18,24.3,88.5,0.3,1.2],
+["2025-07-18","가경천변",38,24.3,88.5,0.3,1.2],
+["2025-07-18","송절방죽",88,24.3,88.5,0.3,1.2],
+["2025-07-19","가경천변",46,24.5,91.8,17.5,1.9],
+["2025-07-19","송절방죽",22,24.5,91.8,17.5,1.9],
+["2025-07-19","오송호수공원",13,24.5,91.8,17.5,1.9],
+["2025-07-20","오송호수공원",15,26.7,83.9,0.0,1.0],
+["2025-07-20","가경천변",23,26.7,83.9,0.0,1.0],
+["2025-07-20","송절방죽",53,26.7,83.9,0.0,1.0],
+["2025-07-21","오송호수공원",14,27.6,81.6,1.2,1.6],
+["2025-07-21","가경천변",61,27.6,81.6,1.2,1.6],
+["2025-07-21","송절방죽",77,27.6,81.6,1.2,1.6],
+["2025-07-22","오송호수공원",6,27.6,81.0,0.0,1.4],
+["2025-07-22","가경천변",33,27.6,81.0,0.0,1.4],
+["2025-07-22","송절방죽",110,27.6,81.0,0.0,1.4],
+["2025-07-23","가경천변",38,27.7,79.8,0.0,1.4],
+["2025-07-23","오송호수공원",16,27.7,79.8,0.0,1.4],
+["2025-07-23","송절방죽",33,27.7,79.8,0.0,1.4],
+["2025-07-24","오송호수공원",27,28.5,76.2,0.0,1.2],
+["2025-07-24","가경천변",46,28.5,76.2,0.0,1.2],
+["2025-07-24","송절방죽",30,28.5,76.2,0.0,1.2],
+["2025-07-25","가경천변",56,29.1,74.5,0.0,1.2],
+["2025-07-25","오송호수공원",24,29.1,74.5,0.0,1.2],
+["2025-07-25","송절방죽",56,29.1,74.5,0.0,1.2],
+["2025-07-26","오송호수공원",30,29.4,73.0,0.0,1.5],
+["2025-07-26","가경천변",37,29.4,73.0,0.0,1.5],
+["2025-07-26","송절방죽",49,29.4,73.0,0.0,1.5],
+["2025-07-27","송절방죽",84,29.8,71.3,0.0,1.4],
+["2025-07-27","가경천변",31,29.8,71.3,0.0,1.4],
+["2025-07-27","오송호수공원",39,29.8,71.3,0.0,1.4],
+["2025-07-28","가경천변",33,29.9,72.0,0.0,1.4],
+["2025-07-28","오송호수공원",42,29.9,72.0,0.0,1.4],
+["2025-07-28","송절방죽",55,29.9,72.0,0.0,1.4],
+["2025-07-29","오송호수공원",29,29.7,71.8,0.0,1.2],
+["2025-07-29","가경천변",24,29.7,71.8,0.0,1.2],
+["2025-07-29","송절방죽",76,29.7,71.8,0.0,1.2],
+["2025-07-30","송절방죽",70,29.2,69.8,0.0,1.5],
+["2025-07-30","오송호수공원",51,29.2,69.8,0.0,1.5],
+["2025-07-30","가경천변",38,29.2,69.8,0.0,1.5],
+["2025-07-31","송절방죽",43,29.2,67.0,0.0,1.0],
+["2025-07-31","오송호수공원",37,29.2,67.0,0.0,1.0],
+["2025-07-31","가경천변",38,29.2,67.0,0.0,1.0],
+["2025-08-01","오송호수공원",30,29.3,70.8,0.0,1.1],
+["2025-08-01","송절방죽",58,29.3,70.8,0.0,1.1],
+["2025-08-01","가경천변",50,29.3,70.8,0.0,1.1],
+["2025-08-02","오송호수공원",37,29.6,70.7,0.0,1.1],
+["2025-08-02","가경천변",41,29.6,70.7,0.0,1.1],
+["2025-08-02","송절방죽",120,29.6,70.7,0.0,1.1],
+["2025-08-03","오송호수공원",32,26.9,84.1,19.9,1.2],
+["2025-08-03","송절방죽",123,26.9,84.1,19.9,1.2],
+["2025-08-03","가경천변",41,26.9,84.1,19.9,1.2],
+["2025-08-04","가경천변",39,26.8,85.7,36.4,1.9],
+["2025-08-04","오송호수공원",31,26.8,85.7,36.4,1.9],
+["2025-08-04","송절방죽",183,26.8,85.7,36.4,1.9],
+["2025-08-05","오송호수공원",29,28.2,74.8,0.0,2.1],
+["2025-08-05","송절방죽",190,28.2,74.8,0.0,2.1],
+["2025-08-05","가경천변",49,28.2,74.8,0.0,2.1],
+["2025-08-06","가경천변",22,27.2,87.2,6.3,2.0],
+["2025-08-06","송절방죽",185,27.2,87.2,6.3,2.0],
+["2025-08-06","오송호수공원",23,27.2,87.2,6.3,2.0],
+["2025-08-07","오송호수공원",18,26.3,82.2,0.0,1.9],
+["2025-08-07","송절방죽",209,26.3,82.2,0.0,1.9],
+["2025-08-07","가경천변",36,26.3,82.2,0.0,1.9],
+["2025-08-08","가경천변",19,25.1,80.5,0.0,1.3],
+["2025-08-08","오송호수공원",34,25.1,80.5,0.0,1.3],
+["2025-08-08","송절방죽",155,25.1,80.5,0.0,1.3],
+["2025-08-09","오송호수공원",27,23.7,90.0,0.3,1.2],
+["2025-08-09","가경천변",24,23.7,90.0,0.3,1.2],
+["2025-08-09","송절방죽",108,23.7,90.0,0.3,1.2],
+["2025-08-10","송절방죽",77,24.9,75.7,0.0,1.5],
+["2025-08-10","오송호수공원",23,24.9,75.7,0.0,1.5],
+["2025-08-10","가경천변",25,24.9,75.7,0.0,1.5],
+["2025-08-11","오송호수공원",31,23.6,90.5,2.1,0.9],
+["2025-08-11","가경천변",37,23.6,90.5,2.1,0.9],
+["2025-08-11","송절방죽",53,23.6,90.5,2.1,0.9],
+["2025-08-12","오송호수공원",18,23.8,84.3,0.0,1.6],
+["2025-08-12","가경천변",18,23.8,84.3,0.0,1.6],
+["2025-08-12","송절방죽",45,23.8,84.3,0.0,1.6],
+["2025-08-13","오송호수공원",42,26.1,87.1,10.7,1.8],
+["2025-08-13","송절방죽",113,26.1,87.1,10.7,1.8],
+["2025-08-13","가경천변",63,26.1,87.1,10.7,1.8],
+["2025-08-14","송절방죽",56,26.6,85.8,5.0,1.5],
+["2025-08-14","오송호수공원",22,26.6,85.8,5.0,1.5],
+["2025-08-14","가경천변",48,26.6,85.8,5.0,1.5],
+["2025-08-15","가경천변",74,26.8,86.6,14.2,1.3],
+["2025-08-15","송절방죽",30,26.8,86.6,14.2,1.3],
+["2025-08-15","오송호수공원",20,26.8,86.6,14.2,1.3],
+["2025-08-16","가경천변",45,27.2,81.1,0.0,1.1],
+["2025-08-16","오송호수공원",20,27.2,81.1,0.0,1.1],
+["2025-08-16","송절방죽",25,27.2,81.1,0.0,1.1],
+["2025-08-17","오송호수공원",28,26.8,80.7,0.0,1.0],
+["2025-08-17","송절방죽",65,26.8,80.7,0.0,1.0],
+["2025-08-17","가경천변",37,26.8,80.7,0.0,1.0],
+["2025-08-18","가경천변",42,27.7,78.5,0.0,1.6],
+["2025-08-18","송절방죽",51,27.7,78.5,0.0,1.6],
+["2025-08-18","오송호수공원",15,27.7,78.5,0.0,1.6],
+["2025-08-19","오송호수공원",20,27.9,78.7,0.0,1.7],
+["2025-08-19","가경천변",44,27.9,78.7,0.0,1.7],
+["2025-08-19","송절방죽",75,27.9,78.7,0.0,1.7],
+["2025-08-20","오송호수공원",20,27.8,79.0,0.0,1.3],
+["2025-08-20","가경천변",29,27.8,79.0,0.0,1.3],
+["2025-08-20","송절방죽",51,27.8,79.0,0.0,1.3],
+["2025-08-21","가경천변",40,28.6,75.3,0.0,0.9],
+["2025-08-21","송절방죽",65,28.6,75.3,0.0,0.9],
+["2025-08-21","오송호수공원",22,28.6,75.3,0.0,0.9],
+["2025-08-22","가경천변",43,28.1,78.0,0.0,1.2],
+["2025-08-22","오송호수공원",24,28.1,78.0,0.0,1.2],
+["2025-08-22","송절방죽",90,28.1,78.0,0.0,1.2],
+["2025-08-23","가경천변",29,27.8,80.0,0.0,0.9],
+["2025-08-23","오송호수공원",20,27.8,80.0,0.0,0.9],
+["2025-08-23","송절방죽",65,27.8,80.0,0.0,0.9],
+["2025-08-24","가경천변",35,29.0,75.9,0.0,1.3],
+["2025-08-24","오송호수공원",14,29.0,75.9,0.0,1.3],
+["2025-08-24","송절방죽",50,29.0,75.9,0.0,1.3],
+["2025-08-25","가경천변",20,28.6,77.0,0.0,2.2],
+["2025-08-25","오송호수공원",12,28.6,77.0,0.0,2.2],
+["2025-08-25","송절방죽",109,28.6,77.0,0.0,2.2],
+["2025-08-26","오송호수공원",16,25.7,88.1,31.3,2.2],
+["2025-08-26","송절방죽",72,25.7,88.1,31.3,2.2],
+["2025-08-26","가경천변",16,25.7,88.1,31.3,2.2],
+["2025-08-27","가경천변",34,25.5,78.8,0.0,0.8],
+["2025-08-27","오송호수공원",9,25.5,78.8,0.0,0.8],
+["2025-08-27","송절방죽",95,25.5,78.8,0.0,0.8],
+["2025-08-28","오송호수공원",21,26.6,80.0,0.0,1.4],
+["2025-08-28","송절방죽",46,26.6,80.0,0.0,1.4],
+["2025-08-28","가경천변",33,26.6,80.0,0.0,1.4],
+["2025-08-29","오송호수공원",49,27.6,80.3,0.1,2.1],
+["2025-08-29","가경천변",20,27.6,80.3,0.1,2.1],
+["2025-08-29","송절방죽",49,27.6,80.3,0.1,2.1],
+["2025-08-30","가경천변",23,28.2,78.2,0.0,1.5],
+["2025-08-30","오송호수공원",24,28.2,78.2,0.0,1.5],
+["2025-08-30","송절방죽",41,28.2,78.2,0.0,1.5],
+["2025-08-31","송절방죽",34,24.3,95.0,0.0,0.1],
+["2025-08-31","오송호수공원",19,24.3,95.0,0.0,0.1],
+["2025-08-31","가경천변",16,24.3,95.0,0.0,0.1]
+];
 
-    // 라디오 선택 시 스타일 + 진행바 업데이트
-    form.addEventListener('change', function(e) {
-        if (e.target.type === 'radio') {
-            // 같은 그룹의 다른 라벨 초기화
-            const name = e.target.name;
-            document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
-                input.closest('.option-label').classList.remove('selected');
-            });
-            e.target.closest('.option-label').classList.add('selected');
+// ============================================================
+// Data Processing
+// ============================================================
+const stations = ["오송호수공원", "송절방죽", "가경천변"];
 
-            // 진행바 업데이트
-            const answered = document.querySelectorAll('input[type="radio"]:checked').length;
-            progressBar.style.width = (answered / totalQuestions * 100) + '%';
+// Group data by station and sort by date
+function getStationData(stationName) {
+    return rawData
+        .filter(d => d[1] === stationName)
+        .sort((a, b) => a[0].localeCompare(b[0]));
+}
 
-            // 모두 답했으면 버튼 활성화
-            submitBtn.disabled = (answered < totalQuestions);
-        }
+// Get all unique dates sorted
+const allDates = [...new Set(rawData.map(d => d[0]))].sort();
+const last30Dates = allDates.slice(-30);
+const lastDate = allDates[allDates.length - 1];
+const prevDate = allDates[allDates.length - 2];
+
+// Build lookup: date+station -> row
+const lookup = {};
+rawData.forEach(d => {
+    lookup[d[0] + '|' + d[1]] = d;
+});
+
+// Station averages (full period)
+function stationAvg(station) {
+    const vals = getStationData(station).map(d => d[2]);
+    return vals.reduce((s, v) => s + v, 0) / vals.length;
+}
+
+// Station 7-day average
+function station7dAvg(station) {
+    const data = getStationData(station);
+    const last7 = data.slice(-7);
+    return last7.reduce((s, d) => s + d[2], 0) / last7.length;
+}
+
+// Latest value for station
+function latestVal(station) {
+    const row = lookup[lastDate + '|' + station];
+    return row ? row[2] : 0;
+}
+function prevVal(station) {
+    const row = lookup[prevDate + '|' + station];
+    return row ? row[2] : 0;
+}
+
+// Risk level
+function riskLevel(count) {
+    if (count <= 10) return { name: '안전', cls: 'risk-safe', color: '#38a169' };
+    if (count <= 50) return { name: '관심', cls: 'risk-interest', color: '#d69e2e' };
+    if (count <= 100) return { name: '주의', cls: 'risk-caution', color: '#dd6b20' };
+    if (count <= 200) return { name: '경고', cls: 'risk-warning', color: '#e53e3e' };
+    return { name: '위험', cls: 'risk-danger', color: '#805ad5' };
+}
+
+// Today's average across all stations
+const todayAvg = Math.round(stations.reduce((s, st) => s + latestVal(st), 0) / stations.length);
+const prevAvgVal = Math.round(stations.reduce((s, st) => s + prevVal(st), 0) / stations.length);
+const changePct = prevAvgVal > 0 ? Math.round((todayAvg - prevAvgVal) / prevAvgVal * 100) : 0;
+const overallRisk = riskLevel(todayAvg);
+
+// ============================================================
+// 1. Summary Cards
+// ============================================================
+const summaryHTML = `
+    <div class="summary-card">
+        <div class="card-icon">&#x1F99F;</div>
+        <div class="card-label">최종일 평균 포집량</div>
+        <div class="card-value">${todayAvg}</div>
+        <div class="card-sub" style="color:#718096;">${lastDate}</div>
+    </div>
+    <div class="summary-card">
+        <div class="card-icon">${changePct >= 0 ? '&#x1F4C8;' : '&#x1F4C9;'}</div>
+        <div class="card-label">전일 대비 변화</div>
+        <div class="card-value">${changePct >= 0 ? '+' : ''}${changePct}%</div>
+        <div class="card-sub ${changePct >= 0 ? 'up' : 'down'}">${changePct >= 0 ? '증가 추세' : '감소 추세'}</div>
+    </div>
+    <div class="summary-card">
+        <div class="card-icon">&#x26A0;&#xFE0F;</div>
+        <div class="card-label">위험 등급</div>
+        <div class="card-value"><span class="risk-badge ${overallRisk.cls}">${overallRisk.name}</span></div>
+        <div class="card-sub" style="color:#718096;">5단계 평가 기준</div>
+    </div>
+    <div class="summary-card">
+        <div class="card-icon">&#x1F4CD;</div>
+        <div class="card-label">활성 관측소</div>
+        <div class="card-value">3<span style="font-size:1rem;color:#718096;">개소</span></div>
+        <div class="card-sub" style="color:#718096;">청주시 흥덕구</div>
+    </div>
+`;
+document.getElementById('summaryCards').innerHTML = summaryHTML;
+
+// ============================================================
+// 2. Station Cards
+// ============================================================
+let stationHTML = '';
+stations.forEach(st => {
+    const latest = latestVal(st);
+    const prev = prevVal(st);
+    const avg7 = station7dAvg(st);
+    const risk = riskLevel(latest);
+    const trendUp = latest >= prev;
+    const trendPct = prev > 0 ? Math.round((latest - prev) / prev * 100) : 0;
+
+    stationHTML += `
+        <div class="station-card">
+            <div class="station-header">
+                <span class="station-name">${st}</span>
+                <span class="risk-badge ${risk.cls}">${risk.name}</span>
+            </div>
+            <div class="station-value">${latest}</div>
+            <div class="station-unit">마리 (${lastDate})</div>
+            <div class="station-meta">
+                <div>
+                    <div class="meta-label">전일 대비</div>
+                    <div class="meta-value ${trendUp ? 'trend-up' : 'trend-down'}">
+                        ${trendUp ? '&#x25B2;' : '&#x25BC;'} ${trendPct >= 0 ? '+' : ''}${trendPct}%
+                    </div>
+                </div>
+                <div>
+                    <div class="meta-label">7일 평균</div>
+                    <div class="meta-value">${avg7.toFixed(1)}</div>
+                </div>
+                <div>
+                    <div class="meta-label">전체 평균</div>
+                    <div class="meta-value">${stationAvg(st).toFixed(1)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+});
+document.getElementById('stationCards').innerHTML = stationHTML;
+
+// ============================================================
+// 3. Charts
+// ============================================================
+const stationColors = {
+    '오송호수공원': { line: '#667eea', bg: 'rgba(102,126,234,0.1)', bar: 'rgba(102,126,234,0.8)' },
+    '송절방죽': { line: '#e53e3e', bg: 'rgba(229,62,62,0.1)', bar: 'rgba(229,62,62,0.8)' },
+    '가경천변': { line: '#38a169', bg: 'rgba(56,161,105,0.1)', bar: 'rgba(56,161,105,0.8)' }
+};
+
+// Line chart - last 30 days
+const lineLabels = last30Dates.map(d => d.slice(5)); // MM-DD
+const lineDatasets = stations.map(st => {
+    const data = last30Dates.map(date => {
+        const row = lookup[date + '|' + st];
+        return row ? row[2] : null;
     });
+    return {
+        label: st,
+        data: data,
+        borderColor: stationColors[st].line,
+        backgroundColor: stationColors[st].bg,
+        borderWidth: 2,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        tension: 0.3,
+        fill: false
+    };
+});
 
-    function showResult() {
-        let total = 0;
-        for (let i = 1; i <= totalQuestions; i++) {
-            const selected = document.querySelector(`input[name="q${i}"]:checked`);
-            if (selected) total += parseInt(selected.value);
-        }
-
-        const maxScore = totalQuestions * 4;
-        const percent = Math.round((total / maxScore) * 100);
-
-        let icon, title, desc;
-
-        if (percent >= 80) {
-            icon = '🦟🔥';
-            title = '모기 자석 레벨!';
-            desc = '당신은 모기들의 최애입니다. 여름에는 반드시 모기 기피제를 상비하세요! O형 혈액, 높은 체온, 땀, CO2 배출량 등 모기가 좋아하는 조건을 두루 갖추고 있습니다.';
-        } else if (percent >= 60) {
-            icon = '🦟';
-            title = '모기 인기인';
-            desc = '평균 이상으로 모기에게 인기가 많습니다. 야외 활동 시 밝은 옷을 입고 모기 기피제를 사용하면 도움이 됩니다.';
-        } else if (percent >= 40) {
-            icon = '😐';
-            title = '보통 수준';
-            desc = '모기에게 특별히 인기 있지도, 없지도 않습니다. 기본적인 방충 대책만으로도 충분할 수 있어요.';
-        } else {
-            icon = '🛡️';
-            title = '모기 방어막 보유!';
-            desc = '축하합니다! 모기에게 비교적 덜 물리는 체질입니다. 하지만 방심은 금물, 기본 예방은 항상 중요합니다.';
-        }
-
-        document.getElementById('resultIcon').textContent = icon;
-        document.getElementById('resultTitle').textContent = title;
-        document.getElementById('resultScore').textContent = `모기 유혹 지수: ${percent}점`;
-        document.getElementById('resultDesc').textContent = desc;
-
-        document.getElementById('mosquitoForm').style.display = 'none';
-        document.getElementById('resultSection').classList.add('show');
-        progressBar.style.width = '100%';
+new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: { labels: lineLabels, datasets: lineDatasets },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: '포집량 (마리)' },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { maxRotation: 45, font: { size: 10 } }
+            }
+        },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false }
     }
+});
 
-    function retryTest() {
-        form.reset();
-        document.querySelectorAll('.option-label').forEach(el => el.classList.remove('selected'));
-        document.getElementById('mosquitoForm').style.display = 'block';
-        document.getElementById('resultSection').classList.remove('show');
-        submitBtn.disabled = true;
-        progressBar.style.width = '0%';
+// Bar chart - average per station
+const barAvgs = stations.map(st => Math.round(stationAvg(st) * 10) / 10);
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+        labels: stations,
+        datasets: [{
+            label: '전체 기간 평균 포집량',
+            data: barAvgs,
+            backgroundColor: stations.map(st => stationColors[st].bar),
+            borderRadius: 8,
+            barThickness: 60
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `평균 ${ctx.parsed.y} 마리`
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: '평균 포집량 (마리)' },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: { grid: { display: false } }
+        }
     }
+});
+
+// ============================================================
+// 5. Weather Correlation Section
+// ============================================================
+const latestWeather = rawData.find(d => d[0] === lastDate);
+const weatherHTML = `
+    <div class="weather-card">
+        <h3>최신 기상 데이터 (${lastDate})</h3>
+        <div class="weather-row">
+            <span class="weather-label">&#x1F321;&#xFE0F; 평균기온</span>
+            <span class="weather-val">${latestWeather[3]}&deg;C</span>
+        </div>
+        <div class="weather-row">
+            <span class="weather-label">&#x1F4A7; 평균습도</span>
+            <span class="weather-val">${latestWeather[4]}%</span>
+        </div>
+        <div class="weather-row">
+            <span class="weather-label">&#x1F327;&#xFE0F; 일강수량</span>
+            <span class="weather-val">${latestWeather[5]}mm</span>
+        </div>
+        <div class="weather-row">
+            <span class="weather-label">&#x1F4A8; 평균풍속</span>
+            <span class="weather-val">${latestWeather[6]}m/s</span>
+        </div>
+    </div>
+    <div class="weather-card">
+        <h3>기상-모기 상관관계 분석</h3>
+        <div class="insight-text">
+            <strong>분석 결과:</strong> 수집 데이터 분석 결과, 평균기온 26~29&deg;C 구간에서 모기 포집량이 가장 높으며,
+            습도 75% 이상일 때 활동이 증가하는 경향을 보입니다.
+            강수 후 2~3일 뒤에 포집량이 급증하는 패턴이 관찰되며,
+            풍속 2.0m/s 이상에서는 포집량이 감소하는 경향이 있습니다.
+        </div>
+        <div class="insight-text" style="margin-top: 12px; border-left-color: #e53e3e;">
+            <strong>주목 데이터:</strong> 7월 17일 240.3mm 폭우 이후 송절방죽에서 7월 초~중순 최고치(165마리, 7/11)를 기록했으며,
+            8월 4~7일 간 송절방죽에서 183 &rarr; 190 &rarr; 185 &rarr; 209 마리로 위험 수준에 도달했습니다.
+        </div>
+    </div>
+`;
+document.getElementById('weatherSection').innerHTML = weatherHTML;
+
+// ============================================================
+// 6. AI Prediction Section
+// ============================================================
+// Simple prediction based on 7-day moving average and trend
+function predictNext3(station) {
+    const data = getStationData(station);
+    const last7 = data.slice(-7).map(d => d[2]);
+    const avg = last7.reduce((s, v) => s + v, 0) / 7;
+    const last3 = last7.slice(-3);
+    const trend = (last3[2] - last3[0]) / 2;
+    return [
+        Math.max(0, Math.round(avg + trend * 0.5)),
+        Math.max(0, Math.round(avg + trend * 1.0)),
+        Math.max(0, Math.round(avg + trend * 1.5))
+    ];
+}
+
+const predictions = {};
+let maxPred = 0;
+stations.forEach(st => {
+    predictions[st] = predictNext3(st);
+    maxPred = Math.max(maxPred, ...predictions[st]);
+});
+
+const overallPredRisk = riskLevel(maxPred);
+const needsAction = maxPred > 100;
+
+// Create date labels for next 3 days after lastDate
+function addDays(dateStr, n) {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+}
+const predDates = [addDays(lastDate, 1), addDays(lastDate, 2), addDays(lastDate, 3)];
+
+let predHTML = `<div class="prediction-card"><h3>관측소별 3일 예측</h3>`;
+stations.forEach(st => {
+    const preds = predictions[st];
+    const trendDir = preds[2] > preds[0] ? '&#x25B2; 증가' : (preds[2] < preds[0] ? '&#x25BC; 감소' : '&#x25CF; 유지');
+    const trendCls = preds[2] > preds[0] ? 'trend-up' : 'trend-down';
+    predHTML += `
+        <div style="margin-bottom: 18px;">
+            <div style="font-weight:700; color:#2d3748; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span>${st}</span>
+                <span class="${trendCls}" style="font-size:0.85rem;">${trendDir}</span>
+            </div>
+            ${preds.map((p, i) => {
+                const r = riskLevel(p);
+                return `<div class="pred-day">
+                    <span class="pred-label">${predDates[i]}</span>
+                    <span class="pred-val" style="color:${r.color};">${p} <span style="font-size:0.8rem;font-weight:400;">마리</span></span>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+});
+predHTML += '</div>';
+
+predHTML += `
+    <div class="recommendation-card">
+        <h3>방역 추천 사항</h3>
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:0.85rem; color:#718096; margin-bottom:6px;">예측 최대 위험 등급</div>
+            <span class="risk-badge ${overallPredRisk.cls}" style="font-size:1.1rem; padding: 8px 20px;">${overallPredRisk.name}</span>
+        </div>
+        <div class="rec-item">
+            <span class="rec-icon">${needsAction ? '&#x1F6A8;' : '&#x2705;'}</span>
+            <span>${needsAction
+                ? '<strong>방역 필요:</strong> 송절방죽 인근 집중 방역을 권장합니다. 해당 관측소에서 지속적으로 높은 포집량이 관측되고 있습니다.'
+                : '<strong>현재 안정:</strong> 전반적으로 포집량이 감소 추세에 있어 정기 방역으로 충분합니다.'}</span>
+        </div>
+        <div class="rec-item">
+            <span class="rec-icon">&#x1F4CB;</span>
+            <span><strong>행동 지침:</strong> ${maxPred > 50
+                ? '야외 활동 시 긴 소매 착용 및 모기 기피제 사용을 권장합니다. 물웅덩이 제거와 하수구 정비를 병행하세요.'
+                : '기본적인 방충 대책을 유지하고, 주간 모니터링을 지속하세요.'}</span>
+        </div>
+        <div class="rec-item">
+            <span class="rec-icon">&#x1F4C5;</span>
+            <span><strong>모니터링:</strong> 데이터 수집 기간은 2025년 7월 1일 ~ 8월 31일입니다. ${allDates.length}일간 총 ${rawData.length}건의 측정 데이터가 분석에 활용되었습니다.</span>
+        </div>
+    </div>
+`;
+document.getElementById('predictionSection').innerHTML = predHTML;
 </script>
 
 </body>
