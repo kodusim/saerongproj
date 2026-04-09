@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAERONG - AI 모기 예측 시스템</title>
+    <title>AI 모기 예측 시스템</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774"
@@ -11,572 +12,553 @@
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-</head>
-<body>
+
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-        font-family: 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #f2f4f8;
+        font-family: 'Noto Sans KR', 'Malgun Gothic', -apple-system, sans-serif;
+        background: #eef1f7;
         min-height: 100vh;
-        padding: 0;
-        margin: 0;
         color: #333;
+        font-size: 15px;
+        line-height: 1.6;
     }
 
-    /* Top Bar */
-    .top-bar {
-        background: #1a3a5c;
-        padding: 10px 0;
-        border-bottom: 3px solid #2980b9;
+    /* ── Top utility bar ── */
+    .util-bar {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        font-size: 0.78rem;
+        color: #888;
     }
-
-    .top-bar-inner {
-        max-width: 1280px;
+    .util-bar-inner {
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 0 24px;
+        padding: 6px 32px;
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        justify-content: flex-end;
+        gap: 18px;
     }
-
-    .top-bar .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+    .util-bar a {
+        color: #888;
         text-decoration: none;
-        color: white;
     }
+    .util-bar a:hover { color: #333; }
 
-    .top-bar .logo-icon {
-        width: 36px;
-        height: 36px;
-        background: #2980b9;
+    /* ── Header ── */
+    .site-header {
+        background: #fff;
+        border-bottom: 1px solid #ddd;
+    }
+    .header-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 18px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none;
+        color: #1b3a5c;
+    }
+    .logo-symbol {
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
+        background: linear-gradient(135deg, #1b3a5c, #2b6cb0);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        color: #fff;
+        font-size: 1.3rem;
     }
-
-    .top-bar .logo-text {
-        font-size: 1.25rem;
+    .logo-title {
+        font-size: 1.45rem;
         font-weight: 700;
         letter-spacing: -0.5px;
+        line-height: 1.2;
+    }
+    .logo-sub {
+        font-size: 0.78rem;
+        color: #8a9ab5;
+        font-weight: 400;
+        letter-spacing: 0.5px;
     }
 
-    .top-bar .logo-sub {
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.6);
+    /* ── Navigation ── */
+    .gnb {
+        background: #1b3a5c;
+    }
+    .gnb-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 32px;
+        display: flex;
+    }
+    .gnb a {
+        display: block;
+        padding: 15px 32px;
+        color: rgba(255,255,255,0.75);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.15s;
+        border-bottom: 3px solid transparent;
+    }
+    .gnb a:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.07);
+    }
+    .gnb a.active {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+        border-bottom-color: #63b3ed;
+        font-weight: 600;
+    }
+
+    /* ── Content area ── */
+    .content-wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 32px;
+    }
+
+    /* ── Breadcrumb + page title ── */
+    .breadcrumb {
+        padding: 14px 0;
+        font-size: 0.8rem;
+        color: #999;
+    }
+    .breadcrumb a { color: #666; text-decoration: none; }
+    .breadcrumb span { margin: 0 6px; color: #ccc; }
+
+    .page-header {
+        padding: 20px 0 18px;
+        border-bottom: 2px solid #1b3a5c;
+        margin-bottom: 28px;
+    }
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1b3a5c;
+    }
+    .page-header p {
+        font-size: 0.88rem;
+        color: #8a9ab5;
+        margin-top: 4px;
+    }
+
+    /* ── Quick links row (KDCA style) ── */
+    .quick-links {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+    .quick-link {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: #f4f6fa;
+        border: 1px solid #e2e6ee;
+        border-radius: 10px;
+        padding: 18px 20px;
+        text-decoration: none;
+        color: #333;
+        transition: all 0.15s;
+    }
+    .quick-link:hover {
+        background: #e8ecf4;
+        border-color: #c4cce0;
+    }
+    .quick-link .ql-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .quick-link .ql-text {
+        font-size: 0.92rem;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+    .quick-link .ql-desc {
+        font-size: 0.78rem;
+        color: #8a9ab5;
         font-weight: 400;
     }
 
-    /* Nav Bar */
-    .nav-bar {
-        background: white;
-        border-bottom: 1px solid #dde1e7;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
-
-    .nav-bar-inner {
-        max-width: 1280px;
-        margin: 0 auto;
-        padding: 0 24px;
-        display: flex;
-        gap: 0;
-    }
-
-    .nav-tab {
-        padding: 14px 28px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        text-decoration: none;
-        color: #555;
-        border-bottom: 3px solid transparent;
-        transition: all 0.2s ease;
-    }
-
-    .nav-tab:hover {
-        color: #1a3a5c;
-        background: #f5f7fa;
-        border-bottom-color: #ccc;
-    }
-
-    .nav-tab.active {
-        color: #1a3a5c;
-        border-bottom-color: #2980b9;
-        background: #f0f6ff;
-    }
-
-    /* Container */
-    .container {
-        max-width: 1280px;
-        margin: 0 auto;
-        padding: 28px 24px 60px;
-    }
-
-    /* Page Title */
-    .page-title {
-        margin-bottom: 28px;
-        padding-bottom: 16px;
-        border-bottom: 2px solid #1a3a5c;
-    }
-
-    .page-title h1 {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #1a3a5c;
-        margin-bottom: 4px;
-    }
-
-    .page-title p {
-        font-size: 0.9rem;
-        color: #888;
-    }
-
-    /* Summary Cards */
+    /* ── Summary Cards ── */
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 14px;
+        margin-bottom: 28px;
     }
-
     .summary-card {
-        background: white;
-        border-radius: 8px;
-        padding: 22px;
-        border: 1px solid #dde1e7;
+        background: #fff;
+        border-radius: 10px;
+        padding: 22px 20px;
+        border: 1px solid #e2e6ee;
         text-align: center;
-        transition: box-shadow 0.2s ease;
     }
+    .summary-card .card-icon { font-size: 1.6rem; margin-bottom: 8px; }
+    .summary-card .card-label { font-size: 0.82rem; color: #8a9ab5; margin-bottom: 6px; font-weight: 500; }
+    .summary-card .card-value { font-size: 1.7rem; font-weight: 700; color: #1b3a5c; }
+    .summary-card .card-sub { font-size: 0.82rem; margin-top: 4px; font-weight: 500; }
+    .card-sub.up { color: #dc3545; }
+    .card-sub.down { color: #198754; }
 
-    .summary-card:hover {
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .summary-card .card-icon {
-        font-size: 2rem;
-        margin-bottom: 10px;
-    }
-
-    .summary-card .card-label {
-        font-size: 0.85rem;
-        color: #718096;
-        margin-bottom: 8px;
-        font-weight: 500;
-    }
-
-    .summary-card .card-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #1a3a5c;
-    }
-
-    .summary-card .card-sub {
-        font-size: 0.85rem;
-        margin-top: 6px;
-        font-weight: 600;
-    }
-
-    .card-sub.up { color: #e53e3e; }
-    .card-sub.down { color: #38a169; }
-
-    /* Station Cards */
-    .station-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    .station-card {
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        border: 1px solid #dde1e7;
-        transition: box-shadow 0.2s ease;
-    }
-
-    .station-card:hover {
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .station-card .station-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-    }
-
-    .station-card .station-name {
+    /* ── Section headings ── */
+    .section-title {
         font-size: 1.05rem;
         font-weight: 700;
-        color: #1a3a5c;
-    }
-
-    .risk-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 4px;
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: white;
-    }
-
-    .risk-safe { background: #38a169; }
-    .risk-interest { background: #d69e2e; }
-    .risk-caution { background: #dd6b20; }
-    .risk-warning { background: #e53e3e; }
-    .risk-danger { background: #805ad5; }
-
-    .station-card .station-value {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #1a3a5c;
-        margin-bottom: 4px;
-    }
-
-    .station-card .station-unit {
-        font-size: 0.85rem;
-        color: #a0aec0;
-        margin-bottom: 16px;
-    }
-
-    .station-card .station-meta {
-        display: flex;
-        justify-content: space-between;
-        border-top: 1px solid #e2e8f0;
-        padding-top: 14px;
-        font-size: 0.9rem;
-    }
-
-    .station-card .station-meta .meta-label {
-        color: #a0aec0;
-    }
-
-    .station-card .station-meta .meta-value {
-        font-weight: 600;
-        color: #4a5568;
-    }
-
-    .trend-up { color: #e53e3e; }
-    .trend-down { color: #38a169; }
-
-    /* Section Title */
-    .section-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1a3a5c;
-        margin: 28px 0 14px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #2980b9;
+        color: #1b3a5c;
+        margin: 32px 0 14px;
+        padding: 10px 0;
+        border-bottom: 2px solid #1b3a5c;
         display: flex;
         align-items: center;
         gap: 8px;
     }
+    .section-title .icon { font-size: 1rem; }
 
-    .section-title .icon {
-        font-size: 1.1rem;
+    /* ── Station Cards ── */
+    .station-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 28px;
     }
+    .station-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 24px;
+        border: 1px solid #e2e6ee;
+    }
+    .station-card .station-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+    .station-card .station-name { font-size: 1rem; font-weight: 700; color: #1b3a5c; }
 
-    /* Chart Cards */
+    .risk-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #fff;
+    }
+    .risk-safe { background: #198754; }
+    .risk-interest { background: #ffc107; color: #333; }
+    .risk-caution { background: #fd7e14; }
+    .risk-warning { background: #dc3545; }
+    .risk-danger { background: #6f42c1; }
+
+    .station-card .station-value { font-size: 2rem; font-weight: 800; color: #1b3a5c; margin-bottom: 2px; }
+    .station-card .station-unit { font-size: 0.82rem; color: #aaa; margin-bottom: 14px; }
+    .station-card .station-meta {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 12px;
+        font-size: 0.85rem;
+    }
+    .station-card .station-meta .meta-label { color: #aaa; font-size: 0.78rem; }
+    .station-card .station-meta .meta-value { font-weight: 600; color: #444; }
+    .trend-up { color: #dc3545; }
+    .trend-down { color: #198754; }
+
+    /* ── Chart Cards ── */
     .chart-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 14px;
+        margin-bottom: 28px;
     }
-
     .chart-card {
-        background: white;
-        border-radius: 8px;
+        background: #fff;
+        border-radius: 10px;
         padding: 24px;
-        border: 1px solid #dde1e7;
+        border: 1px solid #e2e6ee;
     }
-
     .chart-card h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: #1a3a5c;
+        color: #1b3a5c;
         margin-bottom: 16px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #f0f2f5;
     }
-
     .chart-wrapper {
         position: relative;
         width: 100%;
-        height: 320px;
+        height: 300px;
     }
 
-    /* Risk Legend */
+    /* ── Risk Legend ── */
     .risk-legend-card {
-        background: white;
-        border-radius: 8px;
+        background: #fff;
+        border-radius: 10px;
         padding: 24px;
-        border: 1px solid #dde1e7;
-        margin-bottom: 24px;
+        border: 1px solid #e2e6ee;
+        margin-bottom: 28px;
     }
-
     .risk-legend-card h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: #1a3a5c;
+        color: #1b3a5c;
         margin-bottom: 16px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #f0f2f5;
     }
-
     .risk-legend-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
-        gap: 12px;
+        gap: 10px;
     }
-
     .risk-legend-item {
         text-align: center;
-        padding: 16px 10px;
-        border-radius: 12px;
-        border: 2px solid transparent;
+        padding: 16px 8px;
+        border-radius: 8px;
+        border: 1px solid transparent;
     }
-
     .risk-legend-item .risk-dot {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
-        margin: 0 auto 10px;
+        margin: 0 auto 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: #fff;
         font-weight: 700;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
     }
+    .risk-legend-item .risk-name { font-weight: 700; font-size: 0.9rem; color: #1b3a5c; margin-bottom: 2px; }
+    .risk-legend-item .risk-range { font-size: 0.78rem; color: #8a9ab5; }
 
-    .risk-legend-item .risk-name {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #1a3a5c;
-        margin-bottom: 4px;
-    }
-
-    .risk-legend-item .risk-range {
-        font-size: 0.85rem;
-        color: #718096;
-    }
-
-    /* Weather Section */
+    /* ── Weather ── */
     .weather-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 14px;
+        margin-bottom: 28px;
     }
-
     .weather-card {
-        background: white;
-        border-radius: 8px;
+        background: #fff;
+        border-radius: 10px;
         padding: 24px;
-        border: 1px solid #dde1e7;
+        border: 1px solid #e2e6ee;
     }
-
     .weather-card h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: #1a3a5c;
+        color: #1b3a5c;
         margin-bottom: 16px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #f0f2f5;
     }
-
     .weather-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid #f0f0f0;
+        padding: 10px 0;
+        border-bottom: 1px solid #f5f5f5;
     }
-
-    .weather-row:last-child {
-        border-bottom: none;
-    }
-
-    .weather-row .weather-label {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.95rem;
-        color: #4a5568;
-    }
-
-    .weather-row .weather-val {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #2d3748;
-    }
+    .weather-row:last-child { border-bottom: none; }
+    .weather-row .weather-label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #555; }
+    .weather-row .weather-val { font-size: 1rem; font-weight: 700; color: #1b3a5c; }
 
     .insight-text {
-        background: #f5f7fa;
-        border-left: 4px solid #2980b9;
+        background: #f4f6fa;
+        border-left: 4px solid #2b6cb0;
         padding: 14px 18px;
-        border-radius: 0 4px 4px 0;
+        border-radius: 0 6px 6px 0;
         margin-top: 14px;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         line-height: 1.7;
-        color: #4a5568;
+        color: #555;
     }
 
-    /* AI Prediction Section */
-    .prediction-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        margin-bottom: 16px;
-    }
-
+    /* ── Prediction ── */
     .prediction-card {
-        background: white;
-        border-radius: 8px;
+        background: #fff;
+        border-radius: 10px;
         padding: 24px;
-        border: 1px solid #dde1e7;
+        border: 1px solid #e2e6ee;
     }
-
     .prediction-card h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: #1a3a5c;
+        color: #1b3a5c;
         margin-bottom: 16px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #f0f2f5;
     }
-
     .pred-day {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid #f0f0f0;
+        padding: 10px 0;
+        border-bottom: 1px solid #f5f5f5;
     }
-
     .pred-day:last-child { border-bottom: none; }
-
-    .pred-day .pred-label {
-        font-size: 0.95rem;
-        color: #4a5568;
-    }
-
-    .pred-day .pred-val {
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
+    .pred-day .pred-label { font-size: 0.88rem; color: #555; }
+    .pred-day .pred-val { font-weight: 700; font-size: 1rem; }
 
     .recommendation-card {
-        background: white;
-        border-radius: 8px;
+        background: #fff;
+        border-radius: 10px;
         padding: 24px;
-        border: 1px solid #dde1e7;
+        border: 1px solid #e2e6ee;
     }
-
     .recommendation-card h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: #1a3a5c;
+        color: #1b3a5c;
         margin-bottom: 14px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #f0f2f5;
     }
-
     .rec-item {
         display: flex;
         align-items: flex-start;
-        gap: 12px;
-        padding: 10px 0;
-        font-size: 0.95rem;
-        color: #4a5568;
-        line-height: 1.5;
+        gap: 10px;
+        padding: 8px 0;
+        font-size: 0.88rem;
+        color: #555;
+        line-height: 1.6;
     }
+    .rec-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
 
-    .rec-icon {
-        font-size: 1.2rem;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    /* Footer */
-    .site-footer {
-        background: #1a3a5c;
-        color: rgba(255,255,255,0.6);
-        text-align: center;
-        padding: 20px;
-        font-size: 0.82rem;
-        margin-top: 40px;
-    }
-
+    /* ── Data source ── */
     .data-source {
         text-align: center;
-        color: #888;
-        font-size: 0.82rem;
-        margin-top: 24px;
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 32px;
         padding: 16px;
-        background: #ebeef3;
-        border-radius: 6px;
+        background: #e8ecf2;
+        border-radius: 8px;
     }
 
+    /* ── Footer ── */
+    .site-footer {
+        background: #1b3a5c;
+        margin-top: 48px;
+    }
+    .footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.82rem;
+    }
+    .footer-inner a { color: rgba(255,255,255,0.7); text-decoration: none; }
+    .footer-inner a:hover { color: #fff; }
+
+    /* ── Responsive ── */
     @media (max-width: 1024px) {
-        .summary-grid { grid-template-columns: repeat(2, 1fr); }
-        .chart-grid { grid-template-columns: 1fr; }
-        .weather-grid { grid-template-columns: 1fr; }
-        .prediction-grid { grid-template-columns: 1fr; }
+        .summary-grid, .quick-links { grid-template-columns: repeat(2, 1fr); }
+        .chart-grid, .weather-grid { grid-template-columns: 1fr; }
         .risk-legend-grid { grid-template-columns: repeat(3, 1fr); }
+        .station-grid { grid-template-columns: repeat(2, 1fr); }
     }
-
     @media (max-width: 768px) {
-        .page-title h1 { font-size: 1.3rem; }
-        .summary-grid { grid-template-columns: 1fr 1fr; }
+        .header-inner, .gnb-inner, .content-wrap, .footer-inner { padding-left: 16px; padding-right: 16px; }
+        .util-bar { display: none; }
+        .page-header h1 { font-size: 1.25rem; }
         .station-grid { grid-template-columns: 1fr; }
-        .nav-tab { padding: 12px 18px; font-size: 0.88rem; }
+        .summary-grid { grid-template-columns: 1fr 1fr; }
+        .gnb a { padding: 12px 18px; font-size: 0.88rem; }
         .risk-legend-grid { grid-template-columns: repeat(2, 1fr); }
-        .top-bar .logo-text { font-size: 1.05rem; }
-        .top-bar .logo-sub { display: none; }
+        .logo-title { font-size: 1.15rem; }
+        .logo-sub { display: none; }
+        .quick-links { grid-template-columns: 1fr; }
+        .footer-inner { flex-direction: column; gap: 8px; text-align: center; }
     }
-
     @media (max-width: 480px) {
         .summary-grid { grid-template-columns: 1fr; }
         .risk-legend-grid { grid-template-columns: 1fr 1fr; }
     }
 </style>
+</head>
+<body>
 
-<!-- Top Bar -->
-<div class="top-bar">
-    <div class="top-bar-inner">
-        <a href="/" class="logo">
-            <div class="logo-icon">&#x1F99F;</div>
+<!-- Utility bar -->
+<div class="util-bar">
+    <div class="util-bar-inner">
+        <a href="/admin/">관리자</a>
+        <a href="/api/">API</a>
+    </div>
+</div>
+
+<!-- Header -->
+<div class="site-header">
+    <div class="header-inner">
+        <a href="/mosquito-test/" class="logo">
+            <div class="logo-symbol">&#x1F99F;</div>
             <div>
-                <div class="logo-text">AI 모기 예측 시스템</div>
+                <div class="logo-title">AI 모기 예측 시스템</div>
                 <div class="logo-sub">Mosquito AI Prediction Platform</div>
             </div>
         </a>
     </div>
 </div>
 
-<!-- Navigation Bar -->
-<div class="nav-bar">
-    <div class="nav-bar-inner">
-        <a href="/" class="nav-tab">데이터 센터</a>
-        <a href="/mosquito-test/" class="nav-tab active">모기 예측</a>
+<!-- Global Navigation -->
+<div class="gnb">
+    <div class="gnb-inner">
+        <a href="/">데이터 센터</a>
+        <a href="/mosquito-test/" class="active">모기 예측</a>
     </div>
 </div>
 
-<div class="container">
-    <div class="page-title">
+<!-- Content -->
+<div class="content-wrap">
+    <div class="breadcrumb">
+        <a href="/">홈</a><span>&#x203A;</span>모기 예측
+    </div>
+
+    <div class="page-header">
         <h1>모기 발생 현황 및 AI 예측</h1>
         <p>청주시 흥덕구 관측소 실시간 모니터링 대시보드</p>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="quick-links">
+        <a href="#summaryCards" class="quick-link">
+            <div class="ql-icon" style="background:#e8f5e9; color:#198754;">&#x1F4CA;</div>
+            <div><div class="ql-text">발생 현황</div><div class="ql-desc">관측소별 포집량 확인</div></div>
+        </a>
+        <a href="#stationCards" class="quick-link">
+            <div class="ql-icon" style="background:#e3f2fd; color:#2b6cb0;">&#x1F4CD;</div>
+            <div><div class="ql-text">관측소 현황</div><div class="ql-desc">3개소 실시간 데이터</div></div>
+        </a>
+        <a href="#weatherSection" class="quick-link">
+            <div class="ql-icon" style="background:#fff3e0; color:#fd7e14;">&#x1F326;&#xFE0F;</div>
+            <div><div class="ql-text">기상 데이터</div><div class="ql-desc">기온, 습도, 강수 분석</div></div>
+        </a>
+        <a href="#predictionSection" class="quick-link">
+            <div class="ql-icon" style="background:#f3e5f5; color:#6f42c1;">&#x1F916;</div>
+            <div><div class="ql-text">AI 예측</div><div class="ql-desc">3일 발생량 예측</div></div>
+        </a>
     </div>
 
     <!-- Summary Cards -->
@@ -591,15 +573,11 @@
     <div class="chart-grid">
         <div class="chart-card">
             <h3>최근 30일 모기 발생 추이</h3>
-            <div class="chart-wrapper">
-                <canvas id="lineChart"></canvas>
-            </div>
+            <div class="chart-wrapper"><canvas id="lineChart"></canvas></div>
         </div>
         <div class="chart-card">
             <h3>관측소별 평균 포집량 비교</h3>
-            <div class="chart-wrapper">
-                <canvas id="barChart"></canvas>
-            </div>
+            <div class="chart-wrapper"><canvas id="barChart"></canvas></div>
         </div>
     </div>
 
@@ -607,28 +585,28 @@
     <div class="risk-legend-card">
         <h3>모기 위험 등급 기준</h3>
         <div class="risk-legend-grid">
-            <div class="risk-legend-item" style="background: rgba(56,161,105,0.08); border-color: #38a169;">
-                <div class="risk-dot" style="background: #38a169;">1</div>
+            <div class="risk-legend-item" style="background:#e8f5e9; border-color:#198754;">
+                <div class="risk-dot" style="background:#198754;">1</div>
                 <div class="risk-name">안전</div>
                 <div class="risk-range">0 ~ 10 마리</div>
             </div>
-            <div class="risk-legend-item" style="background: rgba(214,158,46,0.08); border-color: #d69e2e;">
-                <div class="risk-dot" style="background: #d69e2e;">2</div>
+            <div class="risk-legend-item" style="background:#fff8e1; border-color:#ffc107;">
+                <div class="risk-dot" style="background:#ffc107; color:#333;">2</div>
                 <div class="risk-name">관심</div>
                 <div class="risk-range">11 ~ 50 마리</div>
             </div>
-            <div class="risk-legend-item" style="background: rgba(221,107,32,0.08); border-color: #dd6b20;">
-                <div class="risk-dot" style="background: #dd6b20;">3</div>
+            <div class="risk-legend-item" style="background:#fff3e0; border-color:#fd7e14;">
+                <div class="risk-dot" style="background:#fd7e14;">3</div>
                 <div class="risk-name">주의</div>
                 <div class="risk-range">51 ~ 100 마리</div>
             </div>
-            <div class="risk-legend-item" style="background: rgba(229,62,62,0.08); border-color: #e53e3e;">
-                <div class="risk-dot" style="background: #e53e3e;">4</div>
+            <div class="risk-legend-item" style="background:#fce4ec; border-color:#dc3545;">
+                <div class="risk-dot" style="background:#dc3545;">4</div>
                 <div class="risk-name">경고</div>
                 <div class="risk-range">101 ~ 200 마리</div>
             </div>
-            <div class="risk-legend-item" style="background: rgba(128,90,213,0.08); border-color: #805ad5;">
-                <div class="risk-dot" style="background: #805ad5;">5</div>
+            <div class="risk-legend-item" style="background:#f3e5f5; border-color:#6f42c1;">
+                <div class="risk-dot" style="background:#6f42c1;">5</div>
                 <div class="risk-name">위험</div>
                 <div class="risk-range">201 마리 이상</div>
             </div>
@@ -641,29 +619,34 @@
 
     <!-- AI Prediction -->
     <div class="section-title"><span class="icon">&#x1F916;</span> AI 예측</div>
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px;" id="predictionSection"></div>
-</div>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 28px;" id="predictionSection"></div>
 
-<!-- Ad -->
-<div style="max-width: 1400px; margin: 0 auto 40px; text-align: center; padding: 0 20px;">
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-7308084694640774"
-         data-ad-slot="4815636961"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
-</div>
+    <!-- Ad -->
+    <div style="text-align: center; margin: 28px 0;">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-7308084694640774"
+             data-ad-slot="4815636961"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
 
     <div class="data-source">
         데이터 출처: 청주시 흥덕구 모기 포집 관측소 (2025년 7~8월) | 충청북도 보건환경연구원
     </div>
 </div>
 
+<!-- Footer -->
 <div class="site-footer">
-    AI 모기 예측 시스템 &copy; 2026 | 문의: saerong.com
+    <div class="footer-inner">
+        <span>AI 모기 예측 시스템 &copy; 2026</span>
+        <span>
+            <a href="/">SAERONG</a> &nbsp;|&nbsp;
+            <a href="/admin/">관리자</a> &nbsp;|&nbsp;
+            <a href="/api/">API 문서</a>
+        </span>
+    </div>
 </div>
 
 <script>
@@ -865,39 +848,27 @@ const rawData = [
 // ============================================================
 const stations = ["오송호수공원", "송절방죽", "가경천변"];
 
-// Group data by station and sort by date
 function getStationData(stationName) {
-    return rawData
-        .filter(d => d[1] === stationName)
-        .sort((a, b) => a[0].localeCompare(b[0]));
+    return rawData.filter(d => d[1] === stationName).sort((a, b) => a[0].localeCompare(b[0]));
 }
 
-// Get all unique dates sorted
 const allDates = [...new Set(rawData.map(d => d[0]))].sort();
 const last30Dates = allDates.slice(-30);
 const lastDate = allDates[allDates.length - 1];
 const prevDate = allDates[allDates.length - 2];
 
-// Build lookup: date+station -> row
 const lookup = {};
-rawData.forEach(d => {
-    lookup[d[0] + '|' + d[1]] = d;
-});
+rawData.forEach(d => { lookup[d[0] + '|' + d[1]] = d; });
 
-// Station averages (full period)
 function stationAvg(station) {
     const vals = getStationData(station).map(d => d[2]);
     return vals.reduce((s, v) => s + v, 0) / vals.length;
 }
-
-// Station 7-day average
 function station7dAvg(station) {
     const data = getStationData(station);
     const last7 = data.slice(-7);
     return last7.reduce((s, d) => s + d[2], 0) / last7.length;
 }
-
-// Latest value for station
 function latestVal(station) {
     const row = lookup[lastDate + '|' + station];
     return row ? row[2] : 0;
@@ -907,30 +878,26 @@ function prevVal(station) {
     return row ? row[2] : 0;
 }
 
-// Risk level
 function riskLevel(count) {
-    if (count <= 10) return { name: '안전', cls: 'risk-safe', color: '#38a169' };
-    if (count <= 50) return { name: '관심', cls: 'risk-interest', color: '#d69e2e' };
-    if (count <= 100) return { name: '주의', cls: 'risk-caution', color: '#dd6b20' };
-    if (count <= 200) return { name: '경고', cls: 'risk-warning', color: '#e53e3e' };
-    return { name: '위험', cls: 'risk-danger', color: '#805ad5' };
+    if (count <= 10) return { name: '안전', cls: 'risk-safe', color: '#198754' };
+    if (count <= 50) return { name: '관심', cls: 'risk-interest', color: '#ffc107' };
+    if (count <= 100) return { name: '주의', cls: 'risk-caution', color: '#fd7e14' };
+    if (count <= 200) return { name: '경고', cls: 'risk-warning', color: '#dc3545' };
+    return { name: '위험', cls: 'risk-danger', color: '#6f42c1' };
 }
 
-// Today's average across all stations
 const todayAvg = Math.round(stations.reduce((s, st) => s + latestVal(st), 0) / stations.length);
 const prevAvgVal = Math.round(stations.reduce((s, st) => s + prevVal(st), 0) / stations.length);
 const changePct = prevAvgVal > 0 ? Math.round((todayAvg - prevAvgVal) / prevAvgVal * 100) : 0;
 const overallRisk = riskLevel(todayAvg);
 
-// ============================================================
 // 1. Summary Cards
-// ============================================================
-const summaryHTML = `
+document.getElementById('summaryCards').innerHTML = `
     <div class="summary-card">
         <div class="card-icon">&#x1F99F;</div>
         <div class="card-label">최종일 평균 포집량</div>
         <div class="card-value">${todayAvg}</div>
-        <div class="card-sub" style="color:#718096;">${lastDate}</div>
+        <div class="card-sub" style="color:#8a9ab5;">${lastDate}</div>
     </div>
     <div class="summary-card">
         <div class="card-icon">${changePct >= 0 ? '&#x1F4C8;' : '&#x1F4C9;'}</div>
@@ -942,20 +909,17 @@ const summaryHTML = `
         <div class="card-icon">&#x26A0;&#xFE0F;</div>
         <div class="card-label">위험 등급</div>
         <div class="card-value"><span class="risk-badge ${overallRisk.cls}">${overallRisk.name}</span></div>
-        <div class="card-sub" style="color:#718096;">5단계 평가 기준</div>
+        <div class="card-sub" style="color:#8a9ab5;">5단계 평가 기준</div>
     </div>
     <div class="summary-card">
         <div class="card-icon">&#x1F4CD;</div>
         <div class="card-label">활성 관측소</div>
-        <div class="card-value">3<span style="font-size:1rem;color:#718096;">개소</span></div>
-        <div class="card-sub" style="color:#718096;">청주시 흥덕구</div>
+        <div class="card-value">3<span style="font-size:0.9rem;color:#8a9ab5;">개소</span></div>
+        <div class="card-sub" style="color:#8a9ab5;">청주시 흥덕구</div>
     </div>
 `;
-document.getElementById('summaryCards').innerHTML = summaryHTML;
 
-// ============================================================
 // 2. Station Cards
-// ============================================================
 let stationHTML = '';
 stations.forEach(st => {
     const latest = latestVal(st);
@@ -964,7 +928,6 @@ stations.forEach(st => {
     const risk = riskLevel(latest);
     const trendUp = latest >= prev;
     const trendPct = prev > 0 ? Math.round((latest - prev) / prev * 100) : 0;
-
     stationHTML += `
         <div class="station-card">
             <div class="station-header">
@@ -974,189 +937,84 @@ stations.forEach(st => {
             <div class="station-value">${latest}</div>
             <div class="station-unit">마리 (${lastDate})</div>
             <div class="station-meta">
-                <div>
-                    <div class="meta-label">전일 대비</div>
-                    <div class="meta-value ${trendUp ? 'trend-up' : 'trend-down'}">
-                        ${trendUp ? '&#x25B2;' : '&#x25BC;'} ${trendPct >= 0 ? '+' : ''}${trendPct}%
-                    </div>
-                </div>
-                <div>
-                    <div class="meta-label">7일 평균</div>
-                    <div class="meta-value">${avg7.toFixed(1)}</div>
-                </div>
-                <div>
-                    <div class="meta-label">전체 평균</div>
-                    <div class="meta-value">${stationAvg(st).toFixed(1)}</div>
-                </div>
+                <div><div class="meta-label">전일 대비</div><div class="meta-value ${trendUp ? 'trend-up' : 'trend-down'}">${trendUp ? '&#x25B2;' : '&#x25BC;'} ${trendPct >= 0 ? '+' : ''}${trendPct}%</div></div>
+                <div><div class="meta-label">7일 평균</div><div class="meta-value">${avg7.toFixed(1)}</div></div>
+                <div><div class="meta-label">전체 평균</div><div class="meta-value">${stationAvg(st).toFixed(1)}</div></div>
             </div>
         </div>
     `;
 });
 document.getElementById('stationCards').innerHTML = stationHTML;
 
-// ============================================================
 // 3. Charts
-// ============================================================
 const stationColors = {
-    '오송호수공원': { line: '#667eea', bg: 'rgba(102,126,234,0.1)', bar: 'rgba(102,126,234,0.8)' },
-    '송절방죽': { line: '#e53e3e', bg: 'rgba(229,62,62,0.1)', bar: 'rgba(229,62,62,0.8)' },
-    '가경천변': { line: '#38a169', bg: 'rgba(56,161,105,0.1)', bar: 'rgba(56,161,105,0.8)' }
+    '오송호수공원': { line: '#2b6cb0', bg: 'rgba(43,108,176,0.1)', bar: 'rgba(43,108,176,0.85)' },
+    '송절방죽': { line: '#dc3545', bg: 'rgba(220,53,69,0.1)', bar: 'rgba(220,53,69,0.85)' },
+    '가경천변': { line: '#198754', bg: 'rgba(25,135,84,0.1)', bar: 'rgba(25,135,84,0.85)' }
 };
 
-// Line chart - last 30 days
-const lineLabels = last30Dates.map(d => d.slice(5)); // MM-DD
+const lineLabels = last30Dates.map(d => d.slice(5));
 const lineDatasets = stations.map(st => {
-    const data = last30Dates.map(date => {
-        const row = lookup[date + '|' + st];
-        return row ? row[2] : null;
-    });
-    return {
-        label: st,
-        data: data,
-        borderColor: stationColors[st].line,
-        backgroundColor: stationColors[st].bg,
-        borderWidth: 2,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        tension: 0.3,
-        fill: false
-    };
+    const data = last30Dates.map(date => { const row = lookup[date + '|' + st]; return row ? row[2] : null; });
+    return { label: st, data, borderColor: stationColors[st].line, backgroundColor: stationColors[st].bg, borderWidth: 2, pointRadius: 2, pointHoverRadius: 5, tension: 0.3, fill: false };
 });
 
 new Chart(document.getElementById('lineChart'), {
     type: 'line',
     data: { labels: lineLabels, datasets: lineDatasets },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } },
-            tooltip: { mode: 'index', intersect: false }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: { display: true, text: '포집량 (마리)' },
-                grid: { color: 'rgba(0,0,0,0.05)' }
-            },
-            x: {
-                grid: { display: false },
-                ticks: { maxRotation: 45, font: { size: 10 } }
-            }
-        },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } }, tooltip: { mode: 'index', intersect: false } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: '포집량 (마리)' }, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } } },
         interaction: { mode: 'nearest', axis: 'x', intersect: false }
     }
 });
 
-// Bar chart - average per station
 const barAvgs = stations.map(st => Math.round(stationAvg(st) * 10) / 10);
 new Chart(document.getElementById('barChart'), {
     type: 'bar',
-    data: {
-        labels: stations,
-        datasets: [{
-            label: '전체 기간 평균 포집량',
-            data: barAvgs,
-            backgroundColor: stations.map(st => stationColors[st].bar),
-            borderRadius: 8,
-            barThickness: 60
-        }]
-    },
+    data: { labels: stations, datasets: [{ label: '전체 기간 평균 포집량', data: barAvgs, backgroundColor: stations.map(st => stationColors[st].bar), borderRadius: 6, barThickness: 60 }] },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: ctx => `평균 ${ctx.parsed.y} 마리`
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: { display: true, text: '평균 포집량 (마리)' },
-                grid: { color: 'rgba(0,0,0,0.05)' }
-            },
-            x: { grid: { display: false } }
-        }
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `평균 ${ctx.parsed.y} 마리` } } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: '평균 포집량 (마리)' }, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } }
     }
 });
 
-// ============================================================
-// 5. Weather Correlation Section
-// ============================================================
+// 5. Weather Section
 const latestWeather = rawData.find(d => d[0] === lastDate);
-const weatherHTML = `
+document.getElementById('weatherSection').innerHTML = `
     <div class="weather-card">
         <h3>최신 기상 데이터 (${lastDate})</h3>
-        <div class="weather-row">
-            <span class="weather-label">&#x1F321;&#xFE0F; 평균기온</span>
-            <span class="weather-val">${latestWeather[3]}&deg;C</span>
-        </div>
-        <div class="weather-row">
-            <span class="weather-label">&#x1F4A7; 평균습도</span>
-            <span class="weather-val">${latestWeather[4]}%</span>
-        </div>
-        <div class="weather-row">
-            <span class="weather-label">&#x1F327;&#xFE0F; 일강수량</span>
-            <span class="weather-val">${latestWeather[5]}mm</span>
-        </div>
-        <div class="weather-row">
-            <span class="weather-label">&#x1F4A8; 평균풍속</span>
-            <span class="weather-val">${latestWeather[6]}m/s</span>
-        </div>
+        <div class="weather-row"><span class="weather-label">&#x1F321;&#xFE0F; 평균기온</span><span class="weather-val">${latestWeather[3]}&deg;C</span></div>
+        <div class="weather-row"><span class="weather-label">&#x1F4A7; 평균습도</span><span class="weather-val">${latestWeather[4]}%</span></div>
+        <div class="weather-row"><span class="weather-label">&#x1F327;&#xFE0F; 일강수량</span><span class="weather-val">${latestWeather[5]}mm</span></div>
+        <div class="weather-row"><span class="weather-label">&#x1F4A8; 평균풍속</span><span class="weather-val">${latestWeather[6]}m/s</span></div>
     </div>
     <div class="weather-card">
         <h3>기상-모기 상관관계 분석</h3>
-        <div class="insight-text">
-            <strong>분석 결과:</strong> 수집 데이터 분석 결과, 평균기온 26~29&deg;C 구간에서 모기 포집량이 가장 높으며,
-            습도 75% 이상일 때 활동이 증가하는 경향을 보입니다.
-            강수 후 2~3일 뒤에 포집량이 급증하는 패턴이 관찰되며,
-            풍속 2.0m/s 이상에서는 포집량이 감소하는 경향이 있습니다.
-        </div>
-        <div class="insight-text" style="margin-top: 12px; border-left-color: #e53e3e;">
-            <strong>주목 데이터:</strong> 7월 17일 240.3mm 폭우 이후 송절방죽에서 7월 초~중순 최고치(165마리, 7/11)를 기록했으며,
-            8월 4~7일 간 송절방죽에서 183 &rarr; 190 &rarr; 185 &rarr; 209 마리로 위험 수준에 도달했습니다.
-        </div>
+        <div class="insight-text"><strong>분석 결과:</strong> 수집 데이터 분석 결과, 평균기온 26~29&deg;C 구간에서 모기 포집량이 가장 높으며, 습도 75% 이상일 때 활동이 증가하는 경향을 보입니다. 강수 후 2~3일 뒤에 포집량이 급증하는 패턴이 관찰되며, 풍속 2.0m/s 이상에서는 포집량이 감소하는 경향이 있습니다.</div>
+        <div class="insight-text" style="margin-top:10px; border-left-color:#dc3545;"><strong>주목 데이터:</strong> 7월 17일 240.3mm 폭우 이후 송절방죽에서 7월 초~중순 최고치(165마리, 7/11)를 기록했으며, 8월 4~7일 간 송절방죽에서 183 &rarr; 190 &rarr; 185 &rarr; 209 마리로 위험 수준에 도달했습니다.</div>
     </div>
 `;
-document.getElementById('weatherSection').innerHTML = weatherHTML;
 
-// ============================================================
-// 6. AI Prediction Section
-// ============================================================
-// Simple prediction based on 7-day moving average and trend
+// 6. AI Prediction
 function predictNext3(station) {
     const data = getStationData(station);
     const last7 = data.slice(-7).map(d => d[2]);
     const avg = last7.reduce((s, v) => s + v, 0) / 7;
     const last3 = last7.slice(-3);
     const trend = (last3[2] - last3[0]) / 2;
-    return [
-        Math.max(0, Math.round(avg + trend * 0.5)),
-        Math.max(0, Math.round(avg + trend * 1.0)),
-        Math.max(0, Math.round(avg + trend * 1.5))
-    ];
+    return [Math.max(0, Math.round(avg + trend * 0.5)), Math.max(0, Math.round(avg + trend * 1.0)), Math.max(0, Math.round(avg + trend * 1.5))];
 }
 
 const predictions = {};
 let maxPred = 0;
-stations.forEach(st => {
-    predictions[st] = predictNext3(st);
-    maxPred = Math.max(maxPred, ...predictions[st]);
-});
-
+stations.forEach(st => { predictions[st] = predictNext3(st); maxPred = Math.max(maxPred, ...predictions[st]); });
 const overallPredRisk = riskLevel(maxPred);
 const needsAction = maxPred > 100;
 
-// Create date labels for next 3 days after lastDate
-function addDays(dateStr, n) {
-    const d = new Date(dateStr);
-    d.setDate(d.getDate() + n);
-    return d.toISOString().slice(0, 10);
-}
+function addDays(dateStr, n) { const d = new Date(dateStr); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
 const predDates = [addDays(lastDate, 1), addDays(lastDate, 2), addDays(lastDate, 3)];
 
 let predHTML = `<div class="prediction-card"><h3>관측소별 3일 예측</h3>`;
@@ -1164,49 +1022,11 @@ stations.forEach(st => {
     const preds = predictions[st];
     const trendDir = preds[2] > preds[0] ? '&#x25B2; 증가' : (preds[2] < preds[0] ? '&#x25BC; 감소' : '&#x25CF; 유지');
     const trendCls = preds[2] > preds[0] ? 'trend-up' : 'trend-down';
-    predHTML += `
-        <div style="margin-bottom: 18px;">
-            <div style="font-weight:700; color:#2d3748; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span>${st}</span>
-                <span class="${trendCls}" style="font-size:0.85rem;">${trendDir}</span>
-            </div>
-            ${preds.map((p, i) => {
-                const r = riskLevel(p);
-                return `<div class="pred-day">
-                    <span class="pred-label">${predDates[i]}</span>
-                    <span class="pred-val" style="color:${r.color};">${p} <span style="font-size:0.8rem;font-weight:400;">마리</span></span>
-                </div>`;
-            }).join('')}
-        </div>
-    `;
+    predHTML += `<div style="margin-bottom:16px;"><div style="font-weight:700;color:#1b3a5c;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><span>${st}</span><span class="${trendCls}" style="font-size:0.82rem;">${trendDir}</span></div>${preds.map((p, i) => { const r = riskLevel(p); return `<div class="pred-day"><span class="pred-label">${predDates[i]}</span><span class="pred-val" style="color:${r.color};">${p} <span style="font-size:0.78rem;font-weight:400;">마리</span></span></div>`; }).join('')}</div>`;
 });
 predHTML += '</div>';
 
-predHTML += `
-    <div class="recommendation-card">
-        <h3>방역 추천 사항</h3>
-        <div style="text-align:center; margin-bottom:20px;">
-            <div style="font-size:0.85rem; color:#718096; margin-bottom:6px;">예측 최대 위험 등급</div>
-            <span class="risk-badge ${overallPredRisk.cls}" style="font-size:1.1rem; padding: 8px 20px;">${overallPredRisk.name}</span>
-        </div>
-        <div class="rec-item">
-            <span class="rec-icon">${needsAction ? '&#x1F6A8;' : '&#x2705;'}</span>
-            <span>${needsAction
-                ? '<strong>방역 필요:</strong> 송절방죽 인근 집중 방역을 권장합니다. 해당 관측소에서 지속적으로 높은 포집량이 관측되고 있습니다.'
-                : '<strong>현재 안정:</strong> 전반적으로 포집량이 감소 추세에 있어 정기 방역으로 충분합니다.'}</span>
-        </div>
-        <div class="rec-item">
-            <span class="rec-icon">&#x1F4CB;</span>
-            <span><strong>행동 지침:</strong> ${maxPred > 50
-                ? '야외 활동 시 긴 소매 착용 및 모기 기피제 사용을 권장합니다. 물웅덩이 제거와 하수구 정비를 병행하세요.'
-                : '기본적인 방충 대책을 유지하고, 주간 모니터링을 지속하세요.'}</span>
-        </div>
-        <div class="rec-item">
-            <span class="rec-icon">&#x1F4C5;</span>
-            <span><strong>모니터링:</strong> 데이터 수집 기간은 2025년 7월 1일 ~ 8월 31일입니다. ${allDates.length}일간 총 ${rawData.length}건의 측정 데이터가 분석에 활용되었습니다.</span>
-        </div>
-    </div>
-`;
+predHTML += `<div class="recommendation-card"><h3>방역 추천 사항</h3><div style="text-align:center;margin-bottom:18px;"><div style="font-size:0.82rem;color:#8a9ab5;margin-bottom:6px;">예측 최대 위험 등급</div><span class="risk-badge ${overallPredRisk.cls}" style="font-size:1rem;padding:6px 18px;">${overallPredRisk.name}</span></div><div class="rec-item"><span class="rec-icon">${needsAction ? '&#x1F6A8;' : '&#x2705;'}</span><span>${needsAction ? '<strong>방역 필요:</strong> 송절방죽 인근 집중 방역을 권장합니다. 해당 관측소에서 지속적으로 높은 포집량이 관측되고 있습니다.' : '<strong>현재 안정:</strong> 전반적으로 포집량이 감소 추세에 있어 정기 방역으로 충분합니다.'}</span></div><div class="rec-item"><span class="rec-icon">&#x1F4CB;</span><span><strong>행동 지침:</strong> ${maxPred > 50 ? '야외 활동 시 긴 소매 착용 및 모기 기피제 사용을 권장합니다. 물웅덩이 제거와 하수구 정비를 병행하세요.' : '기본적인 방충 대책을 유지하고, 주간 모니터링을 지속하세요.'}</span></div><div class="rec-item"><span class="rec-icon">&#x1F4C5;</span><span><strong>모니터링:</strong> 데이터 수집 기간은 2025년 7월 1일 ~ 8월 31일입니다. ${allDates.length}일간 총 ${rawData.length}건의 측정 데이터가 분석에 활용되었습니다.</span></div></div>`;
 document.getElementById('predictionSection').innerHTML = predHTML;
 </script>
 
