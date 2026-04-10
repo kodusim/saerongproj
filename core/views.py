@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
 from django.db.models import Count, Sum, Q
 from collector.models import CollectedData, CrawlLog
 from sources.models import DataSource
@@ -174,8 +175,20 @@ def subcategory_detail(request, slug):
 
 
 def mosquito_test(request):
-    """모기 테스트 페이지"""
-    return render(request, 'core/mosquito_test.html')
+    """모기 테스트 페이지 (Basic Auth 보호)"""
+    import base64
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    if auth.startswith('Basic '):
+        try:
+            decoded = base64.b64decode(auth[6:]).decode('utf-8')
+            username, password = decoded.split(':', 1)
+            if username == 'admin' and password == 'admin':
+                return render(request, 'core/mosquito_test.html')
+        except Exception:
+            pass
+    response = HttpResponse('Unauthorized', status=401)
+    response['WWW-Authenticate'] = 'Basic realm="Mosquito Dashboard"'
+    return response
 
 
 def game_notices(request):
