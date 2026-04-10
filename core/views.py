@@ -175,20 +175,20 @@ def subcategory_detail(request, slug):
 
 
 def mosquito_test(request):
-    """모기 테스트 페이지 (Basic Auth 보호)"""
-    import base64
-    auth = request.META.get('HTTP_AUTHORIZATION', '')
-    if auth.startswith('Basic '):
-        try:
-            decoded = base64.b64decode(auth[6:]).decode('utf-8')
-            username, password = decoded.split(':', 1)
-            if username == 'admin' and password == 'admin':
-                return render(request, 'core/mosquito_test.html')
-        except Exception:
-            pass
-    response = HttpResponse('Unauthorized', status=401)
-    response['WWW-Authenticate'] = 'Basic realm="Mosquito Dashboard"'
-    return response
+    """모기 테스트 페이지 (세션 기반 로그인 보호)"""
+    if request.session.get('mosquito_auth'):
+        return render(request, 'core/mosquito_test.html')
+
+    error = ''
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        if username == 'admin' and password == 'admin':
+            request.session['mosquito_auth'] = True
+            return render(request, 'core/mosquito_test.html')
+        error = '아이디 또는 비밀번호가 올바르지 않습니다.'
+
+    return render(request, 'core/mosquito_login.html', {'error': error})
 
 
 def game_notices(request):
