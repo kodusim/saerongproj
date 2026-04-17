@@ -1,9 +1,14 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_GET
 from django.db.models import Count, Sum, Q
 from collector.models import CollectedData, CrawlLog
 from sources.models import DataSource
 from core.models import Category, SubCategory
+from core import moscom_client
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_crawler_status():
@@ -204,3 +209,49 @@ def game_notices(request):
     }
 
     return render(request, 'core/game_notices.html', context)
+
+
+def _require_mosquito_auth(request):
+    """모기 대시보드 세션 인증 체크, 미인증 시 401 JsonResponse 반환"""
+    if request.session.get('mosquito_auth'):
+        return None
+    return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+
+@require_GET
+def moscom_devices(request):
+    """MOSCOM API 장비 목록 프록시"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        force = request.GET.get('refresh') == '1'
+        data = moscom_client.list_devices(force_refresh=force)
+        return JsonResponse({'count': len(data), 'devices': data}, safe=False)
+    except Exception as e:
+        logger.exception('MOSCOM /device/listAll failed')
+        return JsonResponse({'error': str(e)}, status=502)
+
+
+@require_GET
+def moscom_raw_collection(request):
+    """MOSCOM API 기간별 포집 데이터 프록시
+    쿼리스트링: start, end, device_uuid(선택)
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    start = request.GET.get('start')
+    end = request.GET.get('end')
+    if not start or not end:
+        return JsonResponse({'error': 'start, end query params required (ISO 8601)'}, status=400)
+    try:
+        data = moscom_client.raw_collection_bulk(
+            start_dt=start,
+            end_dt=end,
+            device_uuid=request.GET.get('device_uuid') or None,
+        )
+        return JsonResponse({'data': data}, safe=False)
+    except Exception as e:
+        logger.exception('MOSCOM /device/rawCollectionBulk failed')
+        return JsonResponse({'error': str(e)}, status=502)
