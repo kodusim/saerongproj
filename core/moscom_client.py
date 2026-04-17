@@ -98,3 +98,26 @@ def raw_collection_bulk(start_dt, end_dt, mosquito_count=None, device_uuid=None)
     if device_uuid:
         payload['deviceUUID'] = device_uuid
     return _request('POST', '/device/rawCollectionBulk', json=payload)
+
+
+STATS_CACHE_KEY = 'moscom:stats'
+STATS_TTL = 300  # 통계는 5분 캐시 (일별 집계라 자주 안 바뀜)
+
+
+def get_statistics(device_uuid='', period_type='2', offset=0, force_refresh=False):
+    """장비별 일별 포집 통계
+    period_type: '0'=3개월, '1'=4주, '2'=7일, '3'=기타
+    device_uuid: 빈 문자열이면 전체 장비
+    """
+    cache_key = f'{STATS_CACHE_KEY}:{device_uuid}:{period_type}:{offset}'
+    if not force_refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+    data = _request(
+        'GET',
+        '/device/statistics',
+        params={'deviceUUID': device_uuid, 'type': period_type, 'offset': offset},
+    )
+    cache.set(cache_key, data, STATS_TTL)
+    return data

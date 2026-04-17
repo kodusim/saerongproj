@@ -685,8 +685,8 @@ body {
       <table class="data-table" id="trend-table"></table>
     </div>
     <div class="card" style="padding:14px 16px">
-      <div style="background:var(--navy-l);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--navy);font-weight:600">
-        종합: 7일 연속 고온다습 → 관측소 B (저수지)·관측소 H (하천중류) 상승 국면 지속. 단기 자연 감소 가능성 낮음. 유충 방제 지속 필요.
+      <div style="background:var(--gray2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--gray4);font-weight:600">
+        종합: 준비중
       </div>
     </div>
   </div>
@@ -1017,25 +1017,91 @@ function buildAnomalyAll(){
   }).join('')}</tbody>`;
 }
 
-// ── 7일 추세 ─────────────────────────────────────────────
-function buildTrend(){
-  const TREND_IDS=[2,5,8,1];
-  const ts=STATIONS.filter(s=>TREND_IDS.includes(s.id));
-  const t=document.getElementById("trend-table");
-  t.innerHTML=`<thead><tr><th>관측소</th><th>7일전</th><th>6일전</th><th>5일전</th><th>4일전</th><th>3일전</th><th>2일전</th><th>전일</th><th>추세</th><th>국면</th></tr></thead>
-  <tbody>${ts.map((s,i)=>{
-    const w=s.w7;
-    const f=w.slice(0,3).reduce((a,b)=>a+b,0)/3;
-    const l=w.slice(4).reduce((a,b)=>a+b,0)/3;
-    const chg=Math.round((l-f)/f*100);
-    const up=chg>5,down=chg<-5;
-    const tc=up?"var(--red)":down?"var(--green)":"var(--gray4)";
-    const tl=up?"↑ 상승":down?"↓ 하락":"→ 보합";
-    const cells=w.map((v,wi)=>`<td style="font-family:var(--mono);${wi===6?`color:var(--navy);font-weight:700`:`color:var(--gray5)`}">${v}</td>`).join('');
-    return `<tr><td><strong>${s.name}</strong></td>${cells}
-      <td style="color:${tc};font-family:var(--mono);font-weight:700">${chg>=0?"+":""}${chg}%</td>
-      <td style="color:${tc};font-weight:700">${tl}</td></tr>`;
-  }).join('')}</tbody>`;
+// ── 7일 추세 (실제 MOSCOM 데이터) ──────────────────────────
+let TREND_LOADED = false;
+async function buildTrend(){
+  const t = document.getElementById("trend-table");
+  if (TREND_LOADED) return;  // 이미 로드됐으면 재호출 안 함
+  t.innerHTML = `<thead><tr><th>관측소</th><th colspan="9" style="text-align:center">MOSCOM 실제 장비 데이터 불러오는 중…</th></tr></thead>`;
+  try {
+    const res = await fetch('/mosquito-test/api/statistics/?period=2', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const { stats } = await res.json();
+
+    // 장비별 일별 집계: device_uuid -> {date: count}
+    const byDevice = {};
+    const dateSet = new Set();
+    (stats || []).forEach(r => {
+      const date = (r.created_date || '').slice(0, 10);
+      if (!date) return;
+      dateSet.add(date);
+      if (!byDevice[r.device_uuid]) byDevice[r.device_uuid] = { name: r.device_uuid, counts: {} };
+      byDevice[r.device_uuid].counts[date] = (byDevice[r.device_uuid].counts[date] || 0) + (r.mosquito_count || 0);
+    });
+
+    // 장비 메타(이름/주소) 붙이기
+    const dvRes = await fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' });
+    if (dvRes.ok) {
+      const { devices } = await dvRes.json();
+      devices.forEach(d => {
+        const u = d.device_uuid;
+        if (byDevice[u]) {
+          const dv = d.device || {};
+          const nm = (dv.device_name || '').trim();
+          const addr = [dv.address_gungu, dv.address_dong].filter(Boolean).join(' ').trim();
+          byDevice[u].name = nm ? `${nm}${addr ? ' ('+addr+')' : ''}` : u;
+        }
+      });
+    }
+
+    // 최근 7일 기준 날짜 배열 (오름차순)
+    const dates = Array.from(dateSet).sort().slice(-7);
+
+    // 포집량 합산 기준 상위 6개 장비만 표시
+    const rows = Object.values(byDevice)
+      .map(d => {
+        const seq = dates.map(dt => d.counts[dt] || 0);
+        return { name: d.name, seq, sum: seq.reduce((a, b) => a + b, 0) };
+      })
+      .sort((a, b) => b.sum - a.sum)
+      .slice(0, 6);
+
+    if (rows.length === 0 || dates.length === 0) {
+      t.innerHTML = `<thead><tr><th>관측소</th><th colspan="9" style="text-align:center;color:var(--gray4)">최근 7일 데이터가 없습니다</th></tr></thead>`;
+      TREND_LOADED = true;
+      return;
+    }
+
+    // 헤더: 날짜를 MM/DD 형식으로
+    const dayHeaders = dates.map(d => {
+      const [y,m,dd] = d.split('-');
+      return `<th>${parseInt(m,10)}/${parseInt(dd,10)}</th>`;
+    }).join('');
+
+    t.innerHTML = `<thead><tr><th style="min-width:180px">장비</th>${dayHeaders}<th>추세</th><th>국면</th></tr></thead>
+    <tbody>${rows.map(r => {
+      const w = r.seq;
+      const lastIdx = w.length - 1;
+      const half = Math.ceil(w.length / 2);
+      const first = w.slice(0, half);
+      const last = w.slice(half);
+      const fAvg = first.reduce((a,b)=>a+b,0) / (first.length || 1);
+      const lAvg = last.reduce((a,b)=>a+b,0) / (last.length || 1);
+      const chg = fAvg > 0 ? Math.round((lAvg - fAvg) / fAvg * 100) : 0;
+      const up = chg > 5, down = chg < -5;
+      const tc = up ? "var(--red)" : down ? "var(--green)" : "var(--gray4)";
+      const tl = up ? "↑ 상승" : down ? "↓ 하락" : "→ 보합";
+      const cells = w.map((v, wi) =>
+        `<td style="font-family:var(--mono);${wi===lastIdx?'color:var(--navy);font-weight:700':'color:var(--gray5)'}">${v}</td>`
+      ).join('');
+      return `<tr><td><strong>${r.name}</strong></td>${cells}
+        <td style="color:${tc};font-family:var(--mono);font-weight:700">${chg>=0?"+":""}${chg}%</td>
+        <td style="color:${tc};font-weight:700">${tl}</td></tr>`;
+    }).join('')}</tbody>`;
+    TREND_LOADED = true;
+  } catch (err) {
+    t.innerHTML = `<thead><tr><th>관측소</th><th colspan="9" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
+  }
 }
 
 // ── 예측 테이블 ──────────────────────────────────────────

@@ -5,7 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core.views import (
     dashboard, category_detail, subcategory_detail, game_notices, mosquito_test,
-    moscom_devices, moscom_raw_collection,
+    moscom_devices, moscom_raw_collection, moscom_statistics,
 )
 
 urlpatterns = [
@@ -15,6 +15,7 @@ urlpatterns = [
     path("mosquito-test/", mosquito_test, name="mosquito_test"),  # 모기 테스트
     path("mosquito-test/api/devices/", moscom_devices, name="moscom_devices"),  # MOSCOM 장비 목록 프록시
     path("mosquito-test/api/raw-collection/", moscom_raw_collection, name="moscom_raw_collection"),  # MOSCOM 포집 데이터 프록시
+    path("mosquito-test/api/statistics/", moscom_statistics, name="moscom_statistics"),  # MOSCOM 통계 프록시
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터

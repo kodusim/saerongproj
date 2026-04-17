@@ -255,3 +255,24 @@ def moscom_raw_collection(request):
     except Exception as e:
         logger.exception('MOSCOM /device/rawCollectionBulk failed')
         return JsonResponse({'error': str(e)}, status=502)
+
+
+@require_GET
+def moscom_statistics(request):
+    """MOSCOM API 장비별 일별 통계 프록시
+    쿼리스트링: period(0=3개월, 1=4주, 2=7일, 3=기타, 기본=2), device_uuid(선택, 빈값=전체)
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        period = request.GET.get('period', '2')
+        device_uuid = request.GET.get('device_uuid', '')
+        offset = int(request.GET.get('offset', '0'))
+        data = moscom_client.get_statistics(
+            device_uuid=device_uuid, period_type=period, offset=offset,
+        )
+        return JsonResponse({'count': len(data), 'stats': data}, safe=False)
+    except Exception as e:
+        logger.exception('MOSCOM /device/statistics failed')
+        return JsonResponse({'error': str(e)}, status=502)
