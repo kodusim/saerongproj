@@ -594,7 +594,7 @@ body {
     <div class="sec-header mb16">
       <div class="sec-bar"></div>
       <div class="sec-title">시간별 포집 히트맵</div>
-      <div class="sec-sub">최근 수집창 (18:00 ~ 05:00, KST) · MOSCOM 실측</div>
+      <div class="sec-sub">최근 24시간 (KST) · MOSCOM 실측</div>
     </div>
 
     <div class="card mb16" style="padding:14px 16px">
@@ -980,24 +980,20 @@ function buildStationTable(){
 }
 
 // ── 히트맵 (실제 MOSCOM 데이터) ─────────────────────────
-// 수집창: 18:00 ~ 05:00 (전일~당일). KST(UTC+9) 기준으로 시간 버킷팅.
+// 24시간 전체 표시 (00~23), KST(UTC+9) 기준.
 let HEATMAP_LOADED = false;
-const NIGHT_HOURS = [18,19,20,21,22,23,0,1,2,3,4,5];
+const HEATMAP_HOURS = Array.from({length: 24}, (_, i) => i);
 
 function bucketHourKST(isoStr) {
-  // ISO timestamp → KST 시각. 밤 수집창(18~05)인지 확인하며 버킷 인덱스 반환.
   if (!isoStr) return -1;
   const d = new Date(isoStr);
-  // getHours가 로컬 시간 쓰므로 UTC에서 9시간 더해 KST 계산
-  const kstHour = (d.getUTCHours() + 9) % 24;
-  const idx = NIGHT_HOURS.indexOf(kstHour);
-  return idx; // 0~11, -1이면 수집창 외 시간
+  return (d.getUTCHours() + 9) % 24;
 }
 
 async function buildHeatmap(){
   const t = document.getElementById("heatmap-table");
   if (HEATMAP_LOADED) return;
-  const colCount = NIGHT_HOURS.length + 2; // 관측소 + 시간들 + 합계
+  const colCount = HEATMAP_HOURS.length + 2; // 관측소 + 24시간 + 합계
   t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center">MOSCOM 시간별 데이터 불러오는 중…</th></tr></thead>`;
   try {
     const [hourlyRes, dvRes] = await Promise.all([
@@ -1009,7 +1005,7 @@ async function buildHeatmap(){
     const records = hourlyJson.data || [];
 
     // 장비 메타
-    const meta = {}; // uuid -> {name, addr}
+    const meta = {};
     if (dvRes.ok) {
       const { devices } = await dvRes.json();
       devices.forEach(d => {
@@ -1021,14 +1017,14 @@ async function buildHeatmap(){
       });
     }
 
-    // 장비 x 시간대 합산
-    const buckets = {}; // uuid -> array(12)
+    // 장비 × 24시간 버킷 합산
+    const buckets = {};
     records.forEach(r => {
-      const idx = bucketHourKST(r.created_date);
-      if (idx < 0) return; // 수집창 밖
+      const hour = bucketHourKST(r.created_date);
+      if (hour < 0) return;
       const u = r.device_uuid;
-      if (!buckets[u]) buckets[u] = new Array(NIGHT_HOURS.length).fill(0);
-      buckets[u][idx] += (r.mosquito_count || 0);
+      if (!buckets[u]) buckets[u] = new Array(24).fill(0);
+      buckets[u][hour] += (r.mosquito_count || 0);
     });
 
     // 포집합 많은 장비가 위로 오도록 정렬
@@ -1046,7 +1042,7 @@ async function buildHeatmap(){
       return;
     }
 
-    const hdr = `<tr><th class="st-col">장비 (${rows.length}개)</th>${NIGHT_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}시</th>`).join('')}<th>합계</th></tr>`;
+    const hdr = `<tr><th class="st-col">장비 (${rows.length}개)</th>${HEATMAP_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}</th>`).join('')}<th>합계</th></tr>`;
     const body = rows.map(r => {
       const cells = r.arr.map(v => `<td class="${heatClass(v)}">${v || '-'}</td>`).join('');
       return `<tr><td class="st-name">${r.label}</td>${cells}<td class="total-cell">${r.total > 0 ? r.total : '-'}</td></tr>`;
