@@ -594,17 +594,11 @@ body {
     <div class="sec-header mb16">
       <div class="sec-bar"></div>
       <div class="sec-title">시간별 포집 히트맵</div>
-      <div class="sec-sub">2025. 08. 15. 18:00 ~ 05:00  ·  전일 실측</div>
+      <div class="sec-sub">최근 수집창 (18:00 ~ 05:00, KST) · MOSCOM 실측</div>
     </div>
 
     <div class="card mb16" style="padding:14px 16px">
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12px">
-        <div><strong style="color:var(--navy)">Peak 시간:</strong> 23:00 (전 관측소 공통)</div>
-        <div style="color:var(--gray3)">|</div>
-        <div><strong style="color:var(--teal)">방역 권장:</strong> 익일 오전 06~10시 유충 방제</div>
-        <div style="color:var(--gray3)">|</div>
-        <div><strong style="color:var(--orange)">기상:</strong> 평균 26.7°C / 습도 83% / 강수 0mm → 모기 최적 조건</div>
-      </div>
+      <div style="font-size:12px;color:var(--gray4);font-weight:600">요약 분석: 준비중</div>
     </div>
 
     <div class="card mb16">
@@ -985,17 +979,83 @@ function buildStationTable(){
   }).join('');
 }
 
-// ── 히트맵 ───────────────────────────────────────────────
-function buildHeatmap(){
-  const t=document.getElementById("heatmap-table");
-  const hdr=`<tr><th class="st-col">관측소</th>${HOURS.map(h=>`<th>${h}</th>`).join('')}<th>합계</th></tr>`;
-  const rows=STATIONS.map((s,si)=>{
-    const h=HOURLY[s.name]||[];
-    const total=h.reduce((a,b)=>a+b,0);
-    const cells=h.map(v=>`<td class="${heatClass(v)}">${v||"-"}</td>`).join('');
-    return `<tr><td class="st-name">${s.name}</td>${cells}<td class="total-cell">${total>0?total:"-"}</td></tr>`;
-  }).join('');
-  t.innerHTML=`<thead>${hdr}</thead><tbody>${rows}</tbody>`;
+// ── 히트맵 (실제 MOSCOM 데이터) ─────────────────────────
+// 수집창: 18:00 ~ 05:00 (전일~당일). KST(UTC+9) 기준으로 시간 버킷팅.
+let HEATMAP_LOADED = false;
+const NIGHT_HOURS = [18,19,20,21,22,23,0,1,2,3,4,5];
+
+function bucketHourKST(isoStr) {
+  // ISO timestamp → KST 시각. 밤 수집창(18~05)인지 확인하며 버킷 인덱스 반환.
+  if (!isoStr) return -1;
+  const d = new Date(isoStr);
+  // getHours가 로컬 시간 쓰므로 UTC에서 9시간 더해 KST 계산
+  const kstHour = (d.getUTCHours() + 9) % 24;
+  const idx = NIGHT_HOURS.indexOf(kstHour);
+  return idx; // 0~11, -1이면 수집창 외 시간
+}
+
+async function buildHeatmap(){
+  const t = document.getElementById("heatmap-table");
+  if (HEATMAP_LOADED) return;
+  const colCount = NIGHT_HOURS.length + 2; // 관측소 + 시간들 + 합계
+  t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center">MOSCOM 시간별 데이터 불러오는 중…</th></tr></thead>`;
+  try {
+    const [hourlyRes, dvRes] = await Promise.all([
+      fetch('/mosquito-test/api/hourly/', { credentials: 'same-origin' }),
+      fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' }),
+    ]);
+    if (!hourlyRes.ok) throw new Error('hourly HTTP ' + hourlyRes.status);
+    const hourlyJson = await hourlyRes.json();
+    const records = hourlyJson.data || [];
+
+    // 장비 메타
+    const meta = {}; // uuid -> {name, addr}
+    if (dvRes.ok) {
+      const { devices } = await dvRes.json();
+      devices.forEach(d => {
+        const u = d.device_uuid;
+        const dv = d.device || {};
+        const nm = (dv.device_name || '').trim();
+        const addr = [dv.address_gungu, dv.address_dong].filter(Boolean).join(' ').trim();
+        meta[u] = { name: nm || u, addr };
+      });
+    }
+
+    // 장비 x 시간대 합산
+    const buckets = {}; // uuid -> array(12)
+    records.forEach(r => {
+      const idx = bucketHourKST(r.created_date);
+      if (idx < 0) return; // 수집창 밖
+      const u = r.device_uuid;
+      if (!buckets[u]) buckets[u] = new Array(NIGHT_HOURS.length).fill(0);
+      buckets[u][idx] += (r.mosquito_count || 0);
+    });
+
+    // 포집합 많은 장비가 위로 오도록 정렬
+    const rows = Object.keys(buckets).map(u => {
+      const arr = buckets[u];
+      const total = arr.reduce((a,b) => a+b, 0);
+      const m = meta[u] || {};
+      const label = m.name ? `${m.name}${m.addr ? '<div style="font-size:10px;color:var(--gray4);font-weight:400">'+m.addr+'</div>' : ''}` : u;
+      return { uuid: u, label, arr, total };
+    }).sort((a, b) => b.total - a.total);
+
+    if (rows.length === 0) {
+      t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center;color:var(--gray4)">최근 수집 데이터가 없습니다</th></tr></thead>`;
+      HEATMAP_LOADED = true;
+      return;
+    }
+
+    const hdr = `<tr><th class="st-col">장비 (${rows.length}개)</th>${NIGHT_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}시</th>`).join('')}<th>합계</th></tr>`;
+    const body = rows.map(r => {
+      const cells = r.arr.map(v => `<td class="${heatClass(v)}">${v || '-'}</td>`).join('');
+      return `<tr><td class="st-name">${r.label}</td>${cells}<td class="total-cell">${r.total > 0 ? r.total : '-'}</td></tr>`;
+    }).join('');
+    t.innerHTML = `<thead>${hdr}</thead><tbody>${body}</tbody>`;
+    HEATMAP_LOADED = true;
+  } catch (err) {
+    t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
+  }
 }
 
 // ── 이상감지 전체 테이블 ────────────────────────────────

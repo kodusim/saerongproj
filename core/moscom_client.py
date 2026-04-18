@@ -121,3 +121,37 @@ def get_statistics(device_uuid='', period_type='2', offset=0, force_refresh=Fals
     )
     cache.set(cache_key, data, STATS_TTL)
     return data
+
+
+BYDATE_CACHE_KEY = 'moscom:bydate'
+BYDATE_TTL = 180  # raw 데이터는 자주 바뀌니 3분 캐시
+
+
+def get_statistics_by_date(start_dt, end_dt, aggregation='raw',
+                           device_uuid='0', address_sido='',
+                           address_gungu='', address_dong='',
+                           force_refresh=False):
+    """기간별 통계 조회
+    aggregation: 'raw' (타임스탬프별) | 'day' (일별 집계)
+    device_uuid='0' 또는 빈문자열이면 전체
+    """
+    cache_key = f'{BYDATE_CACHE_KEY}:{device_uuid}:{aggregation}:{start_dt}:{end_dt}'
+    if not force_refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+    data = _request(
+        'GET',
+        '/device/statisticsByDate',
+        params={
+            'deviceUUID': device_uuid,
+            'address_sido': address_sido,
+            'address_gungu': address_gungu,
+            'address_dong': address_dong,
+            'startDateTime': start_dt,
+            'endDateTime': end_dt,
+            'aggregation': aggregation,
+        },
+    )
+    cache.set(cache_key, data, BYDATE_TTL)
+    return data

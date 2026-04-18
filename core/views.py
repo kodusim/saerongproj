@@ -276,3 +276,35 @@ def moscom_statistics(request):
     except Exception as e:
         logger.exception('MOSCOM /device/statistics failed')
         return JsonResponse({'error': str(e)}, status=502)
+
+
+@require_GET
+def moscom_hourly(request):
+    """MOSCOM API raw(시간별) 데이터 프록시 — 시간별 히트맵용
+    쿼리스트링: start(ISO), end(ISO) (선택, 미지정 시 전날 00:00~다음날 06:00 UTC)
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    try:
+        start = request.GET.get('start')
+        end = request.GET.get('end')
+        if not start or not end:
+            # 기본: 최근 48시간치 (수집창 18:00~05:00 커버 가능)
+            now = datetime.now(timezone.utc)
+            end_dt = now
+            start_dt = now - timedelta(days=2)
+            start = start_dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            end = end_dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        data = moscom_client.get_statistics_by_date(
+            start_dt=start, end_dt=end, aggregation='raw', device_uuid='0',
+        )
+        return JsonResponse({
+            'count': len(data) if isinstance(data, list) else 0,
+            'start': start, 'end': end,
+            'data': data,
+        }, safe=False)
+    except Exception as e:
+        logger.exception('MOSCOM /device/statisticsByDate failed')
+        return JsonResponse({'error': str(e)}, status=502)
