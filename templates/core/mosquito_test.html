@@ -594,11 +594,18 @@ body {
     <div class="sec-header mb16">
       <div class="sec-bar"></div>
       <div class="sec-title">시간별 포집 히트맵</div>
-      <div class="sec-sub">최근 24시간 (KST) · MOSCOM 실측</div>
+      <div class="sec-sub">하루 기준 10:00 (KST) · 장비별 시간당 포집 증분</div>
     </div>
 
-    <div class="card mb16" style="padding:14px 16px">
-      <div style="font-size:12px;color:var(--gray4);font-weight:600">요약 분석: 준비중</div>
+    <div class="card mb16" style="padding:12px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="heatmap-prev" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">&lt; 어제</button>
+          <button id="heatmap-next" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">오늘 &gt;</button>
+          <span id="heatmap-range" style="font-size:12px;font-weight:600;color:var(--navy);margin-left:8px"></span>
+        </div>
+        <div style="font-size:12px;color:var(--gray4)">요약 분석: 준비중</div>
+      </div>
     </div>
 
     <div class="card mb16">
@@ -956,24 +963,75 @@ function buildStationTable(){
 }
 
 // ── 히트맵 (실제 MOSCOM 데이터) ─────────────────────────
-// 24시간 전체 표시 (00~23), KST(UTC+9) 기준.
-let HEATMAP_LOADED = false;
-const HEATMAP_HOURS = Array.from({length: 24}, (_, i) => i);
+// 하루 기준: KST 10:00 ~ 다음날 09:59 (24시간)
+// mosquito_count는 누적값 → 시간별 증분으로 변환 (current - previous, 음수는 0)
+// 10:00 버킷은 "하루 시작 시점" 기준이므로 전시간 없음 → 증분 = 현시간 최대값 - 0
 
-function bucketHourKST(isoStr) {
-  if (!isoStr) return -1;
-  const d = new Date(isoStr);
-  return (d.getUTCHours() + 9) % 24;
+// 하루의 열 순서: 10,11,...23,00,01,...09
+const HM_HOURS = Array.from({length: 24}, (_, i) => (10 + i) % 24);
+
+// 해당 시점의 "업무일" 시작(오늘 10:00 또는 어제 10:00) KST
+// offset=0: 오늘 업무일, -1: 어제 업무일
+function getWorkdayStartKST(offsetDays) {
+  const now = new Date();
+  // KST로 변환: UTC+9
+  const kstNow = new Date(now.getTime() + 9 * 3600 * 1000);
+  // KST 기준 오늘 날짜
+  const y = kstNow.getUTCFullYear();
+  const m = kstNow.getUTCMonth();
+  const d = kstNow.getUTCDate();
+  const kstHour = kstNow.getUTCHours();
+  // 현재가 10시 이전이면 어제 10시가 "오늘 업무일 시작"
+  let baseDate = new Date(Date.UTC(y, m, d, 10, 0, 0));
+  if (kstHour < 10) baseDate.setUTCDate(baseDate.getUTCDate() - 1);
+  baseDate.setUTCDate(baseDate.getUTCDate() + (offsetDays || 0));
+  // 이 값은 KST 10:00에 해당하는 순간(UTC로는 01:00)
+  // 반환 시 UTC 기준 타임스탬프로 돌려줌
+  return new Date(baseDate.getTime() - 9 * 3600 * 1000);
 }
 
+function formatKSTDate(utcDate) {
+  const k = new Date(utcDate.getTime() + 9 * 3600 * 1000);
+  const y = k.getUTCFullYear();
+  const m = String(k.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(k.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// 시간 버킷 인덱스 계산 (KST 기준, HM_HOURS 배열에서의 위치)
+function hmBucketIndex(isoStr) {
+  if (!isoStr) return -1;
+  const kstHour = (new Date(isoStr).getUTCHours() + 9) % 24;
+  return HM_HOURS.indexOf(kstHour);
+}
+
+let HM_OFFSET = 0; // 0: 오늘 업무일, -1: 어제 업무일
+
 async function buildHeatmap(){
-  const t = document.getElementById("heatmap-table");
-  if (HEATMAP_LOADED) return;
-  const colCount = HEATMAP_HOURS.length + 2; // 관측소 + 24시간 + 합계
-  t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center">MOSCOM 시간별 데이터 불러오는 중…</th></tr></thead>`;
+  const t = document.getElementById('heatmap-table');
+  const rangeLabel = document.getElementById('heatmap-range');
+  const prevBtn = document.getElementById('heatmap-prev');
+  const nextBtn = document.getElementById('heatmap-next');
+  const colCount = HM_HOURS.length + 2;
+
+  // 버튼 상태
+  if (nextBtn) nextBtn.disabled = (HM_OFFSET >= 0);
+  if (prevBtn) prevBtn.disabled = false;
+  if (nextBtn) nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
+
+  const startUtc = getWorkdayStartKST(HM_OFFSET);
+  const endUtc = new Date(startUtc.getTime() + 24 * 3600 * 1000);
+  if (rangeLabel) {
+    rangeLabel.textContent = `${formatKSTDate(startUtc)} 10:00 ~ ${formatKSTDate(endUtc)} 10:00`;
+  }
+
+  t.innerHTML = `<thead><tr><th class="st-col">장비</th><th colspan="${colCount-1}" style="text-align:center">MOSCOM 시간별 데이터 불러오는 중…</th></tr></thead>`;
+
   try {
+    const startIso = startUtc.toISOString();
+    const endIso = endUtc.toISOString();
     const [hourlyRes, dvRes] = await Promise.all([
-      fetch('/mosquito-test/api/hourly/', { credentials: 'same-origin' }),
+      fetch(`/mosquito-test/api/hourly/?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`, { credentials: 'same-origin' }),
       fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' }),
     ]);
     if (!hourlyRes.ok) throw new Error('hourly HTTP ' + hourlyRes.status);
@@ -993,42 +1051,83 @@ async function buildHeatmap(){
       });
     }
 
-    // 장비 × 24시간 버킷 합산
-    const buckets = {};
+    // 장비 × 시간버킷 별로 "최대 누적값"을 저장. 같은 시간 내 여러 레코드 중 가장 큰 값 사용.
+    // reset 이벤트 감지를 위해 레코드들을 시간순으로 보관.
+    const deviceRecords = {}; // uuid -> [{idx, count, reset}]
     records.forEach(r => {
-      const hour = bucketHourKST(r.created_date);
-      if (hour < 0) return;
+      const idx = hmBucketIndex(r.created_date);
+      if (idx < 0) return;
       const u = r.device_uuid;
-      if (!buckets[u]) buckets[u] = new Array(24).fill(0);
-      buckets[u][hour] += (r.mosquito_count || 0);
+      if (!deviceRecords[u]) deviceRecords[u] = [];
+      deviceRecords[u].push({
+        idx,
+        ts: new Date(r.created_date).getTime(),
+        count: r.mosquito_count || 0,
+        reset: !!r.reset,
+      });
     });
 
-    // 포집합 많은 장비가 위로 오도록 정렬
+    // 누적 → 증분 변환
+    const buckets = {}; // uuid -> array(24)
+    Object.keys(deviceRecords).forEach(u => {
+      const recs = deviceRecords[u].sort((a, b) => a.ts - b.ts);
+      // 각 시간 버킷의 마지막 누적값
+      const hourMax = new Array(24).fill(null);
+      recs.forEach(r => {
+        // reset이면 이후부터 다시 0에서 시작 (이 시간의 count는 리셋 직후 값)
+        hourMax[r.idx] = r.count;
+      });
+      // null은 "데이터 없음"으로 취급. 앞쪽 시간은 건너뛰어 가장 최근 관측된 시간까지 카운트 유지.
+      const deltas = new Array(24).fill(0);
+      let prev = 0; // 하루 시작 기준 0부터
+      for (let i = 0; i < 24; i++) {
+        const cur = hourMax[i];
+        if (cur === null) continue; // 이 시간에 기록 없음 → 증분 0
+        const d = cur - prev;
+        deltas[i] = d > 0 ? d : 0; // 리셋/오류 방어
+        prev = cur;
+      }
+      buckets[u] = deltas;
+    });
+
+    // 빠진 장비는 전부 0 배열로 포함(선택사항). 여기서는 기록 있는 장비만 표시.
     const rows = Object.keys(buckets).map(u => {
       const arr = buckets[u];
-      const total = arr.reduce((a,b) => a+b, 0);
+      const total = arr.reduce((a, b) => a + b, 0);
       const m = meta[u] || {};
       const label = m.name ? `${m.name}${m.addr ? '<div style="font-size:10px;color:var(--gray4);font-weight:400">'+m.addr+'</div>' : ''}` : u;
       return { uuid: u, label, arr, total };
     }).sort((a, b) => b.total - a.total);
 
     if (rows.length === 0) {
-      t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center;color:var(--gray4)">최근 수집 데이터가 없습니다</th></tr></thead>`;
-      HEATMAP_LOADED = true;
+      t.innerHTML = `<thead><tr><th class="st-col">장비</th><th colspan="${colCount-1}" style="text-align:center;color:var(--gray4)">해당 업무일의 수집 데이터가 없습니다</th></tr></thead>`;
       return;
     }
 
-    const hdr = `<tr><th class="st-col">장비 (${rows.length}개)</th>${HEATMAP_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}</th>`).join('')}<th>합계</th></tr>`;
+    const hdr = `<tr><th class="st-col">장비 (${rows.length}개)</th>${HM_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}</th>`).join('')}<th>합계</th></tr>`;
     const body = rows.map(r => {
       const cells = r.arr.map(v => `<td class="${heatClass(v)}">${v || '-'}</td>`).join('');
       return `<tr><td class="st-name">${r.label}</td>${cells}<td class="total-cell">${r.total > 0 ? r.total : '-'}</td></tr>`;
     }).join('');
     t.innerHTML = `<thead>${hdr}</thead><tbody>${body}</tbody>`;
-    HEATMAP_LOADED = true;
   } catch (err) {
-    t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
+    t.innerHTML = `<thead><tr><th class="st-col">장비</th><th colspan="${colCount-1}" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
   }
 }
+
+// 날짜 토글 핸들러
+document.addEventListener('DOMContentLoaded', () => {
+  const prevBtn = document.getElementById('heatmap-prev');
+  const nextBtn = document.getElementById('heatmap-next');
+  if (prevBtn) prevBtn.addEventListener('click', () => {
+    HM_OFFSET = Math.max(-30, HM_OFFSET - 1);
+    buildHeatmap();
+  });
+  if (nextBtn) nextBtn.addEventListener('click', () => {
+    HM_OFFSET = Math.min(0, HM_OFFSET + 1);
+    buildHeatmap();
+  });
+});
 
 // ── 이상감지 (실제 MOSCOM 데이터) ─────────────────────────
 // 판정 기준: 금일 포집량 > 장비 고유 bad_min (deviceSetting) 초과 시 '이상'
