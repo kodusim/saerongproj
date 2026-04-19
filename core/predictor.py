@@ -162,10 +162,61 @@ def predict_for_devices(devices_stats, weather_by_region=None):
         if n <= 200: return '경고'
         return '위험'
 
-    for r in results:
+    for i, r in enumerate(results):
         ps = [p['predicted'] for p in r['predictions']]
         r['max_predicted'] = max(ps) if ps else 0
         r['avg_predicted'] = round(sum(ps) / len(ps)) if ps else 0
         r['grade'] = grade(r['max_predicted'])
+
+        # 최근 7일 실측값 복원 (프론트 차트용)
+        hist = devices_stats[i].get('history') or []
+        r['history'] = hist
+
+        # 추론 근거 텍스트 생성
+        reasoning_parts = []
+        if hist:
+            recent = [h['count'] for h in hist[-7:]]
+            avg7 = sum(recent) / len(recent) if recent else 0
+            last = recent[-1] if recent else 0
+            if avg7 > 0:
+                delta_pct = round((last - avg7) / avg7 * 100)
+                if delta_pct > 15:
+                    reasoning_parts.append(f'최근 7일 평균 대비 +{delta_pct}% 상승')
+                elif delta_pct < -15:
+                    reasoning_parts.append(f'최근 7일 평균 대비 {delta_pct}% 하락')
+                else:
+                    reasoning_parts.append('최근 7일 추세 안정')
+            # 트렌드 (앞 절반 vs 뒤 절반)
+            half = len(recent) // 2
+            if half >= 2:
+                first_half = sum(recent[:half]) / half
+                second_half = sum(recent[half:]) / (len(recent) - half)
+                if first_half > 0:
+                    tr = round((second_half - first_half) / first_half * 100)
+                    if tr > 20:
+                        reasoning_parts.append('후반 급증 패턴')
+                    elif tr < -20:
+                        reasoning_parts.append('후반 감소 패턴')
+        # 예측 변화
+        if ps and len(ps) >= 2:
+            if ps[-1] > ps[0] * 1.1:
+                reasoning_parts.append('향후 3일 증가 예상')
+            elif ps[-1] < ps[0] * 0.9:
+                reasoning_parts.append('향후 3일 감소 예상')
+            else:
+                reasoning_parts.append('향후 3일 유지 예상')
+        # 기상 조건
+        reasoning_parts.append('기온·습도 적정 조건 가정')
+        r['reasoning'] = ' · '.join(reasoning_parts) if reasoning_parts else '데이터 부족'
+
+        # 가중 신뢰도 (history 많을수록 / 측정소 매칭 시 높게)
+        hist_days = len(hist)
+        nm = devices_stats[i].get('name', '')
+        matched_station = any(k in nm for k in ('가경천변', '송절방죽', '오송호수공원'))
+        base = 60
+        if hist_days >= 7: base += 15
+        elif hist_days >= 3: base += 8
+        if matched_station: base += 12
+        r['confidence'] = min(base, 95)
 
     return results

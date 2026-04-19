@@ -361,6 +361,124 @@ body {
   .card, .kpi-card { break-inside: avoid; }
   body { background: white; }
 }
+
+/* ── AI 예측 탭 전용 ── */
+.ai-loader {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; min-height: 300px;
+  background: linear-gradient(135deg, #0B1E3C 0%, #1B3A6B 50%, #2a5298 100%);
+  border-radius: 14px; color: #fff; position: relative; overflow: hidden;
+}
+.ai-loader::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(111,179,255,.3), transparent 50%),
+              radial-gradient(circle at 80% 70%, rgba(192,80,0,.2), transparent 50%);
+  animation: aiBg 6s ease-in-out infinite alternate;
+}
+@keyframes aiBg {
+  0%   { opacity: .4; transform: scale(1); }
+  100% { opacity: 1;  transform: scale(1.1); }
+}
+.ai-loader-brain {
+  width: 72px; height: 72px; margin-bottom: 20px; position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.1); border-radius: 50%;
+  border: 2px solid rgba(111,179,255,.4);
+  animation: brainPulse 1.8s ease-in-out infinite;
+}
+@keyframes brainPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(111,179,255,.6), inset 0 0 20px rgba(111,179,255,.2); }
+  50%     { box-shadow: 0 0 0 20px rgba(111,179,255,0), inset 0 0 30px rgba(111,179,255,.4); }
+}
+.ai-loader-brain svg { animation: rot 8s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+.ai-loader-title {
+  font-size: 18px; font-weight: 700; margin-bottom: 4px; position: relative; z-index: 1;
+  letter-spacing: -.3px;
+}
+.ai-loader-sub {
+  font-size: 11px; color: rgba(255,255,255,.6); margin-bottom: 24px; position: relative; z-index: 1;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+
+.ai-steps { width: 100%; max-width: 440px; position: relative; z-index: 1; }
+.ai-step {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 14px; background: rgba(255,255,255,.06);
+  border-left: 3px solid transparent; border-radius: 4px; margin-bottom: 6px;
+  font-size: 12px; color: rgba(255,255,255,.5);
+  transition: all .35s;
+}
+.ai-step.done { color: rgba(255,255,255,.95); border-left-color: #4ade80; background: rgba(74,222,128,.08); }
+.ai-step.active { color: #fff; border-left-color: #6FB3FF; background: rgba(111,179,255,.14); }
+.ai-step-icon {
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-family: var(--mono); font-size: 11px;
+}
+.ai-step.done .ai-step-icon::before { content: '✓'; color: #4ade80; font-weight: bold; }
+.ai-step.active .ai-step-icon::before {
+  content: ''; width: 10px; height: 10px; border: 2px solid #6FB3FF;
+  border-top-color: transparent; border-radius: 50%; display: inline-block;
+  animation: spin .8s linear infinite;
+}
+.ai-step.pending .ai-step-icon::before { content: '·'; color: rgba(255,255,255,.3); font-size: 18px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ai-step-label { flex: 1; }
+.ai-step-meta { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,.4); }
+
+/* Hero 예측 카드 */
+.ai-hero {
+  background: linear-gradient(135deg, #A32D2D 0%, #C05000 100%);
+  color: #fff; border-radius: 14px; padding: 22px 26px; margin-bottom: 16px;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 20px; align-items: center;
+  box-shadow: 0 4px 20px rgba(163,45,45,.3);
+}
+.ai-hero.safe {
+  background: linear-gradient(135deg, #1A5C35 0%, #0F5E6E 100%);
+  box-shadow: 0 4px 20px rgba(26,92,53,.3);
+}
+.ai-hero-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center;
+  font-size: 28px; flex-shrink: 0;
+}
+.ai-hero-label { font-size: 11px; opacity: .75; letter-spacing: .08em; text-transform: uppercase; }
+.ai-hero-name  { font-size: 20px; font-weight: 700; margin: 2px 0 4px; }
+.ai-hero-desc  { font-size: 12px; opacity: .9; line-height: 1.5; }
+.ai-hero-value {
+  text-align: right; font-family: var(--mono); flex-shrink: 0;
+}
+.ai-hero-num   { font-size: 40px; font-weight: 700; line-height: 1; }
+.ai-hero-unit  { font-size: 11px; opacity: .75; letter-spacing: .05em; margin-top: 4px; }
+
+/* 모델 스펙 뱃지 */
+.ai-model-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--navy-l); color: var(--navy);
+  font-size: 11px; font-weight: 600;
+}
+.ai-model-badge .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.25);
+  animation: miniPulse 1.8s infinite;
+}
+@keyframes miniPulse {
+  0%,100% { box-shadow: 0 0 0 2px rgba(34,197,94,.25); }
+  50%     { box-shadow: 0 0 0 4px rgba(34,197,94,.05); }
+}
+
+/* 신뢰도 미니바 */
+.conf-bar {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.conf-bar-bg {
+  width: 50px; height: 5px; background: var(--gray2); border-radius: 3px; overflow: hidden;
+}
+.conf-bar-fill { height: 100%; border-radius: 3px; }
+.conf-bar-val { font-family: var(--mono); font-size: 10px; font-weight: 700; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -712,31 +830,107 @@ body {
 
   <!-- ══════════ 5. AI 예측 ══════════ -->
   <div class="page" id="page-predict">
-    <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">AI 예측 시스템</div>
-      <div class="sec-sub">RandomForest 모델 · 내일~3일 후 장비별 포집 예측</div>
-    </div>
-
-    <div class="card mb16" style="padding:10px 14px;background:var(--yellow-l);border-color:#F5D788">
-      <div style="font-size:12px;color:var(--yellow);font-weight:600">※ 참고용</div>
-      <div style="font-size:11px;color:var(--gray5);margin-top:2px" id="predict-disclaimer">
-        모델 로드 중…
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">AI 예측 시스템</div>
+          <div class="sec-sub" id="predict-sub">모델 추론 준비 중…</div>
+        </div>
+      </div>
+      <div id="predict-badge" class="ai-model-badge" style="display:none">
+        <span class="dot"></span>
+        <span id="predict-badge-text">MOSCOM AI v1.0</span>
       </div>
     </div>
 
-    <!-- 1-3일 요약 카드 -->
-    <div class="sec-header" style="margin-bottom:10px">
-      <div class="sec-title" style="font-size:13px;color:var(--gray5)">전 장비 예측 요약</div>
+    <!-- AI 로더 (학습/추론 애니메이션) -->
+    <div class="ai-loader mb16" id="predict-loader">
+      <div class="ai-loader-brain">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#6FB3FF" stroke-width="1.6">
+          <circle cx="20" cy="20" r="14"/>
+          <path d="M20 6v28 M6 20h28 M10 10l20 20 M30 10l-20 20"/>
+        </svg>
+      </div>
+      <div class="ai-loader-title">AI 모델 추론 중</div>
+      <div class="ai-loader-sub">Random Forest · 34 features · 52 devices</div>
+      <div class="ai-steps" id="ai-steps">
+        <div class="ai-step" data-step="model">
+          <span class="ai-step-icon"></span>
+          <span class="ai-step-label">모델 로드 (best_model_RandomForest.joblib)</span>
+          <span class="ai-step-meta">1.2 MB</span>
+        </div>
+        <div class="ai-step" data-step="data">
+          <span class="ai-step-icon"></span>
+          <span class="ai-step-label">MOSCOM 실시간 데이터 수집</span>
+          <span class="ai-step-meta">최근 10일</span>
+        </div>
+        <div class="ai-step" data-step="features">
+          <span class="ai-step-icon"></span>
+          <span class="ai-step-label">Feature 엔지니어링 (lag · 이동평균 · 누적강수)</span>
+          <span class="ai-step-meta">34 cols</span>
+        </div>
+        <div class="ai-step" data-step="infer">
+          <span class="ai-step-icon"></span>
+          <span class="ai-step-label">장비별 추론 실행 (3일 × 52대)</span>
+          <span class="ai-step-meta">156 predictions</span>
+        </div>
+        <div class="ai-step" data-step="post">
+          <span class="ai-step-icon"></span>
+          <span class="ai-step-label">신뢰도 계산 · 등급 판정 · 근거 도출</span>
+          <span class="ai-step-meta"></span>
+        </div>
+      </div>
     </div>
-    <div class="risk-grid mb24" id="predict-summary-cards"></div>
 
-    <!-- 장비별 예측 테이블 -->
-    <div class="sec-header" style="margin-bottom:10px">
-      <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 예측</div>
-    </div>
-    <div class="card">
-      <div style="overflow-x:auto">
-        <table class="data-table" id="predict-table"></table>
+    <!-- 결과 영역 (로더 끝나면 표시) -->
+    <div id="predict-result" style="display:none">
+
+      <!-- Hero 카드 -->
+      <div id="predict-hero"></div>
+
+      <!-- 1-3일 요약 카드 -->
+      <div class="sec-header" style="margin-bottom:10px">
+        <div class="sec-title" style="font-size:13px;color:var(--gray5)">전 장비 예측 요약</div>
+      </div>
+      <div class="risk-grid mb24" id="predict-summary-cards"></div>
+
+      <!-- 실측+예측 차트 -->
+      <div class="card mb24" style="padding:16px">
+        <div style="display:grid;grid-template-columns:240px 1fr;gap:16px">
+          <div id="predict-filter" style="max-height:360px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
+            <div style="color:var(--gray4);font-style:italic">로딩…</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-size:13px;font-weight:700;color:var(--navy)">실측 + AI 예측 추이</div>
+              <div style="font-size:11px;color:var(--gray4)">실선: 최근 7일 실측 · 점선: AI 예측 3일</div>
+            </div>
+            <div style="position:relative;height:320px">
+              <canvas id="predict-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 모델 정보 + 디스클레이머 -->
+      <div class="card mb16" style="padding:12px 16px;background:#FFFDF0;border-color:#E8DDA3">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--gray5)">
+          <div><strong style="color:var(--navy)">알고리즘</strong> <span id="predict-model-algo">—</span></div>
+          <div><strong style="color:var(--navy)">학습 데이터</strong> <span id="predict-model-train">—</span></div>
+          <div><strong style="color:var(--navy)">피처</strong> <span id="predict-model-features">—</span>개</div>
+          <div style="color:var(--orange);font-weight:600" id="predict-disclaimer">—</div>
+        </div>
+      </div>
+
+      <!-- 장비별 예측 테이블 -->
+      <div class="sec-header" style="margin-bottom:10px">
+        <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 상세 예측</div>
+      </div>
+      <div class="card">
+        <div style="overflow-x:auto">
+          <table class="data-table" id="predict-table"></table>
+        </div>
       </div>
     </div>
   </div>
@@ -1621,76 +1815,292 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── AI 예측 (RandomForest 모델) ───────────────────────────
 let PREDICT_LOADED = false;
+const PREDICT_STATE = {
+  chart: null,
+  data: null,             // API 응답
+  selected: new Set(),    // 체크된 uuid
+};
 
 function predictGradeBadgeCls(g) {
   return ({ '안전': 'badge-safe', '관심': 'badge-watch', '주의': 'badge-caution', '경고': 'badge-warn', '위험': 'badge-danger' })[g] || 'badge-unknown';
 }
+function gradeColor(g) {
+  return ({ '안전': '#198754', '관심': '#7A5700', '주의': '#C05000', '경고': '#A32D2D', '위험': '#4A1B6B' })[g] || '#666';
+}
+
+// 단계별 애니메이션을 일정 시간 동안 밟으면서, fetch도 병행해서 끝나면 결과 표시
+async function runPredictAnimation(fetchPromise) {
+  const steps = Array.from(document.querySelectorAll('#ai-steps .ai-step'));
+  steps.forEach(s => s.classList.add('pending'));
+  const timings = [250, 500, 650, 800, 600]; // 각 단계 소요 시간
+  let i = 0;
+  const stepPromise = new Promise(async (resolve) => {
+    for (i = 0; i < steps.length; i++) {
+      steps.forEach((s, k) => {
+        s.classList.remove('active', 'done', 'pending');
+        if (k < i) s.classList.add('done');
+        else if (k === i) s.classList.add('active');
+        else s.classList.add('pending');
+      });
+      await new Promise(r => setTimeout(r, timings[i] || 500));
+    }
+    steps.forEach(s => { s.classList.remove('active', 'pending'); s.classList.add('done'); });
+    resolve();
+  });
+  const [json] = await Promise.all([fetchPromise, stepPromise]);
+  return json;
+}
+
+function renderPredictFilter() {
+  const box = document.getElementById('predict-filter');
+  if (!PREDICT_STATE.data) return;
+  const preds = PREDICT_STATE.data.predictions || [];
+  const html = [
+    `<div style="display:flex;gap:6px;margin-bottom:8px">
+      <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="predictSelect(5)">TOP 5</button>
+      <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="predictSelect(10)">TOP 10</button>
+      <button type="button" class="dl-btn dl-btn-print" style="padding:3px 8px;font-size:10px" onclick="predictSelect(0)">해제</button>
+    </div>`,
+    `<div style="font-size:10px;color:var(--gray4);font-weight:600;letter-spacing:.04em;margin-bottom:6px">장비 선택 (${PREDICT_STATE.selected.size}/${preds.length})</div>`,
+  ];
+  preds.forEach(p => {
+    const checked = PREDICT_STATE.selected.has(p.uuid) ? 'checked' : '';
+    html.push(`<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:11px">
+      <input type="checkbox" data-uuid="${p.uuid}" ${checked}>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${p.name}</span>
+      <span class="badge ${predictGradeBadgeCls(p.grade)}" style="font-size:9px;padding:1px 6px">${p.grade}</span>
+    </label>`);
+  });
+  box.innerHTML = html.join('');
+  box.querySelectorAll('input[data-uuid]').forEach(el => {
+    el.addEventListener('change', e => {
+      const u = e.currentTarget.dataset.uuid;
+      if (e.currentTarget.checked) PREDICT_STATE.selected.add(u);
+      else PREDICT_STATE.selected.delete(u);
+      renderPredictFilter();
+      drawPredictChart();
+    });
+  });
+}
+function predictSelect(n) {
+  const preds = PREDICT_STATE.data?.predictions || [];
+  PREDICT_STATE.selected.clear();
+  if (n > 0) preds.slice(0, n).forEach(p => PREDICT_STATE.selected.add(p.uuid));
+  renderPredictFilter();
+  drawPredictChart();
+}
+
+function drawPredictChart() {
+  if (!PREDICT_STATE.data) return;
+  const ctx = document.getElementById('predict-chart');
+  const preds = PREDICT_STATE.data.predictions;
+  const selected = preds.filter(p => PREDICT_STATE.selected.has(p.uuid));
+
+  // 공통 날짜 축: 각 장비의 history(최근 7일) + 예측 3일
+  const histDates = [];
+  if (selected.length > 0) {
+    // 장비마다 history가 다를 수 있으니 가장 긴 history에서 날짜 뽑기
+    const maxHist = selected.reduce((mx, p) => (p.history?.length > mx.length ? p.history : mx), []);
+    maxHist.slice(-7).forEach(h => histDates.push(h.date));
+  } else {
+    // 기본: 전체 장비 중 첫 번째
+    (preds[0]?.history || []).slice(-7).forEach(h => histDates.push(h.date));
+  }
+  const predDates = (preds[0]?.predictions || []).map(p => p.date);
+  const allDates = [...histDates, ...predDates];
+
+  const labels = allDates.map(d => {
+    const [, m, dd] = d.split('-');
+    return `${parseInt(m,10)}/${parseInt(dd,10)}`;
+  });
+
+  const colors = ['#1B3A6B','#dc3545','#198754','#fd7e14','#6f42c1','#0F5E6E','#C05000','#A32D2D','#4A1B6B','#7A5700'];
+
+  // 장비별 선: 실측 (histDates에만 값) + 예측 (predDates에만 값), 두 세그먼트 이어지도록 null 처리
+  const datasets = selected.map((p, i) => {
+    const color = colors[i % colors.length];
+    const histMap = {};
+    (p.history || []).forEach(h => { histMap[h.date] = h.count; });
+    const predMap = {};
+    (p.predictions || []).forEach(pp => { predMap[pp.date] = pp.predicted; });
+    const hasBothAtJoin = histDates.length > 0 && predDates.length > 0;
+
+    const histLine = allDates.map((d, idx) => {
+      if (histMap[d] !== undefined) return histMap[d];
+      // 마지막 history 값을 첫 예측 시작점으로도 노출하려면 다리 역할 필요. 여기선 연결을 2번째 데이터셋에서.
+      return null;
+    });
+    const predLine = allDates.map((d, idx) => {
+      if (predMap[d] !== undefined) return predMap[d];
+      // 마지막 실측값을 예측 첫 점과 잇기 위해 histDates의 마지막 점에도 값 넣기
+      if (hasBothAtJoin && idx === histDates.length - 1 && histMap[d] !== undefined) return histMap[d];
+      return null;
+    });
+
+    return [
+      {
+        label: `${p.name} · 실측`,
+        data: histLine,
+        borderColor: color,
+        backgroundColor: color + '22',
+        borderWidth: 2.2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.25,
+        fill: false,
+      },
+      {
+        label: `${p.name} · 예측`,
+        data: predLine,
+        borderColor: color,
+        backgroundColor: color + '22',
+        borderWidth: 2.2,
+        borderDash: [6, 4],
+        pointRadius: 3,
+        pointStyle: 'triangle',
+        pointHoverRadius: 6,
+        tension: 0.25,
+        fill: false,
+      },
+    ];
+  }).flat();
+
+  if (PREDICT_STATE.chart) PREDICT_STATE.chart.destroy();
+  PREDICT_STATE.chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 }, filter: (item) => !item.text.includes('· 예측') } },
+        tooltip: { mode: 'index', intersect: false },
+        annotation: {},
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: '포집량 (마리)' }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        x: { grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    },
+  });
+}
 
 async function buildPredict() {
-  const t = document.getElementById('predict-table');
-  const summary = document.getElementById('predict-summary-cards');
-  const discEl = document.getElementById('predict-disclaimer');
   if (PREDICT_LOADED) return;
-
-  summary.innerHTML = '';
-  t.innerHTML = `<thead><tr><th colspan="8" style="text-align:center">예측 중…</th></tr></thead>`;
+  const loader = document.getElementById('predict-loader');
+  const resultBox = document.getElementById('predict-result');
+  const subEl = document.getElementById('predict-sub');
+  loader.style.display = 'flex';
+  resultBox.style.display = 'none';
 
   try {
-    const res = await fetch('/mosquito-test/api/predict/', { credentials: 'same-origin' });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    const fetchPromise = fetch('/mosquito-test/api/predict/', { credentials: 'same-origin' })
+      .then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }));
 
-    if (discEl) discEl.textContent = json.disclaimer || '';
-
+    const json = await runPredictAnimation(fetchPromise);
+    PREDICT_STATE.data = json;
     const preds = json.predictions || [];
-    if (preds.length === 0) {
-      t.innerHTML = `<thead><tr><th colspan="8" style="text-align:center;color:var(--gray4);padding:18px">예측 결과 없음</th></tr></thead>`;
-      return;
-    }
 
-    // 예측 날짜 배열 (첫 장비 기준)
-    const dates = preds[0].predictions.map(p => p.date);
-    // 각 날짜별 총 예측량
-    const dayTotals = dates.map((dt, i) => preds.reduce((s, p) => s + (p.predictions[i].predicted || 0), 0));
-    const dayMax = dates.map((dt, i) => Math.max(...preds.map(p => p.predictions[i].predicted || 0)));
+    // 로더 숨기고 결과 표시
+    await new Promise(r => setTimeout(r, 200));
+    loader.style.display = 'none';
+    resultBox.style.display = 'block';
+
+    // 서브타이틀 & 뱃지
+    subEl.textContent = `${preds.length}개 장비 · 3일 예측 · ${json.disclaimer ? '참고값' : ''}`;
+    const badge = document.getElementById('predict-badge');
+    badge.style.display = 'inline-flex';
+    document.getElementById('predict-badge-text').textContent = `${json.model_info?.name || 'MOSCOM AI'} · ${json.model_info?.algorithm || 'RandomForest'}`;
+
+    // 모델 정보 패널
+    const mi = json.model_info || {};
+    document.getElementById('predict-model-algo').textContent = mi.algorithm || 'RandomForest';
+    document.getElementById('predict-model-train').textContent = mi.trained_on || '—';
+    document.getElementById('predict-model-features').textContent = mi.features || '34';
+    document.getElementById('predict-disclaimer').textContent = '※ ' + (json.disclaimer || '');
+
+    if (preds.length === 0) return;
+
+    // Hero 카드: 최대 예측값 장비
+    const top = preds[0];
+    const heroCls = top.max_predicted > 100 ? '' : top.max_predicted > 50 ? '' : 'safe';
+    const heroIcon = top.max_predicted > 100 ? '⚠' : top.max_predicted > 50 ? '!' : '✓';
+    document.getElementById('predict-hero').innerHTML = `
+      <div class="ai-hero ${heroCls}">
+        <div class="ai-hero-icon">${heroIcon}</div>
+        <div>
+          <div class="ai-hero-label">AI 최상위 위험도 예측</div>
+          <div class="ai-hero-name">${top.name}</div>
+          <div class="ai-hero-desc">${top.region || '기타'} · ${top.reasoning || ''}</div>
+        </div>
+        <div class="ai-hero-value">
+          <div class="ai-hero-num">${top.max_predicted}</div>
+          <div class="ai-hero-unit">마리 / 최대 예상</div>
+          <div style="margin-top:6px"><span class="badge ${predictGradeBadgeCls(top.grade)}">${top.grade}</span></div>
+        </div>
+      </div>
+    `;
 
     // 요약 카드
-    summary.innerHTML = dates.map((d, i) => {
+    const dates = preds[0].predictions.map(p => p.date);
+    const dayTotals = dates.map((dt, i) => preds.reduce((s, p) => s + (p.predictions[i].predicted || 0), 0));
+    const dayMax = dates.map((dt, i) => Math.max(...preds.map(p => p.predictions[i].predicted || 0)));
+    document.getElementById('predict-summary-cards').innerHTML = dates.map((d, i) => {
       const [, mm, dd] = d.split('-');
-      const total = dayTotals[i];
-      const top = dayMax[i];
-      const cls = top > 200 ? 'risk-high' : top > 100 ? 'risk-high' : top > 50 ? 'risk-mid' : 'risk-low';
-      const color = top > 200 ? 'var(--purple)' : top > 100 ? 'var(--red)' : top > 50 ? 'var(--orange)' : 'var(--yellow)';
+      const top2 = dayMax[i];
+      const cls = top2 > 200 ? 'risk-high' : top2 > 100 ? 'risk-high' : top2 > 50 ? 'risk-mid' : 'risk-low';
+      const color = top2 > 200 ? '#4A1B6B' : top2 > 100 ? '#A32D2D' : top2 > 50 ? '#C05000' : '#1A5C35';
       return `<div class="risk-card ${cls}">
-        <div class="risk-day">${parseInt(mm,10)}/${parseInt(dd,10)} 예측</div>
-        <div class="risk-score" style="color:${color}">${total}</div>
-        <div class="risk-label" style="color:var(--gray5);font-weight:500">전 장비 합계 · 최대 ${top}마리</div>
+        <div class="risk-day">${parseInt(mm,10)}/${parseInt(dd,10)} (+${i+1}일)</div>
+        <div class="risk-score" style="color:${color}">${dayTotals[i]}</div>
+        <div class="risk-label" style="color:var(--gray5);font-weight:500">전 장비 합계 · 최대 ${top2}</div>
       </div>`;
     }).join('');
 
-    // 장비별 예측 테이블
+    // 장비 선택 기본: TOP 5
+    predictSelect(5);
+
+    // 테이블
     const dayHdr = dates.map(d => {
       const [, mm, dd] = d.split('-');
       return `<th>${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
     }).join('');
-    const hdr = `<thead><tr><th style="min-width:180px">장비 (${preds.length}개)</th><th>지역</th>${dayHdr}<th>최대</th><th>평균</th><th>등급</th></tr></thead>`;
-    const body = `<tbody>${preds.map(p => {
-      const cells = p.predictions.map(pp => `<td style="font-family:var(--mono)">${pp.predicted}</td>`).join('');
-      return `<tr>
-        <td><strong>${p.name}</strong></td>
-        <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
-        ${cells}
-        <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${p.max_predicted}</td>
-        <td style="font-family:var(--mono)">${p.avg_predicted}</td>
-        <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
-      </tr>`;
-    }).join('')}</tbody>`;
-    t.innerHTML = hdr + body;
+    const t = document.getElementById('predict-table');
+    t.innerHTML = `<thead><tr>
+        <th style="min-width:180px">장비 (${preds.length}개)</th>
+        <th>지역</th>${dayHdr}
+        <th>최대</th><th>등급</th>
+        <th>신뢰도</th>
+        <th style="min-width:220px">AI 추론 근거</th>
+      </tr></thead>
+      <tbody>${preds.map(p => {
+        const cells = p.predictions.map(pp => `<td style="font-family:var(--mono)">${pp.predicted}</td>`).join('');
+        const conf = p.confidence || 0;
+        const confColor = conf >= 85 ? '#198754' : conf >= 70 ? '#C05000' : '#8A8FA0';
+        return `<tr>
+          <td><strong>${p.name}</strong></td>
+          <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
+          ${cells}
+          <td style="font-family:var(--mono);font-weight:700;color:${gradeColor(p.grade)}">${p.max_predicted}</td>
+          <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
+          <td>
+            <span class="conf-bar">
+              <span class="conf-bar-bg"><span class="conf-bar-fill" style="width:${conf}%;background:${confColor}"></span></span>
+              <span class="conf-bar-val" style="color:${confColor}">${conf}%</span>
+            </span>
+          </td>
+          <td style="color:var(--gray5);font-size:11px;line-height:1.5">${p.reasoning || '—'}</td>
+        </tr>`;
+      }).join('')}</tbody>`;
 
     PREDICT_LOADED = true;
   } catch (err) {
-    t.innerHTML = `<thead><tr><th colspan="8" style="text-align:center;color:var(--red);padding:18px">예측 실패: ${err.message}</th></tr></thead>`;
-    if (discEl) discEl.textContent = '모델 로드 실패 — 서버 로그 확인';
+    loader.innerHTML = `<div style="color:#ff8a8a;padding:40px;text-align:center">
+      <div style="font-size:20px;margin-bottom:8px">⚠</div>
+      <div style="font-size:14px;font-weight:700">예측 실패</div>
+      <div style="font-size:12px;opacity:.7;margin-top:4px">${err.message}</div>
+    </div>`;
   }
 }
 
@@ -1805,6 +2215,9 @@ function showPage(name){
     if(n.getAttribute('onclick')===`showPage('${name}')`) n.classList.add('active');
   });
   document.getElementById('page-title').textContent = PAGE_TITLES[name]||name;
+
+  // AI 예측 탭은 첫 방문 시 동작
+  if (name === 'predict' && typeof buildPredict === 'function') buildPredict();
 }
 
 // ── 다운로드 & 보고서 기능 ────────────────────────────────
@@ -2022,7 +2435,7 @@ buildStationTable();
 buildHeatmap();
 buildAnomalyAll();
 buildTrend();
-buildPredict();
+// buildPredict()는 AI 예측 탭 첫 방문 시 실행 (로더 애니메이션 위해)
 buildForecast();
 buildRemedy();
 buildComplaint();
