@@ -6,6 +6,7 @@ from collector.models import CollectedData, CrawlLog
 from sources.models import DataSource
 from core.models import Category, SubCategory
 from core import moscom_client
+from core import predictor
 import logging
 
 logger = logging.getLogger(__name__)
@@ -319,6 +320,69 @@ def moscom_daily(request):
     except Exception as e:
         logger.exception('MOSCOM /device/statisticsByDate (day) failed')
         return JsonResponse({'error': str(e)}, status=502)
+
+
+@require_GET
+def moscom_predict(request):
+    """AI 모기 발생 예측 (내일~3일 후, 장비 52개 전체)
+    학습 데이터: 청주 3개소·여름 2개월. 다른 지역/계절은 참고값.
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    try:
+        # 최근 10일 일별 통계 (lag7까지 쓰니 넉넉하게)
+        today_kst = datetime.now(timezone(timedelta(hours=9))).date()
+        start_d = today_kst - timedelta(days=10)
+        start_iso = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0, tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        end_iso = (datetime(today_kst.year, today_kst.month, today_kst.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+        daily = moscom_client.get_statistics_by_date(start_dt=start_iso, end_dt=end_iso, aggregation='day', device_uuid='0')
+        devices = moscom_client.list_devices()
+
+        # 장비 메타
+        meta = {}
+        for d in devices:
+            u = d.get('device_uuid')
+            dv = d.get('device') or {}
+            name = (dv.get('device_name') or '').strip() or u
+            parts = [dv.get('address_sido'), dv.get('address_gungu')]
+            region = ' '.join(p for p in parts if p and len(p) < 40 and any(ord(c) < 0x3400 or 0xAC00 <= ord(c) <= 0xD7A3 for c in p)) or '기타'
+            meta[u] = {'name': name, 'region': region}
+
+        # 장비별 history 생성
+        hist_by_uuid = {u: [] for u in meta}
+        for r in (daily or []):
+            u = r.get('device_uuid')
+            if u not in hist_by_uuid:
+                continue
+            date = (r.get('created_date') or '')[:10]
+            if date:
+                hist_by_uuid[u].append({'date': date, 'count': r.get('mosquito_count') or 0})
+
+        # 예측 대상 입력
+        inputs = []
+        for u, m in meta.items():
+            inputs.append({
+                'uuid': u,
+                'name': m['name'],
+                'region': m['region'],
+                'history': hist_by_uuid[u],
+            })
+
+        preds = predictor.predict_for_devices(inputs)
+        # max_predicted 내림차순 정렬
+        preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
+        return JsonResponse({
+            'count': len(preds),
+            'model': 'RandomForest',
+            'disclaimer': '학습 데이터: 청주 3개소·2025년 7~8월. 다른 지역/계절은 참고값.',
+            'predictions': preds,
+        }, safe=False)
+    except Exception as e:
+        logger.exception('AI predict failed')
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_GET

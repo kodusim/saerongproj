@@ -24,6 +24,10 @@ webdriver-manager==4.0.2
 # Data Analysis
 pandas==2.2.2
 
+# Machine Learning (AI 예측 모델)
+scikit-learn==1.5.2
+joblib==1.4.2
+
 # Testing
 pytest==8.2.0
 pytest-django==4.8.0

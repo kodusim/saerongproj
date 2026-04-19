@@ -714,47 +714,30 @@ body {
   <div class="page" id="page-predict">
     <div class="sec-header mb16"><div class="sec-bar"></div>
       <div class="sec-title">AI 예측 시스템</div>
-      <div class="sec-sub">기상-모기 위험지수 · 익일 관측소별 예측</div>
+      <div class="sec-sub">RandomForest 모델 · 내일~3일 후 장비별 포집 예측</div>
     </div>
 
-    <div class="sec-header" style="margin-bottom:10px">
-      <div class="sec-title" style="font-size:13px;color:var(--gray5)">7-1. 기상-모기 위험지수 (Weather-Mosquito Risk Index)</div>
-    </div>
-    <div class="risk-grid mb24">
-      <div class="risk-card risk-high">
-        <div class="risk-day">오늘</div>
-        <div class="risk-score" style="color:var(--red)">78</div>
-        <div class="risk-label" style="color:var(--red);font-weight:600">경고 수준</div>
+    <div class="card mb16" style="padding:10px 14px;background:var(--yellow-l);border-color:#F5D788">
+      <div style="font-size:12px;color:var(--yellow);font-weight:600">※ 참고용</div>
+      <div style="font-size:11px;color:var(--gray5);margin-top:2px" id="predict-disclaimer">
+        모델 로드 중…
       </div>
-      <div class="risk-card risk-high">
-        <div class="risk-day">내일 (8/16)</div>
-        <div class="risk-score" style="color:var(--red)">75</div>
-        <div class="risk-label" style="color:var(--orange);font-weight:600">경고 수준</div>
-      </div>
-      <div class="risk-card risk-mid">
-        <div class="risk-day">모레 (8/17)</div>
-        <div class="risk-score" style="color:var(--orange)">71</div>
-        <div class="risk-label" style="color:var(--orange);font-weight:600">주의 수준</div>
-      </div>
-      <div class="risk-card risk-low">
-        <div class="risk-day">3일 후 (8/18)</div>
-        <div class="risk-score" style="color:var(--yellow)">68</div>
-        <div class="risk-label" style="color:var(--yellow);font-weight:600">주의 수준</div>
-      </div>
-    </div>
-    <div class="card mb24" style="padding:10px 16px;font-size:12px;color:var(--gray5)">
-      <strong>산출 근거:</strong> 기온 26~27°C + 습도 80%+ 조건 지속. 강수 없는 경우 점진적 소폭 감소 예상.
-      위험지수 기준: <span style="color:var(--red);font-weight:600">90+ 위험</span> /
-      <span style="color:var(--orange);font-weight:600">70+ 경고</span> /
-      <span style="color:var(--yellow);font-weight:600">50+ 주의</span> /
-      <span style="color:var(--green);font-weight:600">50 미만 관심 이하</span>
     </div>
 
+    <!-- 1-3일 요약 카드 -->
     <div class="sec-header" style="margin-bottom:10px">
-      <div class="sec-title" style="font-size:13px;color:var(--gray5)">7-2. 익일 관측소별 발생 예측 (2025. 08. 16.)</div>
+      <div class="sec-title" style="font-size:13px;color:var(--gray5)">전 장비 예측 요약</div>
+    </div>
+    <div class="risk-grid mb24" id="predict-summary-cards"></div>
+
+    <!-- 장비별 예측 테이블 -->
+    <div class="sec-header" style="margin-bottom:10px">
+      <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 예측</div>
     </div>
     <div class="card">
-      <table class="data-table" id="predict-table"></table>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="predict-table"></table>
+      </div>
     </div>
   </div>
 
@@ -1636,30 +1619,79 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ── 예측 테이블 ──────────────────────────────────────────
-const TOMORROW_PRED=[
-  {name:"관측소 B (저수지)",   grade:"경고",   range:"120~160", peak:"22~23시",trend:"감소 예상",conf:83,basis:"방제 후 + 기온 소폭 하강"},
-  {name:"관측소 H (하천중류)", grade:"주의",   range:"350~420", peak:"23시",   trend:"증가 예상",conf:80,basis:"7일 상승 추세 + 기상 유사"},
-  {name:"관측소 E (하천둔치)", grade:"주의",   range:"290~340", peak:"22시",   trend:"유지",      conf:85,basis:"기상 조건 동일 예상"},
-  {name:"관측소 A (공원)",grade:"주의",  range:"260~300", peak:"23시",   trend:"유지",      conf:86,basis:"전주 평균 수렴"},
-  {name:"관측소 I (도심공원)",   grade:"확인불가",range:"-",      peak:"-",      trend:"미정",      conf:0, basis:"장비 오프라인으로 예측 불가"},
-];
-function buildPredict(){
-  const t=document.getElementById("predict-table");
-  t.innerHTML=`<thead><tr><th>관측소</th><th>예측 등급</th><th>예측 범위</th><th>피크 시간</th><th>추세</th><th>신뢰도</th><th>예측 근거</th></tr></thead>
-  <tbody>${TOMORROW_PRED.map(f=>{
-    const tc=f.trend.includes("증가")?"var(--red)":f.trend.includes("감소")?"var(--green)":"var(--gray4)";
-    const cc=f.conf>=80?"var(--green)":f.conf>=60?"var(--orange)":"var(--gray4)";
-    return `<tr>
-      <td><strong>${f.name}</strong></td>
-      <td><span class="badge ${GRADE_BADGE[f.grade]||'badge-unknown'}">${f.grade}</span></td>
-      <td style="font-family:var(--mono)">${f.range}마리</td>
-      <td>${f.peak}</td>
-      <td style="color:${tc};font-weight:700">${f.trend}</td>
-      <td style="color:${cc};font-family:var(--mono);font-weight:700">${f.conf>0?f.conf+"%":"-"}</td>
-      <td style="color:var(--gray5)">${f.basis}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
+// ── AI 예측 (RandomForest 모델) ───────────────────────────
+let PREDICT_LOADED = false;
+
+function predictGradeBadgeCls(g) {
+  return ({ '안전': 'badge-safe', '관심': 'badge-watch', '주의': 'badge-caution', '경고': 'badge-warn', '위험': 'badge-danger' })[g] || 'badge-unknown';
+}
+
+async function buildPredict() {
+  const t = document.getElementById('predict-table');
+  const summary = document.getElementById('predict-summary-cards');
+  const discEl = document.getElementById('predict-disclaimer');
+  if (PREDICT_LOADED) return;
+
+  summary.innerHTML = '';
+  t.innerHTML = `<thead><tr><th colspan="8" style="text-align:center">예측 중…</th></tr></thead>`;
+
+  try {
+    const res = await fetch('/mosquito-test/api/predict/', { credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+
+    if (discEl) discEl.textContent = json.disclaimer || '';
+
+    const preds = json.predictions || [];
+    if (preds.length === 0) {
+      t.innerHTML = `<thead><tr><th colspan="8" style="text-align:center;color:var(--gray4);padding:18px">예측 결과 없음</th></tr></thead>`;
+      return;
+    }
+
+    // 예측 날짜 배열 (첫 장비 기준)
+    const dates = preds[0].predictions.map(p => p.date);
+    // 각 날짜별 총 예측량
+    const dayTotals = dates.map((dt, i) => preds.reduce((s, p) => s + (p.predictions[i].predicted || 0), 0));
+    const dayMax = dates.map((dt, i) => Math.max(...preds.map(p => p.predictions[i].predicted || 0)));
+
+    // 요약 카드
+    summary.innerHTML = dates.map((d, i) => {
+      const [, mm, dd] = d.split('-');
+      const total = dayTotals[i];
+      const top = dayMax[i];
+      const cls = top > 200 ? 'risk-high' : top > 100 ? 'risk-high' : top > 50 ? 'risk-mid' : 'risk-low';
+      const color = top > 200 ? 'var(--purple)' : top > 100 ? 'var(--red)' : top > 50 ? 'var(--orange)' : 'var(--yellow)';
+      return `<div class="risk-card ${cls}">
+        <div class="risk-day">${parseInt(mm,10)}/${parseInt(dd,10)} 예측</div>
+        <div class="risk-score" style="color:${color}">${total}</div>
+        <div class="risk-label" style="color:var(--gray5);font-weight:500">전 장비 합계 · 최대 ${top}마리</div>
+      </div>`;
+    }).join('');
+
+    // 장비별 예측 테이블
+    const dayHdr = dates.map(d => {
+      const [, mm, dd] = d.split('-');
+      return `<th>${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
+    }).join('');
+    const hdr = `<thead><tr><th style="min-width:180px">장비 (${preds.length}개)</th><th>지역</th>${dayHdr}<th>최대</th><th>평균</th><th>등급</th></tr></thead>`;
+    const body = `<tbody>${preds.map(p => {
+      const cells = p.predictions.map(pp => `<td style="font-family:var(--mono)">${pp.predicted}</td>`).join('');
+      return `<tr>
+        <td><strong>${p.name}</strong></td>
+        <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
+        ${cells}
+        <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${p.max_predicted}</td>
+        <td style="font-family:var(--mono)">${p.avg_predicted}</td>
+        <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
+      </tr>`;
+    }).join('')}</tbody>`;
+    t.innerHTML = hdr + body;
+
+    PREDICT_LOADED = true;
+  } catch (err) {
+    t.innerHTML = `<thead><tr><th colspan="8" style="text-align:center;color:var(--red);padding:18px">예측 실패: ${err.message}</th></tr></thead>`;
+    if (discEl) discEl.textContent = '모델 로드 실패 — 서버 로그 확인';
+  }
 }
 
 // ── 3일 예보 ─────────────────────────────────────────────
