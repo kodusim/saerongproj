@@ -362,6 +362,7 @@ body {
   body { background: white; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -655,12 +656,53 @@ body {
   <!-- ══════════ 4. 7일 추세 ══════════ -->
   <div class="page" id="page-trend">
     <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">최근 7일 누적 추세</div>
-      <div class="sec-sub">주요 관측소 일일 포집량 추이</div>
+      <div class="sec-title">일별 포집 추세</div>
+      <div class="sec-sub">기간 선택 + 지역/장비별 시각화 · MOSCOM 실측</div>
     </div>
+
+    <!-- 기간 선택 -->
+    <div class="card mb16" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:600;color:var(--navy)">시작일</label>
+        <input type="date" id="trend-start" style="padding:5px 10px;border:1px solid var(--gray3);border-radius:4px;font-size:12px">
+        <label style="font-size:12px;font-weight:600;color:var(--navy);margin-left:6px">종료일</label>
+        <input type="date" id="trend-end" style="padding:5px 10px;border:1px solid var(--gray3);border-radius:4px;font-size:12px">
+        <button id="trend-reload" type="button" class="dl-btn dl-btn-html" style="padding:6px 14px;font-size:12px">조회</button>
+        <span style="font-size:11px;color:var(--gray4);margin-left:6px">최대 90일</span>
+      </div>
+    </div>
+
+    <!-- 좌: 체크박스 | 우: 차트 -->
+    <div class="card mb16" style="padding:16px">
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:16px">
+        <!-- 지역/장비 체크박스 -->
+        <div id="trend-filter" style="max-height:480px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
+          <div style="color:var(--gray4);font-style:italic">장비 목록 불러오는 중…</div>
+        </div>
+        <!-- 차트 -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:var(--navy)" id="trend-chart-title">일별 포집량 추이</div>
+            <div style="font-size:11px;color:var(--gray4)" id="trend-chart-sub"></div>
+          </div>
+          <div style="position:relative;height:360px">
+            <canvas id="trend-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 전체 장비 표 -->
     <div class="card mb16">
-      <table class="data-table" id="trend-table"></table>
+      <div class="sec-header" style="margin-bottom:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">전 장비 일별 포집량</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="trend-table"></table>
+      </div>
     </div>
+
     <div class="card" style="padding:14px 16px">
       <div style="background:var(--gray2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--gray4);font-weight:600">
         종합: 준비중
@@ -1268,91 +1310,331 @@ async function buildAnomalyAll(){
   }
 }
 
-// ── 7일 추세 (실제 MOSCOM 데이터) ──────────────────────────
-let TREND_LOADED = false;
-async function buildTrend(){
-  const t = document.getElementById("trend-table");
-  if (TREND_LOADED) return;  // 이미 로드됐으면 재호출 안 함
-  t.innerHTML = `<thead><tr><th>관측소</th><th colspan="9" style="text-align:center">MOSCOM 실제 장비 데이터 불러오는 중…</th></tr></thead>`;
-  try {
-    const res = await fetch('/mosquito-test/api/statistics/?period=2', { credentials: 'same-origin' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const { stats } = await res.json();
+// ── 일별 포집 추세 (기간 선택 + 체크박스 + 차트) ──────────
+// - /mosquito-test/api/daily/?start=...&end=... (YYYY-MM-DD, KST 기준)
+// - 장비 메타는 /mosquito-test/api/devices/
+// - 지역 그룹핑: address_sido + address_gungu + address_dong
+// - Chart.js로 선 그래프. 선택된 장비만 렌더.
+const TREND_STATE = {
+  dates: [],           // 날짜 배열 (오름차순, YYYY-MM-DD)
+  deviceMap: {},       // uuid -> {name, region, displayName, counts:{date:n}, total}
+  regions: {},         // region -> [uuid,...]
+  selected: new Set(), // 체크된 uuid 집합
+  chart: null,
+};
 
-    // 장비별 일별 집계: device_uuid -> {date: count}
-    const byDevice = {};
-    const dateSet = new Set();
-    (stats || []).forEach(r => {
-      const date = (r.created_date || '').slice(0, 10);
-      if (!date) return;
-      dateSet.add(date);
-      if (!byDevice[r.device_uuid]) byDevice[r.device_uuid] = { name: r.device_uuid, counts: {} };
-      byDevice[r.device_uuid].counts[date] = (byDevice[r.device_uuid].counts[date] || 0) + (r.mosquito_count || 0);
+function isValidRegionPart(s) {
+  if (!s) return false;
+  // 한글/영문/숫자/공백 외 특수 문자가 많으면 깨진 주소로 간주
+  return /[가-힣A-Za-z0-9]/.test(s) && !/[\uD800-\uDFFF\uFFFD]/.test(s) && s.length < 40;
+}
+
+function getRegionKey(dv) {
+  const parts = [dv.address_sido, dv.address_gungu, dv.address_dong]
+    .map(s => (s || '').trim())
+    .filter(isValidRegionPart);
+  if (parts.length === 0) return '기타';
+  return parts.slice(0, 2).join(' ') || '기타';
+}
+
+// 차트 색상 팔레트
+const TREND_COLORS = [
+  '#1B3A6B','#dc3545','#198754','#fd7e14','#6f42c1','#0F5E6E','#C05000',
+  '#A32D2D','#4A1B6B','#7A5700','#2a5298','#1A5C35','#E65100','#B71C1C',
+];
+function pickColor(i) { return TREND_COLORS[i % TREND_COLORS.length]; }
+
+async function loadTrendData(startStr, endStr) {
+  const [dailyRes, dvRes] = await Promise.all([
+    fetch(`/mosquito-test/api/daily/?start=${startStr}&end=${endStr}`, { credentials: 'same-origin' }),
+    fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' }),
+  ]);
+  if (!dailyRes.ok) throw new Error('daily HTTP ' + dailyRes.status + (dailyRes.status === 400 ? ' (날짜 범위 확인)' : ''));
+  if (!dvRes.ok)    throw new Error('devices HTTP ' + dvRes.status);
+  const daily = await dailyRes.json();
+  const { devices } = await dvRes.json();
+
+  // 장비 메타
+  TREND_STATE.deviceMap = {};
+  TREND_STATE.regions = {};
+  devices.forEach(d => {
+    const u = d.device_uuid;
+    const dv = d.device || {};
+    const nm = (dv.device_name || '').trim() || u;
+    const region = getRegionKey(dv);
+    const addr = [dv.address_gungu, dv.address_dong].filter(isValidRegionPart).join(' ').trim();
+    TREND_STATE.deviceMap[u] = {
+      name: nm,
+      displayName: addr ? `${nm} (${addr})` : nm,
+      region,
+      counts: {},
+      total: 0,
+    };
+    if (!TREND_STATE.regions[region]) TREND_STATE.regions[region] = [];
+    TREND_STATE.regions[region].push(u);
+  });
+
+  // 일별 집계 채우기
+  const dateSet = new Set();
+  (daily.data || []).forEach(r => {
+    const date = (r.created_date || '').slice(0, 10);
+    if (!date) return;
+    dateSet.add(date);
+    const m = TREND_STATE.deviceMap[r.device_uuid];
+    if (!m) return;
+    m.counts[date] = (m.counts[date] || 0) + (r.mosquito_count || 0);
+  });
+
+  // 날짜 배열 (오름차순)
+  TREND_STATE.dates = Array.from(dateSet).sort();
+
+  // 장비 total 계산
+  Object.values(TREND_STATE.deviceMap).forEach(d => {
+    d.total = Object.values(d.counts).reduce((a, b) => a + b, 0);
+  });
+}
+
+function renderTrendFilter() {
+  const box = document.getElementById('trend-filter');
+  const regs = Object.keys(TREND_STATE.regions).sort();
+  if (regs.length === 0) {
+    box.innerHTML = `<div style="color:var(--gray4);font-style:italic">장비 없음</div>`;
+    return;
+  }
+  const parts = [];
+  parts.push(`
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button type="button" class="dl-btn dl-btn-print" style="padding:4px 8px;font-size:11px" onclick="trendSelectAll(true)">전체</button>
+      <button type="button" class="dl-btn dl-btn-print" style="padding:4px 8px;font-size:11px" onclick="trendSelectAll(false)">해제</button>
+      <button type="button" class="dl-btn dl-btn-csv" style="padding:4px 8px;font-size:11px" onclick="trendSelectTop(5)">상위 5개</button>
+    </div>
+  `);
+  regs.forEach(region => {
+    const uuids = TREND_STATE.regions[region];
+    const total = uuids.reduce((s, u) => s + (TREND_STATE.deviceMap[u]?.total || 0), 0);
+    const allChecked = uuids.every(u => TREND_STATE.selected.has(u));
+    const someChecked = uuids.some(u => TREND_STATE.selected.has(u));
+    parts.push(`
+      <div style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gray2)">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--navy);cursor:pointer">
+          <input type="checkbox" data-region="${region}" ${allChecked ? 'checked' : ''} ${!allChecked && someChecked ? 'data-indeterminate="1"' : ''}>
+          ${region} <span style="font-weight:400;color:var(--gray4);font-size:10px">(${uuids.length}대 · ${total}마리)</span>
+        </label>
+        <div style="padding-left:18px;margin-top:4px">
+          ${uuids.map(u => {
+            const d = TREND_STATE.deviceMap[u];
+            const checked = TREND_STATE.selected.has(u) ? 'checked' : '';
+            return `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 0;font-size:11px;color:var(--gray5)">
+              <input type="checkbox" data-uuid="${u}" ${checked}>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.displayName}</span>
+              <span style="color:var(--gray4);font-family:var(--mono);font-size:10px">${d.total}</span>
+            </label>`;
+          }).join('')}
+        </div>
+      </div>
+    `);
+  });
+  box.innerHTML = parts.join('');
+
+  // indeterminate 처리
+  box.querySelectorAll('input[data-indeterminate="1"]').forEach(el => { el.indeterminate = true; });
+
+  // 이벤트: 지역 체크박스
+  box.querySelectorAll('input[data-region]').forEach(el => {
+    el.addEventListener('change', e => {
+      const region = e.currentTarget.dataset.region;
+      const uuids = TREND_STATE.regions[region];
+      if (e.currentTarget.checked) uuids.forEach(u => TREND_STATE.selected.add(u));
+      else                          uuids.forEach(u => TREND_STATE.selected.delete(u));
+      renderTrendFilter();
+      drawTrendChart();
     });
+  });
+  // 이벤트: 개별 장비
+  box.querySelectorAll('input[data-uuid]').forEach(el => {
+    el.addEventListener('change', e => {
+      const u = e.currentTarget.dataset.uuid;
+      if (e.currentTarget.checked) TREND_STATE.selected.add(u);
+      else TREND_STATE.selected.delete(u);
+      renderTrendFilter();
+      drawTrendChart();
+    });
+  });
+}
 
-    // 장비 메타(이름/주소) 붙이기
-    const dvRes = await fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' });
-    if (dvRes.ok) {
-      const { devices } = await dvRes.json();
-      devices.forEach(d => {
-        const u = d.device_uuid;
-        if (byDevice[u]) {
-          const dv = d.device || {};
-          const nm = (dv.device_name || '').trim();
-          const addr = [dv.address_gungu, dv.address_dong].filter(Boolean).join(' ').trim();
-          byDevice[u].name = nm ? `${nm}${addr ? ' ('+addr+')' : ''}` : u;
-        }
+function trendSelectAll(on) {
+  TREND_STATE.selected.clear();
+  if (on) Object.keys(TREND_STATE.deviceMap).forEach(u => TREND_STATE.selected.add(u));
+  renderTrendFilter();
+  drawTrendChart();
+}
+function trendSelectTop(n) {
+  const top = Object.entries(TREND_STATE.deviceMap)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, n)
+    .map(([u]) => u);
+  TREND_STATE.selected = new Set(top);
+  renderTrendFilter();
+  drawTrendChart();
+}
+
+function drawTrendChart() {
+  const ctx = document.getElementById('trend-chart');
+  if (!ctx) return;
+  const sub = document.getElementById('trend-chart-sub');
+  const labels = TREND_STATE.dates.map(d => {
+    const [,m,dd] = d.split('-');
+    return `${parseInt(m,10)}/${parseInt(dd,10)}`;
+  });
+
+  const selected = Array.from(TREND_STATE.selected);
+  if (sub) sub.textContent = `선택 ${selected.length}개 장비 · ${TREND_STATE.dates.length}일`;
+
+  // 선택 장비 데이터셋
+  const datasets = selected.map((u, i) => {
+    const d = TREND_STATE.deviceMap[u];
+    if (!d) return null;
+    const color = pickColor(i);
+    return {
+      label: d.displayName,
+      data: TREND_STATE.dates.map(dt => d.counts[dt] || 0),
+      borderColor: color,
+      backgroundColor: color + '33',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      tension: 0.25,
+      fill: false,
+    };
+  }).filter(Boolean);
+
+  // 지역 합계도 표시 (선택된 장비만 대상으로 지역별 합산)
+  // 지역 선 → 굵게, 점선
+  const regionAgg = {};
+  selected.forEach(u => {
+    const d = TREND_STATE.deviceMap[u];
+    if (!d) return;
+    if (!regionAgg[d.region]) regionAgg[d.region] = new Array(TREND_STATE.dates.length).fill(0);
+    TREND_STATE.dates.forEach((dt, idx) => {
+      regionAgg[d.region][idx] += d.counts[dt] || 0;
+    });
+  });
+  // 여러 지역이 선택된 경우에만 지역선 추가(중복 방지)
+  if (Object.keys(regionAgg).length > 1) {
+    Object.entries(regionAgg).forEach(([region, arr], i) => {
+      datasets.push({
+        label: `[${region}] 합계`,
+        data: arr,
+        borderColor: pickColor(selected.length + i),
+        borderWidth: 3,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0.2,
+        fill: false,
       });
+    });
+  }
+
+  if (TREND_STATE.chart) TREND_STATE.chart.destroy();
+  TREND_STATE.chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: '포집량 (마리)' }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        x: { grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    },
+  });
+}
+
+function renderTrendTable() {
+  const t = document.getElementById('trend-table');
+  const dates = TREND_STATE.dates;
+  if (dates.length === 0) {
+    t.innerHTML = `<thead><tr><th colspan="10" style="text-align:center;color:var(--gray4);padding:18px">해당 기간 데이터 없음</th></tr></thead>`;
+    return;
+  }
+  const hdr = `<thead><tr>
+    <th style="min-width:200px">장비</th>
+    <th>지역</th>
+    ${dates.map(d => { const [,m,dd] = d.split('-'); return `<th>${parseInt(m,10)}/${parseInt(dd,10)}</th>`; }).join('')}
+    <th>합계</th><th>추세</th>
+  </tr></thead>`;
+  const rows = Object.entries(TREND_STATE.deviceMap)
+    .sort((a, b) => b[1].total - a[1].total);
+  const body = `<tbody>${rows.map(([u, d]) => {
+    const seq = dates.map(dt => d.counts[dt] || 0);
+    const lastIdx = seq.length - 1;
+    const half = Math.ceil(seq.length / 2);
+    const fAvg = seq.slice(0, half).reduce((a,b)=>a+b,0) / (half || 1);
+    const lAvg = seq.slice(half).reduce((a,b)=>a+b,0) / (seq.length - half || 1);
+    const chg = fAvg > 0 ? Math.round((lAvg - fAvg) / fAvg * 100) : 0;
+    const up = chg > 5, down = chg < -5;
+    const tc = up ? 'var(--red)' : down ? 'var(--green)' : 'var(--gray4)';
+    const tl = up ? `↑ ${chg>=0?'+':''}${chg}%` : down ? `↓ ${chg}%` : '→ 0%';
+    const cells = seq.map((v, wi) =>
+      `<td style="font-family:var(--mono);${wi===lastIdx?'color:var(--navy);font-weight:700':'color:var(--gray5)'}">${v}</td>`
+    ).join('');
+    return `<tr>
+      <td><strong>${d.displayName}</strong></td>
+      <td style="color:var(--gray5);font-size:11px">${d.region}</td>
+      ${cells}
+      <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${d.total}</td>
+      <td style="color:${tc};font-weight:700">${tl}</td>
+    </tr>`;
+  }).join('')}</tbody>`;
+  t.innerHTML = hdr + body;
+}
+
+// 기본 기간: 오늘 기준 지난 7일
+function defaultTrendRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return [fmt(start), fmt(end)];
+}
+
+async function buildTrend(){
+  const startInp = document.getElementById('trend-start');
+  const endInp = document.getElementById('trend-end');
+  if (!startInp.value || !endInp.value) {
+    const [s, e] = defaultTrendRange();
+    startInp.value = s;
+    endInp.value = e;
+  }
+  const filterBox = document.getElementById('trend-filter');
+  filterBox.innerHTML = `<div style="color:var(--gray4);font-style:italic">데이터 불러오는 중…</div>`;
+  try {
+    await loadTrendData(startInp.value, endInp.value);
+    // 기본 선택: 상위 5개
+    if (TREND_STATE.selected.size === 0) trendSelectTop(5);
+    else {
+      renderTrendFilter();
+      drawTrendChart();
     }
-
-    // 최근 7일 기준 날짜 배열 (오름차순)
-    const dates = Array.from(dateSet).sort().slice(-7);
-
-    // 전체 장비 표시 (포집량 합산 내림차순 정렬)
-    const rows = Object.values(byDevice)
-      .map(d => {
-        const seq = dates.map(dt => d.counts[dt] || 0);
-        return { name: d.name, seq, sum: seq.reduce((a, b) => a + b, 0) };
-      })
-      .sort((a, b) => b.sum - a.sum);
-
-    if (rows.length === 0 || dates.length === 0) {
-      t.innerHTML = `<thead><tr><th>관측소</th><th colspan="9" style="text-align:center;color:var(--gray4)">최근 7일 데이터가 없습니다</th></tr></thead>`;
-      TREND_LOADED = true;
-      return;
-    }
-
-    // 헤더: 날짜를 MM/DD 형식으로
-    const dayHeaders = dates.map(d => {
-      const [y,m,dd] = d.split('-');
-      return `<th>${parseInt(m,10)}/${parseInt(dd,10)}</th>`;
-    }).join('');
-
-    t.innerHTML = `<thead><tr><th style="min-width:180px">장비</th>${dayHeaders}<th>추세</th><th>국면</th></tr></thead>
-    <tbody>${rows.map(r => {
-      const w = r.seq;
-      const lastIdx = w.length - 1;
-      const half = Math.ceil(w.length / 2);
-      const first = w.slice(0, half);
-      const last = w.slice(half);
-      const fAvg = first.reduce((a,b)=>a+b,0) / (first.length || 1);
-      const lAvg = last.reduce((a,b)=>a+b,0) / (last.length || 1);
-      const chg = fAvg > 0 ? Math.round((lAvg - fAvg) / fAvg * 100) : 0;
-      const up = chg > 5, down = chg < -5;
-      const tc = up ? "var(--red)" : down ? "var(--green)" : "var(--gray4)";
-      const tl = up ? "↑ 상승" : down ? "↓ 하락" : "→ 보합";
-      const cells = w.map((v, wi) =>
-        `<td style="font-family:var(--mono);${wi===lastIdx?'color:var(--navy);font-weight:700':'color:var(--gray5)'}">${v}</td>`
-      ).join('');
-      return `<tr><td><strong>${r.name}</strong></td>${cells}
-        <td style="color:${tc};font-family:var(--mono);font-weight:700">${chg>=0?"+":""}${chg}%</td>
-        <td style="color:${tc};font-weight:700">${tl}</td></tr>`;
-    }).join('')}</tbody>`;
-    TREND_LOADED = true;
+    renderTrendTable();
   } catch (err) {
-    t.innerHTML = `<thead><tr><th>관측소</th><th colspan="9" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
+    filterBox.innerHTML = `<div style="color:var(--red)">${err.message}</div>`;
   }
 }
+
+// 조회 버튼 바인딩
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('trend-reload');
+  if (btn) btn.addEventListener('click', () => {
+    TREND_STATE.selected.clear();  // 기간 바뀌면 선택 초기화
+    buildTrend();
+  });
+});
 
 // ── 예측 테이블 ──────────────────────────────────────────
 const TOMORROW_PRED=[

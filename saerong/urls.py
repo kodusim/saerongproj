@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from core.views import (
     dashboard, category_detail, subcategory_detail, game_notices, mosquito_test,
     moscom_devices, moscom_raw_collection, moscom_statistics, moscom_hourly,
+    moscom_daily,
 )
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
     path("mosquito-test/api/raw-collection/", moscom_raw_collection, name="moscom_raw_collection"),  # MOSCOM 포집 데이터 프록시
     path("mosquito-test/api/statistics/", moscom_statistics, name="moscom_statistics"),  # MOSCOM 통계 프록시
     path("mosquito-test/api/hourly/", moscom_hourly, name="moscom_hourly"),  # MOSCOM 시간별(raw) 프록시
+    path("mosquito-test/api/daily/", moscom_daily, name="moscom_daily"),  # MOSCOM 일별 집계 (임의 기간)
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터

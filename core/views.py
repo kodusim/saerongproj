@@ -279,6 +279,49 @@ def moscom_statistics(request):
 
 
 @require_GET
+def moscom_daily(request):
+    """MOSCOM API 일별 집계 프록시 — 7일 추세 탭용 (임의 기간)
+    쿼리스트링: start, end (YYYY-MM-DD, KST). 최대 90일.
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    try:
+        start_str = request.GET.get('start')
+        end_str = request.GET.get('end')
+        if not start_str or not end_str:
+            return JsonResponse({'error': 'start, end query params required (YYYY-MM-DD)'}, status=400)
+        try:
+            start_d = datetime.strptime(start_str, '%Y-%m-%d').date()
+            end_d = datetime.strptime(end_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'invalid date format, use YYYY-MM-DD'}, status=400)
+        if end_d < start_d:
+            start_d, end_d = end_d, start_d
+        if (end_d - start_d).days > 90:
+            return JsonResponse({'error': 'range too large (max 90 days)'}, status=400)
+
+        # KST 00:00 → UTC-9h. end는 exclusive(다음날 00:00 KST)로 넓혀서 포함되도록.
+        start_utc = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
+        end_utc = datetime(end_d.year, end_d.month, end_d.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1) - timedelta(hours=9)
+        start_iso = start_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        end_iso = end_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+        data = moscom_client.get_statistics_by_date(
+            start_dt=start_iso, end_dt=end_iso, aggregation='day', device_uuid='0',
+        )
+        return JsonResponse({
+            'count': len(data) if isinstance(data, list) else 0,
+            'start': start_str, 'end': end_str,
+            'data': data,
+        }, safe=False)
+    except Exception as e:
+        logger.exception('MOSCOM /device/statisticsByDate (day) failed')
+        return JsonResponse({'error': str(e)}, status=502)
+
+
+@require_GET
 def moscom_hourly(request):
     """MOSCOM API raw(시간별) 데이터 프록시 — 시간별 히트맵용
     쿼리스트링: start(ISO), end(ISO) (선택, 미지정 시 전날 00:00~다음날 06:00 UTC)
