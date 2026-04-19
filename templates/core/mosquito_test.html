@@ -623,47 +623,23 @@ body {
   <div class="page" id="page-anomaly">
     <div class="sec-header mb16"><div class="sec-bar"></div>
       <div class="sec-title">이상 발생 감지 (Anomaly Detection)</div>
-      <div class="sec-sub">AI 자동 탐지 — 전일 대비 +30% 또는 7일 평균 ±50% 초과</div>
+      <div class="sec-sub">장비 고유 기준 bad_min 초과 시 이상으로 판정 · MOSCOM 실측</div>
     </div>
 
-    <div class="anomaly-alert">
-      <div class="anomaly-icon">⚠</div>
-      <div>
-        <div class="anomaly-title">이상 발생 감지 — 관측소 B (저수지)</div>
-        <div class="anomaly-body">
-          전일 대비 <strong>+38% 급증</strong> (826마리 → 1,142마리). 7일 평균 910마리 대비 +25%.<br>
-          서식처(방죽 수면 + 주변 고인물) 유충 방제 긴급 실시 필요.
-        </div>
-      </div>
-    </div>
+    <div id="anomaly-alert-box"></div>
 
     <div class="card mb16">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>관측소</th><th>금일 포집</th><th>전일 포집</th><th>증감률</th>
-            <th>7일 평균</th><th>판정</th><th>서식처</th><th>즉시 조치</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>관측소 B (저수지)</strong></td>
-            <td style="color:var(--red);font-weight:700;font-family:var(--mono)">1,142마리</td>
-            <td style="font-family:var(--mono)">826마리</td>
-            <td><span style="color:var(--red);font-weight:700;font-family:var(--mono)">+38%</span></td>
-            <td style="font-family:var(--mono)">910마리</td>
-            <td><span class="badge badge-warn">비정상 급증</span></td>
-            <td>방죽 수면 + 주변 고인물</td>
-            <td style="color:var(--red);font-weight:600">익일 오전 유충 방제 긴급</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="sec-header" style="margin-bottom:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">이상 감지 장비</div>
+      </div>
+      <table class="data-table" id="anomaly-flagged-table"></table>
     </div>
 
     <div class="card">
       <div class="sec-header" style="margin-bottom:10px">
         <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">전 관측소 정상 범위 확인</div>
+        <div class="sec-title" style="font-size:13px">전 장비 정상 범위 확인</div>
       </div>
       <table class="data-table" id="anomaly-all-table"></table>
     </div>
@@ -1054,23 +1030,143 @@ async function buildHeatmap(){
   }
 }
 
-// ── 이상감지 전체 테이블 ────────────────────────────────
-function buildAnomalyAll(){
-  const t=document.getElementById("anomaly-all-table");
-  t.innerHTML=`<thead><tr><th>관측소</th><th>금일</th><th>전일</th><th>증감률</th><th>7일 평균</th><th>판정</th></tr></thead>
-  <tbody>${STATIONS.map(s=>{
-    const diff=s.total-s.prevDay;
-    const pct=s.prevDay>0?Math.round((diff/s.prevDay)*100):0;
-    const isAnomaly=Math.abs(pct)>=30;
-    return `<tr>
-      <td><strong>${s.name}</strong></td>
-      <td style="font-family:var(--mono)">${s.total>0?s.total:"-"}</td>
-      <td style="font-family:var(--mono)">${s.prevDay}</td>
-      <td>${diffStr(s.total,s.prevDay)}</td>
-      <td style="font-family:var(--mono)">${s.weekAvg}</td>
-      <td>${isAnomaly?`<span class="badge badge-warn">이상 감지</span>`:`<span class="badge badge-safe">정상</span>`}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
+// ── 이상감지 (실제 MOSCOM 데이터) ─────────────────────────
+// 판정 기준: 금일 포집량 > 장비 고유 bad_min (deviceSetting) 초과 시 '이상'
+// 증감률: 전일 포집량 대비 (전일이 0이면 '—')
+let ANOMALY_LOADED = false;
+
+async function buildAnomalyAll(){
+  const alertBox = document.getElementById('anomaly-alert-box');
+  const flaggedT = document.getElementById('anomaly-flagged-table');
+  const allT = document.getElementById('anomaly-all-table');
+  if (ANOMALY_LOADED) return;
+
+  allT.innerHTML = `<thead><tr><th colspan="6" style="text-align:center">데이터 불러오는 중…</th></tr></thead>`;
+  flaggedT.innerHTML = '';
+  alertBox.innerHTML = '';
+
+  try {
+    // 7일 통계 + 장비 메타 동시 요청
+    const [statsRes, dvRes] = await Promise.all([
+      fetch('/mosquito-test/api/statistics/?period=2', { credentials: 'same-origin' }),
+      fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' }),
+    ]);
+    if (!statsRes.ok) throw new Error('stats HTTP ' + statsRes.status);
+    if (!dvRes.ok)    throw new Error('devices HTTP ' + dvRes.status);
+    const { stats } = await statsRes.json();
+    const { devices } = await dvRes.json();
+
+    // 날짜별 합산 (장비당)
+    const byDevice = {}; // uuid -> {dateMap, name, addr, badMin}
+    devices.forEach(d => {
+      const dv = d.device || {};
+      const nm = (dv.device_name || '').trim();
+      const addr = [dv.address_gungu, dv.address_dong].filter(Boolean).join(' ').trim();
+      const badMin = (dv.deviceSetting && dv.deviceSetting.bad_min) || 100;
+      byDevice[d.device_uuid] = { name: nm || d.device_uuid, addr, badMin, counts: {} };
+    });
+    (stats || []).forEach(r => {
+      const u = r.device_uuid;
+      const date = (r.created_date || '').slice(0, 10);
+      if (!date || !byDevice[u]) return;
+      byDevice[u].counts[date] = (byDevice[u].counts[date] || 0) + (r.mosquito_count || 0);
+    });
+
+    const allDates = Array.from(new Set((stats || []).map(r => (r.created_date || '').slice(0, 10)).filter(Boolean))).sort();
+    const today = allDates[allDates.length - 1] || '';
+    const yesterday = allDates[allDates.length - 2] || '';
+    const weekDates = allDates.slice(-7);
+
+    // 장비별 판정
+    const rows = Object.keys(byDevice).map(u => {
+      const d = byDevice[u];
+      const todayCnt = d.counts[today] || 0;
+      const ydayCnt = yesterday ? (d.counts[yesterday] || 0) : 0;
+      const weekVals = weekDates.map(dt => d.counts[dt] || 0);
+      const weekAvg = weekVals.length ? weekVals.reduce((a,b)=>a+b,0) / weekVals.length : 0;
+      const pct = ydayCnt > 0 ? Math.round((todayCnt - ydayCnt) / ydayCnt * 100) : null;
+      const isAnomaly = todayCnt >= d.badMin && d.badMin > 0;
+      return {
+        uuid: u, name: d.name, addr: d.addr, badMin: d.badMin,
+        today: todayCnt, yday: ydayCnt, weekAvg, pct, isAnomaly,
+      };
+    }).sort((a, b) => b.today - a.today || b.weekAvg - a.weekAvg);
+
+    const flagged = rows.filter(r => r.isAnomaly);
+
+    // 1) 상단 알림 박스
+    if (flagged.length > 0) {
+      const top = flagged[0];
+      alertBox.innerHTML = `
+        <div class="anomaly-alert">
+          <div class="anomaly-icon">⚠</div>
+          <div>
+            <div class="anomaly-title">이상 발생 감지 — ${top.name}${top.addr ? ' ('+top.addr+')' : ''}</div>
+            <div class="anomaly-body">
+              금일 <strong>${top.today}마리</strong> 포집으로 장비 경보 기준 <strong>${top.badMin}마리</strong> 초과.
+              전일 <strong>${top.yday}마리</strong> ${top.pct !== null ? '· 변화율 <strong>'+(top.pct>=0?'+':'')+top.pct+'%</strong>' : ''} ·
+              7일 평균 <strong>${top.weekAvg.toFixed(1)}마리</strong>.
+              ${flagged.length > 1 ? `추가로 <strong>${flagged.length - 1}개 장비</strong>에서 기준 초과 감지됨.` : ''}
+            </div>
+          </div>
+        </div>`;
+    } else {
+      alertBox.innerHTML = `
+        <div class="anomaly-alert" style="background:var(--green-l);border-color:#8fcfa6">
+          <div class="anomaly-icon" style="color:var(--green)">✓</div>
+          <div>
+            <div class="anomaly-title" style="color:var(--green)">전 장비 정상 범위</div>
+            <div class="anomaly-body" style="color:var(--gray5)">
+              ${rows.length}개 장비 중 경보 기준(bad_min) 초과 장비가 없습니다.
+              최근 수집 기간: ${weekDates[0] || '-'} ~ ${today || '-'}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // 2) 이상 감지 장비 테이블
+    const flaggedHdr = `<thead><tr><th>장비</th><th>금일 포집</th><th>전일 포집</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>`;
+    if (flagged.length === 0) {
+      flaggedT.innerHTML = `${flaggedHdr}<tbody><tr><td colspan="7" style="text-align:center;color:var(--gray4);padding:18px">기준 초과 장비 없음</td></tr></tbody>`;
+    } else {
+      flaggedT.innerHTML = `${flaggedHdr}<tbody>${flagged.map(r => {
+        const labelAddr = r.addr ? `<div style="font-size:10px;color:var(--gray4);font-weight:400">${r.addr}</div>` : '';
+        const pctHtml = r.pct === null ? '<span style="color:var(--gray4)">—</span>'
+          : `<span style="color:${r.pct >= 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;font-family:var(--mono)">${r.pct >= 0 ? '+' : ''}${r.pct}%</span>`;
+        return `<tr>
+          <td><strong>${r.name}</strong>${labelAddr}</td>
+          <td style="color:var(--red);font-weight:700;font-family:var(--mono)">${r.today}마리</td>
+          <td style="font-family:var(--mono)">${r.yday}마리</td>
+          <td>${pctHtml}</td>
+          <td style="font-family:var(--mono)">${r.weekAvg.toFixed(1)}</td>
+          <td style="font-family:var(--mono);color:var(--gray5)">${r.badMin}마리</td>
+          <td><span class="badge badge-warn">기준 초과</span></td>
+        </tr>`;
+      }).join('')}</tbody>`;
+    }
+
+    // 3) 전 장비 테이블
+    allT.innerHTML = `<thead><tr><th>장비 (${rows.length}개)</th><th>금일</th><th>전일</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>
+      <tbody>${rows.map(r => {
+        const labelAddr = r.addr ? `<div style="font-size:10px;color:var(--gray4);font-weight:400">${r.addr}</div>` : '';
+        const pctHtml = r.pct === null ? '<span style="color:var(--gray4)">—</span>'
+          : `<span style="color:${r.pct >= 0 ? 'var(--red)' : 'var(--green)'};font-family:var(--mono);font-weight:600">${r.pct >= 0 ? '+' : ''}${r.pct}%</span>`;
+        const badge = r.isAnomaly ? `<span class="badge badge-warn">기준 초과</span>` : `<span class="badge badge-safe">정상</span>`;
+        return `<tr>
+          <td><strong>${r.name}</strong>${labelAddr}</td>
+          <td style="font-family:var(--mono)">${r.today > 0 ? r.today : '-'}</td>
+          <td style="font-family:var(--mono)">${r.yday > 0 ? r.yday : '-'}</td>
+          <td>${pctHtml}</td>
+          <td style="font-family:var(--mono)">${r.weekAvg.toFixed(1)}</td>
+          <td style="font-family:var(--mono);color:var(--gray5)">${r.badMin}</td>
+          <td>${badge}</td>
+        </tr>`;
+      }).join('')}</tbody>`;
+
+    ANOMALY_LOADED = true;
+  } catch (err) {
+    allT.innerHTML = `<thead><tr><th colspan="6" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
+  }
 }
 
 // ── 7일 추세 (실제 MOSCOM 데이터) ──────────────────────────
