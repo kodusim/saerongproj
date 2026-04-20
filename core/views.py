@@ -1564,9 +1564,12 @@ def moscom_daily(request):
         if (end_d - start_d).days > 90:
             return JsonResponse({'error': 'range too large (max 90 days)'}, status=400)
 
-        # KST 00:00 → UTC-9h. end는 exclusive(다음날 00:00 KST)로 넓혀서 포함되도록.
-        start_utc = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
-        end_utc = datetime(end_d.year, end_d.month, end_d.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1) - timedelta(hours=9)
+        # MOSCOM의 "업무일"은 KST 10:00 ~ 다음날 09:59 수집.
+        # 선택한 날짜 D는 "D일 10:00 KST ~ (D+1)일 10:00 KST" 로 해석.
+        # start_utc = start_d 10:00 KST (-> UTC 01:00)
+        # end_utc   = (end_d + 1) 10:00 KST (-> 다음날 UTC 01:00) exclusive
+        start_utc = datetime(start_d.year, start_d.month, start_d.day, 10, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
+        end_utc = datetime(end_d.year, end_d.month, end_d.day, 10, 0, 0, tzinfo=timezone.utc) + timedelta(days=1) - timedelta(hours=9)
         start_iso = start_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
         end_iso = end_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
