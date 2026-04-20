@@ -2359,18 +2359,21 @@ async function loadTrendData(startStr, endStr) {
     TREND_STATE.regions[region].push(u);
   });
 
-  // 일별 집계 채우기
+  // 일별 집계 채우기 — 사용자가 선택한 [startStr, endStr] 범위만 반영
+  // (백엔드가 업무일 커버를 위해 종료일 다음날 09시까지 포함해서 조회하므로,
+  //  MOSCOM 응답에는 endStr 이후 날짜가 올 수 있어 UI 상 혼란을 줌)
   const dateSet = new Set();
   (daily.data || []).forEach(r => {
     const date = (r.created_date || '').slice(0, 10);
     if (!date) return;
+    if (date < startStr || date > endStr) return;  // 범위 밖 제외
     dateSet.add(date);
     const m = TREND_STATE.deviceMap[r.device_uuid];
     if (!m) return;
     m.counts[date] = (m.counts[date] || 0) + (r.mosquito_count || 0);
   });
 
-  // 날짜 배열 (오름차순)
+  // 날짜 배열 (오름차순) — 선택 범위 내 날짜만
   TREND_STATE.dates = Array.from(dateSet).sort();
 
   // 장비 total 계산
