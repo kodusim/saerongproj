@@ -89,7 +89,7 @@ def _build_feature_row(history, target_date, weather, station_code):
     return row
 
 
-def predict_for_devices(devices_stats, weather_by_region=None):
+def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
     """장비별 예측
     devices_stats: [
       {
@@ -100,14 +100,17 @@ def predict_for_devices(devices_stats, weather_by_region=None):
       }, ...
     ]
     weather_by_region: {region_key: {평균기온, 평균습도, ...}} — 기상 dict 덮어쓰기용 (옵셔널)
+    days_ahead: 예측할 미래 일수 (기본 3, 최대 14)
 
     반환: [{uuid, name, region, predictions: [{date, predicted}, ...], grade, ...}]
     """
     model, feature_cols = _load()
 
-    # 내일~3일 후 예측 (총 3일)
+    days_ahead = max(1, min(int(days_ahead or 3), 14))
+
+    # 내일~+days_ahead일 후 예측
     today = datetime.now(timezone(timedelta(hours=9))).date()
-    future_dates = [today + timedelta(days=i) for i in range(1, 4)]
+    future_dates = [today + timedelta(days=i) for i in range(1, days_ahead + 1)]
 
     results = []
     rows_to_predict = []

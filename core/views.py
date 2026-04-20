@@ -371,7 +371,11 @@ def moscom_predict(request):
                 'history': hist_by_uuid[u],
             })
 
-        preds = predictor.predict_for_devices(inputs)
+        try:
+            days_ahead = int(request.GET.get('days', '3'))
+        except (TypeError, ValueError):
+            days_ahead = 3
+        preds = predictor.predict_for_devices(inputs, days_ahead=days_ahead)
         # max_predicted 내림차순 정렬
         preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
         return JsonResponse({

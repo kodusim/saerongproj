@@ -479,6 +479,98 @@ body {
 }
 .conf-bar-fill { height: 100%; border-radius: 3px; }
 .conf-bar-val { font-family: var(--mono); font-size: 10px; font-weight: 700; }
+
+/* ── AI 예보 탭: 게이지 미터 ── */
+.gauge-scroll {
+  display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 18px;
+  scroll-snap-type: x mandatory;
+}
+.gauge-card {
+  background: #fff; border-radius: 14px; border: 1px solid var(--gray2);
+  padding: 18px 20px 14px; min-width: 215px; flex-shrink: 0;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center;
+  scroll-snap-align: start; position: relative;
+  transition: transform .15s, box-shadow .15s;
+}
+.gauge-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.gauge-card-day {
+  font-size: 11px; font-weight: 700; color: var(--gray4); letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: 2px;
+}
+.gauge-card-date {
+  font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 8px;
+}
+.gauge-wrap { position: relative; width: 170px; height: 95px; margin-bottom: 6px; }
+.gauge-wrap svg { width: 100%; height: 100%; }
+.gauge-value-box {
+  position: absolute; bottom: 2px; left: 0; right: 0; text-align: center;
+}
+.gauge-value {
+  font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1;
+}
+.gauge-unit { font-size: 10px; color: var(--gray4); margin-top: 1px; }
+
+.gauge-needle {
+  transform-origin: 85px 85px;
+  transition: transform 1.4s cubic-bezier(.17,.67,.21,1.03);
+}
+@keyframes needleBoot {
+  0% { transform: rotate(-90deg); }
+  80% { transform: rotate(var(--target)); }
+  100% { transform: rotate(var(--target)); }
+}
+
+.gauge-weather {
+  position: absolute; top: 10px; right: 12px;
+  width: 26px; height: 26px; color: var(--gray4);
+}
+.gauge-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; padding-top: 10px; border-top: 1px solid var(--gray2); margin-top: 4px;
+}
+.gauge-foot .g-grade { font-size: 11px; font-weight: 700; }
+.gauge-foot .g-delta {
+  font-size: 11px; font-family: var(--mono); font-weight: 700;
+}
+.gauge-foot .g-delta.up   { color: var(--red); }
+.gauge-foot .g-delta.down { color: var(--green); }
+.gauge-foot .g-delta.flat { color: var(--gray4); }
+.gauge-card-sub {
+  font-size: 10px; color: var(--gray4); text-align: center; margin-top: 2px;
+  min-height: 1.4em;
+}
+
+/* 기간 선택 바 */
+.fc-controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 14px 18px; background: #fff;
+  border-radius: 10px; border: 1px solid var(--gray2);
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.fc-controls label {
+  font-size: 11px; font-weight: 700; color: var(--navy); letter-spacing: .04em;
+}
+.fc-controls .days-input {
+  width: 60px; padding: 5px 8px; border: 1px solid var(--gray3); border-radius: 4px;
+  font-family: var(--mono); font-size: 12px; text-align: center;
+}
+.fc-preset {
+  padding: 4px 10px; background: var(--gray1); border: 1px solid var(--gray2);
+  border-radius: 14px; font-size: 11px; font-weight: 600; color: var(--gray5);
+  cursor: pointer; transition: all .1s;
+}
+.fc-preset:hover { background: var(--navy-l); color: var(--navy); border-color: #B0C4E4; }
+.fc-preset.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+/* 장비 체크박스 박스 (forecast 전용, 재사용) */
+.fc-filter {
+  max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--gray2); border-radius: 8px;
+  padding: 12px 14px; background: #fff;
+  font-size: 12px;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -523,7 +615,7 @@ body {
     </a>
     <a class="nav-item" onclick="showPage('forecast')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 C4 10 6 6 8 8 C10 10 12 5 14 4"/><line x1="2" y1="14" x2="14" y2="14"/></svg>
-      3일 예보
+      AI 예보
     </a>
   </div>
 
@@ -935,18 +1027,78 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 6. 3일 예보 ══════════ -->
+  <!-- ══════════ 6. AI 예보 ══════════ -->
   <div class="page" id="page-forecast">
-    <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">3일 발생 예보</div>
-      <div class="sec-sub">2025. 08. 16. ~ 18.</div>
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">AI 예보</div>
+          <div class="sec-sub" id="fc-sub">기간별 모기 발생 예측 · 게이지 시각화</div>
+        </div>
+      </div>
+      <div id="fc-badge" class="ai-model-badge"><span class="dot"></span>MOSCOM AI · Random Forest</div>
     </div>
 
-    <div class="forecast-grid mb16" id="forecast-cards"></div>
+    <!-- 기간 + 프리셋 -->
+    <div class="fc-controls">
+      <label>예측 기간</label>
+      <button class="fc-preset" data-days="3">3일</button>
+      <button class="fc-preset" data-days="5">5일</button>
+      <button class="fc-preset active" data-days="7">7일</button>
+      <button class="fc-preset" data-days="10">10일</button>
+      <button class="fc-preset" data-days="14">14일</button>
+      <span style="color:var(--gray3)">|</span>
+      <label>직접 입력</label>
+      <input type="number" class="days-input" id="fc-days-input" min="1" max="14" value="7">
+      <label style="color:var(--gray5);font-weight:500">일 (1~14)</label>
+      <button id="fc-run" class="dl-btn dl-btn-html" style="padding:6px 14px;font-size:12px;margin-left:auto">예측 실행</button>
+    </div>
+
+    <!-- 장비 선택 + Hero 요약 -->
+    <div class="card mb16" style="padding:16px">
+      <div style="display:grid;grid-template-columns:260px 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--gray4);margin-bottom:6px;letter-spacing:.04em">장비 선택</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="fcSelect(5)">TOP 5</button>
+            <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="fcSelect(10)">TOP 10</button>
+            <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="fcSelect(-1)">전체</button>
+            <button type="button" class="dl-btn dl-btn-print" style="padding:3px 8px;font-size:10px" onclick="fcSelect(0)">해제</button>
+          </div>
+          <div id="fc-filter" class="fc-filter">
+            <div style="color:var(--gray4);font-style:italic">기간을 선택하고 실행하세요</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--gray4);margin-bottom:6px;letter-spacing:.04em">기간 요약</div>
+          <div id="fc-hero" style="min-height:140px">
+            <div style="padding:38px;text-align:center;color:var(--gray4);font-size:12px;border:1px dashed var(--gray3);border-radius:10px">
+              상단에서 예측 기간을 설정하고 <strong>예측 실행</strong>을 누르세요.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 게이지 미터 가로 스크롤 -->
+    <div class="card mb16" style="padding:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">
+        일별 예보 (선택 장비 합계 · 위험도 게이지)
+      </div>
+      <div id="fc-gauges" class="gauge-scroll">
+        <div style="padding:40px;color:var(--gray4);font-size:12px;width:100%;text-align:center">
+          아직 예보가 없습니다. 예측 실행 후 표시됩니다.
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--gray4);margin-top:4px;padding:0 4px">
+        ※ 게이지: 선택된 장비들의 <strong>해당 일자 최대 예상 포집량</strong>을 0~200+ 스케일로 시각화.
+      </div>
+    </div>
 
     <div class="card" style="padding:12px 16px;background:var(--yellow-l);border-color:#F5D788">
-      <span style="font-size:12px;color:var(--yellow);font-weight:600">예측 주의사항:</span>
-      <span style="font-size:12px;color:var(--gray5)"> 기상 변화(갑작스러운 강수·기온 급락)에 따라 예측값이 달라질 수 있습니다. 익일 보고서에서 갱신됩니다.</span>
+      <span style="font-size:12px;color:var(--yellow);font-weight:600">⚠ 안내</span>
+      <span style="font-size:11px;color:var(--gray5)"> 예측 기간이 길수록 신뢰도는 감소합니다. 학습 데이터는 청주 3개소·2025년 7~8월이며, 장기 예측 또는 타지역·다른 계절은 <strong>참고값</strong>으로 활용하세요.</span>
     </div>
   </div>
 
@@ -2104,27 +2256,288 @@ async function buildPredict() {
   }
 }
 
-// ── 3일 예보 ─────────────────────────────────────────────
-const THREE_DAY=[
-  {day:"내일 (8/16)", grade:"경고",   range:"1,050~1,200",peak:"22~23시",weather:"맑음 / 27°C / 습도 82%",risk:"높음",  action:"관측소 B (저수지) 방제 효과 확인 + 관측소 H (하천중류) 방제 실시",cls:"danger"},
-  {day:"모레 (8/17)", grade:"주의",   range:"850~1,000",  peak:"22~23시",weather:"구름많음 / 26°C / 습도 79%",risk:"중간",action:"주요 관측소 유충 방제 실시",cls:"caution"},
-  {day:"3일 후 (8/18)",grade:"주의",  range:"700~900",    peak:"22~23시",weather:"오전 소나기 / 25°C / 습도 88%",risk:"중간→높음",action:"강수 후 2일 뒤(8/20) 급증 대비 사전 유충 방제 권고",cls:"caution"},
-];
-function buildForecast(){
-  const g=document.getElementById("forecast-cards");
-  g.innerHTML=THREE_DAY.map(d=>`
-    <div class="forecast-card">
-      <div class="fc-head ${d.cls}">${d.day}</div>
-      <div class="fc-body">
-        <div class="fc-row"><span class="fc-key">예측 등급</span><span class="fc-val"><span class="badge ${GRADE_BADGE[d.grade]||''}">${d.grade}</span></span></div>
-        <div class="fc-row"><span class="fc-key">포집 예측</span><span class="fc-val" style="font-family:var(--mono)">${d.range}마리</span></div>
-        <div class="fc-row"><span class="fc-key">피크 시간</span><span class="fc-val">${d.peak}</span></div>
-        <div class="fc-row"><span class="fc-key">예보 기상</span><span class="fc-val" style="font-size:11px">${d.weather}</span></div>
-        <div class="fc-row"><span class="fc-key">발생 위험</span><span class="fc-val" style="color:${d.risk.includes("높음")?"var(--red)":"var(--orange)"};font-weight:700">${d.risk}</span></div>
-        <div class="fc-action">${d.action}</div>
-      </div>
-    </div>`).join('');
+// ── AI 예보 (기간 선택 + 게이지 미터 + 장비 선택) ────────
+const FC_STATE = {
+  days: 7,
+  data: null,            // API 응답
+  selected: new Set(),   // 선택된 장비 UUID
+};
+
+// 날씨 아이콘 SVG (해/구름/비) - 예측값 기반 간이 매핑
+function weatherIconSvg(kind) {
+  // kind: 'sun' | 'cloud' | 'rain'
+  const common = 'stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+  if (kind === 'rain') return `<svg viewBox="0 0 24 24" ${common}><path d="M7 16a4 4 0 010-8 5 5 0 019.58 1.5A3.5 3.5 0 0116 16"/><line x1="8" y1="19" x2="8" y2="22"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="16" y1="19" x2="16" y2="22"/></svg>`;
+  if (kind === 'cloud') return `<svg viewBox="0 0 24 24" ${common}><path d="M7 18a4 4 0 010-8 5 5 0 019.58 1.5A3.5 3.5 0 0116 18H7z"/></svg>`;
+  return `<svg viewBox="0 0 24 24" ${common}><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>`;
 }
+
+// 게이지 SVG 생성 (0~200+ 스케일, 반원)
+function gaugeSvg(value) {
+  // 반원 arc (90° ~ -90°, 반원 반지름 70)
+  const cx = 85, cy = 85, r = 70;
+  // 값 0→각도 -90°, 200→90°. 200 초과는 90°로 고정
+  const clamped = Math.min(Math.max(value, 0), 220);
+  const angle = -90 + (clamped / 200) * 180; // -90~+90 (+최대 +108 = 220)
+  // 위험 단계 arc 색상 구간
+  const arc = (start, end, color) => {
+    const s = (start * Math.PI) / 180 - Math.PI / 2;
+    const e = (end * Math.PI) / 180 - Math.PI / 2;
+    const x1 = cx + r * Math.cos(s), y1 = cy + r * Math.sin(s);
+    const x2 = cx + r * Math.cos(e), y2 = cy + r * Math.sin(e);
+    const large = end - start > 180 ? 1 : 0;
+    return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>`;
+  };
+  // segment 경계(%): 0~5(안전 0~10) / 5~25(관심 10~50) / 25~50(주의 50~100) / 50~100(경고 100~200) / 100+(위험)
+  // -90~+90 범위 내에서 위치 계산: pct * 1.8 - 90
+  const toDeg = (pct) => pct * 1.8 - 90;
+  return `
+    <svg viewBox="0 0 170 95" style="width:100%;height:100%">
+      <!-- 배경 반원 -->
+      <path d="M 15 85 A 70 70 0 0 1 155 85" stroke="#eceef2" stroke-width="10" fill="none" stroke-linecap="round"/>
+      ${arc(toDeg(0), toDeg(5), '#4ade80')}
+      ${arc(toDeg(5), toDeg(25), '#facc15')}
+      ${arc(toDeg(25), toDeg(50), '#fb923c')}
+      ${arc(toDeg(50), toDeg(100), '#ef4444')}
+      <!-- 눈금 -->
+      <g stroke="#8a8fa0" stroke-width="1">
+        <line x1="15" y1="85" x2="20" y2="85"/>
+        <line x1="85" y1="15" x2="85" y2="20"/>
+        <line x1="155" y1="85" x2="150" y2="85"/>
+      </g>
+      <g font-family="monospace" font-size="9" fill="#8a8fa0">
+        <text x="6" y="90">0</text>
+        <text x="76" y="10">100</text>
+        <text x="147" y="90">200+</text>
+      </g>
+      <!-- 바늘 -->
+      <g class="gauge-needle" style="--target:${angle}deg;transform:rotate(${angle}deg)">
+        <line x1="85" y1="85" x2="85" y2="28" stroke="#1B3A6B" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="85" cy="85" r="5" fill="#1B3A6B"/>
+      </g>
+    </svg>
+  `;
+}
+
+function fcGradeByValue(v) {
+  if (v <= 10) return { name: '안전', cls: 'badge-safe', color: '#198754' };
+  if (v <= 50) return { name: '관심', cls: 'badge-watch', color: '#7A5700' };
+  if (v <= 100) return { name: '주의', cls: 'badge-caution', color: '#C05000' };
+  if (v <= 200) return { name: '경고', cls: 'badge-warn', color: '#A32D2D' };
+  return { name: '위험', cls: 'badge-danger', color: '#4A1B6B' };
+}
+
+function fcSelect(n) {
+  const preds = FC_STATE.data?.predictions || [];
+  FC_STATE.selected.clear();
+  if (n === 0) { /* 해제 */ }
+  else if (n < 0) preds.forEach(p => FC_STATE.selected.add(p.uuid));
+  else preds.slice(0, n).forEach(p => FC_STATE.selected.add(p.uuid));
+  renderFcFilter();
+  renderFcGauges();
+  renderFcHero();
+}
+
+function renderFcFilter() {
+  const box = document.getElementById('fc-filter');
+  if (!FC_STATE.data) return;
+  const preds = FC_STATE.data.predictions || [];
+  if (preds.length === 0) {
+    box.innerHTML = `<div style="color:var(--gray4)">장비 없음</div>`;
+    return;
+  }
+  box.innerHTML = `<div style="font-size:10px;color:var(--gray4);font-weight:600;margin-bottom:6px">선택 ${FC_STATE.selected.size}/${preds.length}</div>` +
+    preds.map(p => {
+      const checked = FC_STATE.selected.has(p.uuid) ? 'checked' : '';
+      return `<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:11px">
+        <input type="checkbox" data-uuid="${p.uuid}" ${checked}>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${p.name}</span>
+        <span style="font-family:var(--mono);color:var(--gray4);font-size:10px">${p.max_predicted}</span>
+      </label>`;
+    }).join('');
+  box.querySelectorAll('input[data-uuid]').forEach(el => {
+    el.addEventListener('change', e => {
+      const u = e.currentTarget.dataset.uuid;
+      if (e.currentTarget.checked) FC_STATE.selected.add(u);
+      else FC_STATE.selected.delete(u);
+      renderFcFilter();
+      renderFcGauges();
+      renderFcHero();
+    });
+  });
+}
+
+function renderFcHero() {
+  const hero = document.getElementById('fc-hero');
+  if (!FC_STATE.data) return;
+  const preds = FC_STATE.data.predictions || [];
+  const selectedPreds = preds.filter(p => FC_STATE.selected.has(p.uuid));
+  if (selectedPreds.length === 0) {
+    hero.innerHTML = `<div style="padding:38px;text-align:center;color:var(--gray4);font-size:12px;border:1px dashed var(--gray3);border-radius:10px">
+      장비를 선택하면 기간 내 최대 위험도 요약이 표시됩니다.
+    </div>`;
+    return;
+  }
+  // 기간 내 최대 예측값
+  const flat = [];
+  selectedPreds.forEach(p => (p.predictions || []).forEach(pp => flat.push({ dev: p, day: pp })));
+  flat.sort((a, b) => (b.day.predicted || 0) - (a.day.predicted || 0));
+  const top = flat[0];
+  const grade = fcGradeByValue(top.day.predicted || 0);
+  const totalByDay = {};
+  selectedPreds.forEach(p => (p.predictions || []).forEach(pp => {
+    totalByDay[pp.date] = (totalByDay[pp.date] || 0) + (pp.predicted || 0);
+  }));
+  const days = Object.keys(totalByDay).sort();
+  const grandTotal = days.reduce((s, d) => s + totalByDay[d], 0);
+  const avgPerDay = Math.round(grandTotal / (days.length || 1));
+
+  const [, mm, dd] = top.day.date.split('-');
+  hero.innerHTML = `
+    <div class="ai-hero ${top.day.predicted > 100 ? '' : top.day.predicted > 50 ? '' : 'safe'}" style="margin-bottom:0">
+      <div class="ai-hero-icon">${top.day.predicted > 100 ? '⚠' : top.day.predicted > 50 ? '!' : '✓'}</div>
+      <div>
+        <div class="ai-hero-label">${FC_STATE.days}일 예보 · 피크 예상</div>
+        <div class="ai-hero-name">${top.dev.name}</div>
+        <div class="ai-hero-desc">${parseInt(mm,10)}/${parseInt(dd,10)} 최대 ${top.day.predicted}마리 · 등급 ${grade.name}</div>
+      </div>
+      <div class="ai-hero-value">
+        <div class="ai-hero-num">${grandTotal}</div>
+        <div class="ai-hero-unit">${FC_STATE.days}일 총합 · 일평균 ${avgPerDay}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderFcGauges() {
+  const box = document.getElementById('fc-gauges');
+  if (!FC_STATE.data) return;
+  const preds = FC_STATE.data.predictions || [];
+  const selectedPreds = preds.filter(p => FC_STATE.selected.has(p.uuid));
+  if (selectedPreds.length === 0) {
+    box.innerHTML = `<div style="padding:40px;color:var(--gray4);font-size:12px;width:100%;text-align:center">장비를 먼저 선택하세요.</div>`;
+    return;
+  }
+
+  const dates = (selectedPreds[0].predictions || []).map(p => p.date);
+  const cards = dates.map((d, i) => {
+    // 해당 일자 선택된 장비 "최대값"
+    let maxV = 0, totalV = 0;
+    selectedPreds.forEach(p => {
+      const v = p.predictions[i]?.predicted || 0;
+      if (v > maxV) maxV = v;
+      totalV += v;
+    });
+    const grade = fcGradeByValue(maxV);
+    const [, mm, dd] = d.split('-');
+    const weekday = ['일','월','화','수','목','금','토'][new Date(d).getDay()];
+    // 전일 대비 (없으면 flat)
+    let deltaHtml = '<span class="g-delta flat">—</span>';
+    if (i > 0) {
+      let prevMax = 0;
+      selectedPreds.forEach(p => {
+        const v = p.predictions[i-1]?.predicted || 0;
+        if (v > prevMax) prevMax = v;
+      });
+      if (prevMax > 0) {
+        const pct = Math.round((maxV - prevMax) / prevMax * 100);
+        const cls = pct > 5 ? 'up' : pct < -5 ? 'down' : 'flat';
+        const arrow = pct > 5 ? '▲' : pct < -5 ? '▼' : '→';
+        deltaHtml = `<span class="g-delta ${cls}">${arrow} ${pct>=0?'+':''}${pct}%</span>`;
+      }
+    }
+    // 날씨 아이콘 (예측값 높을수록 비구름 느낌으로)
+    const wi = maxV > 100 ? 'rain' : maxV > 40 ? 'cloud' : 'sun';
+
+    return `
+      <div class="gauge-card">
+        <div class="gauge-weather">${weatherIconSvg(wi)}</div>
+        <div class="gauge-card-day">+${i+1}일 · ${weekday}요일</div>
+        <div class="gauge-card-date">${parseInt(mm,10)}/${parseInt(dd,10)}</div>
+        <div class="gauge-wrap">
+          ${gaugeSvg(maxV)}
+          <div class="gauge-value-box">
+            <div class="gauge-value" style="color:${grade.color}">${maxV}</div>
+            <div class="gauge-unit">마리 / 최대</div>
+          </div>
+        </div>
+        <div class="gauge-card-sub">선택 ${selectedPreds.length}개 합계 ${totalV}</div>
+        <div class="gauge-foot">
+          <span class="g-grade"><span class="badge ${grade.cls}">${grade.name}</span></span>
+          ${deltaHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+  box.innerHTML = cards;
+
+  // 바늘 부팅 애니메이션 트리거 (transform 재적용)
+  requestAnimationFrame(() => {
+    box.querySelectorAll('.gauge-needle').forEach(el => {
+      const t = el.style.getPropertyValue('--target');
+      el.style.transform = `rotate(-90deg)`;
+      void el.offsetWidth; // reflow
+      el.style.transform = `rotate(${t})`;
+    });
+  });
+}
+
+async function buildForecast() {
+  const runBtn = document.getElementById('fc-run');
+  if (runBtn) {
+    runBtn.textContent = '예측 중…';
+    runBtn.disabled = true;
+  }
+  const sub = document.getElementById('fc-sub');
+  try {
+    const res = await fetch(`/mosquito-test/api/predict/?days=${FC_STATE.days}`, { credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    FC_STATE.data = json;
+    sub.textContent = `${json.count}개 장비 · ${FC_STATE.days}일 예측 완료`;
+
+    // 기본 선택: TOP 5
+    if (FC_STATE.selected.size === 0) {
+      (json.predictions || []).slice(0, 5).forEach(p => FC_STATE.selected.add(p.uuid));
+    }
+    renderFcFilter();
+    renderFcGauges();
+    renderFcHero();
+  } catch (err) {
+    document.getElementById('fc-gauges').innerHTML = `<div style="padding:30px;color:var(--red);font-size:12px;width:100%;text-align:center">예측 실패: ${err.message}</div>`;
+  } finally {
+    if (runBtn) {
+      runBtn.textContent = '예측 실행';
+      runBtn.disabled = false;
+    }
+  }
+}
+
+// 프리셋/입력 바인딩
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('fc-days-input');
+  document.querySelectorAll('.fc-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.fc-preset').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      FC_STATE.days = parseInt(btn.dataset.days, 10);
+      if (input) input.value = FC_STATE.days;
+      FC_STATE.selected.clear();
+      buildForecast();
+    });
+  });
+  if (input) input.addEventListener('change', () => {
+    const n = Math.max(1, Math.min(14, parseInt(input.value || '3', 10)));
+    input.value = n;
+    FC_STATE.days = n;
+    document.querySelectorAll('.fc-preset').forEach(b => b.classList.toggle('active', parseInt(b.dataset.days,10) === n));
+  });
+  const runBtn = document.getElementById('fc-run');
+  if (runBtn) runBtn.addEventListener('click', () => {
+    FC_STATE.selected.clear();
+    buildForecast();
+  });
+});
 
 // ── 방역 계획 ────────────────────────────────────────────
 const REMEDY_PLAN=[
@@ -2202,7 +2615,7 @@ function buildEquipment(){
 // ── 페이지 전환 ──────────────────────────────────────────
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
-  trend:"7일 누적 추세", predict:"AI 예측 시스템", forecast:"3일 발생 예보",
+  trend:"7일 누적 추세", predict:"AI 예측 시스템", forecast:"AI 예보",
   remedy:"방역 실시 계획", complaint:"민원 가능 지역",
   equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단"
 };
@@ -2218,6 +2631,8 @@ function showPage(name){
 
   // AI 예측 탭은 첫 방문 시 동작
   if (name === 'predict' && typeof buildPredict === 'function') buildPredict();
+  // AI 예보 탭: 데이터 없으면 첫 실행
+  if (name === 'forecast' && typeof buildForecast === 'function' && !FC_STATE.data) buildForecast();
 }
 
 // ── 다운로드 & 보고서 기능 ────────────────────────────────
@@ -2435,8 +2850,7 @@ buildStationTable();
 buildHeatmap();
 buildAnomalyAll();
 buildTrend();
-// buildPredict()는 AI 예측 탭 첫 방문 시 실행 (로더 애니메이션 위해)
-buildForecast();
+// buildPredict(), buildForecast()는 해당 탭 첫 방문 시 실행
 buildRemedy();
 buildComplaint();
 buildEquipment();
