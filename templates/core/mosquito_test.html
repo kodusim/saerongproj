@@ -1007,11 +1007,11 @@ body {
     <div class="topbar-left">
       <div>
         <div class="page-title" id="page-title">종합 현황</div>
-        <div class="page-sub">2025. 08. 15. 18:00 ~ 08. 16. 05:00</div>
+        <div class="page-sub" id="page-sub-date">—</div>
       </div>
     </div>
     <div class="topbar-right">
-      <div class="date-chip">2025년 8월 15일 (금)</div>
+      <div class="date-chip" id="top-date-chip">—</div>
       <div class="status-dot"></div>
       <div class="status-label">실시간 수집 중</div>
       <!-- 보고서 생성 버튼 (모달 오픈) -->
@@ -1060,68 +1060,33 @@ body {
 
   <!-- ══════════ 1. 종합 현황 ══════════ -->
   <div class="page active" id="page-overview">
-    <div class="kpi-grid mb16">
-      <div class="kpi-card navy">
-        <div class="kpi-label">전체 포집량</div>
-        <div class="kpi-value val-navy">2,873</div>
-        <div class="kpi-sub">마리 · 전 관측소 합산</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">최대 포집 관측소</div>
-        <div class="kpi-value val-red" style="font-size:18px;margin-top:4px">관측소 B (저수지)</div>
-        <div class="kpi-sub">165마리 / 23시 피크</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">경고 이상 관측소</div>
-        <div class="kpi-value val-red">1</div>
-        <div class="kpi-sub">총 10개소 중</div>
-      </div>
-      <div class="kpi-card orange">
-        <div class="kpi-label">장비 이상</div>
-        <div class="kpi-value val-orange">2</div>
-        <div class="kpi-sub">오프라인 1 / 점검 1</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">이상 발생 감지</div>
-        <div class="kpi-value val-red">1건</div>
-        <div class="kpi-sub">Anomaly 탐지</div>
-      </div>
-      <div class="kpi-card orange">
-        <div class="kpi-label">민원 가능 지역</div>
-        <div class="kpi-value val-orange">3</div>
-        <div class="kpi-sub">사전 대응 필요</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">데이터 신뢰도</div>
-        <div class="kpi-value val-green">91%</div>
-        <div class="kpi-sub">지역 평균</div>
-      </div>
+    <div class="kpi-grid mb16" id="ov-kpis">
+      <div class="kpi-card" style="grid-column:span 7"><div style="color:var(--gray4);font-size:12px;text-align:center;padding:10px">종합 현황 데이터 불러오는 중…</div></div>
     </div>
 
-    <div class="national-bar mb24">
-      <span class="nb-label">[ 전국 참조 ]</span>
-      <span class="nb-item">전국 247개소 일평균 142마리</span><span class="nb-sep">|</span>
-      <span class="nb-item">우리 지역 평균 <strong>287마리</strong> (전국 대비 <strong style="color:var(--red)">2.0배</strong>)</span><span class="nb-sep">|</span>
-      <span class="nb-item">전국 순위 <strong>28위</strong></span><span class="nb-sep">|</span>
-      <span class="nb-item">충청북도 내 <strong>3위</strong> / 18개소</span><span class="nb-sep">|</span>
-      <span class="nb-item">전국 경고 이상 <strong>23개소</strong></span>
+    <div class="national-bar mb24" style="background:var(--gray2);border-color:var(--gray3)">
+      <span class="nb-label" style="color:var(--gray5)">[ 참조 데이터 ]</span>
+      <span class="nb-item" style="color:var(--gray4);font-style:italic">전국 비교 지표 · 준비중</span>
     </div>
 
     <div class="sec-header">
       <div class="sec-bar"></div>
       <div class="sec-title">관측소별 현황</div>
-      <div class="sec-sub">전일 기준 전체 10개소</div>
+      <div class="sec-sub" id="ov-station-sub">허용된 장비 전체</div>
     </div>
     <div class="card mb24">
-      <table class="data-table" style="width:100%">
-        <thead>
-          <tr>
-            <th>관측소</th><th>위험등급</th><th>일일 합계</th><th>피크 시간</th><th>피크 포집</th>
-            <th>전일 대비</th><th>7일 평균</th><th>이상 감지</th><th>민원 위험</th><th>방역 방식</th>
-          </tr>
-        </thead>
-        <tbody id="station-table-body"></tbody>
-      </table>
+      <div style="overflow-x:auto">
+        <table class="data-table" style="width:100%" id="ov-station-table">
+          <thead>
+            <tr>
+              <th>장비</th><th>지역</th><th>위험 등급</th>
+              <th>오늘 포집</th><th>어제</th><th>7일 평균</th>
+              <th>민원 위험</th><th>장비 상태</th><th>신뢰도</th><th>추세</th>
+            </tr>
+          </thead>
+          <tbody id="ov-station-body"><tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1896,24 +1861,125 @@ function sparkBars(w7){
   }).join('')}</div>`;
 }
 
-// ── 종합현황 테이블 ──────────────────────────────────────
-function buildStationTable(){
-  const tb=document.getElementById("station-table-body");
-  tb.innerHTML=STATIONS.map((s,i)=>{
-    const diff=s.total-s.prevDay;
-    const diffC=diff>0?"var(--red)":diff<0?"var(--green)":"var(--gray4)";
-    const cp={"높음":"cp-high","보통":"cp-mid","낮음":"cp-low","확인불가":""}[s.complaint]||"";
+// ── 종합 현황 (실데이터) ─────────────────────────────────
+const OV_STATE = { data: null };
+
+function ovRiskBadgeCls(lv) {
+  return ({ '안전':'badge-safe','관심':'badge-watch','주의':'badge-caution','경고':'badge-warn','심각':'badge-danger' })[lv] || 'badge-unknown';
+}
+function ovCpCls(lv) {
+  return lv === '높음' ? 'cp-high' : lv === '보통' ? 'cp-mid' : 'cp-low';
+}
+function ovStatusBadge(status) {
+  if (status === '정상') return 'badge-ok';
+  if (status === '점검필요') return 'badge-check';
+  return 'badge-offline';
+}
+function ovFormatKstDate(dateStr) {
+  // 'YYYY-MM-DD' → '2026. 04. 20. (월)' KST
+  if (!dateStr) return '—';
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  const dow = ['일','월','화','수','목','금','토'][dt.getUTCDay()];
+  return `${y}. ${String(m).padStart(2,'0')}. ${String(d).padStart(2,'0')}. (${dow})`;
+}
+
+async function buildStationTable() {
+  // 호환용 이름. 종합현황 데이터 로드.
+  try {
+    const res = await fetch('/mosquito-test/api/overview/', { credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    OV_STATE.data = json;
+
+    // 상단 날짜/칩 업데이트
+    const subEl = document.getElementById('page-sub-date');
+    const chipEl = document.getElementById('top-date-chip');
+    const label = ovFormatKstDate(json.today);
+    if (subEl) subEl.textContent = json.today ? `기준일 ${label}` : '데이터 없음';
+    if (chipEl) chipEl.textContent = label;
+
+    renderOvKpis(json);
+    renderOvStationTable(json);
+  } catch (e) {
+    const k = document.getElementById('ov-kpis');
+    if (k) k.innerHTML = `<div class="kpi-card" style="grid-column:span 7"><div style="color:var(--red);font-size:12px;text-align:center;padding:10px">종합 현황 로드 실패: ${e.message}</div></div>`;
+  }
+}
+
+function renderOvKpis(json) {
+  const kpi = json.kpi || {};
+  const box = document.getElementById('ov-kpis');
+  const top = kpi.top_dev || {};
+  const topName = top.name ? `${top.name}` : '-';
+  const topCount = top.count || 0;
+  const change = kpi.change_pct || 0;
+  const changeArrow = change > 0 ? '▲' : change < 0 ? '▼' : '·';
+  const changeColor = change > 10 ? 'var(--red)' : change < -10 ? 'var(--green)' : 'var(--gray4)';
+
+  box.innerHTML = `
+    <div class="kpi-card navy">
+      <div class="kpi-label">오늘 포집 합계</div>
+      <div class="kpi-value val-navy">${(kpi.today_total || 0).toLocaleString()}</div>
+      <div class="kpi-sub" style="color:${changeColor}"><strong>${changeArrow} ${change >= 0 ? '+' : ''}${change}%</strong> 전일 대비</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">최다 포집 장비</div>
+      <div class="kpi-value val-red" style="font-size:16px;margin-top:6px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${topName}">${topName}</div>
+      <div class="kpi-sub">${topCount}마리</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">경고 이상 장비</div>
+      <div class="kpi-value val-orange">${kpi.warn_count || 0}</div>
+      <div class="kpi-sub">위험 점수 61+</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">기준 초과 감지</div>
+      <div class="kpi-value val-red">${kpi.anomaly_today || 0}<span style="font-size:14px">건</span></div>
+      <div class="kpi-sub">bad_min 초과</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">민원 가능 높음</div>
+      <div class="kpi-value val-purple">${kpi.complaint_high || 0}</div>
+      <div class="kpi-sub">사전 대응 권장</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">장비 점검 필요</div>
+      <div class="kpi-value val-teal">${kpi.equip_bad || 0}</div>
+      <div class="kpi-sub">오프라인 ${kpi.offline_count || 0} / 점검 ${kpi.check_count || 0}</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">평균 신뢰도</div>
+      <div class="kpi-value val-green">${kpi.avg_trust || 0}<span style="font-size:14px">%</span></div>
+      <div class="kpi-sub">${kpi.total_devices || 0}대 기준</div>
+    </div>
+  `;
+}
+
+function renderOvStationTable(json) {
+  const tb = document.getElementById('ov-station-body');
+  const sub = document.getElementById('ov-station-sub');
+  const list = json.devices || [];
+  if (sub) sub.textContent = `허용된 장비 ${list.length}대 전체`;
+  if (list.length === 0) {
+    tb.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
+    return;
+  }
+  tb.innerHTML = list.map(d => {
+    const cpCls = ovCpCls(d.complaint_level);
+    const trustColor = d.trust_score >= 85 ? 'var(--green)' : d.trust_score >= 60 ? 'var(--orange)' : 'var(--red)';
+    const trendColor = d.trend === '↑' ? 'var(--red)' : d.trend === '↓' ? 'var(--green)' : 'var(--gray4)';
     return `<tr>
-      <td><strong>${s.name}</strong></td>
-      <td><span class="badge ${GRADE_BADGE[s.grade]||'badge-unknown'}">${s.grade}</span></td>
-      <td style="font-family:var(--mono);font-weight:600">${s.total>0?s.total.toLocaleString():"-"}</td>
-      <td>${s.peak}</td>
-      <td style="font-family:var(--mono)">${s.peakCount>0?s.peakCount:"-"}</td>
-      <td>${diffStr(s.total,s.prevDay)}</td>
-      <td style="font-family:var(--mono)">${s.weekAvg}</td>
-      <td>${s.anomaly?`<span style="color:var(--red);font-weight:700">⚠ 이상감지</span>`:"<span style='color:var(--green)'>정상</span>"}</td>
-      <td>${s.complaint!=="확인불가"?`<span class="complaint-pill ${cp}">${s.complaint}</span>`:`<span style="color:var(--gray4)">확인불가</span>`}</td>
-      <td style="color:var(--teal);font-size:11px">${s.remedyType}</td>
+      <td><strong>${escapeHtml(d.name)}</strong></td>
+      <td style="color:var(--gray5);font-size:11px">${escapeHtml(d.addr || '-')}</td>
+      <td><span class="badge ${ovRiskBadgeCls(d.risk_level)}">${d.risk_level}</span> <span style="font-family:var(--mono);font-size:10px;color:var(--gray4)">${d.risk_score}</span></td>
+      <td style="font-family:var(--mono);font-weight:600;color:var(--navy)">${d.today.toLocaleString()}</td>
+      <td style="font-family:var(--mono);color:var(--gray5)">${d.yday || 0}</td>
+      <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg}</td>
+      <td><span class="complaint-pill ${cpCls}">${d.complaint_level}</span></td>
+      <td><span class="badge ${ovStatusBadge(d.status)}">${d.status}</span></td>
+      <td style="font-family:var(--mono);color:${trustColor};font-weight:700">${d.trust_score}</td>
+      <td style="color:${trendColor};font-weight:700;font-size:16px">${d.trend}</td>
     </tr>`;
   }).join('');
 }

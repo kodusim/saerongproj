@@ -153,6 +153,10 @@ body {
       <div>이상 감지 <strong>{{ report.summary.anomaly_count }}</strong>건</div>
       <div>오프라인 <strong>{{ report.summary.offline_count }}</strong>대</div>
       <div>방역 계획 <strong>{{ report.summary.plan_count }}</strong>건</div>
+      {% if report.summary.overview_kpi %}
+      <div>민원 '높음' <strong>{{ report.summary.overview_kpi.complaint_high }}</strong>개</div>
+      <div>평균 신뢰도 <strong>{{ report.summary.overview_kpi.avg_trust }}%</strong></div>
+      {% endif %}
     </div>
 
     <!-- 본문 -->

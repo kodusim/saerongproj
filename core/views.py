@@ -308,6 +308,244 @@ def moscom_users_api(request):
     return JsonResponse({'error': 'method not allowed'}, status=405)
 
 
+def _build_overview_data(su):
+    """종합 현황 탭 + 보고서 재사용용 데이터 빌더.
+    허용 장비(su 기준)로만 산출.
+    """
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+
+    devices = moscom_client.list_devices()
+    devices = user_store.filter_devices(su, devices)
+    allowed_uuids = {d.get('device_uuid') for d in devices}
+
+    # 이름/주소 맵
+    meta = {}
+    for d in devices:
+        dv = d.get('device') or {}
+        nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
+        addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)) or ''
+        meta[d.get('device_uuid')] = {
+            'name': nm, 'addr': addr,
+            'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100,
+            'battery': dv.get('battery') or 0,
+            'fan': dv.get('fan') or 0,
+            'updated_date': dv.get('updated_date'),
+        }
+
+    # 7일 통계 (허용 장비만)
+    stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+    stats = [r for r in (stats or []) if r.get('device_uuid') in allowed_uuids]
+
+    daily = defaultdict(lambda: defaultdict(int))
+    dates_set = set()
+    for r in stats:
+        u = r.get('device_uuid'); dd = (r.get('created_date') or '')[:10]
+        if u and dd:
+            daily[u][dd] += (r.get('mosquito_count') or 0)
+            dates_set.add(dd)
+    sorted_dates = sorted(dates_set)
+    today_d = sorted_dates[-1] if sorted_dates else ''
+    yday_d = sorted_dates[-2] if len(sorted_dates) >= 2 else ''
+
+    # 오늘 값
+    today_by_dev = {u: daily[u].get(today_d, 0) for u in allowed_uuids} if today_d else {u: 0 for u in allowed_uuids}
+    today_total = sum(today_by_dev.values())
+    yday_total = sum(daily[u].get(yday_d, 0) for u in allowed_uuids) if yday_d else 0
+    change_pct = round((today_total - yday_total) / yday_total * 100) if yday_total else 0
+
+    # 최다 포집 장비
+    top_dev = None
+    if today_by_dev:
+        top_uuid, top_count = max(today_by_dev.items(), key=lambda x: x[1])
+        top_dev = {
+            'uuid': top_uuid,
+            'name': meta.get(top_uuid, {}).get('name', top_uuid),
+            'addr': meta.get(top_uuid, {}).get('addr', ''),
+            'count': top_count,
+        }
+
+    # 장비별 7일 평균 + 추세 + 위험점수 (complaint-risk 축약본)
+    warn_count = 0         # 위험 점수 61+ (경고/심각)
+    anomaly_today = 0      # 오늘 bad_min 초과
+    complaint_high = 0     # 민원 위험 61+
+    now_utc = datetime.now(timezone.utc)
+    offline_count = 0
+    check_count = 0
+    trust_scores = []
+    low_batt_count = 0
+
+    # 장비별 위험·민원 축약 계산
+    # 야간 피크 계산 위해 raw 가져옴 (48h)
+    start_iso = (now_utc - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    end_iso = now_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    try:
+        raw = moscom_client.get_statistics_by_date(start_dt=start_iso, end_dt=end_iso, aggregation='raw', device_uuid='0')
+    except Exception:
+        raw = []
+    raw = [r for r in (raw or []) if r.get('device_uuid') in allowed_uuids]
+    per_dev_hour = defaultdict(lambda: [None] * 24)
+    for r in raw:
+        u = r.get('device_uuid')
+        iso = r.get('created_date') or ''
+        try:
+            utc_h = int(iso[11:13])
+        except Exception:
+            continue
+        kst_h = (utc_h + 9) % 24
+        cnt = r.get('mosquito_count') or 0
+        cur = per_dev_hour[u][kst_h]
+        if cur is None or cnt > cur:
+            per_dev_hour[u][kst_h] = cnt
+    dev_night_ratio = {}
+    for u, hr in per_dev_hour.items():
+        prev = 0; deltas = [0] * 24
+        for h in range(24):
+            v = hr[h]
+            if v is None: continue
+            d_ = v - prev; deltas[h] = d_ if d_ > 0 else 0; prev = v
+        total = sum(deltas); night = sum(deltas[19:24])
+        dev_night_ratio[u] = (night / total) if total > 0 else 0.0
+
+    # 오늘 백분위 계산용
+    today_counts_sorted = sorted(today_by_dev.values(), reverse=True)
+    n = len(today_counts_sorted)
+
+    def percentile_rank(v):
+        if n <= 1: return 100
+        above = sum(1 for x in today_counts_sorted if x < v)
+        return round((above / (n - 1)) * 100)
+
+    residential_keywords = ['공원', '아파트', '주거', '학교', '초등', '중학', '고등', '어린이집', '유치원']
+
+    def is_resi(m):
+        txt = ' '.join([m.get('addr') or '', m.get('name') or ''])
+        return any(k in txt for k in residential_keywords)
+
+    # 장비별 상세 계산
+    device_rows = []
+    for u in allowed_uuids:
+        m = meta.get(u, {})
+        today_c = today_by_dev.get(u, 0)
+        yday_c = daily[u].get(yday_d, 0) if yday_d else 0
+        week_vals = [daily[u].get(d, 0) for d in sorted_dates[-7:]]
+        week_avg = sum(week_vals) / len(week_vals) if week_vals else 0
+
+        # 위험 점수 4축
+        ax1 = min(100, (today_c / m.get('bad_min', 100)) * 100) if m.get('bad_min', 0) > 0 else 0
+        ax2 = max(0, min(100, (today_c - yday_c) / yday_c * 100)) if yday_c > 0 else (50 if today_c > 0 else 0)
+        if len(week_vals) >= 4:
+            half = len(week_vals) // 2
+            fh = sum(week_vals[:half]) / half if half > 0 else 0
+            lh = sum(week_vals[half:]) / (len(week_vals) - half)
+            ax3 = max(0, min(100, ((lh - fh) / fh * 100) / 30 * 100)) if fh > 0 else (50 if lh > 0 else 0)
+        else:
+            ax3 = 0
+        ax4 = percentile_rank(today_c)
+        risk_score = round(ax1 * 0.40 + ax2 * 0.25 + ax3 * 0.20 + ax4 * 0.15, 1)
+        if risk_score <= 20: risk_lv = '안전'
+        elif risk_score <= 40: risk_lv = '관심'
+        elif risk_score <= 60: risk_lv = '주의'
+        elif risk_score <= 80: risk_lv = '경고'
+        else: risk_lv = '심각'
+        if risk_score >= 61: warn_count += 1
+        if today_c >= m.get('bad_min', 100) and m.get('bad_min', 0) > 0: anomaly_today += 1
+
+        # 민원 점수
+        night_ratio = dev_night_ratio.get(u, 0.0)
+        ax_night = min(100, (night_ratio / 0.6) * 100) if night_ratio else 0
+        ax_resi = 80 if is_resi(m) else 20
+        complaint_score = round(ax1 * 0.35 + ax2 * 0.25 + ax_night * 0.25 + ax_resi * 0.15, 1)
+        if complaint_score <= 30: cp_lv = '낮음'
+        elif complaint_score <= 60: cp_lv = '보통'
+        else: cp_lv = '높음'
+        if complaint_score >= 61: complaint_high += 1
+
+        # 장비 신뢰도 (equipment-health 축약)
+        battery = m.get('battery', 0)
+        fan = m.get('fan', 0)
+        if battery < 15: low_batt_count += 1
+        ax_bat = 100 if battery >= 50 else 80 if battery >= 30 else 60 if battery >= 20 else 35 if battery >= 10 else 10
+        ax_fan = 100 if fan == 1 else 30
+        try:
+            ud = m.get('updated_date') or ''
+            udt = datetime.fromisoformat(ud.replace('Z', '+00:00'))
+            delay_min = (now_utc - udt).total_seconds() / 60
+        except Exception:
+            delay_min = 99999
+        if delay_min <= 120: ax_sig = 100
+        elif delay_min <= 360: ax_sig = 80
+        elif delay_min <= 720: ax_sig = 55
+        elif delay_min <= 1440: ax_sig = 30
+        else: ax_sig = 5
+        zero_total_3 = sum(week_vals[-3:]) if week_vals else 0
+        ax_zero = 40 if (len(week_vals) >= 3 and zero_total_3 == 0) else (65 if zero_total_3 == 0 else 100)
+        trust_score = round(ax_bat * 0.25 + ax_fan * 0.20 + ax_sig * 0.35 + ax_zero * 0.20, 1)
+        trust_scores.append(trust_score)
+
+        if ax_sig <= 30: equip_status = '오프라인'; offline_count += 1
+        elif trust_score < 60 or battery < 15 or (fan == 0 and ax_sig >= 55): equip_status = '점검필요'; check_count += 1
+        else: equip_status = '정상'
+
+        # 추세 방향
+        if len(week_vals) >= 3:
+            tr = week_vals[-1] - (sum(week_vals[:-1]) / len(week_vals[:-1]))
+            trend_dir = '↑' if tr > 3 else '↓' if tr < -3 else '→'
+        else:
+            trend_dir = '·'
+
+        device_rows.append({
+            'uuid': u, 'name': m.get('name'), 'addr': m.get('addr'),
+            'today': today_c, 'yday': yday_c, 'week_avg': round(week_avg, 1),
+            'risk_score': risk_score, 'risk_level': risk_lv,
+            'complaint_score': complaint_score, 'complaint_level': cp_lv,
+            'trust_score': trust_score, 'status': equip_status,
+            'battery': battery, 'trend': trend_dir,
+            'bad_min': m.get('bad_min', 100),
+        })
+
+    # 포집량 내림차순 정렬
+    device_rows.sort(key=lambda r: r['today'], reverse=True)
+
+    avg_trust = round(sum(trust_scores) / len(trust_scores), 1) if trust_scores else 0
+
+    return {
+        'today': today_d,
+        'yday': yday_d,
+        'kpi': {
+            'today_total': today_total,
+            'yday_total': yday_total,
+            'change_pct': change_pct,
+            'top_dev': top_dev,
+            'warn_count': warn_count,
+            'anomaly_today': anomaly_today,
+            'complaint_high': complaint_high,
+            'equip_bad': offline_count + check_count,
+            'offline_count': offline_count,
+            'check_count': check_count,
+            'low_batt_count': low_batt_count,
+            'avg_trust': avg_trust,
+            'total_devices': len(allowed_uuids),
+        },
+        'devices': device_rows,
+    }
+
+
+@require_GET
+def moscom_overview(request):
+    """종합 현황 탭용 집계 API. 허용 장비 기준."""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    su = _current_session_user(request)
+    try:
+        data = _build_overview_data(su)
+        return JsonResponse(data)
+    except Exception as e:
+        logger.exception('overview failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def _build_report_body(period, base_date, su, request):
     """보고서 본문(GPT) + 요약 데이터 구성. (report_text, summary, scoped_uuids, source, payload_summary)"""
     from datetime import datetime, timedelta, timezone
@@ -422,9 +660,27 @@ def _build_report_body(period, base_date, su, request):
         for p in plans_in_range[:10]
     ) or '  - 해당 기간 방역 계획 없음'
 
-    payload_summary = f"""[{period_label} 보고 기준 요약 · {start_s} ~ {end_s}]
+    # 종합 현황 KPI (최신일 기준) — 보고서에 AI 요약 근거로 포함
+    try:
+        ov = _build_overview_data(su)
+        k = ov.get('kpi') or {}
+        overview_block = (
+            "\n■ 종합 현황 KPI (보고일 기준)\n"
+            f"  - 오늘 포집 합계: {k.get('today_total', 0)}마리 (전일 대비 {k.get('change_pct', 0):+d}%)\n"
+            f"  - 최다 포집 장비: {((k.get('top_dev') or {}).get('name') or '-')} · {(k.get('top_dev') or {}).get('count', 0)}마리\n"
+            f"  - 경고 이상 장비: {k.get('warn_count', 0)}개\n"
+            f"  - 오늘 기준 초과 감지: {k.get('anomaly_today', 0)}건\n"
+            f"  - 민원 가능 '높음': {k.get('complaint_high', 0)}개\n"
+            f"  - 장비 점검 필요: {k.get('equip_bad', 0)}대 (오프라인 {k.get('offline_count', 0)}/점검 {k.get('check_count', 0)})\n"
+            f"  - 평균 데이터 신뢰도: {k.get('avg_trust', 0)}%\n"
+        )
+    except Exception as _e:
+        overview_block = ''
+        k = {}
 
-■ 전체 수치
+    payload_summary = f"""[{period_label} 보고 기준 요약 · {start_s} ~ {end_s}]
+{overview_block}
+■ 기간 전체 수치
   - 전체 장비 수: {len(devices)}대
   - 기간 합계 포집량: {total_in_period}마리 (일평균 {avg_per_day}마리)
   - 측정 일수: {n_days}일
@@ -495,6 +751,15 @@ def _build_report_body(period, base_date, su, request):
         'offline_count': offline_count,
         'low_batt_count': low_batt_count,
         'plan_count': len(plans_in_range),
+        'overview_kpi': {
+            'today_total': k.get('today_total', 0) if k else 0,
+            'change_pct': k.get('change_pct', 0) if k else 0,
+            'warn_count': k.get('warn_count', 0) if k else 0,
+            'anomaly_today': k.get('anomaly_today', 0) if k else 0,
+            'complaint_high': k.get('complaint_high', 0) if k else 0,
+            'equip_bad': k.get('equip_bad', 0) if k else 0,
+            'avg_trust': k.get('avg_trust', 0) if k else 0,
+        } if k else None,
     }
     return report_text, summary, allowed_uuids, source, payload_summary
 

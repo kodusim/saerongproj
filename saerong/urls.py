@@ -11,6 +11,7 @@ from core.views import (
     moscom_remedy_methods, moscom_remedy_api, moscom_remedy_detail_api,
     moscom_equipment_health, moscom_admin_judgment,
     moscom_report_api, moscom_report_detail_api, mosquito_report_view,
+    moscom_overview,
 )
 from django.views.decorators.csrf import csrf_exempt
 
@@ -34,6 +35,7 @@ urlpatterns = [
     path("mosquito-test/api/remedy/", csrf_exempt(moscom_remedy_api), name="moscom_remedy_api"),
     path("mosquito-test/api/remedy/<str:plan_id>/", csrf_exempt(moscom_remedy_detail_api), name="moscom_remedy_detail_api"),
     path("mosquito-test/api/equipment-health/", moscom_equipment_health, name="moscom_equipment_health"),
+    path("mosquito-test/api/overview/", moscom_overview, name="moscom_overview"),
     path("mosquito-test/api/admin-judgment/", moscom_admin_judgment, name="moscom_admin_judgment"),
     path("mosquito-test/api/report/", csrf_exempt(moscom_report_api), name="moscom_report_api"),
     path("mosquito-test/api/report/<str:report_id>/", csrf_exempt(moscom_report_detail_api), name="moscom_report_detail_api"),
