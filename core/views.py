@@ -9,6 +9,7 @@ from core import moscom_client
 from core import predictor
 from core import user_store
 from core import remedy_store
+from core import report_store
 import logging
 import json as _json
 
@@ -305,6 +306,286 @@ def moscom_users_api(request):
             return JsonResponse({'error': str(e)}, status=400)
         return JsonResponse({'ok': True, 'users': user_store.list_users()})
     return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+def _build_report_body(period, base_date, su, request):
+    """보고서 본문(GPT) + 요약 데이터 구성. (report_text, summary, scoped_uuids, source, payload_summary)"""
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+    from django.conf import settings as dj_settings
+
+    start_s, end_s = report_store.period_range(period, base_date)
+
+    devices = moscom_client.list_devices()
+    devices = user_store.filter_devices(su, devices)
+    allowed_uuids = [d.get('device_uuid') for d in devices]
+
+    # 일별 집계 (기간 범위)
+    start_iso = datetime.strptime(start_s, '%Y-%m-%d').strftime('%Y-%m-%dT00:00:00.000Z')
+    end_iso = (datetime.strptime(end_s, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00.000Z')
+    daily_records = moscom_client.get_statistics_by_date(
+        start_dt=start_iso, end_dt=end_iso, aggregation='day', device_uuid='0'
+    )
+    allowed_set = set(allowed_uuids)
+    daily_records = [r for r in (daily_records or []) if r.get('device_uuid') in allowed_set]
+
+    daily = defaultdict(lambda: defaultdict(int))
+    for r in daily_records:
+        u = r.get('device_uuid')
+        d = (r.get('created_date') or '')[:10]
+        if u and d:
+            daily[u][d] += (r.get('mosquito_count') or 0)
+
+    # 날짜 배열
+    dates_in_range = sorted({(r.get('created_date') or '')[:10] for r in daily_records if r.get('created_date')})
+    total_in_period = sum(sum(v.values()) for v in daily.values())
+    # 일평균
+    n_days = max(1, len(dates_in_range))
+    avg_per_day = round(total_in_period / n_days, 1)
+
+    # 장비 이름 매핑
+    name_map = {}
+    for d in devices:
+        dv = d.get('device') or {}
+        nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
+        addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40) or ''
+        name_map[d.get('device_uuid')] = {
+            'name': nm, 'addr': addr,
+            'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100,
+        }
+
+    # 장비별 기간 합계 Top 5
+    dev_totals = sorted(
+        [(u, sum(daily[u].values())) for u in daily.keys()],
+        key=lambda x: x[1], reverse=True
+    )[:5]
+
+    # 이상 감지 (기간 중 어느 하루라도 bad_min 초과)
+    anomalies = []
+    for u in allowed_uuids:
+        bm = name_map.get(u, {}).get('bad_min', 100)
+        for d, c in daily[u].items():
+            if c >= bm and bm > 0:
+                anomalies.append({
+                    'name': name_map[u]['name'],
+                    'addr': name_map[u]['addr'],
+                    'date': d, 'count': c, 'bad_min': bm,
+                })
+    anomalies.sort(key=lambda a: a['count'], reverse=True)
+    anomalies = anomalies[:10]
+
+    # 방역 계획 (해당 기간 겹치는 것)
+    visible = allowed_set if not su.get('is_admin') else None
+    all_plans = remedy_store.list_plans(visible_uuids=visible)
+    method_map = {m['key']: m for m in remedy_store.list_methods()}
+    plans_in_range = []
+    for p in all_plans:
+        sd = p.get('scheduled_date') or ''
+        if start_s <= sd <= end_s or sd >= start_s:
+            m = method_map.get(p['method_key'], {})
+            plans_in_range.append({
+                'device': name_map.get(p['device_uuid'], {}).get('name') or p['device_uuid'],
+                'method': m.get('name', p['method_key']),
+                'scheduled_date': sd,
+                'reduction_pct': m.get('reduction_pct'),
+            })
+
+    # 장비 상태
+    battery_vals = [(d.get('device') or {}).get('battery') or 0 for d in devices]
+    avg_battery = round(sum(battery_vals) / len(battery_vals)) if battery_vals else 0
+    now_utc = datetime.now(timezone.utc)
+    offline_count = 0; low_batt_count = 0
+    for d in devices:
+        dv = d.get('device') or {}
+        if (dv.get('battery') or 100) < 15:
+            low_batt_count += 1
+        ud = dv.get('updated_date') or ''
+        try:
+            udt = datetime.fromisoformat(ud.replace('Z', '+00:00'))
+            if (now_utc - udt).total_seconds() / 60 > 1440:
+                offline_count += 1
+        except Exception:
+            offline_count += 1
+
+    # GPT 프롬프트
+    period_label = {'daily': '일간', 'weekly': '주간', 'monthly': '월간'}.get(period, '일간')
+    top_devs_text = '\n'.join(
+        f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): 기간 합계 {v}마리"
+        for u, v in dev_totals
+    ) or '  - 데이터 없음'
+    anomaly_text = '\n'.join(
+        f"  - {a['date']} {a['name']}({a['addr'] or '주소미상'}) — {a['count']}마리 / 기준 {a['bad_min']}"
+        for a in anomalies
+    ) or '  - 기준 초과 이상 감지 없음'
+    plans_text = '\n'.join(
+        f"  - {p['device']} / {p['method']} / 예정 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
+        for p in plans_in_range[:10]
+    ) or '  - 해당 기간 방역 계획 없음'
+
+    payload_summary = f"""[{period_label} 보고 기준 요약 · {start_s} ~ {end_s}]
+
+■ 전체 수치
+  - 전체 장비 수: {len(devices)}대
+  - 기간 합계 포집량: {total_in_period}마리 (일평균 {avg_per_day}마리)
+  - 측정 일수: {n_days}일
+  - 오프라인 장비: {offline_count}대
+  - 배터리 15% 미만 장비: {low_batt_count}대
+  - 평균 배터리: {avg_battery}%
+
+■ 기간 상위 포집 장비 (Top 5)
+{top_devs_text}
+
+■ 이상 감지 (장비 고유 기준 초과)
+{anomaly_text}
+
+■ 해당 기간 방역 계획
+{plans_text}
+"""
+
+    api_key = getattr(dj_settings, 'OPENAI_API_KEY', '') or ''
+    if not api_key:
+        report_text = '※ OpenAI API 키가 서버에 설정되지 않아 AI 분석이 불가합니다.\n\n' + payload_summary
+        source = 'fallback'
+    else:
+        try:
+            import openai
+            client = openai.OpenAI(api_key=api_key)
+            period_instruction = {
+                'daily':   '오늘 하루를 기준으로 요약하십시오.',
+                'weekly':  '최근 7일간의 추이를 중심으로 요약하십시오.',
+                'monthly': '최근 30일간의 장기 추세와 계절적 특성을 반영하여 요약하십시오.',
+            }.get(period, '요약하십시오.')
+            resp = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': (
+                        f'당신은 지자체 보건소 감염병관리팀의 {period_label} 모기 발생 보고서 작성을 지원하는 AI입니다. '
+                        f'{period_instruction} '
+                        '주어진 데이터만으로 결재용 공문 형식의 보고서를 한국어로 작성하십시오. '
+                        '다음 5개 섹션을 반드시 포함하십시오: '
+                        '1) 핵심 수치 요약 '
+                        '2) 이상 발생 및 주요 관측 사항 '
+                        '3) 방역 실시 현황 '
+                        '4) 향후 대응 권고 '
+                        '5) 참고 · 특이사항. '
+                        '각 섹션은 "■" 기호로 시작, 불릿은 "- "로 시작합니다. '
+                        '공공기관 행정 어조(…함, …필요함, …권고함)를 사용하십시오. '
+                        '결재란·서명란·날짜 줄은 포함하지 마세요 (화면에서 별도 렌더링됩니다).'
+                    )},
+                    {'role': 'user', 'content': payload_summary},
+                ],
+                temperature=0.4,
+                max_tokens=900,
+            )
+            report_text = resp.choices[0].message.content.strip()
+            source = 'openai:gpt-4o-mini'
+        except Exception as e:
+            logger.exception('OpenAI call failed in report')
+            report_text = f'※ AI 분석 중 오류: {e}\n\n' + payload_summary
+            source = 'error'
+
+    summary = {
+        'total_devices': len(devices),
+        'period': period, 'period_label': period_label,
+        'start_date': start_s, 'end_date': end_s,
+        'total_in_period': total_in_period,
+        'avg_per_day': avg_per_day,
+        'n_days': n_days,
+        'anomaly_count': len(anomalies),
+        'offline_count': offline_count,
+        'low_batt_count': low_batt_count,
+        'plan_count': len(plans_in_range),
+    }
+    return report_text, summary, allowed_uuids, source, payload_summary
+
+
+def moscom_report_api(request):
+    """보고서 생성(POST) + 자기 기록 목록(GET)"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    su = _current_session_user(request)
+    if request.method == 'GET':
+        # admin은 전체, 일반 사용자는 본인 기록만
+        if su.get('is_admin'):
+            reports = report_store.list_reports()
+        else:
+            reports = report_store.list_reports(author_login_id=su.get('login_id'))
+        return JsonResponse({'reports': reports})
+    try:
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except _json.JSONDecodeError:
+        body = {}
+    if request.method == 'POST':
+        period = body.get('period') or 'daily'
+        if period not in ('daily', 'weekly', 'monthly'):
+            return JsonResponse({'error': 'period는 daily/weekly/monthly 중 선택'}, status=400)
+        base_date = body.get('base_date') or ''
+        try:
+            report_text, summary, scoped, source, payload = _build_report_body(period, base_date, su, request)
+        except Exception as e:
+            logger.exception('report body build failed')
+            return JsonResponse({'error': f'보고서 데이터 수집 실패: {e}'}, status=500)
+
+        record = {
+            'author_login_id': su.get('login_id'),
+            'period': period,
+            'base_date': summary['end_date'],
+            'org': (body.get('org') or '').strip()[:100],
+            'department': (body.get('department') or '').strip()[:100],
+            'writer_name': (body.get('writer_name') or '').strip()[:50],
+            'writer_title': (body.get('writer_title') or '').strip()[:50],
+            'reviewer_name': (body.get('reviewer_name') or '').strip()[:50],
+            'reviewer_title': (body.get('reviewer_title') or '').strip()[:50],
+            'approver_name': (body.get('approver_name') or '').strip()[:50],
+            'approver_title': (body.get('approver_title') or '').strip()[:50],
+            'summary': summary,
+            'report_text': report_text,
+            'source': source,
+            'scoped_device_uuids': scoped,
+        }
+        saved = report_store.create_report(record)
+        return JsonResponse({'ok': True, 'id': saved['id'], 'report': saved})
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+def moscom_report_detail_api(request, report_id):
+    """단일 보고서 조회 + 삭제(admin 전용)"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    su = _current_session_user(request)
+    rec = report_store.get_report(report_id)
+    if not rec:
+        return JsonResponse({'error': '존재하지 않는 보고서'}, status=404)
+    # 접근 권한: admin 또는 본인이 작성한 것만
+    if not su.get('is_admin') and rec.get('author_login_id') != su.get('login_id'):
+        return JsonResponse({'error': '권한 없음'}, status=403)
+    if request.method == 'GET':
+        return JsonResponse({'report': rec})
+    if request.method == 'DELETE':
+        if not su.get('is_admin'):
+            return JsonResponse({'error': 'admin 전용'}, status=403)
+        try:
+            report_store.delete_report(report_id)
+            return JsonResponse({'ok': True})
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+def mosquito_report_view(request, report_id):
+    """보고서 HTML 페이지 (브라우저에서 열고 인쇄/PDF 저장 가능)"""
+    if not request.session.get('mosquito_auth'):
+        from django.shortcuts import redirect
+        return redirect('/mosquito-test/')
+    su = _current_session_user(request)
+    rec = report_store.get_report(report_id)
+    if not rec:
+        return HttpResponse('보고서를 찾을 수 없습니다', status=404)
+    if not su.get('is_admin') and rec.get('author_login_id') != su.get('login_id'):
+        return HttpResponse('접근 권한이 없습니다', status=403)
+    return render(request, 'core/mosquito_report.html', {'report': rec})
 
 
 @require_GET

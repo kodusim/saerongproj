@@ -846,6 +846,77 @@ body {
 .rm-status.future  { background: var(--navy-l); color: var(--navy); }
 .rm-status.active  { background: var(--red-l); color: var(--red); }
 .rm-status.expired { background: var(--gray2); color: var(--gray4); }
+
+/* ── 보고서 생성 모달 ── */
+.rp-modal-backdrop {
+  display: none; position: fixed; inset: 0; background: rgba(27,58,107,.45);
+  z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 20px;
+  overflow-y: auto; backdrop-filter: blur(3px);
+}
+.rp-modal-backdrop.open { display: flex; }
+.rp-modal {
+  background: #fff; border-radius: 12px; width: 100%; max-width: 560px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.2); overflow: hidden;
+}
+.rp-modal-head {
+  background: var(--navy); color: #fff;
+  padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+}
+.rp-modal-head h3 { font-size: 15px; font-weight: 700; }
+.rp-close {
+  background: none; border: none; color: rgba(255,255,255,.8);
+  font-size: 20px; cursor: pointer; padding: 0 4px;
+}
+.rp-modal-body { padding: 18px 20px; }
+.rp-modal-body label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--gray5);
+  margin-bottom: 4px; letter-spacing: .02em;
+}
+.rp-modal-body input, .rp-modal-body select {
+  width: 100%; padding: 8px 10px; font-size: 13px;
+  border: 1px solid var(--gray3); border-radius: 5px;
+  font-family: var(--font); background: #fff;
+}
+.rp-modal-body .rp-row { margin-bottom: 12px; }
+.rp-modal-body .rp-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.rp-period-chips { display: flex; gap: 6px; margin-bottom: 12px; }
+.rp-period-chip {
+  flex: 1; padding: 8px; font-size: 12px; font-weight: 600;
+  background: var(--gray1); border: 1px solid var(--gray2); border-radius: 6px;
+  color: var(--gray5); cursor: pointer; text-align: center;
+  transition: all .1s;
+}
+.rp-period-chip.active {
+  background: var(--navy); color: #fff; border-color: var(--navy);
+}
+.rp-modal-foot {
+  padding: 12px 20px; background: var(--gray1);
+  border-top: 1px solid var(--gray2); display: flex; justify-content: flex-end; gap: 8px;
+}
+.rp-group-title {
+  font-size: 11px; font-weight: 700; color: var(--navy);
+  margin: 14px 0 8px; padding-top: 10px; border-top: 1px solid var(--gray2);
+}
+.rp-msg {
+  padding: 8px 12px; border-radius: 6px; font-size: 11px; margin-top: 10px;
+}
+.rp-msg.ok { background: var(--green-l); color: var(--green); }
+.rp-msg.err { background: var(--red-l); color: var(--red); }
+
+/* 관리자 탭 보고서 기록 */
+.rp-history-row {
+  display: grid; grid-template-columns: auto 70px 1fr auto;
+  gap: 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--gray2); border-radius: 6px;
+  margin-bottom: 6px; font-size: 12px;
+}
+.rp-history-row .rp-period-pill {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; text-align: center;
+}
+.rp-period-pill.daily   { background: #E8F5E9; color: #1B5E20; }
+.rp-period-pill.weekly  { background: #FFF3E0; color: #E65100; }
+.rp-period-pill.monthly { background: #F3E5F5; color: #4A148C; }
+.rp-history-meta { font-size: 10px; color: var(--gray4); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -943,54 +1014,17 @@ body {
       <div class="date-chip">2025년 8월 15일 (금)</div>
       <div class="status-dot"></div>
       <div class="status-label">실시간 수집 중</div>
-      <!-- 보고서 다운로드 버튼 -->
-      <div class="dl-wrap" id="rpt-wrap">
-        <button class="dl-btn" onclick="toggleRptMenu(event)" style="background:#C05000;color:#fff;border-color:#C05000;gap:6px">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="2" y="1" width="10" height="13" rx="1.5"/>
-            <path d="M8 1v4h4" stroke-linejoin="round"/>
-            <line x1="4" y1="7" x2="10" y2="7"/>
-            <line x1="4" y1="9" x2="10" y2="9"/>
-            <line x1="4" y1="11" x2="7" y2="11"/>
-            <path d="M10 12v3M8.5 13.5l1.5 1.5 1.5-1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          일일 보고서
-        </button>
-        <div class="dl-menu" id="rpt-menu" style="min-width:260px">
-          <!-- 보고서 생성 안내 -->
-          <div style="padding:10px 12px 6px;font-size:11px;color:var(--gray4);font-weight:600;letter-spacing:.04em">일일 보고서 다운로드</div>
-          <div class="dl-menu-item" onclick="downloadReport('word')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1B5E9B"><rect x="0" y="0" width="24" height="24" rx="3" fill="#1B5E9B"/><text x="4" y="17" font-family="Arial" font-size="11" font-weight="bold" fill="white">W</text></svg>
-            <div>
-              <span class="dl-menu-label">Word 보고서 (.docx)</span>
-              <span class="dl-menu-sub">결재용 공문 형식 · 서명란 포함</span>
-            </div>
-          </div>
-          <div class="dl-menu-item" onclick="downloadReport('pdf')">
-            <svg width="18" height="18" viewBox="0 0 24 24"><rect x="0" y="0" width="24" height="24" rx="3" fill="#E53935"/><text x="3" y="17" font-family="Arial" font-size="9" font-weight="bold" fill="white">PDF</text></svg>
-            <div>
-              <span class="dl-menu-label">PDF 보고서</span>
-              <span class="dl-menu-sub">인쇄·배포용 · 브라우저 PDF 저장</span>
-            </div>
-          </div>
-          <div class="dl-menu-divider"></div>
-          <div style="padding:8px 12px;font-size:11px;color:var(--gray4);font-weight:600;letter-spacing:.04em">데이터 내보내기</div>
-          <div class="dl-menu-item" onclick="downloadCSV()">
-            <svg width="18" height="18" viewBox="0 0 24 24"><rect x="0" y="0" width="24" height="24" rx="3" fill="#1A5C35"/><text x="2" y="17" font-family="Arial" font-size="9" font-weight="bold" fill="white">CSV</text></svg>
-            <div>
-              <span class="dl-menu-label">관측소 데이터 CSV</span>
-              <span class="dl-menu-sub">엑셀 호환 · 전체 관측소 현황</span>
-            </div>
-          </div>
-          <div class="dl-menu-item" onclick="downloadHeatmapCSV()">
-            <svg width="18" height="18" viewBox="0 0 24 24"><rect x="0" y="0" width="24" height="24" rx="3" fill="#0F5E6E"/><text x="2" y="17" font-family="Arial" font-size="9" font-weight="bold" fill="white">CSV</text></svg>
-            <div>
-              <span class="dl-menu-label">시간별 히트맵 CSV</span>
-              <span class="dl-menu-sub">18~05시 시간별 포집량</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- 보고서 생성 버튼 (모달 오픈) -->
+      <button class="dl-btn" onclick="openReportModal()" style="background:#C05000;color:#fff;border-color:#C05000;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="1" width="10" height="13" rx="1.5"/>
+          <path d="M8 1v4h4" stroke-linejoin="round"/>
+          <line x1="4" y1="7" x2="10" y2="7"/>
+          <line x1="4" y1="9" x2="10" y2="9"/>
+          <line x1="4" y1="11" x2="7" y2="11"/>
+        </svg>
+        보고서 생성
+      </button>
 
       <!-- 대시보드 저장/인쇄 -->
       <div class="dl-wrap" id="dl-wrap">
@@ -1700,6 +1734,20 @@ body {
       </div>
     </div>
 
+    <!-- 보고서 생성 기록 -->
+    <div class="ma-list-card" style="margin-top:14px">
+      <h4>
+        <span>📋 보고서 생성 기록</span>
+        <span style="font-size:11px;color:var(--gray4);font-weight:500">
+          <span id="ma-report-count">0건</span> ·
+          <button class="ma-sm-btn" onclick="maLoadReports()" style="margin-left:6px">새로고침</button>
+        </span>
+      </h4>
+      <div id="ma-report-list">
+        <div style="color:var(--gray4);font-style:italic;font-size:12px">로딩 중…</div>
+      </div>
+    </div>
+
     <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
       <strong style="color:var(--yellow)">참고</strong> ·
       사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 이상감지 / 추세 / AI 예측 · 예보 / 민원</strong> 전 탭에서 표시됩니다.
@@ -1707,6 +1755,55 @@ body {
     </div>
   </div>
 </div><!-- /main -->
+
+<!-- 보고서 생성 모달 -->
+<div class="rp-modal-backdrop" id="rp-modal-backdrop" onclick="if(event.target===this)closeReportModal()">
+  <div class="rp-modal">
+    <div class="rp-modal-head">
+      <h3>📄 보고서 생성</h3>
+      <button class="rp-close" onclick="closeReportModal()">×</button>
+    </div>
+    <div class="rp-modal-body">
+      <label>보고 기간</label>
+      <div class="rp-period-chips">
+        <div class="rp-period-chip active" data-period="daily">일간</div>
+        <div class="rp-period-chip" data-period="weekly">주간</div>
+        <div class="rp-period-chip" data-period="monthly">월간</div>
+      </div>
+
+      <div class="rp-row">
+        <label>기준일 (종료일)</label>
+        <input type="date" id="rp-base-date">
+      </div>
+
+      <div class="rp-group-title">작성자 정보 (보고서에 반영)</div>
+      <div class="rp-grid2">
+        <div><label>소속 기관</label><input type="text" id="rp-org" placeholder="예: 천안시 서북구 보건소"></div>
+        <div><label>담당부서</label><input type="text" id="rp-dept" placeholder="예: 감염병관리팀"></div>
+      </div>
+      <div class="rp-grid2">
+        <div><label>작성자 성명</label><input type="text" id="rp-writer-name" placeholder="예: 홍길동"></div>
+        <div><label>작성자 직위</label><input type="text" id="rp-writer-title" placeholder="예: 주무관"></div>
+      </div>
+
+      <div class="rp-group-title">결재 라인 (선택)</div>
+      <div class="rp-grid2">
+        <div><label>검토자 성명</label><input type="text" id="rp-reviewer-name"></div>
+        <div><label>검토자 직위</label><input type="text" id="rp-reviewer-title" placeholder="예: 팀장"></div>
+      </div>
+      <div class="rp-grid2">
+        <div><label>결재자 성명</label><input type="text" id="rp-approver-name"></div>
+        <div><label>결재자 직위</label><input type="text" id="rp-approver-title" placeholder="예: 과장"></div>
+      </div>
+
+      <div id="rp-msg"></div>
+    </div>
+    <div class="rp-modal-foot">
+      <button class="ma-sm-btn" onclick="closeReportModal()">취소</button>
+      <button class="ma-primary-btn" id="rp-generate-btn" onclick="submitReport()" style="width:auto;padding:8px 18px;font-size:13px">AI 보고서 생성</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── 데이터 ──────────────────────────────────────────────
@@ -3614,6 +3711,81 @@ function escapeHtml(s) {
   return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ── 보고서 생성 모달 ──────────────────────────────────────
+const RP_STATE = { period: 'daily' };
+
+function openReportModal() {
+  const backdrop = document.getElementById('rp-modal-backdrop');
+  if (!backdrop) return;
+  // 기준일 오늘 디폴트
+  const today = new Date();
+  const iso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const baseInp = document.getElementById('rp-base-date');
+  if (baseInp && !baseInp.value) baseInp.value = iso;
+  document.getElementById('rp-msg').innerHTML = '';
+  backdrop.classList.add('open');
+}
+function closeReportModal() {
+  const backdrop = document.getElementById('rp-modal-backdrop');
+  if (backdrop) backdrop.classList.remove('open');
+}
+function setRpMsg(text, kind) {
+  const el = document.getElementById('rp-msg');
+  if (!el) return;
+  el.className = 'rp-msg ' + (kind || '');
+  el.textContent = text;
+}
+async function submitReport() {
+  const btn = document.getElementById('rp-generate-btn');
+  const body = {
+    period: RP_STATE.period,
+    base_date: document.getElementById('rp-base-date').value,
+    org: document.getElementById('rp-org').value,
+    department: document.getElementById('rp-dept').value,
+    writer_name: document.getElementById('rp-writer-name').value,
+    writer_title: document.getElementById('rp-writer-title').value,
+    reviewer_name: document.getElementById('rp-reviewer-name').value,
+    reviewer_title: document.getElementById('rp-reviewer-title').value,
+    approver_name: document.getElementById('rp-approver-name').value,
+    approver_title: document.getElementById('rp-approver-title').value,
+  };
+  if (!body.writer_name) { setRpMsg('작성자 성명은 필수입니다', 'err'); return; }
+  if (!body.org) { setRpMsg('소속 기관은 필수입니다', 'err'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'AI 생성 중…';
+  try {
+    const res = await fetch('/mosquito-test/api/report/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    setRpMsg('생성 완료. 새 창으로 보고서를 엽니다.', 'ok');
+    // 보고서 페이지 새창으로 열기
+    window.open('/mosquito-test/report/' + json.id + '/', '_blank');
+    // 관리자 탭 기록도 refresh되게 (열려있으면)
+    if (typeof maLoadReports === 'function') maLoadReports();
+    setTimeout(closeReportModal, 900);
+  } catch (e) {
+    setRpMsg('생성 실패: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+// 기간 칩
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.rp-period-chip').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('.rp-period-chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      RP_STATE.period = c.dataset.period;
+    });
+  });
+});
+
 // ── 페이지 전환 ──────────────────────────────────────────
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
@@ -3889,8 +4061,59 @@ async function maLoad() {
     MA_STATE.users = us.users || [];
     renderMaDevicePicker();
     renderMaUserList();
+    maLoadReports();  // 보고서 기록도 로드
   } catch (e) {
     maMsg('로드 실패: ' + e.message, 'err');
+  }
+}
+
+async function maLoadReports() {
+  const box = document.getElementById('ma-report-list');
+  const cnt = document.getElementById('ma-report-count');
+  if (!box) return;
+  try {
+    const res = await fetch('/mosquito-test/api/report/', { credentials: 'same-origin' });
+    const json = await res.json();
+    const reports = json.reports || [];
+    if (cnt) cnt.textContent = `${reports.length}건`;
+    if (reports.length === 0) {
+      box.innerHTML = `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:20px">생성된 보고서가 없습니다.</div>`;
+      return;
+    }
+    box.innerHTML = reports.map(r => {
+      const cls = r.period || 'daily';
+      const label = { daily: '일간', weekly: '주간', monthly: '월간' }[r.period] || r.period;
+      const created = (r.created_at || '').replace('T', ' ').slice(0, 16);
+      return `<div class="rp-history-row">
+        <span class="rp-period-pill ${cls}">${label}</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--gray5)">#${(r.id || '').slice(4)}</span>
+        <div>
+          <div style="font-size:12px;color:var(--navy);font-weight:600">${escapeHtml(r.writer_name || '-')} · ${escapeHtml(r.org || '-')}</div>
+          <div class="rp-history-meta">
+            작성자 로그인 <strong>${escapeHtml(r.author_login_id || '-')}</strong> ·
+            기준 ${r.base_date || '-'} · 생성 ${created}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <a class="ma-sm-btn" href="/mosquito-test/report/${r.id}/" target="_blank">열기</a>
+          <button class="ma-sm-btn danger" onclick="maDeleteReport('${r.id}')">삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    box.innerHTML = `<div style="color:var(--red);font-size:11px">로드 실패: ${e.message}</div>`;
+  }
+}
+
+async function maDeleteReport(id) {
+  if (!confirm('이 보고서 기록을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch('/mosquito-test/api/report/' + id + '/', { method: 'DELETE', credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) { alert(json.error || ('HTTP ' + res.status)); return; }
+    maLoadReports();
+  } catch (e) {
+    alert('삭제 실패: ' + e.message);
   }
 }
 
