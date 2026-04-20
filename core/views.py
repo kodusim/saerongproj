@@ -1779,10 +1779,10 @@ def moscom_predict(request):
                 'name': 'MOSCOM AI v1.0',
                 'algorithm': 'Random Forest Regressor',
                 'n_trees': 200, 'max_depth': 10,
-                'trained_on': '청주 흥덕구 3개소 · 2025년 7~8월 · 187건',
+                'trained_on': '3개 관측소 · 2025년 7~8월 · 187건',
                 'features': 34,
             },
-            'disclaimer': '학습 데이터: 청주 3개소·2025년 7~8월. 다른 지역/계절은 참고값.',
+            'disclaimer': '학습 데이터: 3개 관측소 · 2025년 7~8월. 다른 지역/계절은 참고값.',
             'predictions': preds,
         }, safe=False)
     except Exception as e:

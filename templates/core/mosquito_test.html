@@ -1388,7 +1388,7 @@ body {
 
     <div class="card" style="padding:12px 16px;background:var(--yellow-l);border-color:#F5D788">
       <span style="font-size:12px;color:var(--yellow);font-weight:600">⚠ 안내</span>
-      <span style="font-size:11px;color:var(--gray5)"> 예측 기간이 길수록 신뢰도는 감소합니다. 학습 데이터는 청주 3개소·2025년 7~8월이며, 장기 예측 또는 타지역·다른 계절은 <strong>참고값</strong>으로 활용하세요.</span>
+      <span style="font-size:11px;color:var(--gray5)"> 예측 기간이 길수록 신뢰도는 감소합니다. 학습 데이터는 3개 관측소·2025년 7~8월이며, 장기 예측 또는 타지역·다른 계절은 <strong>참고값</strong>으로 활용하세요.</span>
     </div>
   </div>
 
@@ -1643,8 +1643,8 @@ body {
     </div>
 
     <div class="card" style="margin-top:14px;padding:10px 14px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
-      <strong style="color:var(--yellow)">AI 생성 안내</strong> ·
-      이 보고서는 OpenAI GPT-4o-mini 모델이 MOSCOM 실측 데이터와 방역 계획을 바탕으로 생성한 초안입니다.
+      <strong style="color:var(--yellow)">안내</strong> ·
+      MOSCOM 실측 데이터와 방역 계획을 바탕으로 생성한 초안입니다.
       최종 결재 전 담당자 검토 후 사용하십시오.
     </div>
   </div>
@@ -1765,7 +1765,7 @@ body {
     </div>
     <div class="rp-modal-foot">
       <button class="ma-sm-btn" onclick="closeReportModal()">취소</button>
-      <button class="ma-primary-btn" id="rp-generate-btn" onclick="submitReport()" style="width:auto;padding:8px 18px;font-size:13px">AI 보고서 생성</button>
+      <button class="ma-primary-btn" id="rp-generate-btn" onclick="submitReport()" style="width:auto;padding:8px 18px;font-size:13px">보고서 생성</button>
     </div>
   </div>
 </div>
@@ -3029,12 +3029,15 @@ function renderFcHero() {
     </div>`;
     return;
   }
-  // 기간 내 최대 예측값
-  const flat = [];
-  selectedPreds.forEach(p => (p.predictions || []).forEach(pp => flat.push({ dev: p, day: pp })));
-  flat.sort((a, b) => (b.day.predicted || 0) - (a.day.predicted || 0));
-  const top = flat[0];
-  const grade = fcGradeByValue(top.day.predicted || 0);
+
+  // 장비별 피크 계산
+  const devPeaks = selectedPreds.map(p => {
+    const peakDay = (p.predictions || []).slice().sort((a,b) => (b.predicted||0)-(a.predicted||0))[0];
+    const devTotal = (p.predictions || []).reduce((s,x) => s + (x.predicted||0), 0);
+    return { dev: p, day: peakDay || { date: '', predicted: 0 }, total: devTotal };
+  }).sort((a,b) => (b.day.predicted||0) - (a.day.predicted||0));
+
+  // 일자별 총합(전체 합계 카드용)
   const totalByDay = {};
   selectedPreds.forEach(p => (p.predictions || []).forEach(pp => {
     totalByDay[pp.date] = (totalByDay[pp.date] || 0) + (pp.predicted || 0);
@@ -3043,20 +3046,39 @@ function renderFcHero() {
   const grandTotal = days.reduce((s, d) => s + totalByDay[d], 0);
   const avgPerDay = Math.round(grandTotal / (days.length || 1));
 
-  const [, mm, dd] = top.day.date.split('-');
+  // 상단 전체 합계 요약 + 장비별 피크 리스트 (스크롤)
+  const topCount = devPeaks[0] ? (devPeaks[0].day.predicted || 0) : 0;
+  const overallCls = topCount > 100 ? '' : topCount > 50 ? '' : 'safe';
+  const overallIcon = topCount > 100 ? '⚠' : topCount > 50 ? '!' : '✓';
+
+  // 최대 표시 개수 (공간 고려 — 많으면 스크롤)
+  const listItems = devPeaks.map(x => {
+    const grade = fcGradeByValue(x.day.predicted || 0);
+    const [, mm, dd] = (x.day.date || '').split('-');
+    const peakDate = mm ? `${parseInt(mm,10)}/${parseInt(dd,10)}` : '-';
+    const color = x.day.predicted > 100 ? 'var(--red)' : x.day.predicted > 50 ? 'var(--orange)' : x.day.predicted > 10 ? 'var(--yellow)' : 'var(--green)';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;background:var(--gray1);margin-bottom:4px">
+      <span style="flex:1;font-size:12px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(x.dev.name)}</span>
+      <span style="font-size:10px;color:var(--gray4)">피크 ${peakDate}</span>
+      <span style="font-family:var(--mono);font-weight:700;color:${color};min-width:42px;text-align:right">${x.day.predicted || 0}</span>
+      <span class="badge ${predictGradeBadgeCls(grade.name)}" style="font-size:9px;padding:1px 6px">${grade.name}</span>
+    </div>`;
+  }).join('');
+
   hero.innerHTML = `
-    <div class="ai-hero ${top.day.predicted > 100 ? '' : top.day.predicted > 50 ? '' : 'safe'}" style="margin-bottom:0">
-      <div class="ai-hero-icon">${top.day.predicted > 100 ? '⚠' : top.day.predicted > 50 ? '!' : '✓'}</div>
+    <div class="ai-hero ${overallCls}" style="margin-bottom:10px">
+      <div class="ai-hero-icon">${overallIcon}</div>
       <div>
-        <div class="ai-hero-label">${FC_STATE.days}일 예보 · 피크 예상</div>
-        <div class="ai-hero-name">${top.dev.name}</div>
-        <div class="ai-hero-desc">${parseInt(mm,10)}/${parseInt(dd,10)} 최대 ${top.day.predicted}마리 · 등급 ${grade.name}</div>
+        <div class="ai-hero-label">${FC_STATE.days}일 예보 · 선택 ${selectedPreds.length}대 기준</div>
+        <div class="ai-hero-name">기간 총합 ${grandTotal}마리</div>
+        <div class="ai-hero-desc">일평균 ${avgPerDay}마리 · 장비별 피크는 아래 목록 참조</div>
       </div>
       <div class="ai-hero-value">
-        <div class="ai-hero-num">${grandTotal}</div>
-        <div class="ai-hero-unit">${FC_STATE.days}일 총합 · 일평균 ${avgPerDay}</div>
+        <div class="ai-hero-num">${topCount}</div>
+        <div class="ai-hero-unit">최대 피크 1건</div>
       </div>
     </div>
+    <div style="max-height:170px;overflow-y:auto">${listItems}</div>
   `;
 }
 
@@ -3819,7 +3841,7 @@ async function submitReport() {
   if (!body.org) { setRpMsg('소속 기관은 필수입니다', 'err'); return; }
   btn.disabled = true;
   const orig = btn.textContent;
-  btn.textContent = 'AI 생성 중…';
+  btn.textContent = '생성 중…';
   try {
     const res = await fetch('/mosquito-test/api/report/', {
       method: 'POST', credentials: 'same-origin',
