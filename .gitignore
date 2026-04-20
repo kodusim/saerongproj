@@ -16,3 +16,4 @@ game_honey_alarm/mtls/
 core/mosquito_users.json
 core/remedy_plans.json
 core/reports.json
+core/kakao_tokens.json

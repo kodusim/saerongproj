@@ -287,6 +287,10 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS = env.int('JWT_REFRESH_TOKEN_EXPIRE_DAYS', default
 # OpenAI API (냉장고요리사용)
 OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')
 
+# 카카오톡 메시지 API (모스콤 관리자 알림)
+KAKAO_REST_API_KEY = env.str('KAKAO_REST_API_KEY', default='')
+KAKAO_REDIRECT_URI = env.str('KAKAO_REDIRECT_URI', default='https://saerong.com/mosquito-test/kakao/callback/')
+
 # KAMIS API (요즘농가용)
 KAMIS_API_KEY = env.str('KAMIS_API_KEY', default='')
 KAMIS_API_ID = env.str('KAMIS_API_ID', default='nowfarm')

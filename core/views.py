@@ -10,6 +10,7 @@ from core import predictor
 from core import user_store
 from core import remedy_store
 from core import report_store
+from core import kakao_client
 import logging
 import json as _json
 
@@ -1440,6 +1441,96 @@ def moscom_remedy_detail_api(request, plan_id):
     except ValueError as e:
         return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+@require_GET
+def kakao_status(request):
+    """현재 로그인 사용자의 카카오 연동 상태"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    su = _current_session_user(request)
+    entry = kakao_client.get_token(su.get('login_id'))
+    if not entry:
+        return JsonResponse({'connected': False})
+    return JsonResponse({
+        'connected': True,
+        'connected_at': entry.get('connected_at'),
+        'access_expires_at': entry.get('access_expires_at'),
+        'scopes': entry.get('scopes') or [],
+    })
+
+
+def kakao_oauth_start(request):
+    """카카오 OAuth 시작 — 로그인 페이지로 리다이렉트"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from django.shortcuts import redirect
+    url = kakao_client.authorize_url()
+    return redirect(url)
+
+
+def kakao_oauth_callback(request):
+    """카카오가 code와 함께 돌아오는 지점"""
+    if not request.session.get('mosquito_auth'):
+        from django.shortcuts import redirect
+        return redirect('/mosquito-test/')
+    su = _current_session_user(request)
+    code = request.GET.get('code')
+    err = request.GET.get('error')
+    if err:
+        return HttpResponse(f'<h3>카카오 인증 실패</h3><p>{err}: {request.GET.get("error_description","")}</p><p><a href="/mosquito-test/">돌아가기</a></p>', status=400)
+    if not code:
+        return HttpResponse('code 없음', status=400)
+    try:
+        payload = kakao_client.exchange_code(code)
+        kakao_client.save_tokens_for(su.get('login_id'), payload)
+    except Exception as e:
+        logger.exception('kakao exchange failed')
+        return HttpResponse(f'토큰 교환 실패: {e}', status=500)
+    # 완료 후 관리자 탭으로 돌려보냄
+    return HttpResponse(
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>연동 완료</title></head>'
+        '<body style="font-family:sans-serif;text-align:center;padding:50px">'
+        '<h2 style="color:#1B3A6B">카카오톡 연동 완료</h2>'
+        '<p>이제 대시보드에서 "나에게 알림 보내기"를 사용할 수 있습니다.</p>'
+        '<p><a href="/mosquito-test/" style="color:#2980b9">대시보드로 돌아가기</a></p>'
+        '<script>if(window.opener){window.opener.postMessage({type:"kakao-connected"},"*");setTimeout(()=>window.close(),1500)}</script>'
+        '</body></html>'
+    )
+
+
+def kakao_disconnect(request):
+    """연동 해제 (토큰 삭제)"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    su = _current_session_user(request)
+    kakao_client.delete_token(su.get('login_id'))
+    return JsonResponse({'ok': True})
+
+
+def kakao_send_api(request):
+    """나에게 보내기"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    try:
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except _json.JSONDecodeError:
+        body = {}
+    text = (body.get('text') or '').strip()
+    link = body.get('link') or 'https://saerong.com/mosquito-test/'
+    if not text:
+        return JsonResponse({'error': '메시지 내용이 비어있습니다'}, status=400)
+    su = _current_session_user(request)
+    ok, detail = kakao_client.send_to_me(su.get('login_id'), text, link_url=link)
+    if not ok:
+        return JsonResponse({'error': str(detail)}, status=400)
+    return JsonResponse({'ok': True, 'result': detail})
 
 
 def moscom_user_detail_api(request, login_id):

@@ -1718,6 +1718,21 @@ body {
       </div>
     </div>
 
+    <!-- 카카오톡 알림 -->
+    <div class="ma-list-card" style="margin-top:14px">
+      <h4>
+        <span>💬 카카오톡 알림</span>
+        <span style="font-size:11px;color:var(--gray4);font-weight:500" id="kakao-status-chip">상태 확인 중…</span>
+      </h4>
+      <div id="kakao-section" style="font-size:12px">
+        <div style="color:var(--gray4);font-style:italic">로딩 중…</div>
+      </div>
+      <div style="font-size:10px;color:var(--gray4);margin-top:10px;padding-top:10px;border-top:1px solid var(--gray2)">
+        ※ 현재는 <strong>나에게 보내기</strong>만 지원합니다. 로그인한 카카오 계정으로 전송됩니다.
+        &nbsp;·&nbsp; 친구에게 보내기는 카카오 심사 통과 후 활성화됩니다.
+      </div>
+    </div>
+
     <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
       <strong style="color:var(--yellow)">참고</strong> ·
       사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 이상감지 / 추세 / AI 예측 · 예보 / 민원</strong> 전 탭에서 표시됩니다.
@@ -4158,6 +4173,7 @@ async function maLoad() {
     renderMaDevicePicker();
     renderMaUserList();
     maLoadReports();  // 보고서 기록도 로드
+    maLoadKakao();    // 카카오 연동 상태도 로드
   } catch (e) {
     maMsg('로드 실패: ' + e.message, 'err');
   }
@@ -4212,6 +4228,95 @@ async function maDeleteReport(id) {
     alert('삭제 실패: ' + e.message);
   }
 }
+
+// ═══════════ 카카오톡 알림 ═══════════
+async function maLoadKakao() {
+  const box = document.getElementById('kakao-section');
+  const chip = document.getElementById('kakao-status-chip');
+  if (!box) return;
+  try {
+    const res = await fetch('/mosquito-test/api/kakao/status/', { credentials: 'same-origin' });
+    const json = await res.json();
+    if (json.connected) {
+      if (chip) chip.innerHTML = '<span style="color:var(--green);font-weight:700">● 연동됨</span>';
+      const expires = json.access_expires_at || '';
+      box.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <span style="color:var(--green);font-weight:600;font-size:12px">✓ 카카오 연동 완료</span>
+          <span style="font-size:10px;color:var(--gray4)">토큰 만료 ${expires.replace('T',' ').slice(0,16)}</span>
+          <button class="ma-sm-btn danger" onclick="kakaoDisconnect()" style="margin-left:auto">연결 해제</button>
+        </div>
+        <div style="border:1px solid var(--gray2);border-radius:6px;padding:12px;background:var(--gray1)">
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--gray5);margin-bottom:4px">메시지 내용</label>
+          <textarea id="kakao-text" maxlength="400" rows="3"
+            style="width:100%;padding:8px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px;font-family:inherit;resize:vertical"
+            placeholder="예: [MOSCOM] 이상 감지 3건 발생, 확인 필요"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+            <span style="font-size:10px;color:var(--gray4)">최대 400자 · 대시보드 링크 버튼 포함</span>
+            <button class="ma-primary-btn" onclick="kakaoSend()" style="width:auto;padding:8px 18px;font-size:12px">알림 보내기</button>
+          </div>
+          <div id="kakao-msg" style="margin-top:8px"></div>
+        </div>
+      `;
+    } else {
+      if (chip) chip.innerHTML = '<span style="color:var(--gray4)">○ 미연동</span>';
+      box.innerHTML = `
+        <div style="padding:16px;text-align:center;border:1px dashed var(--gray3);border-radius:8px">
+          <div style="font-size:12px;color:var(--gray5);margin-bottom:10px">
+            카카오톡으로 알림을 받으려면 먼저 연동이 필요합니다.<br>
+            아래 버튼을 눌러 카카오 계정으로 로그인하세요.
+          </div>
+          <a href="/mosquito-test/kakao/login/" target="_blank"
+            style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#FEE500;color:#181600;border-radius:6px;text-decoration:none;font-weight:700;font-size:13px">
+            <svg width="16" height="16" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><path d="M128 36C70 36 24 73 24 119c0 29 19 55 48 69l-11 42c-1 4 3 6 6 4l49-33c4 1 8 1 12 1 58 0 104-37 104-83S186 36 128 36z" fill="#181600"/></svg>
+            카카오 계정으로 연동
+          </a>
+        </div>
+      `;
+    }
+  } catch (e) {
+    if (chip) chip.textContent = '확인 실패';
+    box.innerHTML = `<div style="color:var(--red);font-size:11px">상태 로드 실패: ${e.message}</div>`;
+  }
+}
+
+async function kakaoDisconnect() {
+  if (!confirm('카카오톡 연동을 해제하시겠습니까?')) return;
+  try {
+    await fetch('/mosquito-test/api/kakao/disconnect/', { method: 'POST', credentials: 'same-origin' });
+    maLoadKakao();
+  } catch (e) { alert('해제 실패: ' + e.message); }
+}
+
+async function kakaoSend() {
+  const text = document.getElementById('kakao-text').value;
+  const msgEl = document.getElementById('kakao-msg');
+  if (!text.trim()) { msgEl.innerHTML = '<span style="color:var(--red);font-size:11px">메시지를 입력하세요</span>'; return; }
+  msgEl.innerHTML = '<span style="color:var(--gray4);font-size:11px">전송 중…</span>';
+  try {
+    const res = await fetch('/mosquito-test/api/kakao/send/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      msgEl.innerHTML = `<span style="color:var(--red);font-size:11px">${json.error || 'HTTP ' + res.status}</span>`;
+      return;
+    }
+    msgEl.innerHTML = '<span style="color:var(--green);font-size:11px;font-weight:700">✓ 카카오톡 발송 완료 (나에게)</span>';
+    setTimeout(() => { msgEl.innerHTML = ''; }, 3500);
+  } catch (e) {
+    msgEl.innerHTML = `<span style="color:var(--red);font-size:11px">전송 실패: ${e.message}</span>`;
+  }
+}
+
+// 연동 완료 알림 수신 (팝업 창에서 postMessage)
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'kakao-connected') {
+    maLoadKakao();
+  }
+});
 
 function maRegionKey(d) {
   const dv = d.device || {};

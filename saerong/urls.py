@@ -12,6 +12,7 @@ from core.views import (
     moscom_equipment_health, moscom_admin_judgment,
     moscom_report_api, moscom_report_detail_api, mosquito_report_view,
     moscom_overview,
+    kakao_status, kakao_oauth_start, kakao_oauth_callback, kakao_disconnect, kakao_send_api,
 )
 from django.views.decorators.csrf import csrf_exempt
 
@@ -36,6 +37,11 @@ urlpatterns = [
     path("mosquito-test/api/remedy/<str:plan_id>/", csrf_exempt(moscom_remedy_detail_api), name="moscom_remedy_detail_api"),
     path("mosquito-test/api/equipment-health/", moscom_equipment_health, name="moscom_equipment_health"),
     path("mosquito-test/api/overview/", moscom_overview, name="moscom_overview"),
+    path("mosquito-test/api/kakao/status/", kakao_status, name="kakao_status"),
+    path("mosquito-test/api/kakao/send/", csrf_exempt(kakao_send_api), name="kakao_send"),
+    path("mosquito-test/api/kakao/disconnect/", csrf_exempt(kakao_disconnect), name="kakao_disconnect"),
+    path("mosquito-test/kakao/login/", kakao_oauth_start, name="kakao_oauth_start"),
+    path("mosquito-test/kakao/callback/", kakao_oauth_callback, name="kakao_oauth_callback"),
     path("mosquito-test/api/admin-judgment/", moscom_admin_judgment, name="moscom_admin_judgment"),
     path("mosquito-test/api/report/", csrf_exempt(moscom_report_api), name="moscom_report_api"),
     path("mosquito-test/api/report/<str:report_id>/", csrf_exempt(moscom_report_detail_api), name="moscom_report_detail_api"),
