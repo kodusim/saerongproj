@@ -740,6 +740,130 @@ def _build_report_body(period, base_date, su, request):
             report_text = f'※ AI 분석 중 오류: {e}\n\n' + payload_summary
             source = 'error'
 
+    # 섹션 2: 관측소별 현황 (ov['devices']에 이미 계산되어 있음)
+    stations_section = []
+    if ov:
+        for d in ov.get('devices', []):
+            stations_section.append({
+                'name': d['name'], 'addr': d.get('addr', ''),
+                'risk_level': d['risk_level'], 'risk_score': d['risk_score'],
+                'today': d['today'], 'yday': d.get('yday', 0), 'week_avg': d.get('week_avg', 0),
+                'complaint_level': d['complaint_level'],
+                'status': d['status'], 'trust_score': d['trust_score'],
+                'trend': d.get('trend', '·'),
+            })
+
+    # 섹션 3: 일간이면 시간별 히트맵 (48h raw로 허용 장비의 시간×장비)
+    heatmap_section = None
+    if period == 'daily':
+        try:
+            now_for_hm = datetime.now(timezone.utc)
+            hm_start = (now_for_hm - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            hm_end = now_for_hm.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            hm_raw = moscom_client.get_statistics_by_date(
+                start_dt=hm_start, end_dt=hm_end, aggregation='raw', device_uuid='0'
+            )
+            hm_raw = [r for r in (hm_raw or []) if r.get('device_uuid') in allowed_set]
+            per_dev_hour = defaultdict(lambda: [None] * 24)
+            for r in hm_raw:
+                u = r.get('device_uuid')
+                iso = r.get('created_date') or ''
+                try:
+                    utc_h = int(iso[11:13])
+                except Exception:
+                    continue
+                kst_h = (utc_h + 9) % 24
+                cnt = r.get('mosquito_count') or 0
+                cur = per_dev_hour[u][kst_h]
+                if cur is None or cnt > cur:
+                    per_dev_hour[u][kst_h] = cnt
+            rows = []
+            for u in allowed_uuids:
+                hr = per_dev_hour.get(u, [None]*24)
+                deltas = [0]*24; prev = 0
+                for h in range(24):
+                    v = hr[h]
+                    if v is None: continue
+                    d_ = v - prev; deltas[h] = d_ if d_ > 0 else 0; prev = v
+                total = sum(deltas)
+                rows.append({
+                    'name': name_map.get(u, {}).get('name') or u,
+                    'hours': deltas, 'total': total,
+                })
+            rows.sort(key=lambda x: x['total'], reverse=True)
+            heatmap_section = rows[:30]  # 상위 30대
+        except Exception:
+            heatmap_section = None
+
+    # 섹션 4: 이상 감지 상세 (anomalies는 이미 있음)
+    anomaly_section = [
+        {
+            'name': a['name'], 'addr': a['addr'], 'date': a['date'],
+            'count': a['count'], 'bad_min': a['bad_min'],
+            'pct_over': round((a['count'] - a['bad_min']) / a['bad_min'] * 100) if a['bad_min'] else 0,
+        }
+        for a in anomalies
+    ]
+
+    # 섹션 5: AI 예측 — 기간에 따라 다르게 호출
+    predict_section = None
+    try:
+        p_days = 3 if period == 'daily' else 7 if period == 'weekly' else 14
+        p_inputs = []
+        for u, m in name_map.items():
+            hist = []
+            for dt in sorted_dates[-10:] if False else sorted({dd for dd in daily[u]}):
+                hist.append({'date': dt, 'count': daily[u].get(dt, 0)})
+            hist.sort(key=lambda h: h['date'])
+            p_inputs.append({
+                'uuid': u, 'name': m['name'], 'region': m.get('addr') or '',
+                'history': hist,
+            })
+        raw_preds = predictor.predict_for_devices(p_inputs, days_ahead=p_days)
+        # 방역 효과 적용
+        def _grade(n):
+            if n <= 10: return '안전'
+            if n <= 50: return '관심'
+            if n <= 100: return '주의'
+            if n <= 200: return '경고'
+            return '위험'
+        for p in raw_preds:
+            new_preds = []
+            for pp in p['predictions']:
+                factor, _ = remedy_store.adjustment_factor(p['uuid'], pp.get('date'))
+                orig = pp.get('predicted') or 0
+                new_preds.append({
+                    'date': pp['date'],
+                    'predicted': int(round(orig * factor)),
+                    'predicted_raw': orig,
+                    'remedy_factor': round(factor, 3),
+                })
+            p['predictions'] = new_preds
+            ps = [x['predicted'] for x in new_preds]
+            p['max_predicted'] = max(ps) if ps else 0
+            p['grade'] = _grade(p['max_predicted'])
+        raw_preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
+        # 위험 점수 상위 10대 + 날짜별 합계
+        predict_section = {
+            'devices': [
+                {
+                    'name': p['name'], 'grade': p['grade'],
+                    'max_predicted': p['max_predicted'],
+                    'predictions': p['predictions'],
+                }
+                for p in raw_preds[:10]
+            ],
+            'day_totals': [],
+        }
+        if raw_preds:
+            dates0 = [pp['date'] for pp in raw_preds[0]['predictions']]
+            for i, dt in enumerate(dates0):
+                total = sum(p['predictions'][i]['predicted'] for p in raw_preds)
+                predict_section['day_totals'].append({'date': dt, 'total': total})
+    except Exception as e:
+        logger.exception('predict section failed')
+        predict_section = None
+
     summary = {
         'total_devices': len(devices),
         'period': period, 'period_label': period_label,
@@ -751,6 +875,7 @@ def _build_report_body(period, base_date, su, request):
         'offline_count': offline_count,
         'low_batt_count': low_batt_count,
         'plan_count': len(plans_in_range),
+        'avg_battery': avg_battery,
         'overview_kpi': {
             'today_total': k.get('today_total', 0) if k else 0,
             'change_pct': k.get('change_pct', 0) if k else 0,
@@ -758,8 +883,19 @@ def _build_report_body(period, base_date, su, request):
             'anomaly_today': k.get('anomaly_today', 0) if k else 0,
             'complaint_high': k.get('complaint_high', 0) if k else 0,
             'equip_bad': k.get('equip_bad', 0) if k else 0,
+            'offline_count': k.get('offline_count', 0) if k else 0,
+            'check_count': k.get('check_count', 0) if k else 0,
             'avg_trust': k.get('avg_trust', 0) if k else 0,
+            'top_dev': k.get('top_dev') if k else None,
         } if k else None,
+        # 풀 섹션
+        'sections': {
+            'stations': stations_section,
+            'heatmap': heatmap_section,
+            'anomaly': anomaly_section,
+            'predict': predict_section,
+            'plans': plans_in_range,
+        },
     }
     return report_text, summary, allowed_uuids, source, payload_summary
 
@@ -850,7 +986,12 @@ def mosquito_report_view(request, report_id):
         return HttpResponse('보고서를 찾을 수 없습니다', status=404)
     if not su.get('is_admin') and rec.get('author_login_id') != su.get('login_id'):
         return HttpResponse('접근 권한이 없습니다', status=403)
-    return render(request, 'core/mosquito_report.html', {'report': rec})
+    # 히트맵 섹션 → JSON 문자열로 템플릿에 주입
+    hm = ((rec.get('summary') or {}).get('sections') or {}).get('heatmap') or []
+    return render(request, 'core/mosquito_report.html', {
+        'report': rec,
+        'heatmap_json': _json.dumps(hm, ensure_ascii=False),
+    })
 
 
 @require_GET

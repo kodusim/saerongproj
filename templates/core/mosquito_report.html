@@ -3,26 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ report.summary.period_label }} 보고서 · {{ report.summary.start_date }} ~ {{ report.summary.end_date }}</title>
+<title>{{ report.summary.period_label }} 모기 발생 감시 보고서 · {{ report.summary.end_date }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy: #1B3A6B; --navy-l: #D6E0F0;
-  --gray1: #F7F8FA; --gray2: #ECEEF2; --gray4: #8A8FA0; --gray5: #4A4E5C; --gray6: #1E2130;
-  --red: #A32D2D; --green: #1A5C35; --orange: #C05000;
+  --navy:#1B3A6B; --navy-l:#D6E0F0; --gray1:#F7F8FA; --gray2:#ECEEF2;
+  --gray4:#8A8FA0; --gray5:#4A4E5C; --gray6:#1E2130;
+  --red:#A32D2D; --green:#1A5C35; --orange:#C05000; --teal:#0F5E6E;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Noto Sans KR', sans-serif;
-  color: var(--gray6);
-  background: #f0f2f7;
-  padding: 24px 0 60px;
-  line-height: 1.6;
+  font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  color: #111; background: #f0f2f7;
+  font-size: 11.5px; line-height: 1.55;
+  padding: 18px 0 60px;
 }
-.page-wrap { max-width: 820px; margin: 0 auto; }
+.page-wrap { max-width: 900px; margin: 0 auto; }
+
+/* 액션 바 (인쇄 시 숨김) */
 .action-bar {
   display: flex; gap: 8px; margin-bottom: 14px;
   justify-content: space-between; align-items: center;
+  padding: 0 6px;
 }
 .action-bar h2 { font-size: 13px; color: var(--navy); font-weight: 600; }
 .btn {
@@ -31,91 +33,209 @@ body {
   cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
 }
 .btn:hover { background: #2a5298; }
-.btn-secondary {
-  background: #fff; color: var(--gray5); border: 1px solid #D0D3DC;
-}
+.btn-secondary { background: #fff; color: var(--gray5); border: 1px solid #D0D3DC; }
 .btn-secondary:hover { background: var(--gray1); }
 
 /* 보고서 본체 */
-.report {
+.doc {
   background: #fff;
-  border: 2px solid var(--navy);
+  padding: 22mm 20mm;
+  box-shadow: 0 4px 24px rgba(0,0,0,.1);
   border-radius: 4px;
-  box-shadow: 0 4px 18px rgba(0,0,0,.08);
-  overflow: hidden;
 }
-.report-head {
+.logo-area { text-align: center; margin-bottom: 10px; }
+.logo-area img { height: 22px; vertical-align: middle; }
+.logo-area span {
+  font-size: 18px; font-weight: 700; color: var(--navy);
+  vertical-align: middle; margin-left: 6px; letter-spacing: .5px;
+}
+
+h1 {
+  font-size: 22px; text-align: center; color: var(--navy);
+  margin: 6px 0 4px; letter-spacing: 4px; font-weight: 700;
+}
+.sub {
+  text-align: center; color: var(--gray4); font-size: 10px;
+  margin-bottom: 16px; letter-spacing: .5px;
+}
+
+/* 섹션 제목 */
+h2.sec {
+  font-size: 13px; color: var(--navy);
+  border-left: 4px solid var(--navy); padding: 2px 8px;
+  margin: 18px 0 8px; font-weight: 700;
+  background: linear-gradient(90deg, var(--navy-l) 0%, transparent 100%);
+}
+
+/* 헤더 정보 표 */
+table.meta {
+  width: 100%; border-collapse: collapse; font-size: 10.5px;
+  margin-bottom: 12px;
+}
+table.meta th, table.meta td {
+  padding: 6px 8px; border: 1px solid #ccc;
+}
+table.meta th {
+  background: var(--navy); color: #fff; font-weight: 600;
+  white-space: nowrap; text-align: center;
+}
+
+/* KPI 카드 */
+.kpi-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.kpi {
+  flex: 1; min-width: 120px;
+  border: 1px solid #ddd; border-radius: 6px; padding: 10px 8px;
+  text-align: center; border-top: 3px solid var(--navy);
+  background: #fff;
+}
+.kpi-l { font-size: 9.5px; color: var(--gray4); margin-bottom: 3px; font-weight: 500; }
+.kpi-n {
+  font-size: 20px; font-weight: 700; color: var(--navy); line-height: 1.1;
+  font-family: 'JetBrains Mono', monospace;
+}
+.kpi-u { font-size: 9.5px; color: var(--gray5); margin-top: 2px; }
+.kpi.red    { border-top-color: var(--red); } .kpi.red .kpi-n    { color: var(--red); }
+.kpi.orange { border-top-color: var(--orange); } .kpi.orange .kpi-n { color: var(--orange); }
+.kpi.green  { border-top-color: var(--green); } .kpi.green .kpi-n  { color: var(--green); }
+.kpi.teal   { border-top-color: var(--teal); } .kpi.teal .kpi-n   { color: var(--teal); }
+.kpi.purple { border-top-color: #4A1B6B; } .kpi.purple .kpi-n { color: #4A1B6B; }
+
+/* 참조 바 */
+.natbar {
+  background: var(--gray2); border: 1px dashed #bcc3cf;
+  border-radius: 4px; padding: 7px 12px; font-size: 10.5px;
+  color: var(--gray4); margin-bottom: 10px;
+  font-style: italic;
+}
+
+/* 공통 데이터 표 */
+table.data {
+  width: 100%; border-collapse: collapse; font-size: 10.5px;
+  margin-bottom: 8px;
+}
+table.data th {
+  background: var(--navy); color: #fff; padding: 5px 6px; text-align: center;
+  font-weight: 600; white-space: nowrap;
+}
+table.data td {
+  padding: 5px 7px; border: 1px solid #d5d8de; vertical-align: middle;
+}
+table.data tr:nth-child(even) td { background: var(--gray1); }
+
+/* 위험 등급 색 */
+.g-safe   { background: #E8F5E9; color: #1B5E20; }
+.g-watch  { background: #F1F8E9; color: #33691E; }
+.g-caution{ background: #FFF3E0; color: #E65100; }
+.g-warn   { background: #FDECEA; color: #B71C1C; }
+.g-danger { background: #FCE4EC; color: #880E4F; }
+.g-unknown{ background: #F0F0F0; color: #888; }
+td.grade-cell { font-weight: 700; text-align: center; }
+
+/* 민원 pill */
+.cp { padding: 1px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.cp-high { background: #FDECEA; color: #B71C1C; }
+.cp-mid  { background: #FFF3E0; color: #E65100; }
+.cp-low  { background: #E8F5E9; color: #1B5E20; }
+
+/* 히트맵 */
+table.heat {
+  width: 100%; border-collapse: collapse; font-size: 9px;
+  margin-bottom: 8px;
+}
+table.heat th {
   background: var(--navy); color: #fff;
-  padding: 14px 22px;
-  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 3px 2px; font-weight: 600; text-align: center;
 }
-.report-head .title { font-size: 18px; font-weight: 700; }
-.report-head .subtitle { font-size: 11px; opacity: .8; }
+table.heat td {
+  padding: 3px 2px; border: 1px solid #e0e0e0;
+  text-align: center; font-family: 'JetBrains Mono', monospace;
+}
+table.heat td.stn {
+  font-family: 'Noto Sans KR'; text-align: left; padding-left: 6px;
+  background: var(--gray1); font-weight: 600;
+  white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+}
+.h0  { background: #F5F5F5; color: #BDBDBD; }
+.h1  { background: #E8F5E9; color: #1B5E20; }
+.h2  { background: #DCEDC8; color: #33691E; }
+.h3  { background: #FFE0B2; color: #E65100; }
+.h4  { background: #FFCDD2; color: #B71C1C; font-weight: 700; }
+.h5  { background: #F48FB1; color: #880E4F; font-weight: 700; }
+td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
 
-.report-meta {
-  padding: 14px 22px; background: var(--gray1);
-  border-bottom: 1px solid var(--gray2);
-  display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 14px;
-  font-size: 12px;
+/* 행정 판단 박스 */
+.admin {
+  border: 2px solid var(--navy); border-radius: 6px;
+  overflow: hidden; margin: 14px 0;
 }
-.report-meta .k { color: var(--gray4); font-weight: 600; }
-.report-meta .v { color: var(--gray6); font-weight: 500; }
-
-.report-summary-chips {
-  padding: 12px 22px; background: #FFFDF0;
-  border-bottom: 1px solid var(--gray2);
-  display: flex; gap: 18px; font-size: 11px; flex-wrap: wrap;
+.admin-h {
+  background: var(--navy); color: #fff;
+  padding: 8px 14px; font-weight: 700; font-size: 12px;
 }
-.report-summary-chips strong { color: var(--navy); font-family: monospace; }
-
-.report-body { padding: 24px; background: #fff; font-size: 13px; line-height: 1.85; }
-.report-body h3 {
-  font-size: 14px; font-weight: 700; color: var(--navy);
-  margin-top: 16px; margin-bottom: 6px;
-  padding-bottom: 4px; border-bottom: 1px solid var(--navy-l);
+.admin-b {
+  background: #fffdf0; padding: 14px 18px; font-size: 11.5px;
+  line-height: 1.95; color: #333;
 }
-.report-body h3:first-child { margin-top: 0; }
-.report-body p { margin-left: 10px; }
-.report-body p.bullet { margin-left: 22px; position: relative; }
-.report-body p.bullet::before {
-  content: '·'; position: absolute; left: -10px; color: var(--navy); font-weight: 700;
+.admin-b p { margin: 0 0 8px; }
+.admin-b p:last-child { margin-bottom: 0; }
+.admin-b .bullet { margin-left: 14px; position: relative; padding-left: 10px; }
+.admin-b .bullet::before {
+  content: '·'; position: absolute; left: 0; color: var(--navy); font-weight: 700;
 }
+.admin-b h4 {
+  font-size: 12px; font-weight: 700; color: var(--navy);
+  margin: 10px 0 4px;
+}
+.admin-b h4:first-child { margin-top: 0; }
 
 /* 결재란 */
-.signature-box {
-  padding: 20px 22px; border-top: 2px solid var(--gray2);
+.sign-box {
   display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px; background: var(--gray1);
+  gap: 10px; margin-top: 14px;
 }
-.sig {
-  background: #fff; border: 1px solid #D0D3DC; border-radius: 4px;
-  padding: 14px; text-align: center;
+.sign {
+  border: 1px solid var(--navy); border-radius: 6px;
+  padding: 10px; font-size: 10px; color: #555; text-align: center;
 }
-.sig .sig-label { font-size: 10px; color: var(--gray4); font-weight: 600; margin-bottom: 6px; letter-spacing: .04em; }
-.sig .sig-title { font-size: 11px; color: var(--gray5); margin-bottom: 4px; }
-.sig .sig-name { font-size: 14px; font-weight: 700; color: var(--gray6); }
-.sig .sig-slot {
-  margin-top: 14px; height: 24px; border-top: 1px dashed #D0D3DC;
-  font-size: 9px; color: #aaa; padding-top: 4px; letter-spacing: .05em;
+.sign .sig-label {
+  font-size: 9px; color: var(--gray4); font-weight: 600;
+  margin-bottom: 4px; letter-spacing: .06em;
+}
+.sign .sig-title { font-size: 10px; color: var(--gray5); margin-bottom: 2px; }
+.sign .sig-name {
+  display: block; font-size: 13px; color: var(--navy);
+  font-weight: 700; margin-bottom: 6px;
+}
+.sign .sig-slot {
+  font-size: 8.5px; color: #aaa;
+  padding-top: 18px; border-top: 1px dashed #ccc;
 }
 
-.report-footer {
-  padding: 10px 22px; background: var(--gray1);
-  font-size: 10px; color: var(--gray4); text-align: right;
-  border-top: 1px solid var(--gray2);
+.foot {
+  margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--gray2);
+  font-size: 9.5px; color: var(--gray4); text-align: right;
 }
 
-/* 인쇄 시 숨길 요소 */
+/* 빈 메시지 */
+.empty {
+  text-align: center; padding: 14px; color: var(--gray4);
+  font-style: italic; font-size: 11px;
+  background: var(--gray1); border-radius: 4px;
+}
+
+/* 인쇄 */
 @media print {
-  body { background: #fff; padding: 0; }
+  body { background: #fff; padding: 0; font-size: 11px; }
   .action-bar { display: none !important; }
-  .report { box-shadow: none; border: 1px solid var(--navy); border-radius: 0; }
-  .page-wrap { max-width: none; }
+  .doc { box-shadow: none; padding: 12mm 14mm; border-radius: 0; }
+  h2.sec { page-break-after: avoid; }
+  table.data, table.heat, .admin, .sign-box { page-break-inside: avoid; }
 }
 </style>
 </head>
 <body>
 <div class="page-wrap">
+
   <div class="action-bar">
     <h2>보고서 미리보기</h2>
     <div style="display:flex;gap:6px">
@@ -127,92 +247,303 @@ body {
     </div>
   </div>
 
-  <div class="report">
-    <!-- 헤더 -->
-    <div class="report-head">
-      <div>
-        <div class="title">모스콤 AI 모기 발생 {{ report.summary.period_label }} 보고</div>
-        <div class="subtitle">{{ report.summary.start_date }} ~ {{ report.summary.end_date }} · 보고서 #{{ report.id }}</div>
+  <div class="doc">
+    <!-- 로고 + 제목 -->
+    <div class="logo-area">
+      <img src="https://www.moscom.kr/images/common/logo.svg" alt="" onerror="this.style.display='none'">
+      <span>MOSCOM</span>
+    </div>
+    <h1>{{ report.summary.period_label|stringformat:'s' }} 모 기 발 생 감 시 보 고 서</h1>
+    <div class="sub">
+      {{ report.summary.period_label }} Mosquito Monitoring Report &nbsp;|&nbsp;
+      MOSCOM AI 방역 의사결정 &nbsp;|&nbsp;
+      {{ report.summary.start_date }} ~ {{ report.summary.end_date }}
+    </div>
+
+    <!-- 헤더 표 -->
+    <table class="meta">
+      <tr>
+        <th style="width:70px">기관명</th><td>{{ report.org|default:"—" }}</td>
+        <th style="width:60px">부서</th><td>{{ report.department|default:"—" }}</td>
+        <th style="width:70px">문서번호</th><td>#{{ report.id|slice:"4:" }}</td>
+      </tr>
+      <tr>
+        <th>보고 기간</th><td>{{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일)</td>
+        <th>장비 범위</th><td>{{ report.summary.total_devices }}대</td>
+        <th>작성일</th><td>{{ report.created_at|slice:":10" }}</td>
+      </tr>
+      <tr>
+        <th>작성자</th>
+        <td colspan="5">
+          {{ report.writer_name|default:"—" }}{% if report.writer_title %} ({{ report.writer_title }}){% endif %}
+          {% if report.reviewer_name %} &nbsp;|&nbsp; 검토 {{ report.reviewer_name }}{% if report.reviewer_title %} ({{ report.reviewer_title }}){% endif %}{% endif %}
+          {% if report.approver_name %} &nbsp;|&nbsp; 결재 {{ report.approver_name }}{% if report.approver_title %} ({{ report.approver_title }}){% endif %}{% endif %}
+        </td>
+      </tr>
+    </table>
+
+    <!-- 1. 핵심 요약 KPI -->
+    <h2 class="sec">1. 핵심 요약</h2>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-l">기간 합계 포집량</div>
+        <div class="kpi-n">{{ report.summary.total_in_period }}</div>
+        <div class="kpi-u">마리 · 일평균 {{ report.summary.avg_per_day }}</div>
+      </div>
+      {% if report.summary.overview_kpi %}
+      <div class="kpi red">
+        <div class="kpi-l">최다 포집 장비</div>
+        <div class="kpi-n" style="font-size:13px">{{ report.summary.overview_kpi.top_dev.name|default:"-"|truncatechars:14 }}</div>
+        <div class="kpi-u">{{ report.summary.overview_kpi.top_dev.count|default:0 }}마리 (오늘)</div>
+      </div>
+      <div class="kpi red">
+        <div class="kpi-l">경고 이상 장비</div>
+        <div class="kpi-n">{{ report.summary.overview_kpi.warn_count }}</div>
+        <div class="kpi-u">위험 점수 61+</div>
+      </div>
+      {% endif %}
+      <div class="kpi orange">
+        <div class="kpi-l">이상 감지</div>
+        <div class="kpi-n">{{ report.summary.anomaly_count }}</div>
+        <div class="kpi-u">bad_min 초과</div>
+      </div>
+      {% if report.summary.overview_kpi %}
+      <div class="kpi purple">
+        <div class="kpi-l">민원 가능 '높음'</div>
+        <div class="kpi-n">{{ report.summary.overview_kpi.complaint_high }}</div>
+        <div class="kpi-u">사전 대응 권장</div>
+      </div>
+      {% endif %}
+      <div class="kpi teal">
+        <div class="kpi-l">장비 이상</div>
+        <div class="kpi-n">{{ report.summary.overview_kpi.equip_bad|default:report.summary.offline_count }}</div>
+        <div class="kpi-u">오프라인 {{ report.summary.offline_count }}</div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-l">평균 신뢰도</div>
+        <div class="kpi-n">{{ report.summary.overview_kpi.avg_trust|default:0 }}<span style="font-size:13px">%</span></div>
+        <div class="kpi-u">지역 평균</div>
       </div>
     </div>
 
-    <!-- 메타 -->
-    <div class="report-meta">
-      <span class="k">소속</span><span class="v">{{ report.org|default:"—" }}</span>
-      <span class="k">담당부서</span><span class="v">{{ report.department|default:"—" }}</span>
-      <span class="k">작성일</span><span class="v">{{ report.created_at|slice:":10" }}</span>
-      <span class="k">작성자</span><span class="v">{{ report.writer_name|default:"—" }}{% if report.writer_title %} ({{ report.writer_title }}){% endif %}</span>
-      <span class="k">보고 기간</span><span class="v">{{ report.summary.period_label }} · {{ report.summary.n_days }}일</span>
-      <span class="k">장비 범위</span><span class="v">{{ report.summary.total_devices }}대</span>
-    </div>
+    <div class="natbar">[ 전국 참조 ] · 전국 비교 지표 준비중</div>
 
-    <!-- 요약 칩 -->
-    <div class="report-summary-chips">
-      <div>기간 합계 <strong>{{ report.summary.total_in_period }}</strong>마리</div>
-      <div>일평균 <strong>{{ report.summary.avg_per_day }}</strong>마리</div>
-      <div>이상 감지 <strong>{{ report.summary.anomaly_count }}</strong>건</div>
-      <div>오프라인 <strong>{{ report.summary.offline_count }}</strong>대</div>
-      <div>방역 계획 <strong>{{ report.summary.plan_count }}</strong>건</div>
-      {% if report.summary.overview_kpi %}
-      <div>민원 '높음' <strong>{{ report.summary.overview_kpi.complaint_high }}</strong>개</div>
-      <div>평균 신뢰도 <strong>{{ report.summary.overview_kpi.avg_trust }}%</strong></div>
-      {% endif %}
-    </div>
+    <!-- 2. 관측소별 현황 -->
+    <h2 class="sec">2. 관측소별 현황</h2>
+    {% if report.summary.sections.stations %}
+    <table class="data">
+      <thead>
+        <tr>
+          <th>장비</th><th>지역</th><th>위험 등급</th>
+          <th>오늘</th><th>어제</th><th>7일 평균</th>
+          <th>민원 위험</th><th>장비 상태</th><th>신뢰도</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in report.summary.sections.stations %}
+        <tr>
+          <td><strong>{{ s.name|truncatechars:28 }}</strong></td>
+          <td style="font-size:10px;color:var(--gray4)">{{ s.addr|default:"-" }}</td>
+          <td class="grade-cell g-{% if s.risk_level == '안전' %}safe{% elif s.risk_level == '관심' %}watch{% elif s.risk_level == '주의' %}caution{% elif s.risk_level == '경고' %}warn{% elif s.risk_level == '심각' %}danger{% else %}unknown{% endif %}">{{ s.risk_level }} <span style="font-size:9px">({{ s.risk_score }})</span></td>
+          <td style="text-align:right;font-weight:600">{{ s.today }}</td>
+          <td style="text-align:right;color:var(--gray5)">{{ s.yday }}</td>
+          <td style="text-align:right;color:var(--gray5)">{{ s.week_avg }}</td>
+          <td style="text-align:center"><span class="cp cp-{% if s.complaint_level == '높음' %}high{% elif s.complaint_level == '보통' %}mid{% else %}low{% endif %}">{{ s.complaint_level }}</span></td>
+          <td style="text-align:center;font-size:10px">{{ s.status }}</td>
+          <td style="text-align:center;font-weight:700">{{ s.trust_score }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">관측소 데이터 없음</div>
+    {% endif %}
 
-    <!-- 본문 -->
-    <div class="report-body" id="report-body"></div>
+    <!-- 3. 시간별 포집 히트맵 (일간 only) -->
+    {% if report.summary.sections.heatmap %}
+    <h2 class="sec">3. 시간별 포집 히트맵 (24시간)</h2>
+    <table class="heat">
+      <thead>
+        <tr>
+          <th style="width:150px">장비</th>
+          {% for h in "000102030405060708091011121314151617181920212223"|slice:":48"|make_list %}{% endfor %}
+          <th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th>
+          <th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th>
+          <th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th>
+          <th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th>
+          <th>합계</th>
+        </tr>
+      </thead>
+      <tbody id="heatmap-body"></tbody>
+    </table>
+    <script type="application/json" id="hm-data">{{ heatmap_json|default:"[]"|safe }}</script>
+    {% endif %}
+
+    <!-- 4. 이상 발생 감지 -->
+    <h2 class="sec">4. 이상 발생 감지</h2>
+    {% if report.summary.sections.anomaly %}
+    <table class="data">
+      <thead>
+        <tr><th>일자</th><th>장비</th><th>지역</th><th>포집량</th><th>기준(bad_min)</th><th>초과율</th></tr>
+      </thead>
+      <tbody>
+      {% for a in report.summary.sections.anomaly %}
+        <tr>
+          <td style="text-align:center">{{ a.date }}</td>
+          <td><strong>{{ a.name|truncatechars:28 }}</strong></td>
+          <td style="font-size:10px;color:var(--gray5)">{{ a.addr|default:"-" }}</td>
+          <td style="text-align:right;color:var(--red);font-weight:700">{{ a.count }}마리</td>
+          <td style="text-align:right;color:var(--gray5)">{{ a.bad_min }}</td>
+          <td style="text-align:right;color:var(--red);font-weight:700">+{{ a.pct_over }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">기간 내 기준 초과 이상 감지 없음</div>
+    {% endif %}
+
+    <!-- 5. AI 예측 -->
+    {% if report.summary.sections.predict %}
+    <h2 class="sec">5. AI 예측</h2>
+    {% if report.summary.sections.predict.day_totals %}
+    <div class="kpi-row">
+      {% for t in report.summary.sections.predict.day_totals|slice:":4" %}
+      <div class="kpi">
+        <div class="kpi-l">{{ t.date|slice:"5:" }}</div>
+        <div class="kpi-n" style="font-size:17px">{{ t.total }}</div>
+        <div class="kpi-u">전체 합 예측</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <table class="data">
+      <thead>
+        <tr>
+          <th>장비</th><th>등급</th><th>최대 예측</th>
+          {% for pp in report.summary.sections.predict.devices.0.predictions|slice:":7" %}
+          <th>{{ pp.date|slice:"5:" }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for d in report.summary.sections.predict.devices %}
+        <tr>
+          <td><strong>{{ d.name|truncatechars:24 }}</strong></td>
+          <td class="grade-cell g-{% if d.grade == '안전' %}safe{% elif d.grade == '관심' %}watch{% elif d.grade == '주의' %}caution{% elif d.grade == '경고' %}warn{% elif d.grade == '위험' %}danger{% else %}unknown{% endif %}">{{ d.grade }}</td>
+          <td style="text-align:right;font-weight:700">{{ d.max_predicted }}</td>
+          {% for pp in d.predictions|slice:":7" %}
+          <td style="text-align:right;font-family:monospace">{{ pp.predicted }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <!-- 6. 방역 실시 계획 -->
+    <h2 class="sec">6. 방역 실시 계획</h2>
+    {% if report.summary.sections.plans %}
+    <table class="data">
+      <thead>
+        <tr>
+          <th>실시 예정일</th><th>대상 장비</th><th>방역 방법</th><th>감소율</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in report.summary.sections.plans %}
+        <tr>
+          <td style="text-align:center">{{ p.scheduled_date }}</td>
+          <td><strong>{{ p.device|truncatechars:28 }}</strong></td>
+          <td style="color:var(--teal);font-weight:700">{{ p.method }}</td>
+          <td style="text-align:right;color:var(--red);font-weight:700">-{{ p.reduction_pct }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">등록된 방역 계획 없음</div>
+    {% endif %}
+
+    <!-- 7. 행정 판단 -->
+    <div class="admin">
+      <div class="admin-h">7. 행정 판단 · AI 분석 초안</div>
+      <div class="admin-b" id="admin-body">
+        <p style="color:var(--gray4)">본문 로드 중…</p>
+      </div>
+    </div>
 
     <!-- 결재란 -->
-    <div class="signature-box">
-      <div class="sig">
-        <div class="sig-label">작성</div>
+    <div class="sign-box">
+      <div class="sign">
+        <div class="sig-label">작 성</div>
         <div class="sig-title">{{ report.writer_title|default:"" }}</div>
-        <div class="sig-name">{{ report.writer_name|default:"—" }}</div>
+        <span class="sig-name">{{ report.writer_name|default:"—" }}</span>
         <div class="sig-slot">(서명 또는 인)</div>
       </div>
-      <div class="sig">
-        <div class="sig-label">검토</div>
+      <div class="sign">
+        <div class="sig-label">검 토</div>
         <div class="sig-title">{{ report.reviewer_title|default:"" }}</div>
-        <div class="sig-name">{{ report.reviewer_name|default:"—" }}</div>
+        <span class="sig-name">{{ report.reviewer_name|default:"—" }}</span>
         <div class="sig-slot">(서명 또는 인)</div>
       </div>
-      <div class="sig">
-        <div class="sig-label">결재</div>
+      <div class="sign">
+        <div class="sig-label">결 재</div>
         <div class="sig-title">{{ report.approver_title|default:"" }}</div>
-        <div class="sig-name">{{ report.approver_name|default:"—" }}</div>
+        <span class="sig-name">{{ report.approver_name|default:"—" }}</span>
         <div class="sig-slot">(서명 또는 인)</div>
       </div>
     </div>
 
-    <div class="report-footer">
-      모스콤 AI 자동 생성 · 생성 시각 {{ report.created_at|slice:":19"|cut:"T" }} UTC · 모델 {{ report.source }}
+    <div class="foot">
+      MOSCOM AI 자동 생성 · 생성 {{ report.created_at|slice:":19"|cut:"T" }} UTC · 모델 {{ report.source }} · 보고서 #{{ report.id }}
     </div>
   </div>
 </div>
 
+<!-- 행정 판단 본문 -->
+<script id="admin-body-raw" type="text/plain">{{ report.report_text|default:""|escape }}</script>
+<!-- 히트맵 데이터 -->
+<script id="hm-data-raw" type="application/json">{{ heatmap_json|default:"[]"|safe }}</script>
+
 <script>
-// 본문 텍스트를 섹션/불릿으로 변환
 (function() {
-  const raw = {{ report.report_text|default:""|escapejs|safe|truncatechars:6000 }};
-  const box = document.getElementById('report-body');
-  if (!raw) { box.innerHTML = '<p>보고서 내용 없음</p>'; return; }
-  const lines = String(raw).split('\n');
-  const html = [];
-  lines.forEach(line => {
-    const t = line.trim();
-    if (!t) return;
-    if (t.startsWith('■')) html.push(`<h3>${escapeHtml(t.replace(/^■\s*/, ''))}</h3>`);
-    else if (t.startsWith('-') || t.startsWith('·') || t.startsWith('*')) {
-      html.push(`<p class="bullet">${escapeHtml(t.replace(/^[-·*]\s*/, ''))}</p>`);
-    } else {
-      html.push(`<p>${escapeHtml(t)}</p>`);
+  // 행정 판단 본문 렌더 (섹션/불릿)
+  const raw = document.getElementById('admin-body-raw');
+  const target = document.getElementById('admin-body');
+  if (raw && target) {
+    const text = (raw.textContent || '').trim();
+    if (!text) { target.innerHTML = '<p style="color:var(--gray4)">AI 분석 결과 없음</p>'; }
+    else {
+      const html = [];
+      text.split('\n').forEach(line => {
+        const t = line.trim();
+        if (!t) return;
+        if (t.startsWith('■')) html.push(`<h4>${t.replace(/^■\s*/, '')}</h4>`);
+        else if (t.startsWith('-') || t.startsWith('·') || t.startsWith('*')) html.push(`<p class="bullet">${t.replace(/^[-·*]\s*/, '')}</p>`);
+        else html.push(`<p>${t}</p>`);
+      });
+      target.innerHTML = html.join('');
     }
-  });
-  box.innerHTML = html.join('');
+  }
+
+  // 히트맵 렌더
+  const hmRaw = document.getElementById('hm-data-raw');
+  const hmBody = document.getElementById('heatmap-body');
+  if (hmRaw && hmBody) {
+    let rows = [];
+    try { rows = JSON.parse(hmRaw.textContent || '[]'); } catch (e) { rows = []; }
+    if (rows.length === 0) {
+      hmBody.innerHTML = '<tr><td colspan="26" style="text-align:center;color:#aaa;padding:10px">데이터 없음</td></tr>';
+    } else {
+      const heatCls = v => v === 0 ? 'h0' : v <= 10 ? 'h1' : v <= 50 ? 'h2' : v <= 100 ? 'h3' : v <= 200 ? 'h4' : 'h5';
+      hmBody.innerHTML = rows.map(r => {
+        const cells = (r.hours || []).map(v => `<td class="${heatCls(v)}">${v || '-'}</td>`).join('');
+        return `<tr><td class="stn">${(r.name || '').replace(/</g,'&lt;')}</td>${cells}<td class="total-c">${r.total || '-'}</td></tr>`;
+      }).join('');
+    }
+  }
 })();
-function escapeHtml(s) {
-  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
 </script>
 </body>
 </html>
