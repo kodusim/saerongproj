@@ -857,10 +857,6 @@ body {
   </div>
 
   <div class="sidebar-footer">
-    <div style="margin-bottom:6px">
-      <strong style="color:rgba(255,255,255,.85);font-size:11px">{% if is_admin %}👑 admin{% else %}👤 {{ login_id }}{% endif %}</strong>
-      <a href="/mosquito-test/logout/" style="float:right;color:rgba(255,255,255,.55);text-decoration:none;font-size:10px">로그아웃</a>
-    </div>
     v6.0 · 모스콤 AI 시스템
   </div>
 </nav>
@@ -947,6 +943,16 @@ body {
           </div>
         </div>
       </div>
+
+      <!-- 로그인 정보 + 로그아웃 -->
+      <a href="/mosquito-test/logout/" class="dl-btn" title="로그아웃"
+         style="background:#fff;color:#4A4E5C;border:1px solid #D0D3DC;gap:6px;text-decoration:none">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M10 12l3-4-3-4"/><line x1="13" y1="8" x2="5" y2="8"/>
+          <path d="M8 2H3a1 1 0 00-1 1v10a1 1 0 001 1h5"/>
+        </svg>
+        {% if is_admin %}👑 admin{% else %}👤 {{ login_id }}{% endif %} · 로그아웃
+      </a>
     </div>
   </div>
 
