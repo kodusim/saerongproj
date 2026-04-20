@@ -7,7 +7,9 @@ from core.views import (
     dashboard, category_detail, subcategory_detail, game_notices, mosquito_test,
     moscom_devices, moscom_raw_collection, moscom_statistics, moscom_hourly,
     moscom_daily, moscom_predict, moscom_complaint_risk,
+    mosquito_logout, moscom_my_devices, moscom_users_api, moscom_user_detail_api,
 )
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     path("", dashboard, name="dashboard"),  # 메인 대시보드
@@ -21,6 +23,10 @@ urlpatterns = [
     path("mosquito-test/api/daily/", moscom_daily, name="moscom_daily"),  # MOSCOM 일별 집계 (임의 기간)
     path("mosquito-test/api/predict/", moscom_predict, name="moscom_predict"),  # AI 모기 발생 예측
     path("mosquito-test/api/complaint-risk/", moscom_complaint_risk, name="moscom_complaint_risk"),  # 민원 위험 점수
+    path("mosquito-test/logout/", mosquito_logout, name="mosquito_logout"),
+    path("mosquito-test/api/my-devices/", moscom_my_devices, name="moscom_my_devices"),
+    path("mosquito-test/api/admin/users/", csrf_exempt(moscom_users_api), name="moscom_users_api"),
+    path("mosquito-test/api/admin/users/<str:login_id>/", csrf_exempt(moscom_user_detail_api), name="moscom_user_detail_api"),
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터

@@ -13,3 +13,4 @@ game_honey_alarm/mtls/
 *.key
 *.crt
 *.pem
+core/mosquito_users.json

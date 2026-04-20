@@ -682,6 +682,102 @@ body {
   .cp-cause-list, .cp-action-list { align-items: flex-start; }
   .cp-criteria { grid-template-columns: 1fr; }
 }
+
+/* ── 모스콤 관리자 탭 ── */
+.ma-layout {
+  display: grid; grid-template-columns: 360px 1fr; gap: 16px;
+}
+@media (max-width: 1100px) { .ma-layout { grid-template-columns: 1fr; } }
+
+.ma-form-card {
+  background: #fff; border: 1px solid var(--gray2); border-radius: 10px;
+  padding: 18px;
+}
+.ma-form-card h4 {
+  font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 14px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--navy-l);
+}
+.ma-field { margin-bottom: 12px; }
+.ma-field label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--gray5);
+  margin-bottom: 4px;
+}
+.ma-field input[type=text], .ma-field input[type=password] {
+  width: 100%; padding: 8px 10px; font-size: 13px;
+  border: 1px solid var(--gray3); border-radius: 6px;
+  font-family: var(--font);
+}
+.ma-field input:focus { outline: none; border-color: var(--navy); }
+.ma-hint { font-size: 10px; color: var(--gray4); margin-top: 3px; }
+.ma-primary-btn {
+  width: 100%; padding: 10px; background: var(--navy); color: #fff;
+  border: none; border-radius: 6px; font-weight: 700; font-size: 13px;
+  cursor: pointer; margin-top: 8px;
+}
+.ma-primary-btn:hover { background: var(--navy2); }
+.ma-primary-btn:disabled { background: var(--gray3); cursor: not-allowed; }
+.ma-msg { font-size: 11px; margin-top: 8px; padding: 8px 10px; border-radius: 6px; }
+.ma-msg.ok  { background: var(--green-l); color: var(--green); }
+.ma-msg.err { background: var(--red-l); color: var(--red); }
+
+.ma-dev-picker {
+  max-height: 280px; overflow-y: auto;
+  border: 1px solid var(--gray2); border-radius: 6px;
+  padding: 10px 12px; background: var(--gray1);
+  font-size: 11px;
+}
+.ma-dev-group { margin-bottom: 10px; }
+.ma-dev-group summary {
+  font-weight: 700; color: var(--navy); cursor: pointer;
+  padding: 4px 0; list-style: none; display: flex; align-items: center; gap: 6px;
+  font-size: 11px;
+}
+.ma-dev-group summary::-webkit-details-marker { display: none; }
+.ma-dev-group summary::before {
+  content: '▸'; color: var(--gray4); transition: transform .15s; display: inline-block;
+}
+.ma-dev-group[open] summary::before { transform: rotate(90deg); }
+.ma-dev-item {
+  display: flex; align-items: center; gap: 6px; padding: 2px 0 2px 18px;
+  font-size: 11px; color: var(--gray6); cursor: pointer;
+}
+.ma-quick-btns { display: flex; gap: 4px; margin: 6px 0 4px 18px; flex-wrap: wrap; }
+.ma-quick { font-size: 9px; padding: 2px 8px; background: #fff; border: 1px solid var(--gray2); border-radius: 10px; cursor: pointer; color: var(--gray5); }
+.ma-quick:hover { background: var(--navy-l); color: var(--navy); }
+
+.ma-list-card {
+  background: #fff; border: 1px solid var(--gray2); border-radius: 10px;
+  padding: 18px;
+}
+.ma-list-card h4 {
+  font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 14px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--navy-l);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ma-user-row {
+  display: grid; grid-template-columns: 180px 1fr auto;
+  gap: 12px; align-items: center;
+  padding: 12px; border: 1px solid var(--gray2); border-radius: 8px;
+  margin-bottom: 8px;
+}
+.ma-user-row .uid { font-weight: 700; color: var(--navy); font-size: 13px; }
+.ma-user-row .uid-meta { font-size: 10px; color: var(--gray4); margin-top: 2px; }
+.ma-user-row .devices {
+  font-size: 11px; color: var(--gray5); display: flex; flex-wrap: wrap; gap: 4px;
+  max-height: 60px; overflow-y: auto;
+}
+.ma-user-row .dev-chip {
+  background: var(--navy-l); color: var(--navy);
+  padding: 2px 8px; border-radius: 10px; font-size: 10px;
+}
+.ma-user-row .actions { display: flex; gap: 6px; }
+.ma-sm-btn {
+  padding: 4px 10px; font-size: 10px; border-radius: 5px; border: 1px solid var(--gray3);
+  background: #fff; color: var(--gray5); cursor: pointer; font-weight: 600;
+}
+.ma-sm-btn.danger { border-color: #e8b0b0; color: var(--red); }
+.ma-sm-btn:hover { background: var(--gray1); }
+.ma-sm-btn.danger:hover { background: var(--red-l); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -752,10 +848,20 @@ body {
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>
       행정 판단
     </a>
+    {% if is_admin %}
+    <a class="nav-item" onclick="showPage('moscom_admin')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 3-5 6-5s6 2 6 5"/><circle cx="13" cy="4" r="1" fill="currentColor"/></svg>
+      모스콤 관리자
+    </a>
+    {% endif %}
   </div>
 
   <div class="sidebar-footer">
-    v6.0 &nbsp;·&nbsp; 2025-08-15 05:10 갱신<br>모스콤 AI 자동 생성
+    <div style="margin-bottom:6px">
+      <strong style="color:rgba(255,255,255,.85);font-size:11px">{% if is_admin %}👑 admin{% else %}👤 {{ login_id }}{% endif %}</strong>
+      <a href="/mosquito-test/logout/" style="float:right;color:rgba(255,255,255,.55);text-decoration:none;font-size:10px">로그아웃</a>
+    </div>
+    v6.0 · 모스콤 AI 시스템
   </div>
 </nav>
 
@@ -1397,6 +1503,63 @@ body {
         <div><span style="color:var(--gray4)">결재:</span> <strong>이 과장</strong></div>
         <div style="margin-left:auto"><span style="color:var(--gray4)">생성:</span> 모스콤 AI 자동 생성 · 2025-08-15 05:10</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 11. 모스콤 관리자 (admin 전용) ══════════ -->
+  <div class="page" id="page-moscom_admin">
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">모스콤 관리자</div>
+          <div class="sec-sub">사용자 계정 생성 및 장비 권한 관리 · admin 전용</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>admin session</div>
+    </div>
+
+    <div class="ma-layout">
+      <!-- 사용자 추가 / 수정 폼 -->
+      <div class="ma-form-card">
+        <h4 id="ma-form-title">새 사용자 추가</h4>
+        <div class="ma-field">
+          <label>아이디</label>
+          <input type="text" id="ma-login-id" placeholder="예: cheonan01" autocomplete="off">
+          <div class="ma-hint">로그인 시 사용. 영문/숫자 권장.</div>
+        </div>
+        <div class="ma-field">
+          <label>비밀번호</label>
+          <input type="password" id="ma-password" placeholder="3자 이상" autocomplete="new-password">
+          <div class="ma-hint" id="ma-pw-hint">수정 모드에서는 빈칸이면 변경 없음</div>
+        </div>
+        <div class="ma-field">
+          <label>허용 장비 (<span id="ma-picked-count">0</span>개)</label>
+          <div id="ma-dev-picker" class="ma-dev-picker">
+            <div style="color:var(--gray4);font-style:italic">장비 목록 로드 중…</div>
+          </div>
+        </div>
+        <button class="ma-primary-btn" id="ma-save-btn" onclick="maSubmit()">추가</button>
+        <button class="ma-sm-btn" id="ma-cancel-btn" style="width:100%;margin-top:6px;display:none" onclick="maCancelEdit()">취소 (새 사용자 모드로)</button>
+        <div id="ma-msg"></div>
+      </div>
+
+      <!-- 사용자 리스트 -->
+      <div class="ma-list-card">
+        <h4>
+          <span>등록된 사용자</span>
+          <span style="font-size:11px;color:var(--gray4);font-weight:500" id="ma-users-count">0명</span>
+        </h4>
+        <div id="ma-user-list">
+          <div style="color:var(--gray4);font-style:italic;font-size:12px">로딩 중…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
+      <strong style="color:var(--yellow)">참고</strong> ·
+      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 이상감지 / 추세 / AI 예측 · 예보 / 민원</strong> 전 탭에서 표시됩니다.
+      admin 계정은 모든 장비에 접근 가능합니다.
     </div>
   </div>
 </div><!-- /main -->
@@ -2938,7 +3101,7 @@ const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
   trend:"7일 누적 추세", predict:"AI 예측 시스템", forecast:"AI 예보",
   remedy:"방역 실시 계획", complaint:"민원 가능 지역",
-  equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단"
+  equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단", moscom_admin:"모스콤 관리자"
 };
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2954,6 +3117,8 @@ function showPage(name){
   if (name === 'predict' && typeof buildPredict === 'function') buildPredict();
   // AI 예보 탭: 데이터 없으면 첫 실행
   if (name === 'forecast' && typeof buildForecast === 'function' && !FC_STATE.data) buildForecast();
+  // 모스콤 관리자: 탭 진입 시 데이터 로드
+  if (name === 'moscom_admin' && typeof maLoad === 'function') maLoad();
 }
 
 // ── 다운로드 & 보고서 기능 ────────────────────────────────
@@ -3175,6 +3340,252 @@ buildTrend();
 buildRemedy();
 buildComplaint();
 buildEquipment();
+
+// ═══════════════════════════════════════════════════════════
+// 모스콤 관리자 탭 (admin 전용)
+// ═══════════════════════════════════════════════════════════
+const MA_STATE = {
+  allDevices: [],   // MOSCOM 전체 장비
+  users: [],        // 저장된 사용자 목록
+  pickedSet: new Set(), // 현재 폼에서 체크된 UUID
+  editingId: null,  // 수정 중인 login_id (null이면 신규)
+};
+
+function maMsg(text, kind) {
+  const el = document.getElementById('ma-msg');
+  if (!el) return;
+  el.className = 'ma-msg ' + (kind || 'ok');
+  el.textContent = text;
+  if (kind === 'ok') setTimeout(() => { el.textContent = ''; el.className = ''; }, 3000);
+}
+
+async function maLoad() {
+  // 전체 장비 (admin은 all=1)
+  try {
+    const dv = await fetch('/mosquito-test/api/devices/?all=1', { credentials:'same-origin' }).then(r => r.json());
+    MA_STATE.allDevices = dv.devices || [];
+    const us = await fetch('/mosquito-test/api/admin/users/', { credentials:'same-origin' }).then(r => r.json());
+    if (us.error) { maMsg(us.error, 'err'); return; }
+    MA_STATE.users = us.users || [];
+    renderMaDevicePicker();
+    renderMaUserList();
+  } catch (e) {
+    maMsg('로드 실패: ' + e.message, 'err');
+  }
+}
+
+function maRegionKey(d) {
+  const dv = d.device || {};
+  const sido = (dv.address_sido || '').trim();
+  const gungu = (dv.address_gungu || '').trim();
+  const isKor = (s) => s && /[가-힣A-Za-z0-9 ]+/.test(s) && s.length < 40 && !/[\uD800-\uDFFF\uFFFD]/.test(s);
+  const parts = [];
+  if (isKor(sido)) parts.push(sido);
+  if (isKor(gungu)) parts.push(gungu);
+  return parts.join(' ') || '기타';
+}
+
+function renderMaDevicePicker() {
+  const box = document.getElementById('ma-dev-picker');
+  if (!box) return;
+  const groups = {};
+  MA_STATE.allDevices.forEach(d => {
+    const r = maRegionKey(d);
+    (groups[r] = groups[r] || []).push(d);
+  });
+  const regionNames = Object.keys(groups).sort();
+  const html = regionNames.map(region => {
+    const devs = groups[region];
+    const uuids = devs.map(d => d.device_uuid);
+    const allChecked = uuids.every(u => MA_STATE.pickedSet.has(u));
+    const someChecked = uuids.some(u => MA_STATE.pickedSet.has(u));
+    return `
+      <details class="ma-dev-group" ${someChecked ? 'open' : ''}>
+        <summary>
+          <input type="checkbox" data-region="${region}" ${allChecked ? 'checked' : ''}>
+          ${region} <span style="color:var(--gray4);font-weight:400">(${devs.length})</span>
+        </summary>
+        <div class="ma-quick-btns">
+          <button type="button" class="ma-quick" data-region-toggle="${region}" data-on="1">전체</button>
+          <button type="button" class="ma-quick" data-region-toggle="${region}" data-on="0">해제</button>
+        </div>
+        ${devs.map(d => {
+          const dv = d.device || {};
+          const nm = (dv.device_name || '').trim() || d.device_uuid;
+          const addr = [dv.address_dong, dv.address_detail].filter(Boolean).join(' ').trim();
+          const u = d.device_uuid;
+          const checked = MA_STATE.pickedSet.has(u) ? 'checked' : '';
+          return `<label class="ma-dev-item">
+            <input type="checkbox" data-uuid="${u}" ${checked}>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nm}${addr ? ' <span style=\"color:var(--gray4);font-size:10px\">('+addr+')</span>' : ''}</span>
+          </label>`;
+        }).join('')}
+      </details>
+    `;
+  }).join('');
+  box.innerHTML = html || '<div style="color:var(--gray4)">장비 없음</div>';
+  document.getElementById('ma-picked-count').textContent = MA_STATE.pickedSet.size;
+
+  // 이벤트 바인딩
+  box.querySelectorAll('input[data-uuid]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const u = inp.dataset.uuid;
+      if (inp.checked) MA_STATE.pickedSet.add(u);
+      else MA_STATE.pickedSet.delete(u);
+      renderMaDevicePicker();
+    });
+  });
+  box.querySelectorAll('input[data-region]').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      e.stopPropagation();
+      const region = inp.dataset.region;
+      const devs = MA_STATE.allDevices.filter(d => maRegionKey(d) === region);
+      if (inp.checked) devs.forEach(d => MA_STATE.pickedSet.add(d.device_uuid));
+      else devs.forEach(d => MA_STATE.pickedSet.delete(d.device_uuid));
+      renderMaDevicePicker();
+    });
+  });
+  box.querySelectorAll('[data-region-toggle]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const region = btn.dataset.regionToggle;
+      const on = btn.dataset.on === '1';
+      const devs = MA_STATE.allDevices.filter(d => maRegionKey(d) === region);
+      if (on) devs.forEach(d => MA_STATE.pickedSet.add(d.device_uuid));
+      else devs.forEach(d => MA_STATE.pickedSet.delete(d.device_uuid));
+      renderMaDevicePicker();
+    });
+  });
+}
+
+function renderMaUserList() {
+  const box = document.getElementById('ma-user-list');
+  const cnt = document.getElementById('ma-users-count');
+  if (!box) return;
+  cnt.textContent = `${MA_STATE.users.length}명`;
+  if (MA_STATE.users.length === 0) {
+    box.innerHTML = `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:30px">
+      등록된 일반 사용자가 없습니다.<br>좌측 폼에서 사용자를 추가하세요.
+    </div>`;
+    return;
+  }
+  // 장비 uuid → 이름 매핑
+  const nameMap = {};
+  MA_STATE.allDevices.forEach(d => {
+    const dv = d.device || {};
+    nameMap[d.device_uuid] = (dv.device_name || '').trim() || d.device_uuid;
+  });
+  box.innerHTML = MA_STATE.users.map(u => {
+    const chips = (u.allowed_devices || []).slice(0, 8).map(uuid =>
+      `<span class="dev-chip" title="${uuid}">${nameMap[uuid] || uuid}</span>`
+    ).join('');
+    const rest = Math.max(0, (u.allowed_devices || []).length - 8);
+    return `<div class="ma-user-row">
+      <div>
+        <div class="uid">👤 ${u.login_id}</div>
+        <div class="uid-meta">장비 <strong>${(u.allowed_devices || []).length}</strong>개 · 생성 ${(u.created_at || '').slice(0,10)}</div>
+      </div>
+      <div class="devices">
+        ${chips || '<span style="color:var(--gray4)">없음</span>'}
+        ${rest > 0 ? `<span class="dev-chip" style="background:var(--gray2);color:var(--gray5)">+${rest}</span>` : ''}
+      </div>
+      <div class="actions">
+        <button class="ma-sm-btn" onclick="maStartEdit('${u.login_id}')">수정</button>
+        <button class="ma-sm-btn danger" onclick="maDelete('${u.login_id}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function maStartEdit(loginId) {
+  const u = MA_STATE.users.find(x => x.login_id === loginId);
+  if (!u) return;
+  MA_STATE.editingId = loginId;
+  MA_STATE.pickedSet = new Set(u.allowed_devices || []);
+  document.getElementById('ma-form-title').textContent = `사용자 수정: ${loginId}`;
+  const idInp = document.getElementById('ma-login-id');
+  idInp.value = loginId;
+  idInp.disabled = true;
+  document.getElementById('ma-password').value = '';
+  document.getElementById('ma-pw-hint').textContent = '빈칸이면 비밀번호 변경하지 않음';
+  document.getElementById('ma-save-btn').textContent = '수정 저장';
+  document.getElementById('ma-cancel-btn').style.display = 'block';
+  renderMaDevicePicker();
+  document.getElementById('ma-msg').textContent = '';
+  document.getElementById('ma-msg').className = '';
+}
+
+function maCancelEdit() {
+  MA_STATE.editingId = null;
+  MA_STATE.pickedSet = new Set();
+  document.getElementById('ma-form-title').textContent = '새 사용자 추가';
+  const idInp = document.getElementById('ma-login-id');
+  idInp.value = '';
+  idInp.disabled = false;
+  document.getElementById('ma-password').value = '';
+  document.getElementById('ma-pw-hint').textContent = '3자 이상';
+  document.getElementById('ma-save-btn').textContent = '추가';
+  document.getElementById('ma-cancel-btn').style.display = 'none';
+  renderMaDevicePicker();
+  document.getElementById('ma-msg').textContent = '';
+  document.getElementById('ma-msg').className = '';
+}
+
+async function maSubmit() {
+  const loginId = document.getElementById('ma-login-id').value.trim();
+  const password = document.getElementById('ma-password').value;
+  const allowed = Array.from(MA_STATE.pickedSet);
+  if (!loginId) { maMsg('아이디를 입력하세요', 'err'); return; }
+  if (!MA_STATE.editingId && password.length < 3) { maMsg('비밀번호는 3자 이상', 'err'); return; }
+
+  const btn = document.getElementById('ma-save-btn');
+  btn.disabled = true;
+  try {
+    let res;
+    if (MA_STATE.editingId) {
+      const body = { allowed_devices: allowed };
+      if (password) body.password = password;
+      res = await fetch(`/mosquito-test/api/admin/users/${encodeURIComponent(MA_STATE.editingId)}/`, {
+        method: 'PUT', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } else {
+      res = await fetch('/mosquito-test/api/admin/users/', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login_id: loginId, password, allowed_devices: allowed }),
+      });
+    }
+    const json = await res.json();
+    if (!res.ok) { maMsg(json.error || ('HTTP ' + res.status), 'err'); return; }
+    MA_STATE.users = json.users || [];
+    maMsg(MA_STATE.editingId ? '수정 완료' : '추가 완료', 'ok');
+    maCancelEdit();
+    renderMaUserList();
+  } catch (e) {
+    maMsg('요청 실패: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function maDelete(loginId) {
+  if (!confirm(`"${loginId}" 사용자를 삭제하시겠습니까?`)) return;
+  try {
+    const res = await fetch(`/mosquito-test/api/admin/users/${encodeURIComponent(loginId)}/`, {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const json = await res.json();
+    if (!res.ok) { maMsg(json.error || ('HTTP ' + res.status), 'err'); return; }
+    MA_STATE.users = json.users || [];
+    if (MA_STATE.editingId === loginId) maCancelEdit();
+    renderMaUserList();
+    maMsg(`${loginId} 삭제됨`, 'ok');
+  } catch (e) {
+    maMsg('삭제 실패: ' + e.message, 'err');
+  }
+}
 </script>
 </body>
 </html>

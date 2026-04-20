@@ -7,7 +7,9 @@ from sources.models import DataSource
 from core.models import Category, SubCategory
 from core import moscom_client
 from core import predictor
+from core import user_store
 import logging
+import json as _json
 
 logger = logging.getLogger(__name__)
 
@@ -183,18 +185,49 @@ def subcategory_detail(request, slug):
 def mosquito_test(request):
     """모기 테스트 페이지 (세션 기반 로그인 보호)"""
     if request.session.get('mosquito_auth'):
-        return render(request, 'core/mosquito_test.html')
+        is_admin = bool(request.session.get('mosquito_is_admin'))
+        return render(request, 'core/mosquito_test.html', {
+            'is_admin': is_admin,
+            'login_id': request.session.get('mosquito_login_id', ''),
+        })
 
     error = ''
     if request.method == 'POST':
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
-        if username == 'admin' and password == 'admin':
+        user = user_store.authenticate(username, password)
+        if user:
             request.session['mosquito_auth'] = True
-            return render(request, 'core/mosquito_test.html')
+            request.session['mosquito_is_admin'] = user['is_admin']
+            request.session['mosquito_login_id'] = user['login_id']
+            request.session['mosquito_allowed_devices'] = user['allowed_devices']
+            return render(request, 'core/mosquito_test.html', {
+                'is_admin': user['is_admin'],
+                'login_id': user['login_id'],
+            })
         error = '아이디 또는 비밀번호가 올바르지 않습니다.'
 
     return render(request, 'core/mosquito_login.html', {'error': error})
+
+
+def mosquito_logout(request):
+    """세션 로그아웃. GET/POST 모두 지원."""
+    for k in ('mosquito_auth', 'mosquito_is_admin', 'mosquito_login_id', 'mosquito_allowed_devices'):
+        if k in request.session:
+            del request.session[k]
+    from django.shortcuts import redirect
+    return redirect('/mosquito-test/')
+
+
+def _current_session_user(request):
+    """세션에서 복원한 사용자. 없으면 None."""
+    if not request.session.get('mosquito_auth'):
+        return None
+    return {
+        'login_id': request.session.get('mosquito_login_id', ''),
+        'is_admin': bool(request.session.get('mosquito_is_admin')),
+        'allowed_devices': request.session.get('mosquito_allowed_devices'),
+    }
 
 
 def game_notices(request):
@@ -219,16 +252,99 @@ def _require_mosquito_auth(request):
     return JsonResponse({'error': 'Unauthorized'}, status=401)
 
 
+def _require_admin(request):
+    """admin 세션 체크"""
+    if request.session.get('mosquito_auth') and request.session.get('mosquito_is_admin'):
+        return None
+    return JsonResponse({'error': 'Forbidden (admin only)'}, status=403)
+
+
+@require_GET
+def moscom_my_devices(request):
+    """현재 로그인 사용자가 접근 가능한 장비 UUID 목록 반환.
+    admin: is_admin=True + devices=null(전체 허용)
+    user : 허용 UUID 배열
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    su = _current_session_user(request)
+    return JsonResponse({
+        'login_id': su['login_id'],
+        'is_admin': su['is_admin'],
+        'allowed_devices': su['allowed_devices'],
+    })
+
+
+def moscom_users_api(request):
+    """관리자 전용 사용자 CRUD.
+    GET    /users/               → 목록
+    POST   /users/               → 추가 (body: login_id, password, allowed_devices[])
+    PUT    /users/<login_id>/    → 수정 (body: password? allowed_devices?)
+    DELETE /users/<login_id>/    → 삭제
+    """
+    admin_err = _require_admin(request)
+    if admin_err:
+        return admin_err
+    if request.method == 'GET':
+        return JsonResponse({'users': user_store.list_users()})
+    # 본문 파싱 (POST/PUT/DELETE)
+    try:
+        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+    except _json.JSONDecodeError:
+        body = {}
+    if request.method == 'POST':
+        try:
+            user_store.create_user(
+                login_id=body.get('login_id', ''),
+                password=body.get('password', ''),
+                allowed_devices=body.get('allowed_devices') or [],
+            )
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'ok': True, 'users': user_store.list_users()})
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+def moscom_user_detail_api(request, login_id):
+    admin_err = _require_admin(request)
+    if admin_err:
+        return admin_err
+    try:
+        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+    except _json.JSONDecodeError:
+        body = {}
+    try:
+        if request.method in ('PUT', 'PATCH'):
+            user_store.update_user(
+                login_id=login_id,
+                password=body.get('password') if body.get('password') else None,
+                allowed_devices=body.get('allowed_devices') if 'allowed_devices' in body else None,
+            )
+            return JsonResponse({'ok': True, 'users': user_store.list_users()})
+        if request.method == 'DELETE':
+            user_store.delete_user(login_id)
+            return JsonResponse({'ok': True, 'users': user_store.list_users()})
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
 @require_GET
 def moscom_devices(request):
-    """MOSCOM API 장비 목록 프록시"""
+    """MOSCOM API 장비 목록 프록시 (허용 장비만 반환)"""
     auth_err = _require_mosquito_auth(request)
     if auth_err:
         return auth_err
     try:
         force = request.GET.get('refresh') == '1'
         data = moscom_client.list_devices(force_refresh=force)
-        return JsonResponse({'count': len(data), 'devices': data}, safe=False)
+        # 관리자 세션일 때 '전체' 플래그로 원본 반환 (관리자 탭 사용자 추가에서 전 장비 리스트 필요)
+        if request.GET.get('all') == '1' and bool(request.session.get('mosquito_is_admin')):
+            return JsonResponse({'count': len(data), 'devices': data, 'admin_all': True}, safe=False)
+        su = _current_session_user(request)
+        filtered = user_store.filter_devices(su, data)
+        return JsonResponse({'count': len(filtered), 'devices': filtered}, safe=False)
     except Exception as e:
         logger.exception('MOSCOM /device/listAll failed')
         return JsonResponse({'error': str(e)}, status=502)
@@ -258,6 +374,14 @@ def moscom_raw_collection(request):
         return JsonResponse({'error': str(e)}, status=502)
 
 
+def _filter_records_by_uuid(request, records):
+    """세션 사용자의 허용 장비로 레코드 배열 필터. admin은 그대로."""
+    allowed = user_store.allowed_uuid_set(_current_session_user(request))
+    if allowed is None:
+        return records
+    return [r for r in records if r.get('device_uuid') in allowed]
+
+
 @require_GET
 def moscom_statistics(request):
     """MOSCOM API 장비별 일별 통계 프록시
@@ -273,6 +397,7 @@ def moscom_statistics(request):
         data = moscom_client.get_statistics(
             device_uuid=device_uuid, period_type=period, offset=offset,
         )
+        data = _filter_records_by_uuid(request, data or [])
         return JsonResponse({'count': len(data), 'stats': data}, safe=False)
     except Exception as e:
         logger.exception('MOSCOM /device/statistics failed')
@@ -312,6 +437,7 @@ def moscom_daily(request):
         data = moscom_client.get_statistics_by_date(
             start_dt=start_iso, end_dt=end_iso, aggregation='day', device_uuid='0',
         )
+        data = _filter_records_by_uuid(request, data or [])
         return JsonResponse({
             'count': len(data) if isinstance(data, list) else 0,
             'start': start_str, 'end': end_str,
@@ -343,6 +469,7 @@ def moscom_complaint_risk(request):
     try:
         # 1) 장비 메타
         devices = moscom_client.list_devices()
+        devices = user_store.filter_devices(_current_session_user(request), devices)
         meta = {}
         for d in devices:
             u = d.get('device_uuid')
@@ -571,6 +698,8 @@ def moscom_predict(request):
 
         daily = moscom_client.get_statistics_by_date(start_dt=start_iso, end_dt=end_iso, aggregation='day', device_uuid='0')
         devices = moscom_client.list_devices()
+        # 세션 사용자 허용 장비로 제한
+        devices = user_store.filter_devices(_current_session_user(request), devices)
 
         # 장비 메타
         meta = {}
@@ -649,6 +778,7 @@ def moscom_hourly(request):
         data = moscom_client.get_statistics_by_date(
             start_dt=start, end_dt=end, aggregation='raw', device_uuid='0',
         )
+        data = _filter_records_by_uuid(request, data or [])
         return JsonResponse({
             'count': len(data) if isinstance(data, list) else 0,
             'start': start, 'end': end,
