@@ -929,8 +929,13 @@ body {
     <div class="logo-sub">AI Mosquito Monitoring System</div>
   </div>
   <div class="sidebar-org">
-    <strong>○○시 ○○구 보건소</strong>
-    감염병관리팀
+    {% if is_admin %}
+      <strong>👑 MOSCOM 관리자</strong>
+      시스템 전체 권한
+    {% else %}
+      <strong>👤 {{ login_id }}</strong>
+      로그인 사용자
+    {% endif %}
   </div>
 
   <div class="nav-section">
