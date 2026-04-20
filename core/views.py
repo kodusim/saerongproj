@@ -308,6 +308,202 @@ def moscom_users_api(request):
 
 
 @require_GET
+def moscom_admin_judgment(request):
+    """AI 행정 판단 리포트 생성 (GPT 연동).
+    모든 탭 데이터를 수집해서 요약 → OpenAI에 공문 형식 리포트 요청.
+    캐싱 5분.
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    from django.core.cache import cache
+    from django.conf import settings as dj_settings
+
+    su = _current_session_user(request)
+    # 사용자별 캐시 키
+    cache_key = 'moscom:admin_judgment:' + (su.get('login_id') or 'anon')
+    force = request.GET.get('refresh') == '1'
+    if not force:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return JsonResponse(cached)
+
+    try:
+        devices = moscom_client.list_devices()
+        devices = user_store.filter_devices(su, devices)
+        allowed_uuids = {d.get('device_uuid') for d in devices}
+
+        # 7일 통계
+        stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+        stats = [r for r in (stats or []) if r.get('device_uuid') in allowed_uuids]
+
+        # 일별 집계 (장비당)
+        from collections import defaultdict
+        daily = defaultdict(lambda: defaultdict(int))
+        dates = set()
+        for r in stats:
+            u = r.get('device_uuid')
+            date = (r.get('created_date') or '')[:10]
+            if u and date:
+                daily[u][date] += (r.get('mosquito_count') or 0)
+                dates.add(date)
+        sorted_dates = sorted(dates)
+        today = sorted_dates[-1] if sorted_dates else ''
+        yday = sorted_dates[-2] if len(sorted_dates) >= 2 else ''
+
+        # 오늘 합계 + 어제 대비
+        today_total = sum(daily[u].get(today, 0) for u in daily) if today else 0
+        yday_total = sum(daily[u].get(yday, 0) for u in daily) if yday else 0
+        pct = round((today_total - yday_total) / yday_total * 100) if yday_total else 0
+
+        # 오늘 장비 탑 5
+        today_devs = sorted(
+            [(u, daily[u].get(today, 0)) for u in daily.keys()],
+            key=lambda x: x[1], reverse=True
+        )[:5]
+
+        # 장비 이름 매핑
+        name_map = {}
+        for d in devices:
+            dv = d.get('device') or {}
+            nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
+            addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40) or ''
+            name_map[d.get('device_uuid')] = {'name': nm, 'addr': addr, 'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100}
+
+        # 이상 감지 요약 (bad_min 초과)
+        anomalies = []
+        for u, v in today_devs:
+            meta = name_map.get(u, {})
+            if v >= meta.get('bad_min', 100) and meta.get('bad_min', 0) > 0:
+                anomalies.append(f"{meta.get('name')}({meta.get('addr') or '주소미상'}) — 오늘 {v}마리 / 기준 {meta.get('bad_min')} 초과")
+
+        # 방역 계획 현황
+        from core import remedy_store
+        visible = allowed_uuids if not su.get('is_admin') else None
+        plans = remedy_store.list_plans(visible_uuids=visible)
+        method_map = {m['key']: m for m in remedy_store.list_methods()}
+        active_plans = []
+        for p in plans[:20]:
+            m = method_map.get(p['method_key'], {})
+            active_plans.append({
+                'device': name_map.get(p['device_uuid'], {}).get('name') or p['device_uuid'],
+                'method': m.get('name', p['method_key']),
+                'scheduled_date': p['scheduled_date'],
+                'reduction_pct': m.get('reduction_pct'),
+            })
+
+        # 장비 상태 대략 (배터리 평균, 오프라인 수)
+        battery_vals = [(d.get('device') or {}).get('battery') or 0 for d in devices]
+        avg_battery = round(sum(battery_vals) / len(battery_vals)) if battery_vals else 0
+        # 수신 지연으로 오프라인 판별
+        now_utc = datetime.now(timezone.utc)
+        offline_count = 0
+        low_batt_count = 0
+        for d in devices:
+            dv = d.get('device') or {}
+            if (dv.get('battery') or 100) < 15:
+                low_batt_count += 1
+            ud = dv.get('updated_date') or ''
+            try:
+                udt = datetime.fromisoformat(ud.replace('Z', '+00:00'))
+                if (now_utc - udt).total_seconds() / 60 > 1440:
+                    offline_count += 1
+            except Exception:
+                offline_count += 1
+
+        # ── GPT 프롬프트 구성 ────────────────────────
+        top_devs_text = '\n'.join(
+            f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): {v}마리"
+            for u, v in today_devs
+        ) or '  - 데이터 없음'
+        anomaly_text = '\n'.join(f"  - {a}" for a in anomalies) or '  - 기준 초과 장비 없음'
+        plans_text = '\n'.join(
+            f"  - {p['device']} / {p['method']} / 예정 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
+            for p in active_plans
+        ) or '  - 등록된 방역 계획 없음'
+
+        date_label = today or datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d')
+        payload_summary = f"""[모기 발생 감시 현황 · {date_label}]
+
+■ 전체 수치
+  - 전체 장비 수: {len(devices)}대
+  - 오늘 포집 합계: {today_total}마리 (전일 {yday_total}마리, 변화 {pct:+d}%)
+  - 오프라인 장비: {offline_count}대
+  - 배터리 15% 미만 장비: {low_batt_count}대
+  - 평균 배터리: {avg_battery}%
+
+■ 오늘 상위 포집 장비 (Top 5)
+{top_devs_text}
+
+■ 이상 감지 (장비 고유 기준 초과)
+{anomaly_text}
+
+■ 진행/예정 방역 계획
+{plans_text}
+"""
+
+        # OpenAI 호출
+        api_key = getattr(dj_settings, 'OPENAI_API_KEY', '') or ''
+        if not api_key:
+            report_text = '※ OpenAI API 키가 서버에 설정되지 않아 AI 분석이 불가합니다.\n\n' + payload_summary
+            source = 'fallback'
+        else:
+            try:
+                import openai
+                client = openai.OpenAI(api_key=api_key)
+                resp = client.chat.completions.create(
+                    model='gpt-4o-mini',
+                    messages=[
+                        {'role': 'system', 'content': (
+                            '당신은 지자체 보건소 감염병관리팀의 행정 보고서 작성을 지원하는 AI입니다. '
+                            '주어진 데이터를 바탕으로 결재용 공문 형식의 "행정 판단 보고"를 한국어로 작성하십시오. '
+                            '과장 없이 데이터 근거로 기술하고, 다음 5개 섹션을 반드시 포함하십시오: '
+                            '1) 오늘 핵심 수치 요약 '
+                            '2) 즉시 조치 필요 사항 (없으면 "해당 없음") '
+                            '3) AI 예측 요약 '
+                            '4) 진행 중인 방역 현황 '
+                            '5) AI 행정 권고 (우선순위별 불릿). '
+                            '각 섹션은 "■" 기호로 시작하고, 불릿은 "- "로 시작합니다. '
+                            '문장은 공공기관 행정 어조(…함, …필요함, …권고함)로 작성하세요. '
+                            '결재란·서명란·날짜 줄은 포함하지 마세요 (화면에서 별도 렌더링됩니다).'
+                        )},
+                        {'role': 'user', 'content': payload_summary},
+                    ],
+                    temperature=0.5,
+                    max_tokens=800,
+                )
+                report_text = resp.choices[0].message.content.strip()
+                source = 'openai:gpt-4o-mini'
+            except Exception as e:
+                logger.exception('OpenAI call failed')
+                report_text = f'※ AI 분석 중 오류가 발생했습니다: {e}\n\n' + payload_summary
+                source = 'error'
+
+        result = {
+            'report_text': report_text,
+            'source': source,
+            'generated_at': datetime.now(timezone(timedelta(hours=9))).isoformat(),
+            'author': {'login_id': su.get('login_id'), 'is_admin': su.get('is_admin')},
+            'summary': {
+                'total_devices': len(devices),
+                'today_total': today_total,
+                'yday_total': yday_total,
+                'change_pct': pct,
+                'anomaly_count': len(anomalies),
+                'offline_count': offline_count,
+                'low_batt_count': low_batt_count,
+                'plan_count': len(active_plans),
+            },
+        }
+        cache.set(cache_key, result, 300)
+        return JsonResponse(result)
+    except Exception as e:
+        logger.exception('admin_judgment failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
 def moscom_equipment_health(request):
     """장비 신뢰도 점수화 (4축)
     - 배터리: 현재 battery%

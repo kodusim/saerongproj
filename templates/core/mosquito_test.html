@@ -1602,41 +1602,51 @@ body {
 
   <!-- ══════════ 10. 행정 판단 ══════════ -->
   <div class="page" id="page-admin">
-    <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">행정 판단</div>
-      <div class="sec-sub">결재용 공문 형식 · AI 자동 생성</div>
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">행정 판단</div>
+          <div class="sec-sub" id="aj-sub">AI가 모든 탭 데이터를 종합하여 결재용 공문 형식으로 생성</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>OpenAI GPT-4o-mini</div>
     </div>
 
-    <div class="admin-box mb24">
-      <div class="admin-head">행정 판단 — 2025. 08. 15. ○○시 ○○구 보건소 감염병관리팀</div>
-      <div class="admin-body">
-        <p class="admin-para">
-          최근 지속된 고온다습 환경(평균 기온 26.7°C, 습도 83%)으로 모기 발생량이 <em>증가 추세</em>에 있으며, 특히 <em>관측소 B (저수지) 및 관측소 H (하천중류)</em> 지역은 7일 연속 상승 국면으로 집중 방역이 필요한 상황임.
-        </p>
-        <p class="admin-para">
-          이상 발생 감지(Anomaly) 결과 <em>관측소 B (저수지) 전일 대비 38% 급증</em>이 탐지되었으며, AI 예측 시스템은 내일 이후 <em>위험지수 75점 이상</em>의 고위험 조건이 지속될 것으로 예측함.
-        </p>
-        <p class="admin-para">
-          본 보건소는 야간 연무를 실시하지 않으므로, <span class="teal">익일 오전 06시~10시 유충 방제</span>를 관측소 B (저수지)·관측소 H (하천중류)·관측소 E (하천둔치) 순으로 실시하고, <span style="color:var(--orange);font-weight:700">관측소 I (도심공원) 장비 현장 점검을 병행</span>하기 바람.
-        </p>
-        <p class="admin-para">
-          3일 예보상 8월 18일 강수 후 급증 가능성이 있으므로, <span class="purple">8월 17일 사전 유충 방제</span>를 추가 검토하기 바람.
-        </p>
+    <!-- 실행 버튼 + 요약 -->
+    <div class="card mb16" style="padding:14px 16px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="dl-btn dl-btn-html" id="aj-run" onclick="buildAdminJudgment(true)" style="padding:8px 18px;font-size:13px;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M4 4l1.5 1.5M10.5 10.5L12 12M4 12l1.5-1.5M10.5 5.5L12 4"/></svg>
+          AI 분석 실행
+        </button>
+        <span style="font-size:11px;color:var(--gray4)">캐시 5분 · 강제 재실행은 버튼 재클릭</span>
+        <div id="aj-kpi" style="margin-left:auto;font-size:11px;color:var(--gray5)"></div>
       </div>
-      <div class="admin-footer">
-        장비: 관측소 I (도심공원) 오프라인 / 관측소 D (생태공원) 점검 필요 &nbsp;|&nbsp;
-        건의: 관측소 B (저수지) 하수구 정비 &nbsp;|&nbsp;
-        대시보드: moscom.com
+    </div>
+
+    <!-- 보고서 본문 -->
+    <div class="admin-box mb24" id="aj-box" style="display:none">
+      <div class="admin-head" id="aj-head">행정 판단 — </div>
+      <div class="admin-body" id="aj-body">
+        <p class="admin-para" style="color:var(--gray4)">AI 분석 실행 버튼을 누르면 보고서가 생성됩니다.</p>
       </div>
+      <div class="admin-footer" id="aj-footer"></div>
     </div>
 
     <div class="card" style="padding:14px 16px">
-      <div style="display:flex;gap:20px;font-size:12px;color:var(--gray5)">
-        <div><span style="color:var(--gray4)">작성:</span> <strong>홍 길 동</strong></div>
-        <div><span style="color:var(--gray4)">검토:</span> <strong>김 담당</strong></div>
-        <div><span style="color:var(--gray4)">결재:</span> <strong>이 과장</strong></div>
-        <div style="margin-left:auto"><span style="color:var(--gray4)">생성:</span> 모스콤 AI 자동 생성 · 2025-08-15 05:10</div>
+      <div style="display:flex;gap:20px;font-size:12px;color:var(--gray5);flex-wrap:wrap">
+        <div><span style="color:var(--gray4)">작성자:</span> <strong id="aj-author">-</strong></div>
+        <div><span style="color:var(--gray4)">검토:</span> <strong>(서명란)</strong></div>
+        <div><span style="color:var(--gray4)">결재:</span> <strong>(서명란)</strong></div>
+        <div style="margin-left:auto"><span style="color:var(--gray4)">생성 시각:</span> <span id="aj-gen">-</span></div>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;padding:10px 14px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
+      <strong style="color:var(--yellow)">AI 생성 안내</strong> ·
+      이 보고서는 OpenAI GPT-4o-mini 모델이 MOSCOM 실측 데이터와 방역 계획을 바탕으로 생성한 초안입니다.
+      최종 결재 전 담당자 검토 후 사용하십시오.
     </div>
   </div>
 
@@ -3538,6 +3548,72 @@ async function buildEquipment() {
   }
 }
 
+// ── 행정 판단 (OpenAI GPT 연동) ──────────────────────────
+let AJ_LOADED = false;
+
+async function buildAdminJudgment(force) {
+  const btn = document.getElementById('aj-run');
+  const box = document.getElementById('aj-box');
+  const kpiEl = document.getElementById('aj-kpi');
+  const head = document.getElementById('aj-head');
+  const body = document.getElementById('aj-body');
+  const footer = document.getElementById('aj-footer');
+  const gen = document.getElementById('aj-gen');
+  const author = document.getElementById('aj-author');
+
+  if (btn) { btn.disabled = true; btn.textContent = '분석 중…'; }
+  if (body) body.innerHTML = '<p class="admin-para" style="color:var(--gray4)">AI가 데이터를 종합하고 있습니다. 약 3~8초 소요됩니다…</p>';
+  if (box) box.style.display = 'block';
+
+  try {
+    const url = '/mosquito-test/api/admin-judgment/' + (force ? '?refresh=1' : '');
+    const res = await fetch(url, { credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+
+    const s = json.summary || {};
+    if (kpiEl) kpiEl.textContent =
+      `전체 ${s.total_devices}대 · 포집 ${s.today_total}(전일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) · 이상 ${s.anomaly_count}건 · 오프라인 ${s.offline_count}대 · 방역 ${s.plan_count}건`;
+
+    const genKst = (json.generated_at || '').slice(0, 16).replace('T', ' ');
+    const dateLabel = (json.generated_at || '').slice(0, 10);
+    if (head) head.textContent = `행정 판단 보고 — ${dateLabel}`;
+    if (gen) gen.textContent = genKst;
+    if (author) author.textContent = (json.author && json.author.login_id) ? json.author.login_id : '-';
+
+    // 보고서 본문 렌더 (섹션 ■ 기호 기준)
+    const text = (json.report_text || '').trim();
+    if (text) {
+      const lines = text.split('\n');
+      const html = lines.map(line => {
+        const t = line.trim();
+        if (!t) return '';
+        if (t.startsWith('■')) {
+          return `<p class="admin-para" style="font-weight:700;color:var(--navy);margin-top:14px">${escapeHtml(t)}</p>`;
+        }
+        if (t.startsWith('-') || t.startsWith('·') || t.startsWith('*')) {
+          return `<p class="admin-para" style="margin-left:14px;margin-top:4px">${escapeHtml(t)}</p>`;
+        }
+        return `<p class="admin-para">${escapeHtml(t)}</p>`;
+      }).join('');
+      body.innerHTML = html || `<p class="admin-para">보고서 내용 없음</p>`;
+    } else {
+      body.innerHTML = `<p class="admin-para" style="color:var(--gray4)">AI 응답 비어 있음</p>`;
+    }
+
+    footer.textContent = `모델: ${json.source || 'unknown'} · 대시보드: saerong.com/mosquito-test/`;
+    AJ_LOADED = true;
+  } catch (err) {
+    body.innerHTML = `<p class="admin-para" style="color:var(--red)">AI 분석 실패: ${escapeHtml(err.message)}</p>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M4 4l1.5 1.5M10.5 10.5L12 12M4 12l1.5-1.5M10.5 5.5L12 4"/></svg> AI 분석 실행`; }
+  }
+}
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 // ── 페이지 전환 ──────────────────────────────────────────
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
@@ -3559,6 +3635,8 @@ function showPage(name){
   if (name === 'predict' && typeof buildPredict === 'function') buildPredict();
   // AI 예보 탭: 데이터 없으면 첫 실행
   if (name === 'forecast' && typeof buildForecast === 'function' && !FC_STATE.data) buildForecast();
+  // 행정 판단: 첫 방문 시 한 번 실행
+  if (name === 'admin' && typeof buildAdminJudgment === 'function' && !AJ_LOADED) buildAdminJudgment(false);
   // 모스콤 관리자: 탭 진입 시 데이터 로드
   if (name === 'moscom_admin' && typeof maLoad === 'function') maLoad();
 }
