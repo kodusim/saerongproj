@@ -322,6 +322,237 @@ def moscom_daily(request):
         return JsonResponse({'error': str(e)}, status=502)
 
 
+def _valid_kor(s):
+    """한글/영문/숫자/공백만 포함한 정상 문자열인지 (깨진 주소 필터링)"""
+    if not s or len(s) > 60:
+        return False
+    return any('\uac00' <= c <= '\ud7a3' or c.isalnum() or c == ' ' for c in s) and not any('\ud800' <= c <= '\udfff' or c == '\ufffd' for c in s)
+
+
+@require_GET
+def moscom_complaint_risk(request):
+    """민원 가능 지역 위험 점수 산출 (4축 가중합)
+    위험 점수: 절대 포집량 40% + 증가율 25% + 추세 20% + 전국 대비 15%
+    민원 점수: 체감 포집량 35% + 급증 신호 25% + 야간 피크 25% + 주거지 인접 15%
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+    try:
+        # 1) 장비 메타
+        devices = moscom_client.list_devices()
+        meta = {}
+        for d in devices:
+            u = d.get('device_uuid')
+            dv = d.get('device') or {}
+            name = (dv.get('device_name') or '').strip() or u
+            sido = (dv.get('address_sido') or '').strip()
+            gungu = (dv.get('address_gungu') or '').strip()
+            dong = (dv.get('address_dong') or '').strip()
+            detail = (dv.get('address_detail') or '').strip()
+            bad_min = ((dv.get('deviceSetting') or {}).get('bad_min')) or 100
+            meta[u] = {
+                'name': name,
+                'sido': sido if _valid_kor(sido) else '',
+                'gungu': gungu if _valid_kor(gungu) else '',
+                'dong': dong if _valid_kor(dong) else '',
+                'detail': detail if _valid_kor(detail) else '',
+                'bad_min': bad_min,
+            }
+
+        # 2) 7일 통계 (장비별 일별 포집량)
+        stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+        daily = defaultdict(lambda: defaultdict(int))
+        dates_set = set()
+        for r in (stats or []):
+            u = r.get('device_uuid')
+            date = (r.get('created_date') or '')[:10]
+            if not u or not date or u not in meta:
+                continue
+            daily[u][date] += (r.get('mosquito_count') or 0)
+            dates_set.add(date)
+        all_dates = sorted(dates_set)
+        today = all_dates[-1] if all_dates else ''
+        yday = all_dates[-2] if len(all_dates) >= 2 else ''
+        week_dates = all_dates[-7:]
+
+        # 3) 최근 48h raw 데이터 → 장비별 야간 피크 비율
+        now = datetime.now(timezone.utc)
+        start_iso = (now - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        end_iso = now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        raw = moscom_client.get_statistics_by_date(start_dt=start_iso, end_dt=end_iso, aggregation='raw', device_uuid='0')
+        per_dev_hour = defaultdict(lambda: [None] * 24)
+        for r in (raw or []):
+            u = r.get('device_uuid')
+            if u not in meta:
+                continue
+            iso = r.get('created_date') or ''
+            try:
+                utc_h = int(iso[11:13])
+            except Exception:
+                continue
+            kst_h = (utc_h + 9) % 24
+            cnt = r.get('mosquito_count') or 0
+            cur = per_dev_hour[u][kst_h]
+            if cur is None or cnt > cur:
+                per_dev_hour[u][kst_h] = cnt
+        dev_night_ratio = {}
+        for u, hr in per_dev_hour.items():
+            deltas = [0] * 24
+            prev = 0
+            for h in range(24):
+                v = hr[h]
+                if v is None:
+                    continue
+                d = v - prev
+                deltas[h] = d if d > 0 else 0
+                prev = v
+            night = sum(deltas[19:24])
+            total = sum(deltas)
+            dev_night_ratio[u] = (night / total) if total > 0 else 0.0
+
+        # 4) 오늘 백분위
+        today_counts = sorted([daily[u].get(today, 0) for u in meta.keys()], reverse=True)
+        n = len(today_counts)
+        def percentile_rank(v):
+            if n <= 1:
+                return 100
+            above = sum(1 for x in today_counts if x < v)
+            return round((above / (n - 1)) * 100)
+
+        # 5) 주거지 키워드
+        residential_keywords = ['공원', '아파트', '주거', '학교', '초등', '중학', '고등', '어린이집', '유치원']
+        def residential_hit(m):
+            txt = ' '.join([m['sido'], m['gungu'], m['dong'], m['detail'], m['name']])
+            return any(k in txt for k in residential_keywords)
+
+        # 6) 장비별 점수 계산
+        results = []
+        for u, m in meta.items():
+            today_cnt = daily[u].get(today, 0) if today else 0
+            yday_cnt = daily[u].get(yday, 0) if yday else 0
+            week_vals = [daily[u].get(d, 0) for d in week_dates]
+            week_avg = sum(week_vals) / len(week_vals) if week_vals else 0
+
+            axis1 = min(100, (today_cnt / m['bad_min']) * 100) if m['bad_min'] > 0 else 0
+            if yday_cnt > 0:
+                axis2 = max(0, min(100, (today_cnt - yday_cnt) / yday_cnt * 100))
+            else:
+                axis2 = 50 if today_cnt > 0 else 0
+            if len(week_vals) >= 4:
+                half = len(week_vals) // 2
+                fh = sum(week_vals[:half]) / half if half > 0 else 0
+                lh = sum(week_vals[half:]) / (len(week_vals) - half)
+                if fh > 0:
+                    tr = (lh - fh) / fh * 100
+                    axis3 = max(0, min(100, (tr / 30) * 100))
+                else:
+                    axis3 = 50 if lh > 0 else 0
+            else:
+                axis3 = 0
+            axis4 = percentile_rank(today_cnt)
+
+            risk_score = round(axis1 * 0.40 + axis2 * 0.25 + axis3 * 0.20 + axis4 * 0.15, 1)
+            if risk_score <= 20: risk_level = '안전'
+            elif risk_score <= 40: risk_level = '관심'
+            elif risk_score <= 60: risk_level = '주의'
+            elif risk_score <= 80: risk_level = '경고'
+            else: risk_level = '심각'
+
+            night_ratio = dev_night_ratio.get(u, 0.0)
+            axis_felt = axis1
+            axis_surge = axis2
+            axis_night = min(100, (night_ratio / 0.6) * 100) if night_ratio else 0
+            resi_hit = residential_hit(m)
+            axis_resi = 80 if resi_hit else 20
+
+            complaint_score = round(
+                axis_felt * 0.35 + axis_surge * 0.25 + axis_night * 0.25 + axis_resi * 0.15, 1
+            )
+            if complaint_score <= 30: complaint_level = '낮음'
+            elif complaint_score <= 60: complaint_level = '보통'
+            else: complaint_level = '높음'
+
+            # 주요 원인 (민원 기여도 상위 2개)
+            axes_complaint = [
+                ('체감 포집량', axis_felt, f'기준치(bad_min {m["bad_min"]}) 대비 {round(today_cnt / max(m["bad_min"],1) * 100)}%'),
+                ('급증 신호', axis_surge, f'어제 {yday_cnt}마리 → 오늘 {today_cnt}마리'),
+                ('야간 피크', axis_night, f'19~23시 비중 {round(night_ratio*100)}%'),
+                ('주거지 인접', axis_resi, '주거지 키워드 매칭' if resi_hit else '주거지 키워드 없음'),
+            ]
+            axes_complaint.sort(key=lambda x: x[1], reverse=True)
+            causes = [{'name': a[0], 'score': round(a[1], 1), 'detail': a[2]} for a in axes_complaint[:2]]
+
+            actions = []
+            if complaint_score >= 61:
+                actions.append('긴급 유충 방제 + 주민 사전 안내문 배포')
+            if risk_score >= 61 and axis3 >= 60:
+                actions.append('성충 방제 + 24시간 모니터링')
+            if axis_night >= 60:
+                actions.append('19~23시 집중 방제')
+            if not actions:
+                actions.append('정기 예찰 유지')
+
+            region = ' '.join(p for p in [m['sido'], m['gungu']] if p) or '기타'
+
+            results.append({
+                'uuid': u,
+                'name': m['name'],
+                'region': region,
+                'address': ' '.join(p for p in [m['gungu'], m['dong'], m['detail']] if p),
+                'bad_min': m['bad_min'],
+                'today_count': today_cnt,
+                'yday_count': yday_cnt,
+                'week_avg': round(week_avg, 1),
+                'night_ratio': round(night_ratio, 3),
+                'residential': resi_hit,
+                'risk': {
+                    'score': risk_score, 'level': risk_level,
+                    'axes': {
+                        '절대 포집량': round(axis1, 1),
+                        '증가율': round(axis2, 1),
+                        '추세': round(axis3, 1),
+                        '전국 대비': round(axis4, 1),
+                    },
+                },
+                'complaint': {
+                    'score': complaint_score, 'level': complaint_level,
+                    'axes': {
+                        '체감 포집량': round(axis_felt, 1),
+                        '급증 신호': round(axis_surge, 1),
+                        '야간 피크': round(axis_night, 1),
+                        '주거지 인접': round(axis_resi, 1),
+                    },
+                },
+                'causes': causes,
+                'actions': actions,
+            })
+
+        results.sort(key=lambda r: (r['complaint']['score'], r['risk']['score']), reverse=True)
+
+        return JsonResponse({
+            'count': len(results),
+            'today': today,
+            'criteria': {
+                'risk': {
+                    'weights': {'절대 포집량': 40, '증가율': 25, '추세': 20, '전국 대비': 15},
+                    'levels': {'안전': '0~20', '관심': '21~40', '주의': '41~60', '경고': '61~80', '심각': '81~100'},
+                },
+                'complaint': {
+                    'weights': {'체감 포집량': 35, '급증 신호': 25, '야간 피크': 25, '주거지 인접': 15},
+                    'levels': {'낮음': '0~30', '보통': '31~60', '높음': '61~100'},
+                    'residential_keywords': residential_keywords,
+                },
+            },
+            'items': results,
+        }, safe=False)
+    except Exception as e:
+        logger.exception('complaint_risk failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 @require_GET
 def moscom_predict(request):
     """AI 모기 발생 예측 (내일~3일 후, 장비 52개 전체)
