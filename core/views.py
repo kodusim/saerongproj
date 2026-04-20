@@ -291,7 +291,7 @@ def moscom_users_api(request):
         return JsonResponse({'users': user_store.list_users()})
     # 본문 파싱 (POST/PUT/DELETE)
     try:
-        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
     except _json.JSONDecodeError:
         body = {}
     if request.method == 'POST':
@@ -339,7 +339,7 @@ def moscom_remedy_api(request):
         plans = remedy_store.list_plans(visible_uuids=visible)
         return JsonResponse({'plans': plans, 'methods': remedy_store.list_methods()})
     try:
-        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
     except _json.JSONDecodeError:
         body = {}
     if request.method == 'POST':
@@ -373,7 +373,7 @@ def moscom_remedy_detail_api(request, plan_id):
     if visible is not None and plan.get('device_uuid') not in visible:
         return JsonResponse({'error': '권한 없음'}, status=403)
     try:
-        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
     except _json.JSONDecodeError:
         body = {}
     try:
@@ -397,7 +397,7 @@ def moscom_user_detail_api(request, login_id):
     if admin_err:
         return admin_err
     try:
-        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
     except _json.JSONDecodeError:
         body = {}
     try:
