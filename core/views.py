@@ -1716,6 +1716,10 @@ def moscom_predict(request):
             if date:
                 hist_by_uuid[u].append({'date': date, 'count': r.get('mosquito_count') or 0})
 
+        # 히스토리는 오름차순(과거 → 최신)으로 정렬: 차트와 lag 계산에 필요
+        for u in hist_by_uuid:
+            hist_by_uuid[u].sort(key=lambda h: h['date'])
+
         # 예측 대상 입력
         inputs = []
         for u, m in meta.items():
