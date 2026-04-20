@@ -307,6 +307,173 @@ def moscom_users_api(request):
     return JsonResponse({'error': 'method not allowed'}, status=405)
 
 
+@require_GET
+def moscom_equipment_health(request):
+    """장비 신뢰도 점수화 (4축)
+    - 배터리: 현재 battery%
+    - 팬 작동: fan (1=정상, 0=정지)
+    - 수신 지연: 현재 시각 - updated_date (분)
+    - 포집 0 지속: 최근 3일간 mosquito_count 모두 0
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+    try:
+        now = datetime.now(timezone.utc)
+        devices = moscom_client.list_devices()
+        devices = user_store.filter_devices(_current_session_user(request), devices)
+
+        # 최근 3일 일별 통계
+        stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+        daily = defaultdict(lambda: defaultdict(int))
+        for r in (stats or []):
+            u = r.get('device_uuid')
+            date = (r.get('created_date') or '')[:10]
+            if u and date:
+                daily[u][date] += (r.get('mosquito_count') or 0)
+
+        def parse_iso(s):
+            if not s:
+                return None
+            try:
+                s2 = s.replace('Z', '+00:00')
+                return datetime.fromisoformat(s2)
+            except Exception:
+                return None
+
+        results = []
+        for d in devices:
+            u = d.get('device_uuid')
+            dv = d.get('device') or {}
+            name = (dv.get('device_name') or '').strip() or u
+            battery = dv.get('battery') or 0
+            fan = dv.get('fan') or 0
+            charge = dv.get('charge') or 0
+            updated = parse_iso(dv.get('updated_date'))
+
+            # 축 1: 배터리 (0~100점)
+            if battery >= 50: axis_battery = 100
+            elif battery >= 30: axis_battery = 80
+            elif battery >= 20: axis_battery = 60
+            elif battery >= 10: axis_battery = 35
+            else: axis_battery = 10
+            # 축 2: 팬
+            axis_fan = 100 if fan == 1 else 30
+
+            # 축 3: 수신 지연
+            if updated:
+                delay_min = (now - updated).total_seconds() / 60
+            else:
+                delay_min = 99999
+            if delay_min <= 120: axis_signal = 100     # 2h 이내
+            elif delay_min <= 360: axis_signal = 80    # 6h
+            elif delay_min <= 720: axis_signal = 55    # 12h
+            elif delay_min <= 1440: axis_signal = 30   # 24h
+            else: axis_signal = 5                      # 24h 초과
+
+            # 축 4: 포집 0 지속 — 최근 3일치 합
+            dev_daily = daily.get(u, {})
+            recent_vals = list(dev_daily.values())
+            total3 = sum(recent_vals[-3:]) if recent_vals else 0
+            if len(recent_vals) >= 3 and total3 == 0:
+                axis_zero = 40  # 3일 내내 0 → 센서 의심
+            elif total3 == 0:
+                axis_zero = 65  # 데이터 부족
+            else:
+                axis_zero = 100
+
+            # 가중치: 배터리 25 / 팬 20 / 수신 35 / 포집0 20
+            trust_score = round(
+                axis_battery * 0.25 + axis_fan * 0.20 + axis_signal * 0.35 + axis_zero * 0.20, 1
+            )
+
+            # 등급
+            if trust_score >= 85: trust = 'HIGH'
+            elif trust_score >= 60: trust = 'MEDIUM'
+            else: trust = 'LOW'
+
+            # 장비 상태 판정
+            if axis_signal <= 30:
+                status = '오프라인'
+            elif trust_score < 60 or battery < 15 or (fan == 0 and axis_signal >= 55):
+                status = '점검필요'
+            else:
+                status = '정상'
+
+            # 이상 원인 수집
+            issues = []
+            if battery < 20: issues.append(f'배터리 부족 ({battery}%)')
+            if fan == 0: issues.append('팬 정지')
+            if delay_min > 720: issues.append(f'수신 지연 {int(delay_min/60)}시간')
+            elif delay_min > 360: issues.append(f'수신 지연 {int(delay_min/60)}시간')
+            if axis_zero == 40: issues.append('3일 연속 포집 0 (센서 의심)')
+
+            # 조치 안내
+            if status == '오프라인':
+                action = '현장 방문 · 전원·통신 점검'
+            elif battery < 15:
+                action = '배터리 교체 필요'
+            elif fan == 0:
+                action = '팬 점검 · 재기동'
+            elif axis_zero == 40:
+                action = '센서부 청소 점검'
+            elif trust == 'HIGH':
+                action = '정상 운영 중'
+            else:
+                action = '원격 상태 모니터링'
+
+            parts = [dv.get('address_gungu'), dv.get('address_dong')]
+            addr = ' '.join(p for p in parts if p and len(p) < 40 and any('\uac00' <= c <= '\ud7a3' or c.isalnum() or c == ' ' for c in p)).strip()
+
+            results.append({
+                'uuid': u,
+                'name': name,
+                'address': addr,
+                'battery': battery,
+                'fan': fan,
+                'charge': charge,
+                'updated_date': dv.get('updated_date'),
+                'delay_minutes': round(delay_min, 1) if delay_min < 99999 else None,
+                'status': status,
+                'trust': trust,
+                'trust_score': trust_score,
+                'axes': {
+                    '배터리': axis_battery,
+                    '팬': axis_fan,
+                    '수신': axis_signal,
+                    '포집': axis_zero,
+                },
+                'issues': issues,
+                'action': action,
+            })
+
+        results.sort(key=lambda r: (r['trust_score'], r['delay_minutes'] or 0))
+
+        # 집계
+        summary = {
+            'total': len(results),
+            'normal': sum(1 for r in results if r['status'] == '정상'),
+            'check': sum(1 for r in results if r['status'] == '점검필요'),
+            'offline': sum(1 for r in results if r['status'] == '오프라인'),
+            'avg_trust': round(sum(r['trust_score'] for r in results) / len(results), 1) if results else 0,
+        }
+
+        return JsonResponse({
+            'count': len(results),
+            'summary': summary,
+            'criteria': {
+                'weights': {'배터리': 25, '팬': 20, '수신': 35, '포집': 20},
+                'trust': {'HIGH': '≥ 85', 'MEDIUM': '60~84', 'LOW': '< 60'},
+            },
+            'items': results,
+        })
+    except Exception as e:
+        logger.exception('equipment_health failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def _visible_uuids_for(request):
     """세션 사용자의 허용 장비 UUID 집합. admin=None(=전부)."""
     su = _current_session_user(request)

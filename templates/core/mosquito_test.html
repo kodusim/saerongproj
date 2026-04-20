@@ -1552,16 +1552,51 @@ body {
 
   <!-- ══════════ 9. 장비 · 신뢰도 ══════════ -->
   <div class="page" id="page-equipment">
-    <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">데이터 신뢰도 · 장비 상태</div>
-      <div class="sec-sub">우리 지역 평균 91%  |  HIGH ≥ 90% / MEDIUM 70~89% / LOW &lt; 70%</div>
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">데이터 신뢰도 · 장비 상태</div>
+          <div class="sec-sub" id="eq-sub">4축 가중합(배터리·팬·수신·포집) · MOSCOM 실측</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>실시간 장비 진단</div>
     </div>
-    <div class="card mb16" style="padding:12px 16px;background:var(--green-l);border-color:#A5D6A7">
-      <span style="font-size:13px;font-weight:700;color:var(--green)">지역 평균 신뢰도: 91%</span>
-      <span style="font-size:12px;color:var(--gray5);margin-left:12px">정상 장비 8개소 / 이상 장비 2개소 (오프라인 1, 점검 1)</span>
+
+    <!-- 요약 카드 -->
+    <div class="kpi-grid mb16" id="eq-summary"></div>
+
+    <!-- 판정 기준 -->
+    <div class="cp-criteria-card mb16">
+      <h4>📐 신뢰도 산출 기준 (가중 합산)</h4>
+      <div class="cp-formula">
+        trust_score = 배터리 × 25% + 팬 × 20% + 수신 × 35% + 포집 × 20%
+      </div>
+      <div style="font-size:10px;color:var(--gray5);line-height:1.6;margin-bottom:6px">
+        · <strong>배터리</strong>: 50%+=100점 · 30%+=80 · 20%+=60 · 10%+=35 · 그 이하=10<br>
+        · <strong>팬</strong>: on=100 / off=30<br>
+        · <strong>수신</strong>: 2h이내=100 · 6h=80 · 12h=55 · 24h=30 · 초과=5<br>
+        · <strong>포집</strong>: 정상=100 · 3일 연속 0=40 (센서 의심)
+      </div>
+      <div class="cp-levels">
+        <span class="cp-lv" style="background:#E8F5E9;color:#1B5E20">HIGH ≥ 85</span>
+        <span class="cp-lv" style="background:#FFF3E0;color:#E65100">MEDIUM 60~84</span>
+        <span class="cp-lv" style="background:#FDECEA;color:#B71C1C">LOW &lt; 60</span>
+      </div>
     </div>
-    <div class="card">
-      <table class="data-table" id="equipment-table"></table>
+
+    <!-- 즉시 조치 필요 알림 (오프라인/배터리 10% 미만) -->
+    <div id="eq-alerts"></div>
+
+    <!-- 전체 표 -->
+    <div class="card mb16">
+      <div class="sec-header" style="margin-bottom:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">전 장비 상세</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="equipment-table"></table>
+      </div>
     </div>
   </div>
 
@@ -3394,34 +3429,113 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ── 장비 신뢰도 ──────────────────────────────────────────
-function buildEquipment(){
-  const t=document.getElementById("equipment-table");
-  t.innerHTML=`<thead><tr><th>번호</th><th>관측소</th><th>장비 상태</th><th>신뢰도</th><th>점수</th><th>최종 수신</th><th>수집</th><th>이상 원인 / 조치</th></tr></thead>
-  <tbody>${STATIONS.map(s=>{
-    const tc=s.trust==="HIGH"?"var(--green)":s.trust==="MEDIUM"?"var(--orange)":"var(--red)";
-    const action=s.equip==="오프라인"?"★ 현장 방문 즉시":s.equip==="점검필요"?"원격 점검 · 재기동":s.trustNote;
-    const isOk=s.equip==="정상";
-    const barW=s.trustScore>0?s.trustScore:0;
-    const barCls=s.trust==="HIGH"?"trust-hi":s.trust==="MEDIUM"?"trust-mid":"trust-lo";
-    return `<tr>
-      <td style="font-family:var(--mono);color:var(--gray4)">${s.id}</td>
-      <td><strong>${s.name}</strong></td>
-      <td><span class="badge ${EQUIP_BADGE[s.equip]||'badge-unknown'}">${s.equip}</span></td>
-      <td style="color:${tc};font-weight:700">${s.trust}</td>
-      <td>
-        <div class="trust-bar-wrap">
-          <div class="trust-bar-bg"><div class="trust-bar-fill ${barCls}" style="width:${barW}%"></div></div>
-          <span class="trust-val" style="color:${tc}">${s.trustScore>0?s.trustScore+"%":"-"}</span>
+// ── 장비 신뢰도 (실제 MOSCOM 데이터, 4축) ──────────────
+const EQ_STATE = { data: null };
+
+function eqTrustColor(trust) {
+  if (trust === 'HIGH') return 'var(--green)';
+  if (trust === 'MEDIUM') return 'var(--orange)';
+  return 'var(--red)';
+}
+function eqTrustBarCls(trust) {
+  if (trust === 'HIGH') return 'trust-hi';
+  if (trust === 'MEDIUM') return 'trust-mid';
+  return 'trust-lo';
+}
+function eqStatusBadge(status) {
+  if (status === '정상') return 'badge-ok';
+  if (status === '점검필요') return 'badge-check';
+  return 'badge-offline';
+}
+function eqFormatDelay(min) {
+  if (min === null || min === undefined) return '-';
+  if (min < 60) return Math.round(min) + '분';
+  if (min < 1440) return (min/60).toFixed(1) + '시간';
+  return Math.round(min/1440) + '일';
+}
+
+async function buildEquipment() {
+  try {
+    const res = await fetch('/mosquito-test/api/equipment-health/', { credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    EQ_STATE.data = json;
+
+    const sub = document.getElementById('eq-sub');
+    if (sub) sub.textContent = `${json.count}개 장비 · 평균 신뢰도 ${json.summary.avg_trust}%`;
+
+    // 요약 KPI
+    const s = json.summary;
+    document.getElementById('eq-summary').innerHTML = `
+      <div class="kpi-card navy"><div class="kpi-label">평균 신뢰도</div><div class="kpi-value val-navy">${s.avg_trust}<span style="font-size:14px">%</span></div><div class="kpi-sub">전체 장비</div></div>
+      <div class="kpi-card green"><div class="kpi-label">정상 장비</div><div class="kpi-value val-green">${s.normal}</div><div class="kpi-sub">/ ${s.total}개</div></div>
+      <div class="kpi-card orange"><div class="kpi-label">점검 필요</div><div class="kpi-value val-orange">${s.check}</div><div class="kpi-sub">원격 점검 권장</div></div>
+      <div class="kpi-card red"><div class="kpi-label">오프라인</div><div class="kpi-value val-red">${s.offline}</div><div class="kpi-sub">현장 방문 필요</div></div>
+    `;
+
+    // 알림 (오프라인 또는 배터리 < 10%)
+    const urgent = json.items.filter(it => it.status === '오프라인' || (it.battery || 100) < 10);
+    const alertBox = document.getElementById('eq-alerts');
+    if (urgent.length === 0) {
+      alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--green-l);border-color:#8fcfa6">
+        <div class="anomaly-icon" style="color:var(--green)">✓</div>
+        <div><div class="anomaly-title" style="color:var(--green)">즉시 조치 대상 없음</div>
+        <div class="anomaly-body" style="color:var(--gray5)">오프라인 장비 및 배터리 10% 미만 장비가 없습니다.</div></div>
+      </div>`;
+    } else {
+      alertBox.innerHTML = urgent.slice(0, 3).map(it => `
+        <div class="anomaly-alert">
+          <div class="anomaly-icon">⚠</div>
+          <div>
+            <div class="anomaly-title">${it.status} — ${it.name}</div>
+            <div class="anomaly-body">
+              ${it.address ? it.address + ' · ' : ''}${(it.issues || []).join(' · ') || ''}<br>
+              <strong>조치</strong>: ${it.action}
+            </div>
+          </div>
         </div>
-      </td>
-      <td style="font-family:var(--mono);font-size:11px;color:${isOk?"var(--gray5)":"var(--red)"}">${s.lastSync}</td>
-      <td style="font-family:var(--mono);${s.collectCnt<11?"color:var(--red);font-weight:700":""}">${s.collectCnt}/11</td>
-      <td style="font-size:11px;color:${isOk?"var(--gray5)":"var(--red)"};${!isOk?"font-weight:600":""}">
-        ${action}
-      </td>
-    </tr>`;
-  }).join('')}</tbody>`;
+      `).join('');
+    }
+
+    // 상세 표
+    const t = document.getElementById('equipment-table');
+    t.innerHTML = `<thead><tr>
+        <th>장비</th><th>상태</th><th>신뢰도</th><th>점수</th>
+        <th>배터리</th><th>팬</th><th>수신 지연</th><th>포집</th>
+        <th>최종 수신</th><th>이상 / 조치</th>
+      </tr></thead>
+      <tbody>${json.items.map(it => {
+        const tc = eqTrustColor(it.trust);
+        const axes = it.axes || {};
+        const issues = (it.issues || []).length ? (it.issues.join(' · ')) : '-';
+        const isOk = it.status === '정상';
+        return `<tr>
+          <td>
+            <strong>${it.name}</strong>
+            ${it.address ? `<div style="font-size:10px;color:var(--gray4)">${it.address}</div>` : ''}
+          </td>
+          <td><span class="badge ${eqStatusBadge(it.status)}">${it.status}</span></td>
+          <td style="color:${tc};font-weight:700">${it.trust}</td>
+          <td>
+            <div class="trust-bar-wrap">
+              <div class="trust-bar-bg"><div class="trust-bar-fill ${eqTrustBarCls(it.trust)}" style="width:${it.trust_score}%"></div></div>
+              <span class="trust-val" style="color:${tc}">${it.trust_score}</span>
+            </div>
+          </td>
+          <td style="font-family:var(--mono);color:${(it.battery || 0) < 20 ? 'var(--red);font-weight:700' : 'var(--gray6)'}">${it.battery || 0}%</td>
+          <td>${it.fan === 1 ? '<span style="color:var(--green)">▶ ON</span>' : '<span style="color:var(--red);font-weight:700">■ OFF</span>'}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:${(it.delay_minutes || 0) > 720 ? 'var(--red)' : 'var(--gray5)'}">${eqFormatDelay(it.delay_minutes)}</td>
+          <td style="font-family:var(--mono);color:${axes['포집'] === 40 ? 'var(--red);font-weight:700' : 'var(--gray5)'}">${axes['포집']}</td>
+          <td style="font-family:var(--mono);font-size:10px;color:${isOk ? 'var(--gray5)' : 'var(--red)'}">${(it.updated_date || '-').slice(0, 16).replace('T', ' ')}</td>
+          <td style="font-size:11px;color:${isOk ? 'var(--gray5)' : 'var(--red)'};${isOk ? '' : 'font-weight:600'}">
+            <div>${issues}</div>
+            <div style="color:var(--teal);margin-top:2px">→ ${it.action}</div>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>`;
+  } catch (err) {
+    document.getElementById('equipment-table').innerHTML = `<thead><tr><th colspan="10" style="text-align:center;color:var(--red);padding:18px">로드 실패: ${err.message}</th></tr></thead>`;
+  }
 }
 
 // ── 페이지 전환 ──────────────────────────────────────────

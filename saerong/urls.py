@@ -9,6 +9,7 @@ from core.views import (
     moscom_daily, moscom_predict, moscom_complaint_risk,
     mosquito_logout, moscom_my_devices, moscom_users_api, moscom_user_detail_api,
     moscom_remedy_methods, moscom_remedy_api, moscom_remedy_detail_api,
+    moscom_equipment_health,
 )
 from django.views.decorators.csrf import csrf_exempt
 
@@ -31,6 +32,7 @@ urlpatterns = [
     path("mosquito-test/api/remedy/methods/", moscom_remedy_methods, name="moscom_remedy_methods"),
     path("mosquito-test/api/remedy/", csrf_exempt(moscom_remedy_api), name="moscom_remedy_api"),
     path("mosquito-test/api/remedy/<str:plan_id>/", csrf_exempt(moscom_remedy_detail_api), name="moscom_remedy_detail_api"),
+    path("mosquito-test/api/equipment-health/", moscom_equipment_health, name="moscom_equipment_health"),
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터
