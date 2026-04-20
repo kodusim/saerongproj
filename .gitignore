@@ -14,3 +14,4 @@ game_honey_alarm/mtls/
 *.crt
 *.pem
 core/mosquito_users.json
+core/remedy_plans.json

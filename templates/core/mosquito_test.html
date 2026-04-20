@@ -778,6 +778,74 @@ body {
 .ma-sm-btn.danger { border-color: #e8b0b0; color: var(--red); }
 .ma-sm-btn:hover { background: var(--gray1); }
 .ma-sm-btn.danger:hover { background: var(--red-l); }
+
+/* ── 방역 계획 탭 전용 ── */
+.rm-layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+@media (max-width: 1100px) { .rm-layout { grid-template-columns: 1fr; } }
+.rm-form-card, .rm-list-card {
+  background: #fff; border: 1px solid var(--gray2); border-radius: 10px; padding: 18px;
+}
+.rm-form-card h4, .rm-list-card h4 {
+  font-size: 13px; font-weight: 700; color: var(--navy);
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--navy-l);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.rm-field { margin-bottom: 12px; }
+.rm-field label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--gray5); margin-bottom: 4px;
+}
+.rm-field select, .rm-field input, .rm-field textarea {
+  width: 100%; padding: 8px 10px; font-size: 12px;
+  border: 1px solid var(--gray3); border-radius: 6px;
+  font-family: var(--font); background: #fff;
+}
+.rm-field textarea { resize: vertical; min-height: 40px; }
+
+/* 방역 방법 카드 */
+.rm-method-info {
+  font-size: 11px; background: var(--navy-l); border-radius: 6px;
+  padding: 8px 10px; color: var(--navy); margin-top: 4px; line-height: 1.5;
+}
+.rm-method-info .mi-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.rm-method-info .mi-row strong { font-family: var(--mono); }
+
+/* 리스트 카드 */
+.rm-plan-row {
+  border: 1px solid var(--gray2); border-radius: 8px; padding: 12px 14px;
+  margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 12px;
+  align-items: center; transition: box-shadow .15s;
+}
+.rm-plan-row:hover { box-shadow: var(--shadow); }
+.rm-plan-row.rm-larva    { border-left: 4px solid var(--teal); }
+.rm-plan-row.rm-adult    { border-left: 4px solid var(--red); }
+.rm-plan-row.rm-habitat  { border-left: 4px solid var(--green); }
+
+.rm-plan-head {
+  font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 2px;
+}
+.rm-plan-meta {
+  font-size: 10px; color: var(--gray4); display: flex; gap: 8px; flex-wrap: wrap;
+}
+.rm-plan-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  background: var(--navy-l); color: var(--navy); font-size: 10px; font-weight: 700;
+}
+.rm-plan-effect {
+  font-size: 10px; color: var(--teal); margin-top: 4px;
+  font-family: var(--mono);
+}
+.rm-plan-note {
+  font-size: 11px; color: var(--gray5); margin-top: 4px; font-style: italic;
+}
+
+/* 상태 색 */
+.rm-status {
+  display: inline-block; padding: 1px 7px; border-radius: 9px;
+  font-size: 9px; font-weight: 700; font-family: var(--mono);
+}
+.rm-status.future  { background: var(--navy-l); color: var(--navy); }
+.rm-status.active  { background: var(--red-l); color: var(--red); }
+.rm-status.expired { background: var(--gray2); color: var(--gray4); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -830,7 +898,7 @@ body {
     <div class="nav-label">방역 관리</div>
     <a class="nav-item" onclick="showPage('remedy')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
-      방역 계획
+      방역 계획 및 AI 추천
     </a>
     <a class="nav-item" onclick="showPage('complaint')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="4"/><path d="M4 13 C4 11 12 11 12 13"/></svg>
@@ -1325,54 +1393,79 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 7. 방역 계획 ══════════ -->
+  <!-- ══════════ 7. 방역 계획 및 AI 추천 ══════════ -->
   <div class="page" id="page-remedy">
-    <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">방역 실시 계획</div>
-      <div class="sec-sub">유충 방제 · 환경 개선 중심</div>
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">방역 계획 및 AI 추천</div>
+          <div class="sec-sub" id="rm-sub">방역 일정 등록 시 AI 예측/예보에 감소 효과가 자동 반영됩니다</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>방역 효과 ↔ 예측 연동</div>
     </div>
 
-    <div class="remedy-mode-bar">
-      본 보건소 방역 방식: <strong>야간 연무 미실시 — 유충 방제 · 포그 · 환경 개선 중심</strong>
-      <span>| 익일 오전 유충 방제 및 환경 개선으로 대응</span>
+    <div class="rm-layout">
+      <!-- 왼쪽: 등록/수정 폼 -->
+      <div class="rm-form-card">
+        <h4 id="rm-form-title">새 방역 계획 등록</h4>
+
+        <div class="rm-field">
+          <label>대상 장비</label>
+          <select id="rm-device">
+            <option value="">— 선택 —</option>
+          </select>
+        </div>
+
+        <div class="rm-field">
+          <label>방역 방법</label>
+          <select id="rm-method">
+            <option value="">— 선택 —</option>
+          </select>
+          <div id="rm-method-info" class="rm-method-info" style="display:none"></div>
+        </div>
+
+        <div class="rm-field">
+          <label>예정일 (KST)</label>
+          <input type="date" id="rm-date">
+        </div>
+
+        <div class="rm-field">
+          <label>비고 (선택)</label>
+          <textarea id="rm-note" maxlength="200" placeholder="현장 특이사항 등 (최대 200자)"></textarea>
+        </div>
+
+        <button class="ma-primary-btn" id="rm-save-btn" onclick="rmSubmit()">방역 계획 등록</button>
+        <button class="ma-sm-btn" id="rm-cancel-btn" style="width:100%;margin-top:6px;display:none" onclick="rmCancelEdit()">취소</button>
+        <div id="rm-msg"></div>
+      </div>
+
+      <!-- 오른쪽: 계획 목록 -->
+      <div class="rm-list-card">
+        <h4>
+          <span>등록된 방역 계획</span>
+          <span style="font-size:11px;color:var(--gray4);font-weight:500" id="rm-count">0건</span>
+        </h4>
+        <div id="rm-list">
+          <div style="color:var(--gray4);font-style:italic;font-size:12px">로딩 중…</div>
+        </div>
+      </div>
     </div>
 
-    <div class="card mb16">
-      <table class="data-table" id="remedy-table"></table>
+    <!-- 방역 방법 표 -->
+    <div class="card" style="margin-top:14px">
+      <div class="sec-header" style="margin-bottom:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">방역 방법별 효과 (AI 예측 반영 기준)</div>
+      </div>
+      <table class="data-table" id="rm-method-table"></table>
     </div>
 
-    <div class="card">
-      <table class="data-table">
-        <thead>
-          <tr><th>방역 방법</th><th>적용 조건</th><th>특징</th><th>본 지자체 적용</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong style="color:var(--teal)">유충 방제 (BTi)</strong></td>
-            <td>서식처(고인물·연못) 직접 처리</td>
-            <td>야간 불필요, 오전 실시, 친환경</td>
-            <td><span class="badge badge-ok">적용</span></td>
-          </tr>
-          <tr>
-            <td><strong style="color:#1565C0">성충 포그</strong></td>
-            <td>성충 집중 발생 시 포그 차량</td>
-            <td>주간 오전 실시 가능</td>
-            <td><span class="badge badge-ok">조건부 적용</span></td>
-          </tr>
-          <tr>
-            <td><strong style="color:var(--green)">환경 개선</strong></td>
-            <td>웅덩이 제거·배수 정비</td>
-            <td>근본적 발생 억제, 가장 효과적</td>
-            <td><span class="badge badge-ok">적용</span></td>
-          </tr>
-          <tr>
-            <td><strong style="color:var(--gray4)">야간 연무</strong></td>
-            <td>야간 연무 허용 지자체</td>
-            <td>즉각 효과, 민원 해소</td>
-            <td><span class="badge badge-unknown">미실시</span></td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
+      <strong style="color:var(--yellow)">효과 반영 방식</strong> · 예정일부터 <strong>onset_days</strong> 뒤 효과가 발생하여
+      <strong>duration_days</strong> 동안 지속됩니다. 해당 기간의 AI 예측값에 감소율이 곱해집니다.
+      여러 방역이 겹치면 곱셈으로 누적. 관리자는 전 장비, 일반 사용자는 허용된 장비에 한정됩니다.
     </div>
   </div>
 
@@ -2889,29 +2982,258 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ── 방역 계획 ────────────────────────────────────────────
-const REMEDY_PLAN=[
-  {time:"오전 06:00~09:00",loc:"관측소 B (저수지)",    method:"유충 방제 (BTi 제제 살포)",priority:"긴급",reason:"서식처(방죽 수면) 유충 제거",cond:"일출 후 실시. 수질 영향 최소 BTi."},
-  {time:"오전 07:00~10:00",loc:"관측소 H (하천중류)",  method:"유충 방제 + 웅덩이 제거",priority:"권고",reason:"7일 상승 추세. 정체수역 제거.",cond:"하천변 정체구간 집중."},
-  {time:"오전 중",         loc:"관측소 E (하천둔치)",  method:"유충 방제",                priority:"권고",reason:"지속 발생. 둔치 웅덩이.",cond:"민원 이력 있음. 주민 안내."},
-  {time:"오전 중",         loc:"관측소 A (공원)", method:"유충 방제",                priority:"권고",reason:"주의 등급. 연못 수초대.",cond:"정기 방역 수준."},
-  {time:"금일 중 (긴급)",  loc:"관측소 I (도심공원)",    method:"장비 복구 후 현장 조사",   priority:"긴급",reason:"오프라인 — 발생 현황 미파악.",cond:"장비 복구 후 유충 조사 선행."},
-];
-function buildRemedy(){
-  const t=document.getElementById("remedy-table");
-  t.innerHTML=`<thead><tr><th>실시 시간</th><th>대상 지역</th><th>방역 방법</th><th>우선순위</th><th>실시 이유</th><th>시행 조건</th></tr></thead>
-  <tbody>${REMEDY_PLAN.map((r,i)=>{
-    const pc=r.priority==="긴급"?"var(--red)":"var(--orange)";
+// ── 방역 계획 및 AI 추천 (CRUD + 효과 연동) ────────────
+const RM_STATE = {
+  methods: [],       // 6종 방역 방법
+  plans: [],         // 저장된 계획
+  devices: [],       // 허용된 장비 목록
+  editingId: null,
+};
+
+function rmMsg(text, kind) {
+  const el = document.getElementById('rm-msg');
+  if (!el) return;
+  el.className = 'ma-msg ' + (kind || 'ok');
+  el.textContent = text;
+  if (kind === 'ok') setTimeout(() => { el.textContent = ''; el.className = ''; }, 3000);
+}
+
+function rmTargetClass(target) {
+  return target === '유충' ? 'rm-larva' : target === '성충' ? 'rm-adult' : 'rm-habitat';
+}
+
+function rmStatus(plan, method) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const sched = new Date(plan.scheduled_date);
+  const onset = new Date(sched); onset.setDate(onset.getDate() + method.onset_days);
+  const end = new Date(onset);   end.setDate(end.getDate() + method.duration_days);
+  if (today < onset) return { cls: 'future', label: '예정' };
+  if (today <= end)  return { cls: 'active', label: '효과 중' };
+  return { cls: 'expired', label: '종료' };
+}
+
+function renderRmMethodInfo() {
+  const mk = document.getElementById('rm-method').value;
+  const info = document.getElementById('rm-method-info');
+  if (!mk) { info.style.display = 'none'; return; }
+  const m = RM_STATE.methods.find(x => x.key === mk);
+  if (!m) { info.style.display = 'none'; return; }
+  info.style.display = 'block';
+  info.innerHTML = `
+    <div class="mi-row">
+      <span>🎯 대상: <strong>${m.target}</strong></span>
+      <span>📉 감소율: <strong>${m.reduction_pct}%</strong></span>
+      <span>⏱ 효과 시작: <strong>+${m.onset_days}일</strong></span>
+      <span>📅 지속: <strong>${m.duration_days}일</strong></span>
+    </div>
+    <div style="margin-top:4px;color:var(--gray5)">${m.note}</div>
+  `;
+}
+
+function renderRmMethodTable() {
+  const t = document.getElementById('rm-method-table');
+  if (!t) return;
+  t.innerHTML = `<thead><tr>
+    <th>방역 방법</th><th>대상</th><th>효과 시작</th><th>지속 기간</th><th>감소율</th><th>설명</th>
+  </tr></thead>
+  <tbody>${RM_STATE.methods.map(m => {
+    const cls = rmTargetClass(m.target);
+    const colorStroke = m.target === '유충' ? 'var(--teal)' : m.target === '성충' ? 'var(--red)' : 'var(--green)';
     return `<tr>
-      <td>${r.time}</td>
-      <td><strong>${r.loc}</strong></td>
-      <td style="color:var(--teal);font-weight:700">${r.method}</td>
-      <td style="color:${pc};font-weight:700">${r.priority}</td>
-      <td style="color:var(--gray5);font-size:11px">${r.reason}</td>
-      <td style="color:var(--gray5);font-size:11px">${r.cond}</td>
+      <td><strong style="color:${colorStroke}">${m.name}</strong></td>
+      <td>${m.target}</td>
+      <td style="font-family:var(--mono)">+${m.onset_days}일</td>
+      <td style="font-family:var(--mono)">${m.duration_days}일</td>
+      <td style="font-family:var(--mono);font-weight:700;color:${colorStroke}">-${m.reduction_pct}%</td>
+      <td style="color:var(--gray5);font-size:11px">${m.note}</td>
     </tr>`;
   }).join('')}</tbody>`;
 }
+
+function renderRmDeviceSelect() {
+  const sel = document.getElementById('rm-device');
+  if (!sel) return;
+  sel.innerHTML = `<option value="">— 선택 —</option>` + RM_STATE.devices.map(d => {
+    const dv = d.device || {};
+    const nm = (dv.device_name || '').trim() || d.device_uuid;
+    const addr = [dv.address_gungu, dv.address_dong].filter(Boolean).join(' ').trim();
+    return `<option value="${d.device_uuid}">${nm}${addr ? ' ('+addr+')' : ''}</option>`;
+  }).join('');
+}
+
+function renderRmMethodSelect() {
+  const sel = document.getElementById('rm-method');
+  if (!sel) return;
+  sel.innerHTML = `<option value="">— 선택 —</option>` + RM_STATE.methods.map(m =>
+    `<option value="${m.key}">${m.name} · -${m.reduction_pct}% / ${m.duration_days}일</option>`
+  ).join('');
+}
+
+function renderRmList() {
+  const box = document.getElementById('rm-list');
+  const cnt = document.getElementById('rm-count');
+  if (!box) return;
+  cnt.textContent = `${RM_STATE.plans.length}건`;
+  if (RM_STATE.plans.length === 0) {
+    box.innerHTML = `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:30px">
+      등록된 방역 계획이 없습니다.<br>왼쪽 폼에서 새 계획을 등록하세요.
+    </div>`;
+    return;
+  }
+  const nameMap = {};
+  RM_STATE.devices.forEach(d => {
+    const dv = d.device || {};
+    nameMap[d.device_uuid] = (dv.device_name || '').trim() || d.device_uuid;
+  });
+  box.innerHTML = RM_STATE.plans.map(p => {
+    const m = RM_STATE.methods.find(x => x.key === p.method_key) || {};
+    const cls = rmTargetClass(m.target);
+    const st = rmStatus(p, m);
+    const devName = nameMap[p.device_uuid] || p.device_uuid;
+    return `<div class="rm-plan-row ${cls}">
+      <div>
+        <div class="rm-plan-head">${m.name || p.method_key} <span class="rm-status ${st.cls}">${st.label}</span></div>
+        <div class="rm-plan-meta">
+          <span>🦟 ${devName}</span>
+          <span>📅 ${p.scheduled_date}</span>
+          <span class="rm-plan-badge">${m.target || '-'}</span>
+          <span>등록 ${(p.owner_id || '')}</span>
+        </div>
+        <div class="rm-plan-effect">
+          효과 기간 +${m.onset_days || 0}~${(m.onset_days || 0) + (m.duration_days || 0)}일 · 감소율 ${m.reduction_pct || 0}%
+        </div>
+        ${p.note ? `<div class="rm-plan-note">"${p.note}"</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="ma-sm-btn" onclick="rmStartEdit('${p.id}')">수정</button>
+        <button class="ma-sm-btn danger" onclick="rmDelete('${p.id}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function buildRemedy() {
+  try {
+    // 장비 + 방역 방법 + 계획 병렬 로드
+    const [dv, rm] = await Promise.all([
+      fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' }).then(r => r.json()),
+      fetch('/mosquito-test/api/remedy/', { credentials: 'same-origin' }).then(r => r.json()),
+    ]);
+    RM_STATE.devices = dv.devices || [];
+    RM_STATE.plans = rm.plans || [];
+    RM_STATE.methods = rm.methods || [];
+    // 오늘 날짜 기본값
+    const today = new Date();
+    const iso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const dateInp = document.getElementById('rm-date');
+    if (dateInp && !dateInp.value) dateInp.value = iso;
+    renderRmDeviceSelect();
+    renderRmMethodSelect();
+    renderRmList();
+    renderRmMethodTable();
+    renderRmMethodInfo();
+  } catch (e) {
+    rmMsg('로드 실패: ' + e.message, 'err');
+  }
+}
+
+function rmStartEdit(planId) {
+  const p = RM_STATE.plans.find(x => x.id === planId);
+  if (!p) return;
+  RM_STATE.editingId = planId;
+  document.getElementById('rm-form-title').textContent = `방역 계획 수정`;
+  document.getElementById('rm-device').value = p.device_uuid;
+  document.getElementById('rm-method').value = p.method_key;
+  document.getElementById('rm-date').value = p.scheduled_date;
+  document.getElementById('rm-note').value = p.note || '';
+  document.getElementById('rm-save-btn').textContent = '수정 저장';
+  document.getElementById('rm-cancel-btn').style.display = 'block';
+  renderRmMethodInfo();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function rmCancelEdit() {
+  RM_STATE.editingId = null;
+  document.getElementById('rm-form-title').textContent = '새 방역 계획 등록';
+  document.getElementById('rm-device').value = '';
+  document.getElementById('rm-method').value = '';
+  const today = new Date();
+  document.getElementById('rm-date').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  document.getElementById('rm-note').value = '';
+  document.getElementById('rm-save-btn').textContent = '방역 계획 등록';
+  document.getElementById('rm-cancel-btn').style.display = 'none';
+  renderRmMethodInfo();
+}
+
+async function rmSubmit() {
+  const devUuid = document.getElementById('rm-device').value;
+  const methodKey = document.getElementById('rm-method').value;
+  const sched = document.getElementById('rm-date').value;
+  const note = document.getElementById('rm-note').value;
+  if (!devUuid || !methodKey || !sched) {
+    rmMsg('장비·방법·날짜를 모두 선택하세요', 'err');
+    return;
+  }
+  const btn = document.getElementById('rm-save-btn');
+  btn.disabled = true;
+  try {
+    let res;
+    if (RM_STATE.editingId) {
+      res = await fetch(`/mosquito-test/api/remedy/${encodeURIComponent(RM_STATE.editingId)}/`, {
+        method: 'PUT', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_uuid: devUuid, method_key: methodKey, scheduled_date: sched, note }),
+      });
+    } else {
+      res = await fetch('/mosquito-test/api/remedy/', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_uuid: devUuid, method_key: methodKey, scheduled_date: sched, note }),
+      });
+    }
+    const json = await res.json();
+    if (!res.ok) { rmMsg(json.error || ('HTTP ' + res.status), 'err'); return; }
+    rmMsg(RM_STATE.editingId ? '수정 완료 — 예측에 반영됩니다' : '등록 완료 — 예측에 반영됩니다', 'ok');
+    rmCancelEdit();
+    // 목록 새로고침
+    const rm = await fetch('/mosquito-test/api/remedy/', { credentials: 'same-origin' }).then(r => r.json());
+    RM_STATE.plans = rm.plans || [];
+    renderRmList();
+    // AI 예측/예보 캐시 리셋 (다음 방문 시 재계산)
+    if (typeof PREDICT_STATE === 'object' && PREDICT_STATE) { PREDICT_LOADED = false; PREDICT_STATE.data = null; }
+    if (typeof FC_STATE === 'object' && FC_STATE) { FC_STATE.data = null; }
+  } catch (e) {
+    rmMsg('요청 실패: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function rmDelete(planId) {
+  if (!confirm('이 방역 계획을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch(`/mosquito-test/api/remedy/${encodeURIComponent(planId)}/`, {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const json = await res.json();
+    if (!res.ok) { rmMsg(json.error || ('HTTP ' + res.status), 'err'); return; }
+    const rm = await fetch('/mosquito-test/api/remedy/', { credentials: 'same-origin' }).then(r => r.json());
+    RM_STATE.plans = rm.plans || [];
+    renderRmList();
+    rmMsg('삭제 완료 — 예측에 반영됩니다', 'ok');
+    if (typeof PREDICT_STATE === 'object' && PREDICT_STATE) { PREDICT_LOADED = false; PREDICT_STATE.data = null; }
+    if (typeof FC_STATE === 'object' && FC_STATE) { FC_STATE.data = null; }
+  } catch (e) {
+    rmMsg('삭제 실패: ' + e.message, 'err');
+  }
+}
+
+// 방법 변경 시 정보 박스 갱신
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('rm-method');
+  if (sel) sel.addEventListener('change', renderRmMethodInfo);
+});
 
 // ── 민원 가능 지역 (실제 MOSCOM 데이터 + 점수화) ──────────
 const CP_STATE = {
@@ -3106,7 +3428,7 @@ function buildEquipment(){
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
   trend:"7일 누적 추세", predict:"AI 예측 시스템", forecast:"AI 예보",
-  remedy:"방역 실시 계획", complaint:"민원 가능 지역",
+  remedy:"방역 계획 및 AI 추천", complaint:"민원 가능 지역",
   equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단", moscom_admin:"모스콤 관리자"
 };
 function showPage(name){

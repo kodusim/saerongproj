@@ -8,6 +8,7 @@ from core.models import Category, SubCategory
 from core import moscom_client
 from core import predictor
 from core import user_store
+from core import remedy_store
 import logging
 import json as _json
 
@@ -303,6 +304,91 @@ def moscom_users_api(request):
         except ValueError as e:
             return JsonResponse({'error': str(e)}, status=400)
         return JsonResponse({'ok': True, 'users': user_store.list_users()})
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+def _visible_uuids_for(request):
+    """세션 사용자의 허용 장비 UUID 집합. admin=None(=전부)."""
+    su = _current_session_user(request)
+    if not su:
+        return set()
+    if su.get('is_admin'):
+        return None
+    return set(su.get('allowed_devices') or [])
+
+
+@require_GET
+def moscom_remedy_methods(request):
+    """방역 방법 6종 반환"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    return JsonResponse({'methods': remedy_store.list_methods()})
+
+
+def moscom_remedy_api(request):
+    """방역 계획 목록/추가
+    GET  : 세션 사용자의 허용 장비 한정 목록
+    POST : 새 계획 추가 (body: device_uuid, method_key, scheduled_date, note)
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    visible = _visible_uuids_for(request)
+    if request.method == 'GET':
+        plans = remedy_store.list_plans(visible_uuids=visible)
+        return JsonResponse({'plans': plans, 'methods': remedy_store.list_methods()})
+    try:
+        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+    except _json.JSONDecodeError:
+        body = {}
+    if request.method == 'POST':
+        dev_uuid = body.get('device_uuid')
+        if visible is not None and dev_uuid not in visible:
+            return JsonResponse({'error': '허용되지 않은 장비입니다'}, status=403)
+        try:
+            su = _current_session_user(request)
+            plan = remedy_store.create_plan(
+                owner_id=su.get('login_id', ''),
+                device_uuid=dev_uuid,
+                method_key=body.get('method_key'),
+                scheduled_date=body.get('scheduled_date'),
+                note=body.get('note', ''),
+            )
+            return JsonResponse({'ok': True, 'plan': plan})
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+def moscom_remedy_detail_api(request, plan_id):
+    """방역 계획 수정/삭제"""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    plan = remedy_store.get_plan(plan_id)
+    if not plan:
+        return JsonResponse({'error': '해당 계획을 찾을 수 없습니다'}, status=404)
+    visible = _visible_uuids_for(request)
+    if visible is not None and plan.get('device_uuid') not in visible:
+        return JsonResponse({'error': '권한 없음'}, status=403)
+    try:
+        body = _json.loads((request.body or b'').decode('utf-8') or '{}')
+    except _json.JSONDecodeError:
+        body = {}
+    try:
+        if request.method in ('PUT', 'PATCH'):
+            # device_uuid 변경 시도 시 권한 재확인
+            new_uuid = body.get('device_uuid')
+            if new_uuid and visible is not None and new_uuid not in visible:
+                return JsonResponse({'error': '허용되지 않은 장비입니다'}, status=403)
+            p = remedy_store.update_plan(plan_id, body)
+            return JsonResponse({'ok': True, 'plan': p})
+        if request.method == 'DELETE':
+            remedy_store.delete_plan(plan_id)
+            return JsonResponse({'ok': True})
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'method not allowed'}, status=405)
 
 
@@ -736,11 +822,46 @@ def moscom_predict(request):
         except (TypeError, ValueError):
             days_ahead = 3
         preds = predictor.predict_for_devices(inputs, days_ahead=days_ahead)
+
+        # 방역 계획 효과 반영 (post-processing)
+        def _grade(n):
+            if n <= 10: return '안전'
+            if n <= 50: return '관심'
+            if n <= 100: return '주의'
+            if n <= 200: return '경고'
+            return '위험'
+        remedy_summary_by_uuid = {}
+        for p in preds:
+            uid = p['uuid']
+            new_preds = []
+            applied_by_date = {}
+            for pp in p['predictions']:
+                factor, applied = remedy_store.adjustment_factor(uid, pp.get('date'))
+                orig = pp.get('predicted') or 0
+                adj = int(round(orig * factor))
+                new_preds.append({
+                    'date': pp['date'],
+                    'predicted': adj,
+                    'predicted_raw': orig,
+                    'remedy_factor': round(factor, 3),
+                })
+                if applied:
+                    applied_by_date[pp['date']] = applied
+            p['predictions'] = new_preds
+            ps = [x['predicted'] for x in new_preds]
+            p['max_predicted'] = max(ps) if ps else 0
+            p['avg_predicted'] = round(sum(ps) / len(ps)) if ps else 0
+            p['grade'] = _grade(p['max_predicted'])
+            if applied_by_date:
+                p['remedy_applied'] = applied_by_date
+                remedy_summary_by_uuid[uid] = applied_by_date
+
         # max_predicted 내림차순 정렬
         preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
         return JsonResponse({
             'count': len(preds),
             'model': 'RandomForest',
+            'remedy_applied_count': len(remedy_summary_by_uuid),
             'model_info': {
                 'name': 'MOSCOM AI v1.0',
                 'algorithm': 'Random Forest Regressor',
