@@ -1139,6 +1139,17 @@ body {
       <div class="sec-sub">장비 고유 기준 bad_min 초과 시 이상으로 판정 · MOSCOM 실측</div>
     </div>
 
+    <!-- 날짜 선택 -->
+    <div class="card mb16" style="padding:10px 16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:11px;font-weight:700;color:var(--navy)">기준일</label>
+        <input type="date" id="anomaly-date" style="padding:5px 10px;border:1px solid var(--gray3);border-radius:4px;font-size:12px">
+        <button id="anomaly-reload" type="button" class="dl-btn dl-btn-html" style="padding:5px 14px;font-size:12px">조회</button>
+        <button id="anomaly-today" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">최신일로</button>
+        <span id="anomaly-date-info" style="font-size:11px;color:var(--gray4);margin-left:4px"></span>
+      </div>
+    </div>
+
     <div id="anomaly-alert-box"></div>
 
     <div class="card mb16">
@@ -2177,27 +2188,38 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── 이상감지 (실제 MOSCOM 데이터) ─────────────────────────
 // 판정 기준: 금일 포집량 > 장비 고유 bad_min (deviceSetting) 초과 시 '이상'
 // 증감률: 전일 포집량 대비 (전일이 0이면 '—')
-let ANOMALY_LOADED = false;
+const ANOMALY_STATE = { date: null };  // null=최신일, 'YYYY-MM-DD'=특정 날짜
 
 async function buildAnomalyAll(){
   const alertBox = document.getElementById('anomaly-alert-box');
   const flaggedT = document.getElementById('anomaly-flagged-table');
   const allT = document.getElementById('anomaly-all-table');
-  if (ANOMALY_LOADED) return;
+  const dateInfo = document.getElementById('anomaly-date-info');
 
   allT.innerHTML = `<thead><tr><th colspan="6" style="text-align:center">데이터 불러오는 중…</th></tr></thead>`;
   flaggedT.innerHTML = '';
   alertBox.innerHTML = '';
 
   try {
-    // 7일 통계 + 장비 메타 동시 요청
-    const [statsRes, dvRes] = await Promise.all([
-      fetch('/mosquito-test/api/statistics/?period=2', { credentials: 'same-origin' }),
+    // 통계 (7일 전체) + 장비 메타 동시 요청
+    // 기준일 지정 시 daily API로, 아니면 statistics(최근 7일) 사용
+    let statsPromise;
+    if (ANOMALY_STATE.date) {
+      const target = new Date(ANOMALY_STATE.date);
+      const start = new Date(target.getTime() - 6 * 86400000);
+      const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      statsPromise = fetch(`/mosquito-test/api/daily/?start=${fmt(start)}&end=${ANOMALY_STATE.date}`, { credentials: 'same-origin' })
+        .then(r => r.json()).then(j => ({ stats: j.data || [] }));
+    } else {
+      statsPromise = fetch('/mosquito-test/api/statistics/?period=2', { credentials: 'same-origin' })
+        .then(r => r.json());
+    }
+    const [statsObj, dvRes] = await Promise.all([
+      statsPromise,
       fetch('/mosquito-test/api/devices/', { credentials: 'same-origin' }),
     ]);
-    if (!statsRes.ok) throw new Error('stats HTTP ' + statsRes.status);
     if (!dvRes.ok)    throw new Error('devices HTTP ' + dvRes.status);
-    const { stats } = await statsRes.json();
+    const stats = statsObj.stats || [];
     const { devices } = await dvRes.json();
 
     // 날짜별 합산 (장비당)
@@ -2216,10 +2238,24 @@ async function buildAnomalyAll(){
       byDevice[u].counts[date] = (byDevice[u].counts[date] || 0) + (r.mosquito_count || 0);
     });
 
-    const allDates = Array.from(new Set((stats || []).map(r => (r.created_date || '').slice(0, 10)).filter(Boolean))).sort();
-    const today = allDates[allDates.length - 1] || '';
-    const yesterday = allDates[allDates.length - 2] || '';
+    const allDatesRaw = Array.from(new Set((stats || []).map(r => (r.created_date || '').slice(0, 10)).filter(Boolean))).sort();
+    // 기준일이 지정된 경우 그 이후 날짜는 제외
+    const allDates = ANOMALY_STATE.date
+      ? allDatesRaw.filter(d => d <= ANOMALY_STATE.date)
+      : allDatesRaw;
+    const today = ANOMALY_STATE.date || allDates[allDates.length - 1] || '';
+    const yesterday = (() => {
+      const idx = allDates.indexOf(today);
+      if (idx > 0) return allDates[idx - 1];
+      const before = allDates.filter(d => d < today);
+      return before[before.length - 1] || '';
+    })();
     const weekDates = allDates.slice(-7);
+
+    // 날짜 input 동기화
+    const dateInput = document.getElementById('anomaly-date');
+    if (dateInput && today && !dateInput.value) dateInput.value = today;
+    if (dateInfo) dateInfo.textContent = today ? `· 기준일 ${today}` : '';
 
     // 장비별 판정
     const rows = Object.keys(byDevice).map(u => {
@@ -2307,11 +2343,27 @@ async function buildAnomalyAll(){
         </tr>`;
       }).join('')}</tbody>`;
 
-    ANOMALY_LOADED = true;
   } catch (err) {
     allT.innerHTML = `<thead><tr><th colspan="6" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
   }
 }
+
+// 이상 감지 탭: 날짜 선택 핸들러
+document.addEventListener('DOMContentLoaded', () => {
+  const dateInput = document.getElementById('anomaly-date');
+  const reload = document.getElementById('anomaly-reload');
+  const todayBtn = document.getElementById('anomaly-today');
+  if (reload) reload.addEventListener('click', () => {
+    const v = (dateInput && dateInput.value) || '';
+    ANOMALY_STATE.date = v || null;
+    buildAnomalyAll();
+  });
+  if (todayBtn) todayBtn.addEventListener('click', () => {
+    if (dateInput) dateInput.value = '';
+    ANOMALY_STATE.date = null;
+    buildAnomalyAll();
+  });
+});
 
 // ── 일별 포집 추세 (기간 선택 + 체크박스 + 차트) ──────────
 // - /mosquito-test/api/daily/?start=...&end=... (YYYY-MM-DD, KST 기준)

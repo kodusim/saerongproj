@@ -1688,6 +1688,7 @@ def _valid_kor(s):
 @require_GET
 def moscom_complaint_risk(request):
     """민원 가능 지역 위험 점수 산출 (4축 가중합)
+    쿼리스트링: date=YYYY-MM-DD (선택, 미지정시 최신일)
     위험 점수: 절대 포집량 40% + 증가율 25% + 추세 20% + 전국 대비 15%
     민원 점수: 체감 포집량 35% + 급증 신호 25% + 야간 피크 25% + 주거지 인접 15%
     """
@@ -1697,6 +1698,14 @@ def moscom_complaint_risk(request):
     from datetime import datetime, timedelta, timezone
     from collections import defaultdict
     try:
+        # 0) 쿼리 파라미터: 기준일 (선택)
+        target_date = (request.GET.get('date') or '').strip()
+        if target_date:
+            try:
+                datetime.strptime(target_date, '%Y-%m-%d')
+            except ValueError:
+                return JsonResponse({'error': 'date 형식은 YYYY-MM-DD'}, status=400)
+
         # 1) 장비 메타
         devices = moscom_client.list_devices()
         devices = user_store.filter_devices(_current_session_user(request), devices)
@@ -1720,7 +1729,21 @@ def moscom_complaint_risk(request):
             }
 
         # 2) 7일 통계 (장비별 일별 포집량)
-        stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+        if target_date:
+            # 임의 기준일 → 해당일 포함 7일 (statisticsByDate)
+            target_d = datetime.strptime(target_date, '%Y-%m-%d').date()
+            start_d = target_d - timedelta(days=6)
+            # 업무일(KST 10시) 커버: start 10:00 KST ~ (target+1) 10:00 KST
+            s_utc = datetime(start_d.year, start_d.month, start_d.day, 10, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
+            e_utc = datetime(target_d.year, target_d.month, target_d.day, 10, 0, 0, tzinfo=timezone.utc) + timedelta(days=1) - timedelta(hours=9)
+            stats = moscom_client.get_statistics_by_date(
+                start_dt=s_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+                end_dt=e_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+                aggregation='day', device_uuid='0',
+            )
+        else:
+            stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+
         daily = defaultdict(lambda: defaultdict(int))
         dates_set = set()
         for r in (stats or []):
@@ -1728,11 +1751,20 @@ def moscom_complaint_risk(request):
             date = (r.get('created_date') or '')[:10]
             if not u or not date or u not in meta:
                 continue
+            # target_date가 지정된 경우 그 이후 날짜는 제외 (UI 일관성)
+            if target_date and date > target_date:
+                continue
             daily[u][date] += (r.get('mosquito_count') or 0)
             dates_set.add(date)
         all_dates = sorted(dates_set)
-        today = all_dates[-1] if all_dates else ''
-        yday = all_dates[-2] if len(all_dates) >= 2 else ''
+        if target_date:
+            today = target_date
+            # yday는 today 직전 날
+            prev_dates = [d for d in all_dates if d < today]
+            yday = prev_dates[-1] if prev_dates else ''
+        else:
+            today = all_dates[-1] if all_dates else ''
+            yday = all_dates[-2] if len(all_dates) >= 2 else ''
         week_dates = all_dates[-7:]
 
         # 3) 최근 48h raw 데이터 → 장비별 야간 피크 비율
