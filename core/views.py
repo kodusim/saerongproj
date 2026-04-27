@@ -1686,6 +1686,81 @@ def _valid_kor(s):
 
 
 @require_GET
+@require_GET
+def moscom_anomaly_history(request):
+    """이상 감지 누적 이력. 최근 N일(기본 30일) 중 bad_min 초과한 일자×장비만 반환.
+    쿼리스트링: days (기본 30, 최대 90)
+    응답: {items: [{date, uuid, name, addr, count, bad_min, pct_over}]}
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+    try:
+        try:
+            days = int(request.GET.get('days', '30'))
+        except (TypeError, ValueError):
+            days = 30
+        days = max(1, min(days, 90))
+
+        su = _current_session_user(request)
+        devices = moscom_client.list_devices()
+        devices = user_store.filter_devices(su, devices)
+        meta = {}
+        for d in devices:
+            u = d.get('device_uuid')
+            dv = d.get('device') or {}
+            name = (dv.get('device_name') or '').strip() or u
+            addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)).strip()
+            bad_min = ((dv.get('deviceSetting') or {}).get('bad_min')) or 100
+            meta[u] = {'name': name, 'addr': addr, 'bad_min': bad_min}
+
+        # 최근 N일 일별 통계
+        now = datetime.now(timezone.utc)
+        end_kst = now + timedelta(hours=9)
+        start_d = (end_kst - timedelta(days=days - 1)).date()
+        start_utc = datetime(start_d.year, start_d.month, start_d.day, 10, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
+        end_utc = now
+        stats = moscom_client.get_statistics_by_date(
+            start_dt=start_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+            end_dt=end_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+            aggregation='day', device_uuid='0',
+        )
+        # 일별 합산
+        daily = defaultdict(lambda: defaultdict(int))
+        for r in (stats or []):
+            u = r.get('device_uuid')
+            date = (r.get('created_date') or '')[:10]
+            if u in meta and date:
+                daily[u][date] += (r.get('mosquito_count') or 0)
+
+        items = []
+        for u, m in meta.items():
+            bm = m.get('bad_min', 100) or 100
+            for date, cnt in daily.get(u, {}).items():
+                if cnt >= bm and bm > 0:
+                    items.append({
+                        'date': date,
+                        'uuid': u,
+                        'name': m['name'],
+                        'addr': m['addr'],
+                        'count': cnt,
+                        'bad_min': bm,
+                        'pct_over': round((cnt - bm) / bm * 100),
+                    })
+        # 최신순
+        items.sort(key=lambda x: (x['date'], x['count']), reverse=True)
+        return JsonResponse({
+            'days': days,
+            'count': len(items),
+            'items': items,
+        })
+    except Exception as e:
+        logger.exception('anomaly_history failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def moscom_complaint_risk(request):
     """민원 가능 지역 위험 점수 산출 (4축 가중합)
     쿼리스트링: date=YYYY-MM-DD (선택, 미지정시 최신일)

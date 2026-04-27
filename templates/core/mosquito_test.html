@@ -847,6 +847,17 @@ body {
 .rm-status.active  { background: var(--red-l); color: var(--red); }
 .rm-status.expired { background: var(--gray2); color: var(--gray4); }
 
+/* 이상감지 이력 칩 */
+.ah-chip {
+  padding: 3px 10px; font-size: 11px; font-weight: 600;
+  background: var(--gray1); border: 1px solid var(--gray2); border-radius: 12px;
+  color: var(--gray5); cursor: pointer; transition: all .1s;
+}
+.ah-chip:hover { background: var(--navy-l); color: var(--navy); }
+.ah-chip.ah-chip-active {
+  background: var(--navy); color: #fff; border-color: var(--navy);
+}
+
 /* ── 보고서 생성 모달 ── */
 .rp-modal-backdrop {
   display: none; position: fixed; inset: 0; background: rgba(27,58,107,.45);
@@ -1166,6 +1177,27 @@ body {
         <div class="sec-title" style="font-size:13px">전 장비 정상 범위 확인</div>
       </div>
       <table class="data-table" id="anomaly-all-table"></table>
+    </div>
+
+    <!-- 누적 이상 감지 이력 -->
+    <div class="card" style="margin-top:14px">
+      <div class="sec-header" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="sec-bar"></div>
+          <div class="sec-title" style="font-size:13px">이상 감지 누적 이력</div>
+          <span style="font-size:11px;color:var(--gray4)">기준 초과 발생만</span>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-size:10px;color:var(--gray4)">기간</span>
+          <button class="ah-chip ah-chip-active" data-days="30">30일</button>
+          <button class="ah-chip" data-days="60">60일</button>
+          <button class="ah-chip" data-days="90">90일</button>
+        </div>
+      </div>
+      <table class="data-table" id="anomaly-history-table">
+        <thead><tr><th>일자</th><th>장비</th><th>지역</th><th>포집량</th><th>경보 기준</th><th>초과율</th><th></th></tr></thead>
+        <tbody><tr><td colspan="7" style="text-align:center;color:var(--gray4);padding:18px">로딩 중…</td></tr></tbody>
+      </table>
     </div>
   </div>
 
@@ -2343,6 +2375,11 @@ async function buildAnomalyAll(){
         </tr>`;
       }).join('')}</tbody>`;
 
+    // 누적 이력도 같이 로드 (한번만)
+    if (typeof loadAnomalyHistory === 'function' && !window.__AH_LOADED) {
+      window.__AH_LOADED = true;
+      loadAnomalyHistory(30);
+    }
   } catch (err) {
     allT.innerHTML = `<thead><tr><th colspan="6" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
   }
@@ -2363,7 +2400,57 @@ document.addEventListener('DOMContentLoaded', () => {
     ANOMALY_STATE.date = null;
     buildAnomalyAll();
   });
+  // 누적 이력 칩
+  document.querySelectorAll('.ah-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ah-chip').forEach(b => b.classList.remove('ah-chip-active'));
+      btn.classList.add('ah-chip-active');
+      loadAnomalyHistory(parseInt(btn.dataset.days, 10));
+    });
+  });
 });
+
+async function loadAnomalyHistory(days) {
+  const t = document.getElementById('anomaly-history-table');
+  if (!t) return;
+  const tbody = t.querySelector('tbody');
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--gray4);padding:18px">로딩 중…</td></tr>`;
+  try {
+    const res = await fetch(`/mosquito-test/api/anomaly-history/?days=${days || 30}`, { credentials: 'same-origin' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    const items = json.items || [];
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--gray4);padding:18px">최근 ${json.days}일 동안 기준 초과 이력 없음</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = items.map(it => {
+      const labelAddr = it.addr ? `<div style="font-size:10px;color:var(--gray4);font-weight:400">${it.addr}</div>` : '';
+      return `<tr>
+        <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${it.date}</td>
+        <td><strong>${it.name}</strong>${labelAddr}</td>
+        <td style="color:var(--gray5);font-size:11px">${it.addr || '-'}</td>
+        <td style="font-family:var(--mono);color:var(--red);font-weight:700">${it.count}마리</td>
+        <td style="font-family:var(--mono);color:var(--gray5)">${it.bad_min}</td>
+        <td style="font-family:var(--mono);color:var(--red);font-weight:700">+${it.pct_over}%</td>
+        <td>
+          <button class="ma-sm-btn" onclick="anomalyJumpTo('${it.date}')">이 날짜 보기</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:18px">로드 실패: ${e.message}</td></tr>`;
+  }
+}
+
+function anomalyJumpTo(date) {
+  const dateInput = document.getElementById('anomaly-date');
+  if (dateInput) dateInput.value = date;
+  ANOMALY_STATE.date = date;
+  buildAnomalyAll();
+  // 페이지 위로 스크롤
+  document.getElementById('page-anomaly').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 // ── 일별 포집 추세 (기간 선택 + 체크박스 + 차트) ──────────
 // - /mosquito-test/api/daily/?start=...&end=... (YYYY-MM-DD, KST 기준)

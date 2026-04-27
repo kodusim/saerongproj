@@ -13,6 +13,7 @@ from core.views import (
     moscom_report_api, moscom_report_detail_api, mosquito_report_view,
     moscom_overview,
     kakao_status, kakao_oauth_start, kakao_oauth_callback, kakao_disconnect, kakao_send_api,
+    moscom_anomaly_history,
 )
 from django.views.decorators.csrf import csrf_exempt
 
@@ -28,6 +29,7 @@ urlpatterns = [
     path("mosquito-test/api/daily/", moscom_daily, name="moscom_daily"),  # MOSCOM 일별 집계 (임의 기간)
     path("mosquito-test/api/predict/", moscom_predict, name="moscom_predict"),  # AI 모기 발생 예측
     path("mosquito-test/api/complaint-risk/", moscom_complaint_risk, name="moscom_complaint_risk"),  # 민원 위험 점수
+    path("mosquito-test/api/anomaly-history/", moscom_anomaly_history, name="moscom_anomaly_history"),  # 이상 감지 누적 이력
     path("mosquito-test/logout/", mosquito_logout, name="mosquito_logout"),
     path("mosquito-test/api/my-devices/", moscom_my_devices, name="moscom_my_devices"),
     path("mosquito-test/api/admin/users/", csrf_exempt(moscom_users_api), name="moscom_users_api"),
