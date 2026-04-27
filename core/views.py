@@ -2118,7 +2118,7 @@ def moscom_predict(request):
             'model': 'RandomForest',
             'remedy_applied_count': len(remedy_summary_by_uuid),
             'model_info': {
-                'name': 'MOSCOM AI v1.0',
+                'name': '예측 모델 v1.0',
                 'algorithm': 'Random Forest Regressor',
                 'n_trees': 200, 'max_depth': 10,
                 'trained_on': '3개 관측소 · 2025년 7~8월 · 187건',

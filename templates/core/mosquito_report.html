@@ -256,7 +256,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <h1>{{ report.summary.period_label|stringformat:'s' }} 모 기 발 생 감 시 보 고 서</h1>
     <div class="sub">
       {{ report.summary.period_label }} Mosquito Monitoring Report &nbsp;|&nbsp;
-      MOSCOM AI 방역 의사결정 &nbsp;|&nbsp;
+      AI 기반 모기 감시 예측 제어시스템 &nbsp;|&nbsp;
       {{ report.summary.start_date }} ~ {{ report.summary.end_date }}
     </div>
 
@@ -496,7 +496,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     </div>
 
     <div class="foot">
-      MOSCOM AI 자동 생성 · 생성 {{ report.created_at|slice:":19"|cut:"T" }} UTC · 모델 {{ report.source }} · 보고서 #{{ report.id }}
+      AI 기반 모기 감시 예측 제어시스템 자동 생성 · 생성 {{ report.created_at|slice:":19"|cut:"T" }} UTC · 모델 {{ report.source }} · 보고서 #{{ report.id }}
     </div>
   </div>
 </div>

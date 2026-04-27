@@ -937,7 +937,7 @@ body {
 <nav class="sidebar">
   <div class="sidebar-logo" style="padding:20px 20px 14px">
     <img src="https://www.moscom.kr/images/common/logo.svg" alt="MOSCOM" style="width:120px;filter:brightness(0) invert(1);display:block;margin-bottom:6px">
-    <div class="logo-sub">AI Mosquito Monitoring System</div>
+    <div class="logo-sub">AI 기반 모기 감시 예측 제어시스템</div>
   </div>
   <div class="sidebar-org">
     {% if is_admin %}
@@ -1264,13 +1264,13 @@ body {
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">AI 예측 시스템</div>
+          <div class="sec-title">AI 예측</div>
           <div class="sec-sub" id="predict-sub">모델 추론 준비 중…</div>
         </div>
       </div>
       <div id="predict-badge" class="ai-model-badge" style="display:none">
         <span class="dot"></span>
-        <span id="predict-badge-text">MOSCOM AI v1.0</span>
+        <span id="predict-badge-text">예측 모델</span>
       </div>
     </div>
 
@@ -1375,7 +1375,7 @@ body {
           <div class="sec-sub" id="fc-sub">기간별 모기 발생 예측 · 게이지 시각화</div>
         </div>
       </div>
-      <div id="fc-badge" class="ai-model-badge"><span class="dot"></span>MOSCOM AI · Random Forest</div>
+      <div id="fc-badge" class="ai-model-badge"><span class="dot"></span>예측 모델 · Random Forest</div>
     </div>
 
     <!-- 기간 + 프리셋 -->
@@ -2979,7 +2979,7 @@ async function buildPredict() {
     subEl.textContent = `${preds.length}개 장비 · 3일 예측 · ${json.disclaimer ? '참고값' : ''}`;
     const badge = document.getElementById('predict-badge');
     badge.style.display = 'inline-flex';
-    document.getElementById('predict-badge-text').textContent = `${json.model_info?.name || 'MOSCOM AI'} · ${json.model_info?.algorithm || 'RandomForest'}`;
+    document.getElementById('predict-badge-text').textContent = `${json.model_info?.name || '예측 모델'} · ${json.model_info?.algorithm || 'RandomForest'}`;
 
     // 모델 정보 패널
     const mi = json.model_info || {};
@@ -4042,7 +4042,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── 페이지 전환 ──────────────────────────────────────────
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
-  trend:"7일 누적 추세", predict:"AI 예측 시스템", forecast:"AI 예보",
+  trend:"7일 누적 추세", predict:"AI 예측", forecast:"AI 예보",
   remedy:"방역 계획 및 AI 추천", complaint:"민원 가능 지역",
   equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단", moscom_admin:"모스콤 관리자"
 };
@@ -4138,7 +4138,7 @@ function downloadReport(type){
     </style></head><body>
     <div class="logo-area"><img src="https://www.moscom.kr/images/common/logo.svg" style="height:28px" onerror="this.style.display='none'"><span style="font-size:18px;font-weight:700;color:#1B3A6B;vertical-align:middle;margin-left:6px"> MOSCOM</span></div>
     <h1>일 일 모 기 발 생 감 시 보 고 서</h1>
-    <div class="sub">Daily Mosquito Monitoring Report &nbsp;|&nbsp; MOSCOM AI 방역 의사결정 &nbsp;|&nbsp; 2025년 8월 15일 (금)</div>
+    <div class="sub">Daily Mosquito Monitoring Report &nbsp;|&nbsp; AI 기반 모기 감시 예측 제어시스템 &nbsp;|&nbsp; 2025년 8월 15일 (금)</div>
     <table><tr>
       <th style="width:70px">기관명</th><td>○○시 ○○구 보건소</td>
       <th style="width:50px">부서</th><td>감염병관리팀</td>
@@ -4192,7 +4192,7 @@ function downloadReport(type){
         <em style="color:#888;font-size:10.5px">※ 14일 이내 소멸 가능 웅덩이는 현장 담당자 확인 후 방제 여부 결정.</em>
       </div>
     </div>
-    <div class="sign-box"><div class="sign"><strong>○○시 ○○구 보건소 감염병관리팀</strong>담당자: 홍 길 동 &nbsp;&nbsp; (서명 또는 인)<br><span style="font-size:9px;color:#aaa">MOSCOM AI 자동 생성 · 2025-08-15 05:10</span></div></div>
+    <div class="sign-box"><div class="sign"><strong>○○시 ○○구 보건소 감염병관리팀</strong>담당자: 홍 길 동 &nbsp;&nbsp; (서명 또는 인)<br><span style="font-size:9px;color:#aaa">AI 기반 모기 감시 예측 제어시스템 자동 생성 · 2025-08-15 05:10</span></div></div>
     <script>window.onload=()=>{setTimeout(()=>window.print(),300)}<\/script>
     </body></html>`);
     w.document.close();
