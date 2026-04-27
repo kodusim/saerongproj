@@ -692,10 +692,10 @@ def _build_report_body(period, base_date, su, request):
 ■ 기간 상위 포집 장비 (Top 5)
 {top_devs_text}
 
-■ 이상 감지 (장비 고유 기준 초과)
+■ 포집량 이상 감지 (장비 고유 기준 초과)
 {anomaly_text}
 
-■ 해당 기간 방역 계획
+■ 해당 기간 방역 내역
 {plans_text}
 """
 
@@ -1109,7 +1109,7 @@ def moscom_admin_judgment(request):
         plans_text = '\n'.join(
             f"  - {p['device']} / {p['method']} / 예정 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
             for p in active_plans
-        ) or '  - 등록된 방역 계획 없음'
+        ) or '  - 등록된 방역 내역 없음'
 
         date_label = today or datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d')
         payload_summary = f"""[모기 발생 감시 현황 · {date_label}]
@@ -1124,10 +1124,10 @@ def moscom_admin_judgment(request):
 ■ 오늘 상위 포집 장비 (Top 5)
 {top_devs_text}
 
-■ 이상 감지 (장비 고유 기준 초과)
+■ 포집량 이상 감지 (장비 고유 기준 초과)
 {anomaly_text}
 
-■ 진행/예정 방역 계획
+■ 진행/예정 방역 내역
 {plans_text}
 """
 

@@ -441,8 +441,8 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     </table>
     {% endif %}
 
-    <!-- 6. 방역 실시 계획 -->
-    <h2 class="sec">6. 방역 실시 계획</h2>
+    <!-- 6. 방역 내역 -->
+    <h2 class="sec">6. 방역 내역</h2>
     {% if report.summary.sections.plans %}
     <table class="data">
       <thead>
@@ -462,7 +462,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       </tbody>
     </table>
     {% else %}
-    <div class="empty">등록된 방역 계획 없음</div>
+    <div class="empty">등록된 방역 내역 없음</div>
     {% endif %}
 
     <!-- 7. 행정 판단 -->
