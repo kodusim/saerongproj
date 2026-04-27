@@ -1134,14 +1134,14 @@ body {
     <div class="card mb24">
       <div style="overflow-x:auto">
         <table class="data-table" style="width:100%" id="ov-station-table">
-          <thead>
+          <thead id="ov-station-thead">
             <tr>
               <th>장비</th><th>지역</th><th>위험 등급</th>
-              <th>오늘 포집</th><th>어제</th><th>7일 평균</th>
+              <th>오늘</th><th>어제</th><th>7일 평균</th>
               <th>민원 위험</th><th>장비 상태</th><th>추세</th>
             </tr>
           </thead>
-          <tbody id="ov-station-body"><tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
+          <tbody id="ov-station-body"><tr><td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2037,21 +2037,47 @@ function renderOvKpis(json) {
   `;
 }
 
+// KST 현재 시간이 야간 수집창(18:00~05:59)인지
+function isNightCollectingNowKST() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
+  const h = kst.getUTCHours();
+  return h >= 18 || h < 6;
+}
+
 function renderOvStationTable(json) {
   const tb = document.getElementById('ov-station-body');
   const sub = document.getElementById('ov-station-sub');
   const list = json.devices || [];
   if (sub) sub.textContent = `허용된 장비 ${list.length}대 전체`;
+
+  // 헤더: 오늘 컬럼에 측정중 라벨
+  const measuring = isNightCollectingNowKST();
+  const thead = document.getElementById('ov-station-thead');
+  if (thead) {
+    const todayHdr = measuring
+      ? `오늘 <span style="font-size:9px;font-weight:700;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;margin-left:3px;letter-spacing:.3px"><span style="display:inline-block;width:5px;height:5px;background:#fff;border-radius:50%;margin-right:3px;vertical-align:middle;animation:measPulse 0.9s ease-in-out infinite"></span>측정중</span>`
+      : `오늘 <span style="font-size:9px;font-weight:600;background:var(--gray3);color:var(--gray6);padding:1px 6px;border-radius:8px;margin-left:3px">측정 전</span>`;
+    thead.innerHTML = `<tr>
+      <th>장비</th><th>지역</th><th>위험 등급</th>
+      <th>${todayHdr}</th><th>어제</th><th>7일 평균</th>
+      <th>민원 위험</th><th>장비 상태</th><th>추세</th>
+    </tr>`;
+  }
+
   if (list.length === 0) {
     tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
     return;
   }
   tb.innerHTML = list.map(d => {
     const cpCls = ovCpCls(d.complaint_level);
-    // 추세: ↑ → ↗ (상승, 빨강), ↓ → ↘ (하락, 초록), 그 외 → → (보합, 회색)
+    // 추세: 상승=↗(빨강), 하락=↘(초록), 보합=→(회색)
     let trendArrow = '→', trendColor = 'var(--gray4)';
     if (d.trend === '↑') { trendArrow = '↗'; trendColor = 'var(--red)'; }
     else if (d.trend === '↓') { trendArrow = '↘'; trendColor = 'var(--green)'; }
+    // 야간 수집창 외에는 장비 상태를 '측정 전'으로 표시 (상태 판정은 야간만 의미 있음)
+    const statusLabel = measuring ? d.status : '측정 전';
+    const statusBadgeCls = measuring ? ovStatusBadge(d.status) : 'badge-unknown';
     return `<tr>
       <td><strong>${escapeHtml(d.name)}</strong></td>
       <td style="color:var(--gray5);font-size:11px">${escapeHtml(d.addr || '-')}</td>
@@ -2060,7 +2086,7 @@ function renderOvStationTable(json) {
       <td style="font-family:var(--mono);color:var(--gray5)">${d.yday || 0}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg}</td>
       <td><span class="complaint-pill ${cpCls}">${d.complaint_level}</span></td>
-      <td><span class="badge ${ovStatusBadge(d.status)}">${d.status}</span></td>
+      <td><span class="badge ${statusBadgeCls}">${statusLabel}</span></td>
       <td style="color:${trendColor};font-weight:700;font-size:18px">${trendArrow}</td>
     </tr>`;
   }).join('');
@@ -3877,39 +3903,70 @@ async function buildEquipment() {
     EQ_STATE.data = json;
 
     const sub = document.getElementById('eq-sub');
-    if (sub) sub.textContent = `${json.count}개 장비 · 정상 ${json.summary.normal} / 점검 ${json.summary.check} / 오프라인 ${json.summary.offline}`;
+    const measuring = isNightCollectingNowKST();
+    if (sub) {
+      sub.textContent = measuring
+        ? `${json.count}개 장비 · 정상 ${json.summary.normal} / 점검 ${json.summary.check} / 오프라인 ${json.summary.offline}`
+        : `${json.count}개 장비 · 야간 수집창(18~05시) 외 시간 — 측정 전`;
+    }
 
-    // 요약 KPI
+    // 요약 KPI (측정 전이면 정상/점검/오프라인 대신 단순 표시)
     const s = json.summary;
-    document.getElementById('eq-summary').innerHTML = `
-      <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
-      <div class="kpi-card green"><div class="kpi-label">정상 장비</div><div class="kpi-value val-green">${s.normal}</div><div class="kpi-sub">/ ${s.total}개</div></div>
-      <div class="kpi-card orange"><div class="kpi-label">점검 필요</div><div class="kpi-value val-orange">${s.check}</div><div class="kpi-sub">원격 점검 권장</div></div>
-      <div class="kpi-card red"><div class="kpi-label">오프라인</div><div class="kpi-value val-red">${s.offline}</div><div class="kpi-sub">현장 방문 필요</div></div>
-    `;
-
-    // 알림 (오프라인 또는 배터리 < 10%)
-    const urgent = json.items.filter(it => it.status === '오프라인' || (it.battery || 100) < 10);
-    const alertBox = document.getElementById('eq-alerts');
-    if (urgent.length === 0) {
-      alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--green-l);border-color:#8fcfa6">
-        <div class="anomaly-icon" style="color:var(--green)">✓</div>
-        <div><div class="anomaly-title" style="color:var(--green)">즉시 조치 대상 없음</div>
-        <div class="anomaly-body" style="color:var(--gray5)">오프라인 장비 및 배터리 10% 미만 장비가 없습니다.</div></div>
-      </div>`;
+    if (measuring) {
+      document.getElementById('eq-summary').innerHTML = `
+        <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
+        <div class="kpi-card green"><div class="kpi-label">정상 장비</div><div class="kpi-value val-green">${s.normal}</div><div class="kpi-sub">/ ${s.total}개</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">점검 필요</div><div class="kpi-value val-orange">${s.check}</div><div class="kpi-sub">원격 점검 권장</div></div>
+        <div class="kpi-card red"><div class="kpi-label">오프라인</div><div class="kpi-value val-red">${s.offline}</div><div class="kpi-sub">현장 방문 필요</div></div>
+      `;
     } else {
-      alertBox.innerHTML = urgent.slice(0, 3).map(it => `
-        <div class="anomaly-alert">
-          <div class="anomaly-icon">⚠</div>
-          <div>
-            <div class="anomaly-title">${it.status} — ${it.name}</div>
-            <div class="anomaly-body">
-              ${it.address ? it.address + ' · ' : ''}${(it.issues || []).join(' · ') || ''}<br>
-              <strong>조치</strong>: ${it.action}
+      document.getElementById('eq-summary').innerHTML = `
+        <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
+        <div class="kpi-card"><div class="kpi-label">현재 상태</div><div class="kpi-value" style="color:var(--gray5);font-size:18px">측정 전</div><div class="kpi-sub">야간 수집창(18~05시) 대기</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${Math.round(json.items.reduce((a,b) => a + (b.battery||0), 0) / Math.max(json.items.length,1))}%</div><div class="kpi-sub">전 장비 평균</div></div>
+        <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${json.items.filter(i => (i.battery||0) < 20).length}</div><div class="kpi-sub">20% 미만</div></div>
+      `;
+    }
+
+    // 알림 (야간 수집창에서만 운영 상태 판정. 측정 전엔 배터리만 체크)
+    const alertBox = document.getElementById('eq-alerts');
+    if (!measuring) {
+      const lowBatt = json.items.filter(it => (it.battery || 100) < 15);
+      if (lowBatt.length === 0) {
+        alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--gray2);border-color:var(--gray3)">
+          <div class="anomaly-icon" style="color:var(--gray5)">⏸</div>
+          <div><div class="anomaly-title" style="color:var(--gray5)">현재 측정 전 (야간 수집창 대기)</div>
+          <div class="anomaly-body" style="color:var(--gray5)">장비는 KST 18:00 ~ 05:59 시간에만 모기 포집을 측정합니다. 현재 시간대에는 운영 상태 판정이 의미가 없습니다.</div></div>
+        </div>`;
+      } else {
+        alertBox.innerHTML = `<div class="anomaly-alert">
+          <div class="anomaly-icon">🔋</div>
+          <div><div class="anomaly-title">배터리 부족 ${lowBatt.length}대</div>
+          <div class="anomaly-body">측정 시작 전 충전 필요: ${lowBatt.slice(0,3).map(b => b.name + ' (' + b.battery + '%)').join(', ')}${lowBatt.length > 3 ? ` 외 ${lowBatt.length-3}대` : ''}</div></div>
+        </div>`;
+      }
+    } else {
+      const urgent = json.items.filter(it => it.status === '오프라인' || (it.battery || 100) < 10);
+      if (urgent.length === 0) {
+        alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--green-l);border-color:#8fcfa6">
+          <div class="anomaly-icon" style="color:var(--green)">✓</div>
+          <div><div class="anomaly-title" style="color:var(--green)">즉시 조치 대상 없음</div>
+          <div class="anomaly-body" style="color:var(--gray5)">오프라인 장비 및 배터리 10% 미만 장비가 없습니다.</div></div>
+        </div>`;
+      } else {
+        alertBox.innerHTML = urgent.slice(0, 3).map(it => `
+          <div class="anomaly-alert">
+            <div class="anomaly-icon">⚠</div>
+            <div>
+              <div class="anomaly-title">${it.status} — ${it.name}</div>
+              <div class="anomaly-body">
+                ${it.address ? it.address + ' · ' : ''}${(it.issues || []).join(' · ') || ''}<br>
+                <strong>조치</strong>: ${it.action}
+              </div>
             </div>
           </div>
-        </div>
-      `).join('');
+        `).join('');
+      }
     }
 
     // 상세 표
@@ -3922,19 +3979,22 @@ async function buildEquipment() {
       <tbody>${json.items.map(it => {
         const issues = (it.issues || []).length ? (it.issues.join(' · ')) : '-';
         const isOk = it.status === '정상';
+        // 야간 수집창 외에는 운영 상태 판정 무의미 → '측정 전'
+        const statusLabel = measuring ? it.status : '측정 전';
+        const statusBadgeCls = measuring ? eqStatusBadge(it.status) : 'badge-unknown';
+        const showAsOk = measuring ? isOk : true; // 측정 전은 빨간색 강조 안 함
         return `<tr>
           <td>
             <strong>${it.name}</strong>
             ${it.address ? `<div style="font-size:10px;color:var(--gray4)">${it.address}</div>` : ''}
           </td>
-          <td><span class="badge ${eqStatusBadge(it.status)}">${it.status}</span></td>
+          <td><span class="badge ${statusBadgeCls}">${statusLabel}</span></td>
           <td style="font-family:var(--mono);color:${(it.battery || 0) < 20 ? 'var(--red);font-weight:700' : 'var(--gray6)'}">${it.battery || 0}%</td>
-          <td>${it.fan === 1 ? '<span style="color:var(--green)">▶ ON</span>' : '<span style="color:var(--red);font-weight:700">■ OFF</span>'}</td>
-          <td style="font-family:var(--mono);font-size:11px;color:${(it.delay_minutes || 0) > 720 ? 'var(--red)' : 'var(--gray5)'}">${eqFormatDelay(it.delay_minutes)}</td>
-          <td style="font-family:var(--mono);font-size:10px;color:${isOk ? 'var(--gray5)' : 'var(--red)'}">${(it.updated_date || '-').slice(0, 16).replace('T', ' ')}</td>
-          <td style="font-size:11px;color:${isOk ? 'var(--gray5)' : 'var(--red)'};${isOk ? '' : 'font-weight:600'}">
-            <div>${issues}</div>
-            <div style="color:var(--teal);margin-top:2px">→ ${it.action}</div>
+          <td>${it.fan === 1 ? '<span style="color:var(--green)">▶ ON</span>' : '<span style="color:var(--gray4)">■ OFF</span>'}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:${measuring && (it.delay_minutes || 0) > 720 ? 'var(--red)' : 'var(--gray5)'}">${eqFormatDelay(it.delay_minutes)}</td>
+          <td style="font-family:var(--mono);font-size:10px;color:${showAsOk ? 'var(--gray5)' : 'var(--red)'}">${(it.updated_date || '-').slice(0, 16).replace('T', ' ')}</td>
+          <td style="font-size:11px;color:${showAsOk ? 'var(--gray5)' : 'var(--red)'};${showAsOk ? '' : 'font-weight:600'}">
+            ${measuring ? `<div>${issues}</div><div style="color:var(--teal);margin-top:2px">→ ${it.action}</div>` : `<div style="color:var(--gray4);font-style:italic">측정 전 — 18시 이후 판정</div>`}
           </td>
         </tr>`;
       }).join('')}</tbody>`;
