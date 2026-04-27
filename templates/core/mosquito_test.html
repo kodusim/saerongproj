@@ -1038,7 +1038,7 @@ body {
     <div class="nav-label">시스템</div>
     <a class="nav-item" onclick="showPage('equipment')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><line x1="6" y1="14" x2="10" y2="14"/><line x1="8" y1="12" x2="8" y2="14"/></svg>
-      장비 · 신뢰도
+      장비 현황
     </a>
     <a class="nav-item" onclick="showPage('admin')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>
@@ -1634,14 +1634,14 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 9. 장비 · 신뢰도 ══════════ -->
+  <!-- ══════════ 9. 장비 현황 ══════════ -->
   <div class="page" id="page-equipment">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">데이터 신뢰도 · 장비 상태</div>
-          <div class="sec-sub" id="eq-sub">4축 가중합(배터리·팬·수신·포집) · MOSCOM 실측</div>
+          <div class="sec-title">장비 현황</div>
+          <div class="sec-sub" id="eq-sub">배터리 · 팬 · 통신 상태 · MOSCOM 실측</div>
         </div>
       </div>
       <div class="ai-model-badge"><span class="dot"></span>실시간 장비 진단</div>
@@ -1649,25 +1649,6 @@ body {
 
     <!-- 요약 카드 -->
     <div class="kpi-grid mb16" id="eq-summary"></div>
-
-    <!-- 판정 기준 -->
-    <div class="cp-criteria-card mb16">
-      <h4>📐 신뢰도 산출 기준 (가중 합산)</h4>
-      <div class="cp-formula">
-        trust_score = 배터리 × 25% + 팬 × 20% + 수신 × 35% + 포집 × 20%
-      </div>
-      <div style="font-size:10px;color:var(--gray5);line-height:1.6;margin-bottom:6px">
-        · <strong>배터리</strong>: 50%+=100점 · 30%+=80 · 20%+=60 · 10%+=35 · 그 이하=10<br>
-        · <strong>팬</strong>: on=100 / off=30<br>
-        · <strong>수신</strong>: 2h이내=100 · 6h=80 · 12h=55 · 24h=30 · 초과=5<br>
-        · <strong>포집</strong>: 정상=100 · 3일 연속 0=40 (센서 의심)
-      </div>
-      <div class="cp-levels">
-        <span class="cp-lv" style="background:#E8F5E9;color:#1B5E20">HIGH ≥ 85</span>
-        <span class="cp-lv" style="background:#FFF3E0;color:#E65100">MEDIUM 60~84</span>
-        <span class="cp-lv" style="background:#FDECEA;color:#B71C1C">LOW &lt; 60</span>
-      </div>
-    </div>
 
     <!-- 즉시 조치 필요 알림 (오프라인/배터리 10% 미만) -->
     <div id="eq-alerts"></div>
@@ -3895,12 +3876,12 @@ async function buildEquipment() {
     EQ_STATE.data = json;
 
     const sub = document.getElementById('eq-sub');
-    if (sub) sub.textContent = `${json.count}개 장비 · 평균 신뢰도 ${json.summary.avg_trust}%`;
+    if (sub) sub.textContent = `${json.count}개 장비 · 정상 ${json.summary.normal} / 점검 ${json.summary.check} / 오프라인 ${json.summary.offline}`;
 
     // 요약 KPI
     const s = json.summary;
     document.getElementById('eq-summary').innerHTML = `
-      <div class="kpi-card navy"><div class="kpi-label">평균 신뢰도</div><div class="kpi-value val-navy">${s.avg_trust}<span style="font-size:14px">%</span></div><div class="kpi-sub">전체 장비</div></div>
+      <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
       <div class="kpi-card green"><div class="kpi-label">정상 장비</div><div class="kpi-value val-green">${s.normal}</div><div class="kpi-sub">/ ${s.total}개</div></div>
       <div class="kpi-card orange"><div class="kpi-label">점검 필요</div><div class="kpi-value val-orange">${s.check}</div><div class="kpi-sub">원격 점검 권장</div></div>
       <div class="kpi-card red"><div class="kpi-label">오프라인</div><div class="kpi-value val-red">${s.offline}</div><div class="kpi-sub">현장 방문 필요</div></div>
@@ -3933,13 +3914,11 @@ async function buildEquipment() {
     // 상세 표
     const t = document.getElementById('equipment-table');
     t.innerHTML = `<thead><tr>
-        <th>장비</th><th>상태</th><th>신뢰도</th><th>점수</th>
-        <th>배터리</th><th>팬</th><th>수신 지연</th><th>포집</th>
+        <th>장비</th><th>상태</th>
+        <th>배터리</th><th>팬</th><th>수신 지연</th>
         <th>최종 수신</th><th>이상 / 조치</th>
       </tr></thead>
       <tbody>${json.items.map(it => {
-        const tc = eqTrustColor(it.trust);
-        const axes = it.axes || {};
         const issues = (it.issues || []).length ? (it.issues.join(' · ')) : '-';
         const isOk = it.status === '정상';
         return `<tr>
@@ -3948,17 +3927,9 @@ async function buildEquipment() {
             ${it.address ? `<div style="font-size:10px;color:var(--gray4)">${it.address}</div>` : ''}
           </td>
           <td><span class="badge ${eqStatusBadge(it.status)}">${it.status}</span></td>
-          <td style="color:${tc};font-weight:700">${it.trust}</td>
-          <td>
-            <div class="trust-bar-wrap">
-              <div class="trust-bar-bg"><div class="trust-bar-fill ${eqTrustBarCls(it.trust)}" style="width:${it.trust_score}%"></div></div>
-              <span class="trust-val" style="color:${tc}">${it.trust_score}</span>
-            </div>
-          </td>
           <td style="font-family:var(--mono);color:${(it.battery || 0) < 20 ? 'var(--red);font-weight:700' : 'var(--gray6)'}">${it.battery || 0}%</td>
           <td>${it.fan === 1 ? '<span style="color:var(--green)">▶ ON</span>' : '<span style="color:var(--red);font-weight:700">■ OFF</span>'}</td>
           <td style="font-family:var(--mono);font-size:11px;color:${(it.delay_minutes || 0) > 720 ? 'var(--red)' : 'var(--gray5)'}">${eqFormatDelay(it.delay_minutes)}</td>
-          <td style="font-family:var(--mono);color:${axes['포집'] === 40 ? 'var(--red);font-weight:700' : 'var(--gray5)'}">${axes['포집']}</td>
           <td style="font-family:var(--mono);font-size:10px;color:${isOk ? 'var(--gray5)' : 'var(--red)'}">${(it.updated_date || '-').slice(0, 16).replace('T', ' ')}</td>
           <td style="font-size:11px;color:${isOk ? 'var(--gray5)' : 'var(--red)'};${isOk ? '' : 'font-weight:600'}">
             <div>${issues}</div>
@@ -3967,7 +3938,7 @@ async function buildEquipment() {
         </tr>`;
       }).join('')}</tbody>`;
   } catch (err) {
-    document.getElementById('equipment-table').innerHTML = `<thead><tr><th colspan="10" style="text-align:center;color:var(--red);padding:18px">로드 실패: ${err.message}</th></tr></thead>`;
+    document.getElementById('equipment-table').innerHTML = `<thead><tr><th colspan="7" style="text-align:center;color:var(--red);padding:18px">로드 실패: ${err.message}</th></tr></thead>`;
   }
 }
 
@@ -4117,7 +4088,7 @@ const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"포집량 이상 감지",
   trend:"7일 누적 추세", predict:"AI 예측", forecast:"AI 예보",
   remedy:"방역 내역 및 AI 추천", complaint:"민원 가능 지역",
-  equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단", moscom_admin:"모스콤 관리자"
+  equipment:"장비 현황", admin:"행정 판단", moscom_admin:"모스콤 관리자"
 };
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
