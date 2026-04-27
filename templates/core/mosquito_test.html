@@ -2075,9 +2075,9 @@ function renderOvStationTable(json) {
     let trendArrow = '→', trendColor = 'var(--gray4)';
     if (d.trend === '↑') { trendArrow = '↗'; trendColor = 'var(--red)'; }
     else if (d.trend === '↓') { trendArrow = '↘'; trendColor = 'var(--green)'; }
-    // 야간 수집창 외에는 장비 상태를 '측정 전'으로 표시 (상태 판정은 야간만 의미 있음)
-    const statusLabel = measuring ? d.status : '측정 전';
-    const statusBadgeCls = measuring ? ovStatusBadge(d.status) : 'badge-unknown';
+    // 표 안의 장비 상태 컬럼은 항상 '측정중' 또는 '측정 전' 두 가지로만 표기
+    const statusLabel = measuring ? '측정중' : '측정 전';
+    const statusBadgeCls = measuring ? 'badge-ok' : 'badge-unknown';
     return `<tr>
       <td><strong>${escapeHtml(d.name)}</strong></td>
       <td style="color:var(--gray5);font-size:11px">${escapeHtml(d.addr || '-')}</td>
@@ -3906,25 +3906,27 @@ async function buildEquipment() {
     const measuring = isNightCollectingNowKST();
     if (sub) {
       sub.textContent = measuring
-        ? `${json.count}개 장비 · 정상 ${json.summary.normal} / 점검 ${json.summary.check} / 오프라인 ${json.summary.offline}`
+        ? `${json.count}개 장비 · 야간 수집창 18~05시 측정중`
         : `${json.count}개 장비 · 야간 수집창(18~05시) 외 시간 — 측정 전`;
     }
 
     // 요약 KPI (측정 전이면 정상/점검/오프라인 대신 단순 표시)
     const s = json.summary;
+    const avgBatt = Math.round(json.items.reduce((a,b) => a + (b.battery||0), 0) / Math.max(json.items.length,1));
+    const lowBattCount = json.items.filter(i => (i.battery||0) < 20).length;
     if (measuring) {
       document.getElementById('eq-summary').innerHTML = `
         <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
-        <div class="kpi-card green"><div class="kpi-label">정상 장비</div><div class="kpi-value val-green">${s.normal}</div><div class="kpi-sub">/ ${s.total}개</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">점검 필요</div><div class="kpi-value val-orange">${s.check}</div><div class="kpi-sub">원격 점검 권장</div></div>
-        <div class="kpi-card red"><div class="kpi-label">오프라인</div><div class="kpi-value val-red">${s.offline}</div><div class="kpi-sub">현장 방문 필요</div></div>
+        <div class="kpi-card green"><div class="kpi-label">현재 상태</div><div class="kpi-value val-green" style="font-size:20px">측정중</div><div class="kpi-sub">야간 수집창 18~05시</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 장비 평균</div></div>
+        <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${lowBattCount}</div><div class="kpi-sub">20% 미만</div></div>
       `;
     } else {
       document.getElementById('eq-summary').innerHTML = `
         <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
-        <div class="kpi-card"><div class="kpi-label">현재 상태</div><div class="kpi-value" style="color:var(--gray5);font-size:18px">측정 전</div><div class="kpi-sub">야간 수집창(18~05시) 대기</div></div>
-        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${Math.round(json.items.reduce((a,b) => a + (b.battery||0), 0) / Math.max(json.items.length,1))}%</div><div class="kpi-sub">전 장비 평균</div></div>
-        <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${json.items.filter(i => (i.battery||0) < 20).length}</div><div class="kpi-sub">20% 미만</div></div>
+        <div class="kpi-card"><div class="kpi-label">현재 상태</div><div class="kpi-value" style="color:var(--gray5);font-size:20px">측정 전</div><div class="kpi-sub">야간 수집창(18~05시) 대기</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 장비 평균</div></div>
+        <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${lowBattCount}</div><div class="kpi-sub">20% 미만</div></div>
       `;
     }
 
@@ -3979,9 +3981,9 @@ async function buildEquipment() {
       <tbody>${json.items.map(it => {
         const issues = (it.issues || []).length ? (it.issues.join(' · ')) : '-';
         const isOk = it.status === '정상';
-        // 야간 수집창 외에는 운영 상태 판정 무의미 → '측정 전'
-        const statusLabel = measuring ? it.status : '측정 전';
-        const statusBadgeCls = measuring ? eqStatusBadge(it.status) : 'badge-unknown';
+        // 표 안 상태 컬럼은 '측정중' / '측정 전' 두 가지로 통일
+        const statusLabel = measuring ? '측정중' : '측정 전';
+        const statusBadgeCls = measuring ? 'badge-ok' : 'badge-unknown';
         const showAsOk = measuring ? isOk : true; // 측정 전은 빨간색 강조 안 함
         return `<tr>
           <td>
