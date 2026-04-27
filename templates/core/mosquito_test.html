@@ -1566,46 +1566,6 @@ body {
       <div class="ai-model-badge"><span class="dot"></span>MOSCOM 위험도 엔진 v1</div>
     </div>
 
-    <!-- 판정 기준 카드 -->
-    <div class="cp-criteria">
-      <div class="cp-criteria-card">
-        <h4>🎯 위험 등급 산출 기준 (5단계)</h4>
-        <div class="cp-formula">
-          risk_score = 절대 포집량 × 40% + 증가율 × 25% + 추세 × 20% + 전국 대비 × 15%
-        </div>
-        <div style="font-size:10px;color:var(--gray5);line-height:1.6;margin-bottom:6px">
-          · <strong>절대 포집량</strong>: 오늘 포집량 / 장비 bad_min × 100 (상한)<br>
-          · <strong>증가율</strong>: 전일 대비 +100% 이상이면 100점<br>
-          · <strong>추세</strong>: 7일 앞/뒤 반 비교 +30% 이상이면 100점<br>
-          · <strong>전국 대비</strong>: 52개 장비 중 백분위
-        </div>
-        <div class="cp-levels">
-          <span class="cp-lv" style="background:#E8F5E9;color:#1B5E20">안전 0~20</span>
-          <span class="cp-lv" style="background:#F1F8E9;color:#33691E">관심 21~40</span>
-          <span class="cp-lv" style="background:#FFF3E0;color:#E65100">주의 41~60</span>
-          <span class="cp-lv" style="background:#FDECEA;color:#B71C1C">경고 61~80</span>
-          <span class="cp-lv" style="background:#FCE4EC;color:#880E4F">심각 81~100</span>
-        </div>
-      </div>
-      <div class="cp-criteria-card">
-        <h4>📢 민원 위험도 기준 (3단계)</h4>
-        <div class="cp-formula">
-          complaint_score = 체감 × 35% + 급증 × 25% + 야간 피크 × 25% + 주거지 × 15%
-        </div>
-        <div style="font-size:10px;color:var(--gray5);line-height:1.6;margin-bottom:6px">
-          · <strong>체감 포집량</strong>: 절대 포집량과 동일(주민이 체감하는 수준)<br>
-          · <strong>급증 신호</strong>: 어제 대비 증가율<br>
-          · <strong>야간 피크</strong>: 19~23시 포집 비중 (60% 이상 = 100점)<br>
-          · <strong>주거지 인접</strong>: 주소에 '공원/아파트/주거/학교/초등/중학/고등/어린이집/유치원' 포함 시 80점
-        </div>
-        <div class="cp-levels">
-          <span class="cp-lv" style="background:#E8F5E9;color:#1B5E20">낮음 0~30</span>
-          <span class="cp-lv" style="background:#FFF3E0;color:#E65100">보통 31~60</span>
-          <span class="cp-lv" style="background:#FDECEA;color:#B71C1C">높음 61~100</span>
-        </div>
-      </div>
-    </div>
-
     <!-- 필터 -->
     <div class="cp-filters">
       <button class="cp-chip active" data-filter="all">전체</button>
