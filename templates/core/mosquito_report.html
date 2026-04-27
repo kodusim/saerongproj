@@ -303,7 +303,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       </div>
       {% endif %}
       <div class="kpi orange">
-        <div class="kpi-l">이상 감지</div>
+        <div class="kpi-l">포집량 이상 감지</div>
         <div class="kpi-n">{{ report.summary.anomaly_count }}</div>
         <div class="kpi-u">bad_min 초과</div>
       </div>
@@ -379,8 +379,8 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <script type="application/json" id="hm-data">{{ heatmap_json|default:"[]"|safe }}</script>
     {% endif %}
 
-    <!-- 4. 이상 발생 감지 -->
-    <h2 class="sec">4. 이상 발생 감지</h2>
+    <!-- 4. 포집량 이상 감지 -->
+    <h2 class="sec">4. 포집량 이상 감지</h2>
     {% if report.summary.sections.anomaly %}
     <table class="data">
       <thead>
@@ -400,7 +400,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       </tbody>
     </table>
     {% else %}
-    <div class="empty">기간 내 기준 초과 이상 감지 없음</div>
+    <div class="empty">기간 내 포집량 이상 감지 없음</div>
     {% endif %}
 
     <!-- 5. AI 예측 -->

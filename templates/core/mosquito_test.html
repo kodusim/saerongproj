@@ -1002,7 +1002,7 @@ body {
     </a>
     <a class="nav-item" onclick="showPage('anomaly')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L14 13H2L8 2Z"/><line x1="8" y1="7" x2="8" y2="10"/><circle cx="8" cy="11.5" r="0.7" fill="currentColor"/></svg>
-      이상 감지
+      포집량 이상 감지
     </a>
     <a class="nav-item" onclick="showPage('trend')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 9,9 15,3"/></svg>
@@ -1187,8 +1187,8 @@ body {
   <!-- ══════════ 3. 이상 감지 ══════════ -->
   <div class="page" id="page-anomaly">
     <div class="sec-header mb16"><div class="sec-bar"></div>
-      <div class="sec-title">이상 발생 감지 (Anomaly Detection)</div>
-      <div class="sec-sub">장비 고유 기준 bad_min 초과 시 이상으로 판정 · MOSCOM 실측</div>
+      <div class="sec-title">포집량 이상 감지</div>
+      <div class="sec-sub">장비 고유 기준치(bad_min) 초과 시 포집량 이상으로 판정 · MOSCOM 실측</div>
     </div>
 
     <!-- 날짜 선택 -->
@@ -1207,17 +1207,17 @@ body {
     <div class="card mb16">
       <div class="sec-header" style="margin-bottom:10px">
         <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">이상 감지 장비</div>
+        <div class="sec-title" style="font-size:13px">포집량 이상 감지 장비</div>
       </div>
       <table class="data-table" id="anomaly-flagged-table"></table>
     </div>
 
-    <!-- 누적 이상 감지 이력 -->
+    <!-- 포집량 이상 감지 누적 이력 -->
     <div class="card mb16">
       <div class="sec-header" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="sec-bar"></div>
-          <div class="sec-title" style="font-size:13px">이상 감지 누적 이력</div>
+          <div class="sec-title" style="font-size:13px">포집량 이상 감지 누적 이력</div>
           <span style="font-size:11px;color:var(--gray4)">기준 초과 발생만</span>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
@@ -1823,7 +1823,7 @@ body {
 
     <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
       <strong style="color:var(--yellow)">참고</strong> ·
-      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 이상감지 / 추세 / AI 예측 · 예보 / 민원</strong> 전 탭에서 표시됩니다.
+      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 포집량 이상 감지 / 추세 / AI 예측 · 예보 / 민원</strong> 전 탭에서 표시됩니다.
       admin 계정은 모든 장비에 접근 가능합니다.
     </div>
   </div>
@@ -2358,7 +2358,7 @@ async function buildAnomalyAll(){
         <div class="anomaly-alert">
           <div class="anomaly-icon">⚠</div>
           <div>
-            <div class="anomaly-title">이상 발생 감지 — ${top.name}${top.addr ? ' ('+top.addr+')' : ''}</div>
+            <div class="anomaly-title">포집량 이상 감지 — ${top.name}${top.addr ? ' ('+top.addr+')' : ''}</div>
             <div class="anomaly-body">
               금일 <strong>${top.today}마리</strong> 포집으로 장비 경보 기준 <strong>${top.badMin}마리</strong> 초과.
               전일 <strong>${top.yday}마리</strong> ${top.pct !== null ? '· 변화율 <strong>'+(top.pct>=0?'+':'')+top.pct+'%</strong>' : ''} ·
@@ -4123,7 +4123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── 페이지 전환 ──────────────────────────────────────────
 const PAGE_TITLES = {
-  overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"이상 발생 감지",
+  overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"포집량 이상 감지",
   trend:"7일 누적 추세", predict:"AI 예측", forecast:"AI 예보",
   remedy:"방역 계획 및 AI 추천", complaint:"민원 가능 지역",
   equipment:"데이터 신뢰도 · 장비 상태", admin:"행정 판단", moscom_admin:"모스콤 관리자"
@@ -4474,7 +4474,7 @@ async function maLoadKakao() {
           <label style="display:block;font-size:11px;font-weight:700;color:var(--gray5);margin-bottom:4px">메시지 내용</label>
           <textarea id="kakao-text" maxlength="400" rows="3"
             style="width:100%;padding:8px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px;font-family:inherit;resize:vertical"
-            placeholder="예: [MOSCOM] 이상 감지 3건 발생, 확인 필요"></textarea>
+            placeholder="예: [MOSCOM] 포집량 이상 감지 3건 발생, 확인 필요"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
             <span style="font-size:10px;color:var(--gray4)">최대 400자 · 대시보드 링크 버튼 포함</span>
             <button class="ma-primary-btn" onclick="kakaoSend()" style="width:auto;padding:8px 18px;font-size:12px">알림 보내기</button>
