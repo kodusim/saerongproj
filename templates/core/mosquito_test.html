@@ -1013,11 +1013,11 @@ body {
   <div class="nav-section">
     <div class="nav-label">예측 시스템</div>
     <a class="nav-item" onclick="showPage('predict')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><polyline points="8,4 8,8 11,10"/></svg>
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 C4 10 6 6 8 8 C10 10 12 5 14 4"/><line x1="2" y1="14" x2="14" y2="14"/></svg>
       AI 예측
     </a>
     <a class="nav-item" onclick="showPage('forecast')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 C4 10 6 6 8 8 C10 10 12 5 14 4"/><line x1="2" y1="14" x2="14" y2="14"/></svg>
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><polyline points="8,4 8,8 11,10"/></svg>
       AI 예보
     </a>
   </div>
@@ -1361,14 +1361,15 @@ body {
     <!-- 결과 영역 (로더 끝나면 표시) -->
     <div id="predict-result" style="display:none">
 
-      <!-- Hero 카드 -->
-      <div id="predict-hero"></div>
-
-      <!-- 1-3일 요약 카드 -->
+      <!-- 장비별 실측 + 예측 표 -->
       <div class="sec-header" style="margin-bottom:10px">
-        <div class="sec-title" style="font-size:13px;color:var(--gray5)">전 장비 예측 요약</div>
+        <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 실측 · AI 예측</div>
       </div>
-      <div class="risk-grid mb24" id="predict-summary-cards"></div>
+      <div class="card mb24">
+        <div style="overflow-x:auto">
+          <table class="data-table" id="predict-table"></table>
+        </div>
+      </div>
 
       <!-- 실측+예측 차트 -->
       <div class="card mb24" style="padding:16px">
@@ -1398,15 +1399,6 @@ body {
         </div>
       </div>
 
-      <!-- 장비별 예측 테이블 -->
-      <div class="sec-header" style="margin-bottom:10px">
-        <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 상세 예측</div>
-      </div>
-      <div class="card">
-        <div style="overflow-x:auto">
-          <table class="data-table" id="predict-table"></table>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -3072,41 +3064,7 @@ async function buildPredict() {
 
     if (preds.length === 0) return;
 
-    // Hero 카드: 최대 예측값 장비
-    const top = preds[0];
-    const heroCls = top.max_predicted > 100 ? '' : top.max_predicted > 50 ? '' : 'safe';
-    const heroIcon = top.max_predicted > 100 ? '⚠' : top.max_predicted > 50 ? '!' : '✓';
-    document.getElementById('predict-hero').innerHTML = `
-      <div class="ai-hero ${heroCls}">
-        <div class="ai-hero-icon">${heroIcon}</div>
-        <div>
-          <div class="ai-hero-label">AI 최상위 위험도 예측</div>
-          <div class="ai-hero-name">${top.name}</div>
-          <div class="ai-hero-desc">${top.region || '기타'} · ${top.reasoning || ''}</div>
-        </div>
-        <div class="ai-hero-value">
-          <div class="ai-hero-num">${top.max_predicted}</div>
-          <div class="ai-hero-unit">마리 / 최대 예상</div>
-          <div style="margin-top:6px"><span class="badge ${predictGradeBadgeCls(top.grade)}">${top.grade}</span></div>
-        </div>
-      </div>
-    `;
-
-    // 요약 카드
     const dates = preds[0].predictions.map(p => p.date);
-    const dayTotals = dates.map((dt, i) => preds.reduce((s, p) => s + (p.predictions[i].predicted || 0), 0));
-    const dayMax = dates.map((dt, i) => Math.max(...preds.map(p => p.predictions[i].predicted || 0)));
-    document.getElementById('predict-summary-cards').innerHTML = dates.map((d, i) => {
-      const [, mm, dd] = d.split('-');
-      const top2 = dayMax[i];
-      const cls = top2 > 200 ? 'risk-high' : top2 > 100 ? 'risk-high' : top2 > 50 ? 'risk-mid' : 'risk-low';
-      const color = top2 > 200 ? '#4A1B6B' : top2 > 100 ? '#A32D2D' : top2 > 50 ? '#C05000' : '#1A5C35';
-      return `<div class="risk-card ${cls}">
-        <div class="risk-day">${parseInt(mm,10)}/${parseInt(dd,10)} (+${i+1}일)</div>
-        <div class="risk-score" style="color:${color}">${dayTotals[i]}</div>
-        <div class="risk-label" style="color:var(--gray5);font-weight:500">전 장비 합계 · 최대 ${top2}</div>
-      </div>`;
-    }).join('');
 
     // 장비 선택 기본: TOP 5
     predictSelect(5);
@@ -3116,22 +3074,47 @@ async function buildPredict() {
       const [, mm, dd] = d.split('-');
       return `<th>${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
     }).join('');
+
+    // 실측 날짜는 모든 장비의 history를 union해서 최근 7일 추림
+    const histDateSet = new Set();
+    preds.forEach(p => (p.history || []).forEach(h => histDateSet.add(h.date)));
+    const histDates = Array.from(histDateSet).sort().slice(-7);
+    const histHdr = histDates.map(d => {
+      const [, mm, dd] = d.split('-');
+      return `<th style="background:var(--gray4)">${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
+    }).join('');
+
     const t = document.getElementById('predict-table');
-    t.innerHTML = `<thead><tr>
-        <th style="min-width:180px">장비 (${preds.length}개)</th>
-        <th>지역</th>${dayHdr}
-        <th>최대</th><th>등급</th>
-        <th>신뢰도</th>
-        <th style="min-width:220px">AI 추론 근거</th>
+    t.innerHTML = `<thead>
+      <tr>
+        <th rowspan="2" style="min-width:170px">장비 (${preds.length}개)</th>
+        <th rowspan="2">지역</th>
+        ${histDates.length ? `<th colspan="${histDates.length}" style="background:var(--gray5)">실측</th>` : ''}
+        <th colspan="${dates.length}" style="background:var(--navy)">AI 예측</th>
+        <th rowspan="2">최대</th>
+        <th rowspan="2">등급</th>
+        <th rowspan="2">신뢰도</th>
+        <th rowspan="2" style="min-width:220px">AI 추론 근거</th>
+      </tr>
+      <tr>
+        ${histHdr}
+        ${dayHdr}
       </tr></thead>
       <tbody>${preds.map(p => {
-        const cells = p.predictions.map(pp => `<td style="font-family:var(--mono)">${pp.predicted}</td>`).join('');
+        const histMap = {};
+        (p.history || []).forEach(h => { histMap[h.date] = h.count; });
+        const histCells = histDates.map(d => {
+          const v = histMap[d];
+          return `<td style="font-family:var(--mono);background:var(--gray1);color:var(--gray5)">${v ?? '-'}</td>`;
+        }).join('');
+        const predCells = p.predictions.map(pp => `<td style="font-family:var(--mono);font-weight:600">${pp.predicted}</td>`).join('');
         const conf = p.confidence || 0;
         const confColor = conf >= 85 ? '#198754' : conf >= 70 ? '#C05000' : '#8A8FA0';
         return `<tr>
           <td><strong>${p.name}</strong></td>
           <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
-          ${cells}
+          ${histCells}
+          ${predCells}
           <td style="font-family:var(--mono);font-weight:700;color:${gradeColor(p.grade)}">${p.max_predicted}</td>
           <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
           <td>
