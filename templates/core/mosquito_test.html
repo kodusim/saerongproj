@@ -1138,7 +1138,7 @@ body {
             <tr>
               <th>장비</th><th>지역</th><th>위험 등급</th>
               <th>오늘 포집</th><th>어제</th><th>7일 평균</th>
-              <th>민원 위험</th><th>장비 상태</th><th>신뢰도</th><th>추세</th>
+              <th>민원 위험</th><th>장비 상태</th><th>추세</th>
             </tr>
           </thead>
           <tbody id="ov-station-body"><tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
@@ -2009,30 +2009,30 @@ function renderOvKpis(json) {
       <div class="kpi-value val-red" style="font-size:16px;margin-top:6px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${topName}">${topName}</div>
       <div class="kpi-sub">${topCount}마리</div>
     </div>
-    <div class="kpi-card orange">
-      <div class="kpi-label">경고 이상 장비</div>
-      <div class="kpi-value val-orange">${kpi.warn_count || 0}</div>
-      <div class="kpi-sub">위험 점수 61+</div>
-    </div>
     <div class="kpi-card red">
-      <div class="kpi-label">기준 초과 감지</div>
+      <div class="kpi-label">포집량 이상 감지</div>
       <div class="kpi-value val-red">${kpi.anomaly_today || 0}<span style="font-size:14px">건</span></div>
-      <div class="kpi-sub">bad_min 초과</div>
+      <div class="kpi-sub">기준치(bad_min) 초과</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">위험도 경고 이상</div>
+      <div class="kpi-value val-orange">${kpi.warn_count || 0}</div>
+      <div class="kpi-sub">위험 점수 61점 이상</div>
     </div>
     <div class="kpi-card purple">
-      <div class="kpi-label">민원 가능 높음</div>
+      <div class="kpi-label">민원 가능 '높음'</div>
       <div class="kpi-value val-purple">${kpi.complaint_high || 0}</div>
       <div class="kpi-sub">사전 대응 권장</div>
     </div>
     <div class="kpi-card teal">
-      <div class="kpi-label">장비 점검 필요</div>
+      <div class="kpi-label">장비 이상</div>
       <div class="kpi-value val-teal">${kpi.equip_bad || 0}</div>
       <div class="kpi-sub">오프라인 ${kpi.offline_count || 0} / 점검 ${kpi.check_count || 0}</div>
     </div>
     <div class="kpi-card green">
-      <div class="kpi-label">평균 신뢰도</div>
-      <div class="kpi-value val-green">${kpi.avg_trust || 0}<span style="font-size:14px">%</span></div>
-      <div class="kpi-sub">${kpi.total_devices || 0}대 기준</div>
+      <div class="kpi-label">정상 운영</div>
+      <div class="kpi-value val-green">${(kpi.total_devices || 0) - (kpi.equip_bad || 0)}</div>
+      <div class="kpi-sub">${kpi.total_devices || 0}대 중</div>
     </div>
   `;
 }
@@ -2043,13 +2043,15 @@ function renderOvStationTable(json) {
   const list = json.devices || [];
   if (sub) sub.textContent = `허용된 장비 ${list.length}대 전체`;
   if (list.length === 0) {
-    tb.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
     return;
   }
   tb.innerHTML = list.map(d => {
     const cpCls = ovCpCls(d.complaint_level);
-    const trustColor = d.trust_score >= 85 ? 'var(--green)' : d.trust_score >= 60 ? 'var(--orange)' : 'var(--red)';
-    const trendColor = d.trend === '↑' ? 'var(--red)' : d.trend === '↓' ? 'var(--green)' : 'var(--gray4)';
+    // 추세: ↑ → ↗ (상승, 빨강), ↓ → ↘ (하락, 초록), 그 외 → → (보합, 회색)
+    let trendArrow = '→', trendColor = 'var(--gray4)';
+    if (d.trend === '↑') { trendArrow = '↗'; trendColor = 'var(--red)'; }
+    else if (d.trend === '↓') { trendArrow = '↘'; trendColor = 'var(--green)'; }
     return `<tr>
       <td><strong>${escapeHtml(d.name)}</strong></td>
       <td style="color:var(--gray5);font-size:11px">${escapeHtml(d.addr || '-')}</td>
@@ -2059,8 +2061,7 @@ function renderOvStationTable(json) {
       <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg}</td>
       <td><span class="complaint-pill ${cpCls}">${d.complaint_level}</span></td>
       <td><span class="badge ${ovStatusBadge(d.status)}">${d.status}</span></td>
-      <td style="font-family:var(--mono);color:${trustColor};font-weight:700">${d.trust_score}</td>
-      <td style="color:${trendColor};font-weight:700;font-size:16px">${d.trend}</td>
+      <td style="color:${trendColor};font-weight:700;font-size:18px">${trendArrow}</td>
     </tr>`;
   }).join('');
 }
