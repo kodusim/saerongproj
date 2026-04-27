@@ -1100,7 +1100,7 @@ body {
     <div class="sec-header mb16">
       <div class="sec-bar"></div>
       <div class="sec-title">시간별 포집 히트맵</div>
-      <div class="sec-sub">하루 기준 10:00 (KST) · 장비별 시간당 포집 증분</div>
+      <div class="sec-sub">야간 수집창 18:00 ~ 05:00 (KST) · 장비별 시간당 포집량</div>
     </div>
 
     <div class="card mb16" style="padding:12px 16px">
@@ -2009,8 +2009,8 @@ function renderOvStationTable(json) {
 // mosquito_count는 누적값 → 시간별 증분으로 변환 (current - previous, 음수는 0)
 // 10:00 버킷은 "하루 시작 시점" 기준이므로 전시간 없음 → 증분 = 현시간 최대값 - 0
 
-// 하루의 열 순서: 10,11,...23,00,01,...09
-const HM_HOURS = Array.from({length: 24}, (_, i) => (10 + i) % 24);
+// 하루의 열 순서: 18~23, 00~05 (12시간 야간 수집창만)
+const HM_HOURS = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
 
 // 해당 시점의 "업무일" 시작(오늘 10:00 또는 어제 10:00) KST
 // offset=0: 오늘 업무일, -1: 어제 업무일
@@ -2109,22 +2109,25 @@ async function buildHeatmap(){
       });
     });
 
-    // 누적 → 증분 변환
-    const buckets = {}; // uuid -> array(24)
+    // 누적 → 증분 변환 (12칸: 18~05시만)
+    const N = HM_HOURS.length;
+    const buckets = {}; // uuid -> array(N)
     Object.keys(deviceRecords).forEach(u => {
       const recs = deviceRecords[u].sort((a, b) => a.ts - b.ts);
       // 각 시간 버킷의 마지막 누적값
-      const hourMax = new Array(24).fill(null);
+      const hourMax = new Array(N).fill(null);
       recs.forEach(r => {
-        // reset이면 이후부터 다시 0에서 시작 (이 시간의 count는 리셋 직후 값)
-        hourMax[r.idx] = r.count;
+        // 같은 슬롯에 여러 레코드면 마지막(최대) 값 사용
+        if (hourMax[r.idx] === null || r.count > hourMax[r.idx]) {
+          hourMax[r.idx] = r.count;
+        }
       });
-      // null은 "데이터 없음"으로 취급. 앞쪽 시간은 건너뛰어 가장 최근 관측된 시간까지 카운트 유지.
-      const deltas = new Array(24).fill(0);
+      // 데이터 없는 시간은 0으로 표시 (가동 안 함 / 미수집 모두 0 통일)
+      const deltas = new Array(N).fill(0);
       let prev = 0; // 하루 시작 기준 0부터
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < N; i++) {
         const cur = hourMax[i];
-        if (cur === null) continue; // 이 시간에 기록 없음 → 증분 0
+        if (cur === null) continue; // 기록 없음 → 0 유지, prev도 그대로
         const d = cur - prev;
         deltas[i] = d > 0 ? d : 0; // 리셋/오류 방어
         prev = cur;
@@ -2148,8 +2151,8 @@ async function buildHeatmap(){
 
     const hdr = `<tr><th class="st-col">장비 (${rows.length}개)</th>${HM_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}</th>`).join('')}<th>합계</th></tr>`;
     const body = rows.map(r => {
-      const cells = r.arr.map(v => `<td class="${heatClass(v)}">${v || '-'}</td>`).join('');
-      return `<tr><td class="st-name">${r.label}</td>${cells}<td class="total-cell">${r.total > 0 ? r.total : '-'}</td></tr>`;
+      const cells = r.arr.map(v => `<td class="${heatClass(v)}">${v}</td>`).join('');
+      return `<tr><td class="st-name">${r.label}</td>${cells}<td class="total-cell">${r.total}</td></tr>`;
     }).join('');
     t.innerHTML = `<thead>${hdr}</thead><tbody>${body}</tbody>`;
   } catch (err) {
