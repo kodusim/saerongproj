@@ -2921,6 +2921,7 @@ function renderPredictFilter() {
       else PREDICT_STATE.selected.delete(u);
       renderPredictFilter();
       drawPredictChart();
+      renderPredictTable();
     });
   });
 }
@@ -2930,6 +2931,70 @@ function predictSelect(n) {
   if (n > 0) preds.slice(0, n).forEach(p => PREDICT_STATE.selected.add(p.uuid));
   renderPredictFilter();
   drawPredictChart();
+  renderPredictTable();
+}
+
+function renderPredictTable() {
+  const t = document.getElementById('predict-table');
+  if (!t || !PREDICT_STATE.data) return;
+  const allPreds = PREDICT_STATE.data.predictions || [];
+  const selected = allPreds.filter(p => PREDICT_STATE.selected.has(p.uuid));
+  if (selected.length === 0) {
+    t.innerHTML = `<thead><tr><th colspan="10" style="text-align:center;color:var(--gray4);padding:18px">좌측에서 장비를 선택하세요</th></tr></thead>`;
+    return;
+  }
+  const dates = selected[0].predictions.map(p => p.date);
+  const dayHdr = dates.map(d => {
+    const [, mm, dd] = d.split('-');
+    return `<th>${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
+  }).join('');
+  // 실측 날짜는 선택 장비 history union
+  const histDateSet = new Set();
+  selected.forEach(p => (p.history || []).forEach(h => histDateSet.add(h.date)));
+  const histDates = Array.from(histDateSet).sort().slice(-7);
+  const histHdr = histDates.map(d => {
+    const [, mm, dd] = d.split('-');
+    return `<th style="background:var(--gray4)">${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
+  }).join('');
+  t.innerHTML = `<thead>
+    <tr>
+      <th rowspan="2" style="min-width:170px">장비 (${selected.length}/${allPreds.length}개)</th>
+      <th rowspan="2">지역</th>
+      ${histDates.length ? `<th colspan="${histDates.length}" style="background:var(--gray5)">실측</th>` : ''}
+      <th colspan="${dates.length}" style="background:var(--navy)">AI 예측</th>
+      <th rowspan="2">최대</th>
+      <th rowspan="2">등급</th>
+      <th rowspan="2">신뢰도</th>
+      <th rowspan="2" style="min-width:220px">AI 추론 근거</th>
+    </tr>
+    <tr>${histHdr}${dayHdr}</tr>
+  </thead>
+  <tbody>${selected.map(p => {
+    const histMap = {};
+    (p.history || []).forEach(h => { histMap[h.date] = h.count; });
+    const histCells = histDates.map(d => {
+      const v = histMap[d];
+      return `<td style="font-family:var(--mono);background:var(--gray1);color:var(--gray5)">${v ?? '-'}</td>`;
+    }).join('');
+    const predCells = p.predictions.map(pp => `<td style="font-family:var(--mono);font-weight:600">${pp.predicted}</td>`).join('');
+    const conf = p.confidence || 0;
+    const confColor = conf >= 85 ? '#198754' : conf >= 70 ? '#C05000' : '#8A8FA0';
+    return `<tr>
+      <td><strong>${p.name}</strong></td>
+      <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
+      ${histCells}
+      ${predCells}
+      <td style="font-family:var(--mono);font-weight:700;color:${gradeColor(p.grade)}">${p.max_predicted}</td>
+      <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
+      <td>
+        <span class="conf-bar">
+          <span class="conf-bar-bg"><span class="conf-bar-fill" style="width:${conf}%;background:${confColor}"></span></span>
+          <span class="conf-bar-val" style="color:${confColor}">${conf}%</span>
+        </span>
+      </td>
+      <td style="color:var(--gray5);font-size:11px;line-height:1.5">${p.reasoning || '—'}</td>
+    </tr>`;
+  }).join('')}</tbody>`;
 }
 
 function drawPredictChart() {
@@ -3066,66 +3131,9 @@ async function buildPredict() {
 
     const dates = preds[0].predictions.map(p => p.date);
 
-    // 장비 선택 기본: TOP 5
+    // 장비 선택 기본: TOP 5 (표는 renderPredictTable이 그림)
     predictSelect(5);
-
-    // 테이블
-    const dayHdr = dates.map(d => {
-      const [, mm, dd] = d.split('-');
-      return `<th>${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
-    }).join('');
-
-    // 실측 날짜는 모든 장비의 history를 union해서 최근 7일 추림
-    const histDateSet = new Set();
-    preds.forEach(p => (p.history || []).forEach(h => histDateSet.add(h.date)));
-    const histDates = Array.from(histDateSet).sort().slice(-7);
-    const histHdr = histDates.map(d => {
-      const [, mm, dd] = d.split('-');
-      return `<th style="background:var(--gray4)">${parseInt(mm,10)}/${parseInt(dd,10)}</th>`;
-    }).join('');
-
-    const t = document.getElementById('predict-table');
-    t.innerHTML = `<thead>
-      <tr>
-        <th rowspan="2" style="min-width:170px">장비 (${preds.length}개)</th>
-        <th rowspan="2">지역</th>
-        ${histDates.length ? `<th colspan="${histDates.length}" style="background:var(--gray5)">실측</th>` : ''}
-        <th colspan="${dates.length}" style="background:var(--navy)">AI 예측</th>
-        <th rowspan="2">최대</th>
-        <th rowspan="2">등급</th>
-        <th rowspan="2">신뢰도</th>
-        <th rowspan="2" style="min-width:220px">AI 추론 근거</th>
-      </tr>
-      <tr>
-        ${histHdr}
-        ${dayHdr}
-      </tr></thead>
-      <tbody>${preds.map(p => {
-        const histMap = {};
-        (p.history || []).forEach(h => { histMap[h.date] = h.count; });
-        const histCells = histDates.map(d => {
-          const v = histMap[d];
-          return `<td style="font-family:var(--mono);background:var(--gray1);color:var(--gray5)">${v ?? '-'}</td>`;
-        }).join('');
-        const predCells = p.predictions.map(pp => `<td style="font-family:var(--mono);font-weight:600">${pp.predicted}</td>`).join('');
-        const conf = p.confidence || 0;
-        const confColor = conf >= 85 ? '#198754' : conf >= 70 ? '#C05000' : '#8A8FA0';
-        return `<tr>
-          <td><strong>${p.name}</strong></td>
-          <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
-          ${histCells}
-          ${predCells}
-          <td style="font-family:var(--mono);font-weight:700;color:${gradeColor(p.grade)}">${p.max_predicted}</td>
-          <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
-          <td>
-            <span class="conf-bar">
-              <span class="conf-bar-bg"><span class="conf-bar-fill" style="width:${conf}%;background:${confColor}"></span></span>
-              <span class="conf-bar-val" style="color:${confColor}">${conf}%</span>
-            </span>
-          </td>
-          <td style="color:var(--gray5);font-size:11px;line-height:1.5">${p.reasoning || '—'}</td>
-        </tr>`;
-      }).join('')}</tbody>`;
+    renderPredictTable();
 
     PREDICT_LOADED = true;
   } catch (err) {
