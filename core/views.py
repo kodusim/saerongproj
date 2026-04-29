@@ -213,6 +213,29 @@ def mosquito_test(request):
     return render(request, 'core/mosquito_login.html', {'error': error})
 
 
+def beta_view(request):
+    """창업시장 베타 페이지 (admin/admin 보호)"""
+    if request.session.get('beta_auth'):
+        return render(request, 'core/beta_page.html')
+    error = ''
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        if username == 'admin' and password == 'admin':
+            request.session['beta_auth'] = True
+            return render(request, 'core/beta_page.html')
+        error = '아이디 또는 비밀번호가 올바르지 않습니다.'
+    return render(request, 'core/beta_login.html', {'error': error})
+
+
+def beta_logout(request):
+    """베타 페이지 로그아웃"""
+    if 'beta_auth' in request.session:
+        del request.session['beta_auth']
+    from django.shortcuts import redirect
+    return redirect('/beta/')
+
+
 def mosquito_logout(request):
     """세션 로그아웃. GET/POST 모두 지원."""
     for k in ('mosquito_auth', 'mosquito_is_admin', 'mosquito_login_id', 'mosquito_allowed_devices'):

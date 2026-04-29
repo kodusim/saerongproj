@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>창업시장 — 초기 창업가의 성장 파트너</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = {
+    darkMode:"class",
+    theme:{ extend:{
+      colors:{
+        "bg":"#111111","bg2":"#181818",
+        "card":"#1e1e1e","cardhi":"#252525","cardlo":"#141414",
+        "bdr":"#2e2e2e","bdrhi":"#3a3a3a",
+        "tx":"#e4e0dc","mu":"#888880","muhi":"#b0aca8",
+        "lime":"#C8FF00","limedim":"#a8d700","onlime":"#182000",
+      },
+      fontFamily:{
+        sans:["Noto Sans KR","sans-serif"],
+        mono:["Space Grotesk","monospace"],
+      },
+    }},
+  }
+</script>
+<style>
+  *{ -webkit-font-smoothing:antialiased; }
+  .material-symbols-outlined{ font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24; }
+  .fi{ font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24; }
+  .glow{ text-shadow:0 0 36px rgba(200,255,0,.36); }
+
+  /* 타이포 */
+  .lbl{ font-family:'Space Grotesk',sans-serif; font-size:.65rem; letter-spacing:.18em; text-transform:uppercase; }
+  .hxl{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:clamp(2.5rem,5.5vw,3.75rem); letter-spacing:-.04em; line-height:1.08; word-break:keep-all; }
+  .hlg{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:clamp(1.9rem,3.8vw,2.75rem); letter-spacing:-.035em; line-height:1.1; word-break:keep-all; }
+  .hmd{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:1.15rem; letter-spacing:-.02em; line-height:1.38; word-break:keep-all; }
+  .blg{ font-family:'Noto Sans KR',sans-serif; font-size:1rem; line-height:1.85; letter-spacing:.008em; }
+  .bsm{ font-family:'Noto Sans KR',sans-serif; font-size:.95rem; line-height:1.78; letter-spacing:.006em; }
+  .bxs{ font-family:'Noto Sans KR',sans-serif; font-size:.85rem; line-height:1.72; letter-spacing:.01em; }
+
+  /* 애니 */
+  @keyframes mq{ to{ transform:translateX(-50%); } }
+  .mq{ animation:mq 32s linear infinite; }
+  @keyframes up{ from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:translateY(0); } }
+  .fu{ opacity:0; animation:up .65s ease forwards; }
+  .d1{ animation-delay:.08s; } .d2{ animation-delay:.22s; }
+  .d3{ animation-delay:.38s; } .d4{ animation-delay:.54s; }
+  .rv{ opacity:0; transform:translateY(14px); transition:opacity .55s ease,transform .55s ease; }
+  /* JS 비활성/실패 시 안전장치 — 1.5초 후 자동 노출 */
+  @media (prefers-reduced-motion: reduce) { .rv{ opacity:1; transform:none; } }
+  .no-js .rv{ opacity:1; transform:none; }
+  .rv.on{ opacity:1; transform:translateY(0); }
+
+  /* 모달 */
+  #modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.84); z-index:999; align-items:center; justify-content:center; }
+  #modal.on{ display:flex; }
+
+  /* 도트 */
+  .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .do{ background:#C8FF00; } .df{ background:#2a2a2a; border:1px solid #3a3a3a; }
+
+  /* 폼 */
+  input,select,textarea{
+    background:#252525; color:#e4e0dc; border:1px solid #3a3a3a;
+    border-radius:6px; padding:11px 13px; font-size:.875rem; width:100%;
+    font-family:'Noto Sans KR',sans-serif; line-height:1.6; outline:none;
+    transition:border-color .2s;
+  }
+  input::placeholder,textarea::placeholder{ color:#555; }
+  input:focus,select:focus,textarea:focus{ border-color:#C8FF00; }
+  select option{ background:#252525; color:#e4e0dc; }
+  select option:disabled{ color:#666; }
+  select{ color:#e4e0dc; }
+  select.placeholder{ color:#555; }
+  textarea{ resize:none; }
+
+  /* 인용 */
+  .qdeco{ display:block; width:3rem; height:3px; background:#C8FF00; border-radius:2px; margin-bottom:1.5rem; opacity:.8; }
+
+  /* 모바일 최적화 */
+  @media (max-width: 768px) {
+    /* 섹션 패딩 */
+    section[class*="py-24"]{ padding-top:3.5rem !important; padding-bottom:3.5rem !important; }
+    section[class*="py-20"]{ padding-top:3rem !important; padding-bottom:3rem !important; }
+
+    /* 헤드라인 — 모바일에서 줄바꿈 자연스럽게 */
+    .hxl{ font-size:clamp(2rem,7vw,3rem); line-height:1.15; word-break:keep-all; }
+    .hlg{ font-size:clamp(1.6rem,5.5vw,2.4rem); line-height:1.18; word-break:keep-all; }
+    .hmd{ font-size:1rem; }
+
+    /* 본문 폰트 */
+    .blg{ font-size:.95rem; line-height:1.75; }
+    .bsm{ font-size:.875rem; line-height:1.7; }
+    .bxs{ font-size:.82rem; line-height:1.65; }
+
+    /* 카드 패딩 */
+    .p-10{ padding:1.5rem !important; }
+    .p-8{ padding:1.25rem !important; }
+    .p-7{ padding:1.25rem !important; }
+
+    /* 터치 영역 보장 */
+    a[href^="https://docs.google.com"]{
+      min-height:52px;
+      padding-left:1.5rem !important;
+      padding-right:1.5rem !important;
+      width:100%;
+      justify-content:center;
+    }
+    button[onclick]{ min-height:44px; }
+
+    /* 그리드 — 1열로 전환 */
+    .grid.gap-4{ gap:.75rem; }
+    [style*="grid-template-columns:1fr 1.1fr"]{
+      grid-template-columns:1fr !important;
+    }
+
+    /* A/B 방식 카드 — 세로로 */
+    [style*="align-items:flex-start"] > div{
+      width:100% !important;
+    }
+
+    /* 투트랙 카드 세로 */
+    .grid.md\:grid-cols-2.gap-4 > div{ width:100%; }
+
+    /* 통계 카드 2열 */
+    .grid.grid-cols-3{ grid-template-columns:repeat(2,1fr); }
+    .grid.grid-cols-3 > div:last-child{ grid-column:span 2; }
+
+    /* 히어로 헤드라인 2번째 줄 줄바꿈 허용 */
+    .hxl span[style*="white-space:nowrap"]{ white-space:normal !important; }
+
+    /* 즉시가치박스 패딩 */
+    .fu.d3.bg-card{ padding:1rem !important; }
+
+    /* NAV 로고 크기 */
+    nav .text-xl{ font-size:1.1rem; }
+
+    /* 마키 숨김 (모바일에서 공간 확보) */
+    .absolute.bottom-0.inset-x-0.border-t{ display:none; }
+
+    /* 스티키 바 패딩 */
+    #sticky{ padding:0.75rem 1rem; }
+  }
+
+  @media (max-width: 480px) {
+    /* 초소형 화면 */
+    .hxl{ font-size:clamp(1.7rem,8vw,2.2rem); }
+    .hlg{ font-size:clamp(1.4rem,6vw,1.9rem); }
+    section[class*="py-24"]{ padding-top:3rem !important; padding-bottom:3rem !important; }
+    .p-8, .p-7{ padding:1rem !important; }
+  }
+
+  /* 서브카피 반응형 */
+  .subcopy{ white-space:nowrap; max-width:56rem; }
+  @media (max-width:768px){
+    .subcopy{ white-space:normal !important; max-width:100% !important; word-break:keep-all; }
+  }
+
+  /* 부드러운 스크롤 */
+  html{ scroll-behavior:smooth; scroll-padding-top:80px; }
+  body{ -webkit-text-size-adjust:100%; }
+
+  /* 앵커 스크롤 시 NAV에 가리지 않도록 */
+  section[id], header[id]{ scroll-margin-top:80px; }
+
+
+  /* Tailwind CDN 미지원 투명도 클래스 직접 정의 */
+  .lime-border-20{ border-color:rgba(200,255,0,.2) !important; }
+  .lime-bg-10{ background:rgba(200,255,0,.1) !important; }
+  .lime-bg-08{ background:rgba(200,255,0,.08) !important; }
+  .lime-border-15{ border-color:rgba(200,255,0,.15) !important; }
+</style>
+</head>
+<body class="bg-bg text-tx font-sans">
+
+
+<!-- ── NAV ── -->
+<nav class="fixed top-0 inset-x-0 z-50 bg-bg/90 backdrop-blur border-b border-bdr">
+  <div class="max-w-6xl mx-auto flex justify-between items-center px-6 py-4">
+    <span class="font-bold text-xl text-white tracking-tight">창업<span class="text-lime">시장</span></span>
+    <div class="hidden md:flex gap-7 lbl text-mu">
+      <a href="#how" class="hover:text-tx transition-colors">함께하는 방식</a>
+      <a href="#roadmap" class="hover:text-tx transition-colors">확장 계획</a>
+      <a href="#experts" class="hover:text-tx transition-colors">전문가</a>
+      <a href="#voices"  class="hover:text-tx transition-colors">창업가 이야기</a>
+      <a href="#faq"     class="hover:text-tx transition-colors">FAQ</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSfyEh6AHGy_qft9etcha2C_Sm85M4DWslVK8s_U4fti5qJo7A/viewform?usp=header" target="_blank" rel="noopener noreferrer"
+        class="bg-lime text-onlime font-semibold text-xs px-5 py-3 rounded tracking-wide hover:bg-limedim transition-colors inline-flex items-center min-h-[40px]">
+        베타 신청
+      </a>
+      <button onclick="toggleMenu()" class="md:hidden text-tx p-2 -mr-2" aria-label="메뉴 열기">
+        <span class="material-symbols-outlined" id="menu-icon">menu</span>
+      </button>
+    </div>
+  </div>
+  <!-- 모바일 메뉴 드롭다운 -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-bdr bg-bg">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex flex-col gap-1">
+      <a href="#how" onclick="closeMenu()" class="lbl text-mu py-3 hover:text-lime transition-colors border-b border-bdr">함께하는 방식</a>
+      <a href="#roadmap" onclick="closeMenu()" class="lbl text-mu py-3 hover:text-lime transition-colors border-b border-bdr">확장 계획</a>
+      <a href="#experts" onclick="closeMenu()" class="lbl text-mu py-3 hover:text-lime transition-colors border-b border-bdr">전문가</a>
+      <a href="#voices" onclick="closeMenu()" class="lbl text-mu py-3 hover:text-lime transition-colors border-b border-bdr">창업가 이야기</a>
+      <a href="#faq" onclick="closeMenu()" class="lbl text-mu py-3 hover:text-lime transition-colors">FAQ</a>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ── HERO ── -->
+<header class="relative min-h-screen flex items-center pt-24 pb-28 overflow-hidden">
+
+  <div class="absolute top-0 right-0 w-[520px] h-[520px] pointer-events-none"
+    style="background:radial-gradient(circle at 75% 25%, rgba(200,255,0,.07) 0%, transparent 65%);"></div>
+  <div class="absolute bottom-0 left-0 w-[300px] h-[300px] pointer-events-none"
+    style="background:radial-gradient(circle at 20% 80%, rgba(200,255,0,.03) 0%, transparent 65%);"></div>
+
+  <div class="max-w-6xl mx-auto px-6 relative z-10 w-full">
+    <div class="max-w-5xl mx-auto text-center">
+
+      <div class="fu d1 inline-flex items-center gap-2 bg-card border border-bdr px-3 py-1.5 rounded lbl text-lime mb-10">
+        <span class="w-1.5 h-1.5 rounded-full bg-lime animate-pulse"></span>
+        BETA · 선착순 50명 · 5–6월 오픈 예정
+      </div>
+
+      <h1 class="fu d2 hxl text-white mb-8">
+        버티는 게 답이 아닙니다.<br/>
+        <span style="white-space:nowrap;">시니어의 <span class="text-lime glow">네트워크</span>와 현직 리더의 <span class="text-lime glow">실행력</span>으로,</span><br/>
+        막힌 지점을 함께 풀어갑니다.
+      </h1>
+
+      <p class="fu d3 blg text-muhi mb-5 mx-auto subcopy">
+        판로가 막히고, 방향이 흔들리고, 함께할 사람이 필요한 순간 — 정년퇴임 시니어와 현직 7년차 이상 리더가 직접 검토합니다.
+      </p>
+
+      <!-- 즉시 가치 박스 -->
+      <div class="fu d3 bg-card border lime-border-20 rounded p-5 mb-10 max-w-xl mx-auto" style="box-shadow:0 0 32px rgba(200,255,0,.04);">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined fi text-lime flex-shrink-0 mt-0.5" style="font-size:1.2rem">redeem</span>
+          <div>
+            <p class="lbl text-lime mb-2">베타 신청자 즉시 혜택</p>
+            <p class="bsm text-tx leading-relaxed">
+              <span class="text-white font-semibold">외주 견적서 1회 무료 검토</span>
+              <span class="text-mu"> — 분야별 전문가가 직접 검토 의견 작성</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA 1차 -->
+      <div class="fu d4 flex flex-col sm:flex-row sm:items-center justify-center gap-4 mb-10">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfyEh6AHGy_qft9etcha2C_Sm85M4DWslVK8s_U4fti5qJo7A/viewform?usp=header" target="_blank" rel="noopener noreferrer"
+          class="bg-lime text-onlime font-semibold text-base px-8 py-4 rounded inline-flex items-center justify-center gap-2 hover:bg-limedim transition-colors min-h-[52px]">
+          베타 신청하고 무료 검토 받기
+          <span class="material-symbols-outlined fi" style="font-size:1.1rem">arrow_forward</span>
+        </a>
+      </div>
+
+      <div class="fu d4 flex items-center justify-center gap-4">
+        <div class="flex gap-1 flex-wrap justify-center" style="max-width:240px" id="seats"></div>
+        <p class="lbl text-mu"><span class="text-lime font-semibold">32 / 50</span>&nbsp;<span style="white-space:nowrap;">베타 신청 완료</span></p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 마키 -->
+  <div class="absolute bottom-0 inset-x-0 border-t border-bdr bg-cardlo py-2.5 overflow-hidden">
+    <div class="flex whitespace-nowrap">
+      <div class="mq flex shrink-0">
+        <span class="lbl text-lime px-8">베타 모집 중</span>
+        <span class="lbl text-mu px-8">판로 개척 파트너</span>
+        <span class="lbl text-lime px-8">산업 네트워크 연결</span>
+        <span class="lbl text-mu px-8">팀빌딩 지원</span>
+        <span class="lbl text-lime px-8">시니어 전문가 매칭</span>
+        <span class="lbl text-mu px-8">투자 IR 자문</span>
+        <span class="lbl text-lime px-8">5–6월 오픈 예정</span>
+        <span class="lbl text-mu px-8">50명 한정</span>
+        <span class="lbl text-lime px-8">베타 모집 중</span>
+        <span class="lbl text-mu px-8">판로 개척 파트너</span>
+        <span class="lbl text-lime px-8">산업 네트워크 연결</span>
+        <span class="lbl text-mu px-8">팀빌딩 지원</span>
+        <span class="lbl text-lime px-8">시니어 전문가 매칭</span>
+        <span class="lbl text-mu px-8">투자 IR 자문</span>
+        <span class="lbl text-lime px-8">5–6월 오픈 예정</span>
+        <span class="lbl text-mu px-8">50명 한정</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+
+<!-- ── 함께하는 방식 — A/B 두 진입점 ── -->
+<section class="py-24 px-6 bg-bg" id="how">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">창업시장이 함께하는 방식</p>
+      <h2 class="hlg text-white">전문가를 연결하는<br/>방법은 두 가지입니다</h2>
+      <p class="bsm text-mu mt-5 max-w-lg">
+        필요한 분야가 명확하다면 전문가를 직접 찾아 연락하세요. 어디서부터 시작해야 할지 모른다면 현재 상황을 적어 올리면 관련 전문가가 먼저 연락합니다. 어느 방식이든 계약과 대금은 플랫폼이 보호합니다.
+      </p>
+    </div>
+
+    <!-- 두 진입점 카드 -->
+    <div class="flex flex-col md:flex-row gap-4 mb-4 rv" style="align-items:flex-start;">
+
+      <!-- 방식 A -->
+      <div class="bg-bg2 border border-bdr rounded overflow-hidden md:w-1/2">
+        <button onclick="togglePath('A')"
+          class="w-full text-left p-8 flex items-start justify-between gap-4 group hover:bg-card transition-colors">
+          <div class="flex items-start gap-5">
+            <div class="w-12 h-12 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="material-symbols-outlined fi" style="font-size:1.3rem">edit_note</span>
+            </div>
+            <div>
+              <p class="lbl text-lime mb-2">전문가 제안 받기</p>
+              <h3 class="hmd text-white mb-2">현재 부딪힌 상황을 적으면 전문가가 직접 제안합니다</h3>
+              <p class="bxs text-mu leading-relaxed">어떤 전문가가 필요한지 모를 때 적합합니다. 관련 경험을 가진 전문가가 직접 제안하고, 창업가가 검토 후 선택합니다.</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-mu flex-shrink-0 mt-1 path-ico-A transition-transform duration-300">expand_more</span>
+        </button>
+
+        <!-- A 상세 — 접기/펼치기 -->
+        <div id="path-A" class="border-t border-bdr hidden">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-bdr">
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">01</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">edit_note</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">상황 등록</h4>
+              <p class="bxs text-mu leading-relaxed">현재 부딪힌 상황과 예산 범위를 적어 올립니다.</p>
+            </div>
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">02</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">person_search</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">전문가 역제안</h4>
+              <p class="bxs text-mu leading-relaxed">해결 사례를 가진 전문가가 먼저 제안합니다.</p>
+            </div>
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">03</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">verified_user</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">NDA + 에스크로</h4>
+              <p class="bxs text-mu leading-relaxed">계약 보호와 대금 에스크로가 자동 적용됩니다.</p>
+            </div>
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">04</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">task_alt</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">마일스톤 정산</h4>
+              <p class="bxs text-mu leading-relaxed">단계별 확인 후 승인합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 방식 B -->
+      <div class="bg-bg2 border border-bdr rounded overflow-hidden md:w-1/2">
+        <button onclick="togglePath('B')"
+          class="w-full text-left p-8 flex items-start justify-between gap-4 group hover:bg-card transition-colors">
+          <div class="flex items-start gap-5">
+            <div class="w-12 h-12 bg-card border border-bdr rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="material-symbols-outlined fi text-lime" style="font-size:1.3rem">manage_search</span>
+            </div>
+            <div>
+              <p class="lbl text-mu mb-2">전문가 직접 탐색</p>
+              <h3 class="hmd text-white mb-2">필요한 전문가를 직접 찾아 바로 연락합니다</h3>
+              <p class="bxs text-mu leading-relaxed">필요한 분야가 명확할 때 적합합니다. 전문가 프로필과 실제 해결 사례를 확인한 뒤 직접 연락합니다.</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-mu flex-shrink-0 mt-1 path-ico-B transition-transform duration-300">expand_more</span>
+        </button>
+
+        <!-- B 상세 — 접기/펼치기 -->
+        <div id="path-B" class="border-t border-bdr hidden">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-bdr">
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">01</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">manage_search</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">전문가 서치</h4>
+              <p class="bxs text-mu leading-relaxed">분야·경력으로 필터링해 원하는 전문가를 찾습니다.</p>
+            </div>
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">02</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">mark_email_read</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">다이렉트 연락</h4>
+              <p class="bxs text-mu leading-relaxed">프로필 확인 후 직접 메시지로 연락합니다.</p>
+            </div>
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">03</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">verified_user</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">NDA + 에스크로</h4>
+              <p class="bxs text-mu leading-relaxed">협업 결정 시 계약 보호와 에스크로가 자동 적용됩니다.</p>
+            </div>
+            <div class="bg-bg2 p-7 hover:bg-card transition-colors">
+              <div class="flex items-center gap-3 mb-5">
+                <span class="font-mono font-bold text-2xl text-bdrhi">04</span>
+                <div class="w-8 h-8 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined fi" style="font-size:1rem">task_alt</span>
+                </div>
+              </div>
+              <h4 class="hmd text-white mb-2">마일스톤 정산</h4>
+              <p class="bxs text-mu leading-relaxed">단계별 확인 후 승인합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 공통 안내 -->
+    <div class="bg-card border border-bdr rounded p-6 rv">
+      <p class="bxs text-muhi leading-relaxed">
+        <span class="text-white font-medium">두 방식 모두 NDA 자동 체결과 에스크로 대금 보호가 적용됩니다.</span> 시작 방법에 관계없이 계약 보호는 동일합니다.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── 투트랙 멘토 구조 (신규) ── -->
+<section class="py-24 px-6 bg-bg">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">차별점 — 투트랙 멘토 구조</p>
+      <h2 class="hlg text-white max-w-2xl">전략과 실무, 두 종류의 전문가가 함께합니다</h2>
+      <p class="bsm text-mu mt-5 max-w-xl">방향성 문제는 시니어가, 실행력 문제는 현직 전문가가. 두 그룹의 시각을 모두 활용해 데스밸리를 건너는 실용적 구조입니다.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+
+      <!-- 시니어 전략 파트너 -->
+      <div class="bg-card border border-bdr rounded p-8 rv">
+        <div class="flex items-start gap-4 mb-6">
+          <div class="w-12 h-12 lime-bg-10 border lime-border-20 rounded flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined fi text-lime" style="font-size:1.4rem">workspace_premium</span>
+          </div>
+          <div>
+            <p class="lbl text-lime mb-1">전략 파트너</p>
+            <h3 class="hmd text-white">정년퇴임 시니어</h3>
+          </div>
+        </div>
+        <p class="bsm text-muhi leading-relaxed mb-6">
+          대기업 임원·디렉터급 출신. 20년 이상 쌓아온 산업 네트워크와 의사결정 경험으로 방향성 문제를 풀어갑니다.
+        </p>
+        <div class="border-t border-bdr pt-5 space-y-2.5">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            B2B 판로 개척, 첫 기업 고객 소개
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            투자 IR 피드백, 투자자 직접 소개
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            산업 규제·경영·조직 설계 자문
+          </div>
+        </div>
+      </div>
+
+      <!-- 현직 실무 파트너 -->
+      <div class="bg-card border border-bdr rounded p-8 rv">
+        <div class="flex items-start gap-4 mb-6">
+          <div class="w-12 h-12 lime-bg-10 border lime-border-20 rounded flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined fi text-lime" style="font-size:1.4rem">code_blocks</span>
+          </div>
+          <div>
+            <p class="lbl text-lime mb-1">실무 파트너</p>
+            <h3 class="hmd text-white">현직 7년차 이상 리더</h3>
+          </div>
+        </div>
+        <p class="bsm text-muhi leading-relaxed mb-6">
+          현업에서 매일 구르는 팀장급 PM·개발자·마케터. 외주 발주 전 견적서 검토, 시스템 아키텍처 검증 등 실행력 문제를 해결합니다.
+        </p>
+        <div class="border-t border-bdr pt-5 space-y-2.5">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            외주 견적서·시스템 아키텍처 검토
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            코드·SaaS 연동·기술 스택 자문
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            그로스 마케팅·프로덕트 UX 자문
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-6 bg-card border border-bdr rounded p-6 rv">
+      <p class="bsm text-muhi leading-relaxed">
+        <span class="text-white font-medium">초기 창업가의 페인포인트는 두 층위입니다.</span> 한쪽은 "어디로 갈 것인가"이고, 다른 한쪽은 "지금 이게 맞는가"입니다. 둘 다 풀려야 데스밸리를 건넙니다.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── 표준 상품 2종 (신규) ── -->
+<section class="py-24 px-6 bg-bg2">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">제공 서비스</p>
+      <h2 class="hlg text-white max-w-2xl">두 가지 표준 상품으로 시작합니다</h2>
+      <p class="bsm text-mu mt-5 max-w-xl">정부지원금 멘토링 자문비 단가에 맞춰 책정했습니다. 결제 부담 없이 즉시 신청 가능합니다.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-6">
+
+      <!-- 상품 A -->
+      <div class="bg-card border border-bdr rounded p-8 rv flex flex-col">
+        <div class="flex items-start justify-between mb-5">
+          <p class="lbl text-lime">상품 A</p>
+          <p class="lbl text-mu">서면 리포트</p>
+        </div>
+        <h3 class="hmd text-white mb-4">기획서·견적서 진단 리포트</h3>
+        <p class="bsm text-muhi leading-relaxed mb-6 flex-1">
+          외주 발주 전 견적서나 사업 기획서를 업로드하면, 분야별 전문가가 시장 데이터·기술 자료·실제 사례 등 증빙 가능한 근거를 토대로 고도화된 검토 의견을 작성합니다.
+        </p>
+        <div class="border-t border-bdr pt-5 space-y-2.5 mb-6">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            분야별 전문가 검수 + 증빙자료 기반
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            서면 리포트로 추후 활용 가능
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            정부지원금 증빙 서류 자동 생성
+          </div>
+        </div>
+        <div class="bg-bg2 border border-bdr rounded px-4 py-3 flex items-baseline gap-2">
+          <span class="font-mono font-bold text-2xl text-lime">15만 원</span>
+          <span class="bxs text-mu">건당, 부가세 별도</span>
+        </div>
+      </div>
+
+      <!-- 상품 B -->
+      <div class="bg-card border border-bdr rounded p-8 rv flex flex-col">
+        <div class="flex items-start justify-between mb-5">
+          <p class="lbl text-lime">상품 B</p>
+          <p class="lbl text-mu">화상 자문</p>
+        </div>
+        <h3 class="hmd text-white mb-4">1:1 화상 실무 자문 1시간</h3>
+        <p class="bsm text-muhi leading-relaxed mb-6 flex-1">
+          자문 분야와 일정을 신청하면 운영팀이 전문가와 조율 후 구글 미트로 진행합니다. 첫 매칭은 운영팀이 동석해 진행을 돕고 기록을 남깁니다.
+        </p>
+        <div class="border-t border-bdr pt-5 space-y-2.5 mb-6">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            구글 미트 1시간 화상 진행
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            운영팀 동석으로 안전한 진행
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            정부지원금 증빙 서류 자동 생성
+          </div>
+        </div>
+        <div class="bg-bg2 border border-bdr rounded px-4 py-3 flex items-baseline gap-2">
+          <span class="font-mono font-bold text-2xl text-lime">15만 원</span>
+          <span class="bxs text-mu">건당, 부가세 별도</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 신뢰 요소: 전문가 검수 + 증빙자료 + 단가 근거 -->
+    <div class="grid md:grid-cols-2 gap-4 rv">
+      <div class="bg-card border lime-border-20 rounded p-6">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined fi text-lime flex-shrink-0 mt-0.5" style="font-size:1.1rem">fact_check</span>
+          <div>
+            <p class="bsm text-white font-medium mb-2">전문가 검수 + 증빙자료 기반</p>
+            <p class="bxs text-muhi leading-relaxed">
+              모든 리포트는 분야별 전문가의 검토를 거치며, 시장 데이터·기술 자료·사례 등 증빙 가능한 근거에 기반해 작성됩니다.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-card border lime-border-20 rounded p-6">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined fi text-lime flex-shrink-0 mt-0.5" style="font-size:1.1rem">verified</span>
+          <div>
+            <p class="bsm text-white font-medium mb-2">정부지원금 멘토링 단가 호환</p>
+            <p class="bxs text-muhi leading-relaxed">
+              예창패·초기창업패키지 자문비 상한선에 맞춘 단가입니다. 정부지원금 수혜 창업가는 별도 결제 없이 집행 처리 가능합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── 서비스 확장 로드맵 (신규) ── -->
+<section class="py-24 px-6 bg-bg" id="roadmap">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">서비스 확장 로드맵</p>
+      <h2 class="hlg text-white max-w-2xl">자문에서 실행까지, 단계적으로 확장됩니다</h2>
+      <p class="bsm text-mu mt-5 max-w-xl">
+        창업가의 성장 단계에 맞춰 필요한 기능을 단계적으로 추가합니다. 자문이 끝이 아니라 실제 결과물로 이어지는 구조를 만들어갑니다.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4">
+
+      <!-- Phase 1 — 현재 -->
+      <div class="bg-card lime-border-20 border rounded p-7 rv flex flex-col">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="lbl text-onlime bg-lime px-2 py-1 rounded">PHASE 1</span>
+          <span class="bxs text-lime">현재 베타</span>
+        </div>
+        <h3 class="hmd text-white mb-4">전문가 자문 매칭</h3>
+        <p class="bsm text-muhi leading-relaxed mb-5 flex-1">
+          시니어 전략 파트너와 현직 실무 리더가 기획서·견적서 진단, 1:1 화상 자문을 제공합니다.
+        </p>
+        <div class="border-t border-bdr pt-4 space-y-2">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            기획서·견적서 진단 리포트
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            1:1 화상 실무 자문
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            정부지원금 증빙 서류 자동화
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2 — 확장 -->
+      <div class="bg-card border border-bdr rounded p-7 rv flex flex-col">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="lbl text-mu bg-cardhi px-2 py-1 rounded">PHASE 2</span>
+          <span class="bxs text-mu">하반기 확장</span>
+        </div>
+        <h3 class="hmd text-white mb-4">예비창업자 MVP 개발</h3>
+        <p class="bsm text-muhi leading-relaxed mb-5 flex-1">
+          아이디어가 있지만 개발 파트너가 없는 예비창업자를 위한 서비스입니다. 주니어 개발자와 협업해 외주보다 저렴하게 MVP를 함께 만들어갑니다.
+        </p>
+        <div class="border-t border-bdr pt-4 space-y-2">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            주니어 개발자 협업 매칭
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            외주보다 저렴한 협업 구조
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            MVP 단계별 개발 검수
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3 — 고도화 -->
+      <div class="bg-card border border-bdr rounded p-7 rv flex flex-col">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="lbl text-mu bg-cardhi px-2 py-1 rounded">PHASE 3</span>
+          <span class="bxs text-mu">고도화 단계</span>
+        </div>
+        <h3 class="hmd text-white mb-4">핵심 기능 단위 개발</h3>
+        <p class="bsm text-muhi leading-relaxed mb-5 flex-1">
+          전체 외주 대신 꼭 필요한 기능만. 현직 개발자가 핵심 모듈 단위로 직접 개발해 비용과 리스크를 낮춥니다.
+        </p>
+        <div class="border-t border-bdr pt-4 space-y-2">
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            현직 개발자 모듈 단위 매칭
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            전체 외주보다 낮은 비용
+          </div>
+          <div class="flex items-start gap-2 bxs text-mu">
+            <span class="text-lime flex-shrink-0 mt-0.5">—</span>
+            꼭 필요한 기능만 선택 개발
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-6 bg-card border border-bdr rounded p-6 rv">
+      <p class="bxs text-muhi leading-relaxed">
+        <span class="text-white font-medium">베타 신청 시 향후 확장 서비스도 우선 안내드립니다.</span> 현재 단계에서 시작하셔도 다음 단계 서비스가 출시될 때 가장 먼저 연결해드립니다.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── 전문가 검증 기준 ── -->
+<section class="py-24 px-6 bg-bg2" id="experts">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-2 gap-16 items-start">
+
+      <div class="rv">
+        <p class="lbl text-lime mb-4">전문가 검증 기준</p>
+        <h2 class="hlg text-white mb-6">전문가를 검증하고 있습니다</h2>
+        <p class="bsm text-mu mb-5">
+          현재 각 분야 시니어 전문가를 검증하고 있습니다. 이력서나 별점이 아닌 실제 해결 사례를 기준으로 검증하며, 베타 신청자에게는 오픈 시 가장 먼저 연결해드립니다.
+        </p>
+        <p class="bsm text-mu mb-10">
+          전문가가 유사한 상황을 실제로 경험했는지, 그 결과가 수치로 증명되는지를 봅니다. 현장 경험이 없는 이론 중심의 전문가는 등록 단계에서 제외됩니다.
+        </p>
+        <div class="space-y-6">
+          <div class="flex gap-4 items-start">
+            <div class="w-7 h-7 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0 font-mono font-bold text-xs">1</div>
+            <div>
+              <p class="text-white bsm font-medium mb-1">경력 서류 인증</p>
+              <p class="bxs text-mu">고용보험 가입이력 OCR 판독으로 경력을 확인합니다. 허위 경력은 이 단계에서 확인됩니다.</p>
+            </div>
+          </div>
+          <div class="flex gap-4 items-start">
+            <div class="w-7 h-7 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0 font-mono font-bold text-xs">2</div>
+            <div>
+              <p class="text-white bsm font-medium mb-1">케이스스터디 3건 + 화상 인터뷰 30분</p>
+              <p class="bxs text-mu">문제 → 실행 → 결과 수치 형식의 해결 사례 3건을 제출합니다. 인터뷰에서 그 깊이를 확인합니다.</p>
+            </div>
+          </div>
+          <div class="flex gap-4 items-start">
+            <div class="w-7 h-7 bg-lime text-onlime rounded flex items-center justify-center flex-shrink-0 font-mono font-bold text-xs">3</div>
+            <div>
+              <p class="text-white bsm font-medium mb-1">파일럿 매칭 1건</p>
+              <p class="bxs text-mu">실제 창업가의 요청 1건을 무료로 매칭합니다. 피드백이 기준을 통과하면 정식 등록됩니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 심사 중인 분야 -->
+      <div class="space-y-4 rv">
+        <div class="bg-card border border-bdr rounded p-7">
+          <p class="lbl text-lime mb-6">분야별 전문가 검증 진행 현황</p>
+          <div class="divide-y divide-bdr">
+            <div class="flex items-center justify-between py-4">
+              <div>
+                <p class="bsm text-tx font-medium">유통 · 영업 전략</p>
+                <p class="bxs text-mu mt-0.5">판로 개척, B2B 채널, 파트너십 계약</p>
+              </div>
+              <span class="lbl text-lime lime-bg-08 border lime-border-20 px-2.5 py-1 rounded flex-shrink-0 ml-4 whitespace-nowrap">3 통과 / 7 진행</span>
+            </div>
+            <div class="flex items-center justify-between py-4">
+              <div>
+                <p class="bsm text-tx font-medium">투자 · IR 자문</p>
+                <p class="bxs text-mu mt-0.5">투자 유치 전략, IR 피드백, 투자자 소개</p>
+              </div>
+              <span class="lbl text-lime lime-bg-08 border lime-border-20 px-2.5 py-1 rounded flex-shrink-0 ml-4 whitespace-nowrap">2 통과 / 5 진행</span>
+            </div>
+            <div class="flex items-center justify-between py-4">
+              <div>
+                <p class="bsm text-tx font-medium">IT · 기술 아키텍처</p>
+                <p class="bxs text-mu mt-0.5">클라우드 설계, 보안, 기술 스택 자문</p>
+              </div>
+              <span class="lbl text-lime lime-bg-08 border lime-border-20 px-2.5 py-1 rounded flex-shrink-0 ml-4 whitespace-nowrap">4 통과 / 8 진행</span>
+            </div>
+            <div class="flex items-center justify-between py-4">
+              <div>
+                <p class="bsm text-tx font-medium">마케팅 · 브랜딩</p>
+                <p class="bxs text-mu mt-0.5">채널 전략, 그로스 해킹, 브랜드 포지셔닝</p>
+              </div>
+              <span class="lbl text-lime lime-bg-08 border lime-border-20 px-2.5 py-1 rounded flex-shrink-0 ml-4 whitespace-nowrap">2 통과 / 6 진행</span>
+            </div>
+            <div class="flex items-center justify-between py-4">
+              <div>
+                <p class="bsm text-tx font-medium">경영 · 사업 전략</p>
+                <p class="bxs text-mu mt-0.5">비즈니스 모델, 조직 설계, 성장 전략</p>
+              </div>
+              <span class="lbl text-lime lime-bg-08 border lime-border-20 px-2.5 py-1 rounded flex-shrink-0 ml-4 whitespace-nowrap">1 통과 / 4 진행</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── 창업자 이야기 ── -->
+<section class="py-24 px-6 bg-bg">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid gap-12 items-start" style="grid-template-columns:1fr 1.1fr;">
+
+      <div class="rv">
+        <p class="lbl text-lime mb-4">플랫폼을 만든 이유</p>
+        <h2 class="hlg text-white mb-6">창업자 본인도<br/>같은 길을 걸었습니다</h2>
+        <p class="bsm text-mu mb-5">
+          창업시장 창업자는 보안 솔루션 엔지니어 출신으로, 약 1년간 직접 창업을 준비하며 예창패·창업중심대학에 지원하고 다수의 지자체 멘토링에 참여했습니다.
+        </p>
+        <p class="bsm text-mu mb-5">
+          자금은 어떻게든 됐습니다. 하지만 판로를 여는 법, 방향을 확인해줄 사람, 함께할 팀원을 찾는 일, 이건 어떤 프로그램도 해결해주지 않았습니다.
+        </p>
+        <p class="bsm text-mu mb-8">
+          창업시장은 그 공백에서 출발했습니다. 창업가의 성장 여정을 옆에서 함께하는 플랫폼입니다.
+        </p>
+        <blockquote class="border-l-2 border-lime pl-5 bsm text-muhi italic leading-relaxed">
+          "혼자 가면 빠르고, 같이 가면 멀리 갑니다.<br/>창업시장이 그 여정을 함께하겠습니다."
+        </blockquote>
+
+      </div>
+
+      <div class="space-y-4 rv">
+        <div class="bg-card border border-bdr rounded p-7">
+          <p class="lbl text-lime mb-6">현재 진행 상황</p>
+          <div class="space-y-5">
+            <div class="flex items-start gap-3">
+              <span class="w-2 h-2 rounded-full bg-lime mt-1.5 animate-pulse flex-shrink-0"></span>
+              <div>
+                <p class="text-white bsm font-medium">시니어 전문가 검증 진행 중</p>
+                <p class="bxs text-mu mt-1">유통·영업·투자·IT·마케팅·경영 분야, 경력 20년 이상 전문가를 케이스스터디 기반으로 검증 중입니다.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="w-2 h-2 rounded-full bg-lime mt-1.5 animate-pulse flex-shrink-0"></span>
+              <div>
+                <p class="text-white bsm font-medium">베타 창업가 모집 중</p>
+                <p class="bxs text-mu mt-1">50명 한정. 오픈 시 베타 혜택과 함께 우선 안내드립니다.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 opacity-35">
+              <span class="w-2 h-2 rounded-full bg-bdrhi mt-1.5 flex-shrink-0"></span>
+              <p class="text-white bsm font-medium">5–6월 정식 오픈 예정</p>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-card border border-bdr rounded p-5 text-center">
+            <div class="font-mono font-bold text-xl text-white">34.7%</div>
+            <div class="lbl text-mu mt-2">5년 생존율</div>
+          </div>
+          <div class="bg-card border border-bdr rounded p-5 text-center">
+            <div class="font-mono font-bold text-xl text-white">9%</div>
+            <div class="lbl text-mu mt-2">멘토 연계율</div>
+          </div>
+          <div class="bg-card border border-bdr rounded p-5 text-center">
+            <div class="font-bold text-xl text-lime">50명</div>
+            <div class="lbl text-mu mt-2">베타 한정</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── 창업가 이야기 (후기) ── -->
+<section class="py-24 px-6 bg-bg2" id="voices">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">창업가들이 직접 한 말</p>
+      <h2 class="hlg text-white">많은 창업가들이<br/>같은 어려움을 겪고 있습니다</h2>
+      <p class="bsm text-mu mt-5 max-w-xl">
+        창업시장은 수많은 초기 창업가들과 직접 대화하며 만들어졌습니다. 아래는 그 과정에서 반복해서 들은 이야기들입니다.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4">
+
+      <!-- 후기 1: AI·IT 서비스 창업가 -->
+      <div class="bg-card border border-bdr rounded p-8 rv flex flex-col">
+        <div class="qdeco"></div>
+        <p class="bsm text-muhi leading-relaxed flex-1 mb-7">
+          AI 툴로 서비스를 빠르게 만들었는데, 이걸 어떤 기업 고객에게 어떻게 제안해야 할지 감이 없었어요. 링크드인에 메시지도 보내보고 행사도 나가봤는데, 실제 계약으로 이어지는 건 달랐습니다. 이 업계를 직접 경험한 사람과 한 번 제대로 이야기해보고 싶었어요.
+        </p>
+        <div class="border-t border-bdr pt-5">
+          <p class="bxs text-tx font-medium">AI 서비스 스타트업 창업가</p>
+          <p class="bxs text-mu mt-1">B2B SaaS · 창업 1년차</p>
+        </div>
+      </div>
+
+      <!-- 후기 2: 에듀테크 창업가 -->
+      <div class="bg-card border border-bdr rounded p-8 rv flex flex-col">
+        <div class="qdeco"></div>
+        <p class="bsm text-muhi leading-relaxed flex-1 mb-7">
+          예창패를 받고 서비스를 고도화했는데, 지원금이 끝나니까 멘토링도 같이 끊기더라고요. 그때부터가 진짜 막막했어요. 투자를 받아야 할 것 같은데 IR 덱을 어떻게 써야 하는지, 누구한테 물어봐야 하는지 알 수가 없었습니다. 혼자 결정해야 하는 순간이 생각보다 많았어요.
+        </p>
+        <div class="border-t border-bdr pt-5">
+          <p class="bxs text-tx font-medium">에듀테크 플랫폼 창업가</p>
+          <p class="bxs text-mu mt-1">개인서비스 · 예창패 수혜</p>
+        </div>
+      </div>
+
+      <!-- 후기 3: 헬스케어 창업가 -->
+      <div class="bg-card border border-bdr rounded p-8 rv flex flex-col">
+        <div class="qdeco"></div>
+        <p class="bsm text-muhi leading-relaxed flex-1 mb-7">
+          1인 창업이다 보니 같이 갈 사람이 필요한 건 알겠는데, 처음 보는 사람이랑 바로 공동창업을 하기엔 불안하잖아요. 같이 프로젝트 한 번이라도 해보고 싶은데 그 기회 자체를 어디서 찾아야 하는지 몰랐어요. 나보다 경험 많은 사람이랑 일해보면 훨씬 빨리 갈 수 있을 것 같았는데.
+        </p>
+        <div class="border-t border-bdr pt-5">
+          <p class="bxs text-tx font-medium">헬스케어 서비스 창업가</p>
+          <p class="bxs text-mu mt-1">전문·과학·기술 · 1인 창업</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── 베타 혜택 + CTA ── -->
+<section class="py-24 px-6 bg-bg" id="benefit">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">베타 혜택</p>
+      <h2 class="hlg text-white">베타 50명에게만<br/>제공하는 혜택입니다</h2>
+      <p class="bsm text-mu mt-5 max-w-lg">정식 오픈 이후에는 제공되지 않습니다. 현재 전문가 검증을 진행 중이며, 오픈 시 베타 신청자에게 우선 안내드립니다.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4 mb-10">
+
+      <div class="bg-card border border-bdr rounded p-8 rv">
+        <div class="w-10 h-10 bg-lime text-onlime rounded flex items-center justify-center mb-6">
+          <span class="material-symbols-outlined fi">workspace_premium</span>
+        </div>
+        <h3 class="hmd text-white mb-3">프리미엄 열람권 1개월</h3>
+        <p class="bxs text-mu leading-relaxed">전문가 프로필 상세 열람과 다이렉트 연락을 1개월간 무료로 이용합니다.</p>
+      </div>
+
+      <div class="bg-card border border-bdr rounded p-8 rv">
+        <div class="w-10 h-10 bg-lime text-onlime rounded flex items-center justify-center mb-6">
+          <span class="material-symbols-outlined fi">support_agent</span>
+        </div>
+        <h3 class="hmd text-white mb-3">첫 매칭 운영팀 1:1 동행</h3>
+        <p class="bxs text-mu leading-relaxed">첫 번째 매칭은 운영팀이 상황 파악부터 전문가 연결, 결과 확인까지 직접 함께합니다.</p>
+      </div>
+
+      <div class="bg-card border border-bdr rounded p-8 rv">
+        <div class="w-10 h-10 bg-lime text-onlime rounded flex items-center justify-center mb-6">
+          <span class="material-symbols-outlined fi">description</span>
+        </div>
+        <h3 class="hmd text-white mb-3">정부지원금 서류 자동화 3회</h3>
+        <p class="bxs text-mu leading-relaxed">예창패·초기창업패키지 집행 증빙 서류를 자동 생성합니다. 건당 2–5만 원, 3회 무료 제공.</p>
+      </div>
+
+    </div>
+
+    <!-- CTA 바 — 신뢰가 쌓인 후 등장 -->
+    <div class="bg-card border lime-border-15 rounded p-8 flex flex-col md:flex-row items-center justify-between gap-8 rv"
+      style="box-shadow:0 0 48px rgba(200,255,0,.04);">
+      <div>
+        <p class="lbl text-mu mb-3">베타 모집 현황</p>
+        <div class="flex items-baseline gap-2 mb-4">
+          <span class="font-mono font-bold text-4xl text-lime glow">18</span>
+          <span class="text-lg text-white font-medium">자리 남음</span>
+          <span class="lbl text-mu">/ 50명</span>
+        </div>
+        <div class="w-full md:w-64 h-1.5 bg-bdr rounded-full overflow-hidden">
+          <div class="h-full bg-lime rounded-full" style="width:64%"></div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-3 w-full md:w-auto flex-shrink-0">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfyEh6AHGy_qft9etcha2C_Sm85M4DWslVK8s_U4fti5qJo7A/viewform?usp=header" target="_blank" rel="noopener noreferrer"
+          class="bg-lime text-onlime font-semibold text-sm px-10 py-4 rounded flex items-center justify-center gap-2 hover:bg-limedim transition-colors">
+          무료 혜택 받기
+          <span class="material-symbols-outlined fi" style="font-size:1.1rem">arrow_forward</span>
+        </a>
+        <p class="lbl text-mu text-center">무료 · 스팸 없음</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── FINAL CTA ── -->
+<section class="py-20 md:py-32 px-6 bg-bg relative overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none"
+    style="background:radial-gradient(ellipse at 50% 100%, rgba(200,255,0,.04) 0%, transparent 55%);"></div>
+  <div class="max-w-2xl mx-auto text-center relative z-10">
+    <div class="inline-flex items-center gap-2 bg-card border border-bdr px-3 py-1.5 rounded lbl text-lime mb-8">
+      <span class="w-1.5 h-1.5 rounded-full bg-lime animate-pulse"></span>
+      18자리 남음
+    </div>
+    <h2 class="hxl text-white mb-6">혼자 가면 빠르고,<br/>같이 가면 멀리 갑니다.<br/><span class="text-lime glow">창업시장이 함께하겠습니다.</span></h2>
+    <p class="bsm text-mu mb-10 max-w-sm mx-auto">
+      베타 신청은 무료입니다.<br/>정식 오픈 시 혜택과 함께 가장 먼저 안내드립니다.
+    </p>
+    <div class="flex justify-center">
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSfyEh6AHGy_qft9etcha2C_Sm85M4DWslVK8s_U4fti5qJo7A/viewform?usp=header" target="_blank" rel="noopener noreferrer"
+        class="bg-lime text-onlime font-semibold text-base px-10 py-4 rounded inline-flex items-center gap-2 hover:bg-limedim transition-colors">
+        함께 시작하겠습니다
+        <span class="material-symbols-outlined fi">arrow_forward</span>
+      </a>
+    </div>
+    <p class="lbl text-mu mt-5">무료 · 스팸 없음 · 언제든 취소 가능</p>
+  </div>
+</section>
+
+
+<!-- ── FAQ ── -->
+<section class="py-24 px-6 bg-bg" id="faq">
+  <div class="max-w-3xl mx-auto">
+    <div class="mb-14 rv">
+      <p class="lbl text-lime mb-4">FAQ</p>
+      <h2 class="hlg text-white">자주 묻는 질문</h2>
+    </div>
+    <div id="faq-list" class="border-t border-bdr"></div>
+  </div>
+</section>
+
+
+<!-- ── FOOTER ── -->
+<footer class="bg-cardlo border-t border-bdr">
+  <div class="max-w-6xl mx-auto px-6 py-14 flex flex-col md:flex-row justify-between items-start gap-10">
+    <div class="max-w-xs">
+      <div class="font-bold text-xl text-lime tracking-tight mb-3">창업<span class="text-white">시장</span></div>
+      <p class="bxs text-mu leading-relaxed">초기 창업가의 성장 여정을 함께하는 시니어 전문가 매칭 플랫폼.</p>
+    </div>
+    <div class="flex gap-16">
+      <div class="flex flex-col gap-2.5">
+        <span class="lbl text-lime mb-1">서비스</span>
+        <a href="#" class="bxs text-mu hover:text-tx transition-colors">역제안 매칭</a>
+        <a href="#" class="bxs text-mu hover:text-tx transition-colors">에스크로 · NDA</a>
+        <a href="#" class="bxs text-mu hover:text-tx transition-colors">서류 자동화</a>
+      </div>
+      <div class="flex flex-col gap-2.5">
+        <span class="lbl text-lime mb-1">연락</span>
+        <a href="/cdn-cgi/l/email-protection#20434f4e54414354604348414e475355500e4b52" class="bxs text-mu hover:text-tx transition-colors"><span class="__cf_email__" data-cfemail="a3c0cccdd7c2c0d7e3c0cbc2cdc4d0d6d38dc8d1">[email&#160;protected]</span></a>
+        <span class="bxs text-mu">평일 09:00 – 18:00</span>
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-bdr px-6 py-5 max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+    <p class="lbl text-mu">© 2025 창업시장. ALL RIGHTS RESERVED.</p>
+    <div class="flex gap-6">
+      <a href="#" class="lbl text-mu hover:text-tx transition-colors">이용약관</a>
+      <a href="#" class="lbl text-mu hover:text-tx transition-colors">개인정보처리방침</a>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ── STICKY ── -->
+<div id="sticky"
+  class="fixed bottom-0 inset-x-0 z-40 bg-cardlo/95 backdrop-blur border-t border-bdr px-6 py-3 flex justify-between items-center"
+  style="transform:translateY(100%); transition:transform .3s ease;">
+  <div class="flex items-center gap-2">
+    <span class="w-1.5 h-1.5 rounded-full bg-lime animate-pulse"></span>
+    <span class="lbl text-muhi hidden sm:block">베타 모집 중 &nbsp;·&nbsp; 18자리 남음</span>
+  </div>
+  <a href="https://docs.google.com/forms/d/e/1FAIpQLSfyEh6AHGy_qft9etcha2C_Sm85M4DWslVK8s_U4fti5qJo7A/viewform?usp=header" target="_blank" rel="noopener noreferrer"
+    class="bg-lime text-onlime font-semibold text-xs px-5 py-3 rounded hover:bg-limedim transition-colors inline-flex items-center min-h-[40px]">
+    함께 시작하기
+  </a>
+</div>
+
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// 경로 A/B 접기/펼치기 — 둘 다 기본 닫힘
+function togglePath(name) {
+  const panel = document.getElementById('path-' + name);
+  const ico   = document.querySelector('.path-ico-' + name);
+  const isOpen = !panel.classList.contains('hidden');
+  if (isOpen) {
+    panel.classList.add('hidden');
+    ico.style.transform = 'rotate(0deg)';
+  } else {
+    panel.classList.remove('hidden');
+    ico.style.transform = 'rotate(180deg)';
+  }
+}
+// 초기 상태: A, B 모두 닫힘 (hidden은 HTML에서 이미 적용)
+
+// 시트 도트
+const se = document.getElementById('seats');
+if (se) {
+  let h = '';
+  for (let i = 0; i < 50; i++) h += `<span class="dot ${i < 32 ? 'do' : 'df'}"></span>`;
+  se.innerHTML = h;
+}
+
+// FAQ
+const faqs = [
+  ["어떤 창업가에게 맞는 플랫폼인가요?",
+   "서비스 또는 MVP를 보유하고 있고, 초기 고객 확보 이후 판로 확장·투자 유치·팀빌딩에서 막혀있는 창업가에게 적합합니다. 예창패·초기창업패키지 수혜자 또는 준비 중인 분이 주요 대상입니다."],
+  ["수수료와 비용은 어떻게 되나요?",
+   "표준 상품 단가는 건당 15만 원(부가세 별도)이며, 정부지원금 멘토링 자문비 단가에 맞춰 책정했습니다. 플랫폼 수수료는 20%이며, 베타 기간에는 첫 매칭 1회 무료로 제공합니다."],
+  ["전문가는 어떤 검증 단계를 거치나요?",
+   "경력 서류 인증(고용보험 가입이력) → 케이스스터디 3건 + 화상 인터뷰 30분 → 파일럿 매칭 1건의 3단계 검증을 통과한 전문가만 정식 등록됩니다. 이력서나 별점이 아닌 실제 해결 사례로 검증합니다."],
+  ["기존 플랫폼(크몽·탤런트뱅크)과 다른 점은?",
+   "크몽은 단발성 IT 외주, 탤런트뱅크는 시니어 위주의 자문 매칭입니다. 창업시장은 정년퇴임 시니어(전략)와 현직 7년차 이상 리더(실무)를 모두 포함한 투트랙 구조이며, NDA 자동 체결과 에스크로로 계약을 보호합니다."],
+  ["내 사업 정보는 안전한가요?",
+   "전문가 선택 즉시 표준 NDA가 자동 체결됩니다. 매칭된 전문가만 사업 정보에 접근하며, 다른 창업가나 제3자에게 공유되지 않습니다. 위반 시 법적 책임이 부과됩니다."],
+  ["매칭이 안 되거나 결과가 만족스럽지 않으면?",
+   "에스크로 시스템으로 결과물 확인 전까지 대금이 지급되지 않습니다. 결과가 기준 미달인 경우 무상 재매칭을 제공하며, 명백한 부적절 매칭의 경우 전액 환불 처리됩니다."],
+  ["지금 신청하면 언제 매칭되나요?",
+   "현재 전문가 검증 진행 중이며, 5–6월 정식 오픈 시점에 베타 신청자 우선 매칭됩니다. 분야에 따라 오픈 즉시 매칭 가능한 전문가가 다를 수 있어, 신청 시 입력하신 분야의 진행 상황을 안내드립니다."],
+  ["베타 신청은 무료인가요?",
+   "완전 무료이며, 신청 후 취소 가능합니다. 오픈 시 첫 매칭 1회 무료, 운영팀 1:1 동행, 정부지원금 증빙 서류 자동화 3회 무료 혜택을 제공합니다."],
+];
+
+const fe = document.getElementById('faq-list');
+faqs.forEach(([q, a], i) => {
+  fe.innerHTML += `
+    <div class="border-b border-bdr">
+      <button onclick="tFaq(${i})" class="w-full text-left py-5 flex justify-between items-start gap-4 group">
+        <span class="text-white bsm font-medium group-hover:text-lime transition-colors leading-relaxed">${q}</span>
+        <span class="material-symbols-outlined text-mu flex-shrink-0 mt-0.5 fic${i}">add</span>
+      </button>
+      <div class="fbd${i} hidden pb-6 bxs text-mu max-w-xl leading-relaxed">${a}</div>
+    </div>`;
+});
+function tFaq(i) {
+  const b = document.querySelector(`.fbd${i}`);
+  const ic = document.querySelector(`.fic${i}`);
+  const open = !b.classList.contains('hidden');
+  faqs.forEach((_, j) => {
+    document.querySelector(`.fbd${j}`).classList.add('hidden');
+    document.querySelector(`.fic${j}`).textContent = 'add';
+  });
+  if (!open) { b.classList.remove('hidden'); ic.textContent = 'remove'; }
+}
+
+// 모바일 햄버거 메뉴
+function toggleMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const icon = document.getElementById('menu-icon');
+  if (menu.classList.contains('hidden')) {
+    menu.classList.remove('hidden');
+    icon.textContent = 'close';
+  } else {
+    menu.classList.add('hidden');
+    icon.textContent = 'menu';
+  }
+}
+function closeMenu() {
+  document.getElementById('mobile-menu').classList.add('hidden');
+  document.getElementById('menu-icon').textContent = 'menu';
+}
+
+// 스티키
+const st = document.getElementById('sticky');
+window.addEventListener('scroll', () => {
+  st.style.transform = window.scrollY > 600 ? 'translateY(0)' : 'translateY(100%)';
+});
+
+// Reveal — 안전장치 포함
+if ('IntersectionObserver' in window) {
+  const ro = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on'); });
+  }, { threshold: .07 });
+  document.querySelectorAll('.rv').forEach(el => ro.observe(el));
+} else {
+  // 미지원 브라우저: 모든 요소 즉시 노출
+  document.querySelectorAll('.rv').forEach(el => el.classList.add('on'));
+}
+// 안전장치: 3초 후에도 보이지 않는 요소 강제 노출
+setTimeout(() => {
+  document.querySelectorAll('.rv:not(.on)').forEach(el => el.classList.add('on'));
+}, 3000);
+</script>
+</body>
+</html>

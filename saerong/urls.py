@@ -14,11 +14,15 @@ from core.views import (
     moscom_overview,
     kakao_status, kakao_oauth_start, kakao_oauth_callback, kakao_disconnect, kakao_send_api,
     moscom_anomaly_history,
+    beta_view, beta_logout,
 )
 from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     path("", dashboard, name="dashboard"),  # 메인 대시보드
+    path("beta/", beta_view, name="beta_view"),  # 창업시장 베타 (admin/admin)
+    path("beta", beta_view),  # trailing slash 없는 변형도 허용
+    path("beta/logout/", beta_logout, name="beta_logout"),
     path("category/<slug:slug>/", category_detail, name="category_detail"),  # 대분류 상세
     path("subcategory/<slug:slug>/", subcategory_detail, name="subcategory_detail"),  # 중분류 상세
     path("mosquito-test/", mosquito_test, name="mosquito_test"),  # 모기 테스트
