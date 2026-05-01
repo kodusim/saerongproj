@@ -13,11 +13,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import Max
 
-from .models import GuildMember, CollectibleItem, MemberCollectible
+from .models import GuildMember, CollectibleItem, MemberCollectible, EquipSlot, MemberEquip
 
 
 CATEGORY_LABELS = dict(CollectibleItem.CATEGORY_CHOICES)
 CATEGORY_KEYS = [k for k, _ in CollectibleItem.CATEGORY_CHOICES]
+SECTION_LABELS = dict(EquipSlot.SECTION_CHOICES)
+EQUIP_STATUS = dict(MemberEquip.STATUS_CHOICES)
 
 
 ADMIN_ID = 'admin_an'
@@ -205,6 +207,71 @@ def collectible_toggle_api(request):
         member_id=member_id, item_id=item_id, defaults={'owned': owned}
     )
     return JsonResponse({'ok': True, 'owned': obj.owned})
+
+
+# ─ 장비 내판 API ────────────────────────────────────
+
+@require_GET
+def equips_api(request):
+    """섹션별 장비 내판 매트릭스. 길드원은 전투력 내림차순."""
+    section = (request.GET.get('section') or 'equip').strip()
+    if section not in SECTION_LABELS:
+        return JsonResponse({'error': '잘못된 섹션'}, status=400)
+    slots = list(EquipSlot.objects.filter(section=section).order_by('order', 'id'))
+    members = list(GuildMember.objects.filter(active=True).order_by('-power', 'order', 'id'))
+    slot_ids = [s.id for s in slots]
+    member_ids = [m.id for m in members]
+    # status map: {(member_id, slot_id): status}
+    status_map = {}
+    for me in MemberEquip.objects.filter(
+        member_id__in=member_ids, slot_id__in=slot_ids
+    ).exclude(status='none'):
+        status_map[(me.member_id, me.slot_id)] = me.status
+    return JsonResponse({
+        'section': section,
+        'section_label': SECTION_LABELS[section],
+        'sections': [{'key': k, 'label': v} for k, v in EquipSlot.SECTION_CHOICES],
+        'statuses': [{'key': k, 'label': v} for k, v in MemberEquip.STATUS_CHOICES],
+        'slots': [{'id': s.id, 'name': s.name, 'order': s.order} for s in slots],
+        'members': [
+            {'id': m.id, 'nickname': m.nickname, 'power': m.power, 'weapon': m.weapon}
+            for m in members
+        ],
+        'entries': [[mid, sid, st] for (mid, sid), st in status_map.items()],
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def equip_set_api(request):
+    """{member_id, slot_id, status} — 관리자만."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    try:
+        member_id = int(body.get('member_id'))
+        slot_id = int(body.get('slot_id'))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'member_id, slot_id 필요'}, status=400)
+    status = (body.get('status') or 'none').strip()
+    if status not in EQUIP_STATUS:
+        return JsonResponse({'error': '잘못된 status'}, status=400)
+    if not GuildMember.objects.filter(id=member_id, active=True).exists():
+        return JsonResponse({'error': '존재하지 않는 길드원'}, status=404)
+    if not EquipSlot.objects.filter(id=slot_id).exists():
+        return JsonResponse({'error': '존재하지 않는 슬롯'}, status=404)
+    if status == 'none':
+        # 미소유는 행 없음으로 표현 (저장 공간 절약)
+        MemberEquip.objects.filter(member_id=member_id, slot_id=slot_id).delete()
+    else:
+        MemberEquip.objects.update_or_create(
+            member_id=member_id, slot_id=slot_id, defaults={'status': status}
+        )
+    return JsonResponse({'ok': True, 'status': status})
 
 
 @csrf_exempt

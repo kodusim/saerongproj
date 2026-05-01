@@ -57,3 +57,44 @@ class MemberCollectible(models.Model):
 
     def __str__(self):
         return f'{self.member.nickname} - {self.item.name}: {"O" if self.owned else "X"}'
+
+
+class EquipSlot(models.Model):
+    SECTION_CHOICES = [
+        ('equip', '장비 내판'),
+        ('mount', '탈것 내판'),
+        ('special', '특수컬렉'),
+    ]
+    section = models.CharField('섹션', max_length=20, choices=SECTION_CHOICES, db_index=True)
+    name = models.CharField('슬롯명', max_length=100)
+    order = models.PositiveIntegerField('정렬 순서', default=0, db_index=True)
+
+    class Meta:
+        ordering = ['section', 'order', 'id']
+        unique_together = [('section', 'name')]
+        verbose_name = '장비 슬롯'
+        verbose_name_plural = '장비 슬롯'
+
+    def __str__(self):
+        return f'[{self.get_section_display()}] {self.name}'
+
+
+class MemberEquip(models.Model):
+    STATUS_CHOICES = [
+        ('none', '미소유'),
+        ('owned_in', '소유 (내판O)'),
+        ('owned_out', '소유 (내판X)'),
+        ('passed', '내림'),
+    ]
+    member = models.ForeignKey(GuildMember, on_delete=models.CASCADE, related_name='equips')
+    slot = models.ForeignKey(EquipSlot, on_delete=models.CASCADE, related_name='holders')
+    status = models.CharField('상태', max_length=20, choices=STATUS_CHOICES, default='none')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('member', 'slot')]
+        verbose_name = '길드원 장비 내판'
+        verbose_name_plural = '길드원 장비 내판'
+
+    def __str__(self):
+        return f'{self.member.nickname} - {self.slot.name}: {self.get_status_display()}'
