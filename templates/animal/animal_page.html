@@ -1908,14 +1908,17 @@ function bossRenderScoreboard(totals) {
     }
     return a.order - b.order;
   });
-  host.innerHTML = sorted.map((t, i) => `
-    <div class="boss-score-row rank">
-      <div class="no">${i + 1}</div>
-      <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
-      <span class="stat boss"><span class="lbl">보스</span>${t.boss_count || 0}</span>
-      <span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>
-    </div>
-  `).join('');
+  host.innerHTML = sorted.map((t, i) => {
+    const bossChip = (mode === 'boss')
+      ? `<span class="stat boss"><span class="lbl">보스</span>${t.boss_count || 0}</span>` : '';
+    const warChip = `<span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>`;
+    return `
+      <div class="boss-score-row rank">
+        <div class="no">${i + 1}</div>
+        <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
+        ${bossChip}${warChip}
+      </div>`;
+  }).join('');
 }
 
 // 모드 토글 버튼 핸들러 (한 번만 부착)
