@@ -13,13 +13,32 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import Max
 
-from .models import GuildMember, CollectibleItem, MemberCollectible, EquipSlot, MemberEquip
+import re
+from datetime import datetime, date
+from django.utils import timezone
+
+from .models import (
+    GuildMember, CollectibleItem, MemberCollectible, EquipSlot, MemberEquip,
+    Boss, BossWeek, BossClear, BossClearParticipant,
+)
 
 
 CATEGORY_LABELS = dict(CollectibleItem.CATEGORY_CHOICES)
 CATEGORY_KEYS = [k for k, _ in CollectibleItem.CATEGORY_CHOICES]
 SECTION_LABELS = dict(EquipSlot.SECTION_CHOICES)
 EQUIP_STATUS = dict(MemberEquip.STATUS_CHOICES)
+
+
+def _normalize_boss_name(raw):
+    """입력된 보스명에서 끝의 숫자/공백 제거. '베나투스1' → '베나투스', '4.30 베나투스2' 같은 케이스도 처리."""
+    if not raw:
+        return ''
+    s = raw.strip()
+    # 끝에 붙은 숫자(1, 2, 트라이 등) 제거
+    s = re.sub(r'\d+\s*$', '', s).strip()
+    # 트라이 같은 접미사 제거
+    s = re.sub(r'트라이\s*$', '', s).strip()
+    return s
 
 
 ADMIN_ID = 'admin_an'
@@ -272,6 +291,388 @@ def equip_set_api(request):
             member_id=member_id, slot_id=slot_id, defaults={'status': status}
         )
     return JsonResponse({'ok': True, 'status': status})
+
+
+# ─ 보스 마스터 ────────────────────────────────────
+
+@require_GET
+def boss_list_api(request):
+    bosses = list(Boss.objects.all())
+    return JsonResponse({
+        'items': [{'id': b.id, 'name': b.name, 'score': b.score, 'order': b.order} for b in bosses],
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def boss_create_api(request):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    name = (body.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': '보스명은 필수입니다'}, status=400)
+    if Boss.objects.filter(name=name).exists():
+        return JsonResponse({'error': '이미 등록된 보스입니다'}, status=400)
+    try:
+        score = int(body.get('score') or 1)
+    except (TypeError, ValueError):
+        score = 1
+    next_order = (Boss.objects.aggregate(Max('order'))['order__max'] or 0) + 1
+    b = Boss.objects.create(name=name, score=score, order=next_order)
+    return JsonResponse({'ok': True, 'id': b.id})
+
+
+@csrf_exempt
+@require_http_methods(['PUT', 'PATCH', 'DELETE'])
+def boss_detail_api(request, boss_id):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        b = Boss.objects.get(id=boss_id)
+    except Boss.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 보스'}, status=404)
+    if request.method in ('PUT', 'PATCH'):
+        try:
+            body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+        except json.JSONDecodeError:
+            body = {}
+        if 'name' in body:
+            new_name = (body.get('name') or '').strip()
+            if not new_name:
+                return JsonResponse({'error': '보스명 필수'}, status=400)
+            if Boss.objects.exclude(id=b.id).filter(name=new_name).exists():
+                return JsonResponse({'error': '이미 존재하는 보스명'}, status=400)
+            b.name = new_name
+        if 'score' in body:
+            try:
+                b.score = int(body.get('score') or 0)
+            except (TypeError, ValueError):
+                pass
+        b.save()
+        # 이름이 바뀌면 정규화 매칭이 달라질 수 있으니, 모든 BossClear 재매칭
+        _rematch_clears()
+        return JsonResponse({'ok': True})
+    # DELETE
+    b.delete()
+    _rematch_clears()
+    return JsonResponse({'ok': True})
+
+
+def _rematch_clears():
+    """BossClear의 boss FK를 모든 보스 마스터에 대해 재매칭."""
+    name_to_boss = {bs.name: bs for bs in Boss.objects.all()}
+    for cl in BossClear.objects.all():
+        norm = _normalize_boss_name(cl.boss_name_raw)
+        new_boss = name_to_boss.get(norm)
+        if cl.boss_id != (new_boss.id if new_boss else None):
+            cl.boss = new_boss
+            cl.save(update_fields=['boss'])
+
+
+# ─ 주차 관리 ─────────────────────────────────────
+
+@require_GET
+def week_list_api(request):
+    weeks = list(BossWeek.objects.order_by('-start_date', '-id'))
+    cur = next((w for w in weeks if w.is_current), None)
+    return JsonResponse({
+        'weeks': [
+            {
+                'id': w.id, 'name': w.name,
+                'start_date': w.start_date.isoformat(),
+                'is_current': w.is_current,
+                'closed_at': w.closed_at.isoformat() if w.closed_at else None,
+            } for w in weeks
+        ],
+        'current_id': cur.id if cur else None,
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def week_create_api(request):
+    """첫 주차 또는 분배 종료 후 새 주차 생성. 기존 current 가 있으면 닫고 새 것을 current 로."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    name = (body.get('name') or '').strip()
+    start_date_str = (body.get('start_date') or '').strip()
+    if not name:
+        return JsonResponse({'error': '주차명 필수'}, status=400)
+    if BossWeek.objects.filter(name=name).exists():
+        return JsonResponse({'error': '이미 존재하는 주차명'}, status=400)
+    try:
+        sd = date.fromisoformat(start_date_str) if start_date_str else timezone.localdate()
+    except ValueError:
+        return JsonResponse({'error': '시작일 형식 오류 (YYYY-MM-DD)'}, status=400)
+    with transaction.atomic():
+        # 기존 현재 주차가 있으면 닫음
+        BossWeek.objects.filter(is_current=True).update(is_current=False)
+        for w in BossWeek.objects.filter(closed_at__isnull=True):
+            w.closed_at = timezone.now()
+            w.save(update_fields=['closed_at'])
+        new_w = BossWeek.objects.create(name=name, start_date=sd, is_current=True)
+    return JsonResponse({'ok': True, 'id': new_w.id})
+
+
+@csrf_exempt
+@require_POST
+def week_close_api(request):
+    """현재 주차 분배 종료. (다음 주차는 자동으로 만들지 않음 — 새 주차는 별도 생성)"""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    cur = BossWeek.objects.filter(is_current=True).first()
+    if not cur:
+        return JsonResponse({'error': '활성 주차가 없습니다'}, status=400)
+    cur.is_current = False
+    cur.closed_at = timezone.now()
+    cur.save(update_fields=['is_current', 'closed_at'])
+    return JsonResponse({'ok': True})
+
+
+# ─ 보스 토벌 (BossClear) ────────────────────────
+
+@require_GET
+def boss_clears_api(request):
+    """주차별 토벌 목록 + 길드원별 합계."""
+    week_id = request.GET.get('week_id')
+    week = None
+    if week_id:
+        week = BossWeek.objects.filter(id=week_id).first()
+    else:
+        week = BossWeek.objects.filter(is_current=True).first()
+        if not week:
+            week = BossWeek.objects.order_by('-start_date', '-id').first()
+    if not week:
+        return JsonResponse({
+            'week': None, 'clears': [], 'totals': [],
+            'members': [], 'bosses': [],
+            'is_admin': _is_admin(request),
+        })
+
+    # 토벌
+    clears = list(
+        BossClear.objects
+        .filter(week=week)
+        .select_related('boss')
+        .prefetch_related('participants__member')
+        .order_by('-date', '-time')
+    )
+    members_qs = GuildMember.objects.filter(active=True).order_by('order', 'id')
+    member_order = {m.id: i for i, m in enumerate(members_qs)}
+    members = list(members_qs)
+
+    clears_payload = []
+    totals = {m.id: 0 for m in members}
+    for c in clears:
+        score = c.effective_score
+        # 참여자 — 길드원 order 순으로 정렬
+        parts = sorted(
+            (p.member for p in c.participants.all()),
+            key=lambda m: member_order.get(m.id, 9999),
+        )
+        for m in parts:
+            if m.id in totals:
+                totals[m.id] += score
+        clears_payload.append({
+            'id': c.id,
+            'date': c.date.isoformat(),
+            'time': c.time.strftime('%H:%M:%S'),
+            'boss_name_raw': c.boss_name_raw,
+            'boss_name': c.boss.name if c.boss else None,
+            'matched': bool(c.boss),
+            'score': score,
+            'score_override': c.score_override,
+            'note': c.note,
+            'participant_ids': [m.id for m in parts],
+            'participant_names': [m.nickname for m in parts],
+        })
+
+    return JsonResponse({
+        'week': {
+            'id': week.id, 'name': week.name,
+            'start_date': week.start_date.isoformat(),
+            'is_current': week.is_current,
+            'closed_at': week.closed_at.isoformat() if week.closed_at else None,
+        },
+        'clears': clears_payload,
+        'totals': [
+            {'member_id': m.id, 'nickname': m.nickname, 'order': member_order[m.id] + 1, 'score': totals[m.id]}
+            for m in members
+        ],
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def boss_clear_ingest_api(request):
+    """텍스트 통째 입력 → 파싱해서 BossClear + Participants 일괄 생성."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    text = (body.get('text') or '')
+    week_id = body.get('week_id')
+
+    week = None
+    if week_id:
+        week = BossWeek.objects.filter(id=week_id).first()
+    if not week:
+        week = BossWeek.objects.filter(is_current=True).first()
+    if not week:
+        return JsonResponse({'error': '활성 주차가 없습니다. 먼저 주차를 생성하세요.'}, status=400)
+    if not week.is_current:
+        return JsonResponse({'error': '현재 주차에만 입력할 수 있습니다.'}, status=400)
+
+    members = {m.nickname: m for m in GuildMember.objects.filter(active=True)}
+    name_to_boss = {b.name: b for b in Boss.objects.all()}
+
+    parsed = []  # list of dicts to insert
+    duplicates = []  # (date, time, boss) already in DB
+    unknown_members = set()  # nicknames not in roster
+    unmatched_bosses = set()  # boss names without master entry
+    errors = []  # parse errors per row
+
+    lines = [ln for ln in text.replace('\r', '\n').split('\n') if ln.strip()]
+    for raw_line in lines:
+        # 헤더 라인 무시
+        first = raw_line.split('\t')[0].strip()
+        if first == '날짜':
+            continue
+        cols = raw_line.split('\t')
+        # 날짜 시간 보스 (획득) (컷자) 참여자 — 5컬럼 또는 6컬럼
+        if len(cols) < 4:
+            errors.append({'line': raw_line, 'reason': '컬럼 부족 (탭 구분)'})
+            continue
+        date_str = cols[0].strip()
+        time_str = cols[1].strip()
+        boss_raw = cols[2].strip()
+        # 참여자는 마지막 컬럼
+        participants_str = cols[-1].strip()
+        try:
+            d = date.fromisoformat(date_str)
+        except ValueError:
+            errors.append({'line': raw_line, 'reason': f'날짜 형식 오류: {date_str}'})
+            continue
+        try:
+            t = datetime.strptime(time_str, '%H:%M:%S').time()
+        except ValueError:
+            try:
+                t = datetime.strptime(time_str, '%H:%M').time()
+            except ValueError:
+                errors.append({'line': raw_line, 'reason': f'시간 형식 오류: {time_str}'})
+                continue
+        if not boss_raw:
+            errors.append({'line': raw_line, 'reason': '보스명 비어있음'})
+            continue
+        # 참여자 파싱 (쉼표 구분)
+        nicks = [n.strip() for n in participants_str.split(',') if n.strip()]
+        # 매칭
+        norm = _normalize_boss_name(boss_raw)
+        boss_obj = name_to_boss.get(norm)
+        if not boss_obj:
+            unmatched_bosses.add(norm or boss_raw)
+        match_ids = []
+        for nick in nicks:
+            m = members.get(nick)
+            if m:
+                match_ids.append(m.id)
+            else:
+                unknown_members.add(nick)
+        # 중복 체크 (DB)
+        if BossClear.objects.filter(week=week, date=d, time=t, boss_name_raw=boss_raw).exists():
+            duplicates.append(f'{date_str} {time_str} {boss_raw}')
+            continue
+        parsed.append({
+            'date': d, 'time': t, 'boss_name_raw': boss_raw, 'boss': boss_obj,
+            'participant_ids': match_ids,
+        })
+
+    if duplicates:
+        return JsonResponse({
+            'error': '중복 데이터 발견. 엑셀에서 행을 삭제 후 입력하세요.',
+            'duplicates': duplicates,
+        }, status=400)
+
+    # 같은 입력 안에서 중복 체크
+    seen = set()
+    for p in parsed:
+        key = (p['date'], p['time'], p['boss_name_raw'])
+        if key in seen:
+            return JsonResponse({
+                'error': '중복 데이터 발견. 엑셀에서 행을 삭제 후 입력하세요.',
+                'duplicates': [f'{p["date"]} {p["time"]} {p["boss_name_raw"]}'],
+            }, status=400)
+        seen.add(key)
+
+    if errors:
+        return JsonResponse({
+            'error': f'{len(errors)}개 행 파싱 실패',
+            'errors': errors[:20],
+        }, status=400)
+
+    # 저장
+    with transaction.atomic():
+        for p in parsed:
+            cl = BossClear.objects.create(
+                week=week, date=p['date'], time=p['time'],
+                boss_name_raw=p['boss_name_raw'], boss=p['boss'],
+            )
+            for mid in p['participant_ids']:
+                BossClearParticipant.objects.create(clear=cl, member_id=mid)
+
+    return JsonResponse({
+        'ok': True,
+        'created': len(parsed),
+        'unknown_members': sorted(unknown_members),
+        'unmatched_bosses': sorted(unmatched_bosses),
+    })
+
+
+@csrf_exempt
+@require_http_methods(['PUT', 'PATCH', 'DELETE'])
+def boss_clear_detail_api(request, clear_id):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        c = BossClear.objects.get(id=clear_id)
+    except BossClear.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 토벌'}, status=404)
+    if not c.week.is_current:
+        return JsonResponse({'error': '과거 주차는 수정할 수 없습니다'}, status=400)
+    if request.method in ('PUT', 'PATCH'):
+        try:
+            body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+        except json.JSONDecodeError:
+            body = {}
+        if 'score_override' in body:
+            v = body.get('score_override')
+            if v in (None, '', 'null'):
+                c.score_override = None
+            else:
+                try:
+                    c.score_override = int(v)
+                except (TypeError, ValueError):
+                    return JsonResponse({'error': '점수 형식 오류'}, status=400)
+        if 'note' in body:
+            c.note = (body.get('note') or '').strip()[:200]
+        c.save()
+        return JsonResponse({'ok': True})
+    # DELETE
+    c.delete()
+    return JsonResponse({'ok': True})
 
 
 @csrf_exempt

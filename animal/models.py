@@ -98,3 +98,75 @@ class MemberEquip(models.Model):
 
     def __str__(self):
         return f'{self.member.nickname} - {self.slot.name}: {self.get_status_display()}'
+
+
+class Boss(models.Model):
+    """보스 마스터. 이름 → 기본 점수."""
+    name = models.CharField('보스명', max_length=50, unique=True)
+    score = models.IntegerField('기본 점수', default=1)
+    order = models.PositiveIntegerField('정렬', default=0, db_index=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = '보스'
+        verbose_name_plural = '보스'
+
+    def __str__(self):
+        return f'{self.name} ({self.score}점)'
+
+
+class BossWeek(models.Model):
+    """주차. 이름은 관리자가 직접 입력. 길이는 가변."""
+    name = models.CharField('주차명', max_length=50, unique=True)
+    start_date = models.DateField('시작일')
+    is_current = models.BooleanField('현재 주차', default=False, db_index=True)
+    closed_at = models.DateTimeField('분배 종료', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_date', '-id']
+        verbose_name = '주차'
+        verbose_name_plural = '주차'
+
+    def __str__(self):
+        return self.name
+
+
+class BossClear(models.Model):
+    """보스 토벌 1건. 항상 어떤 주차에 소속됨."""
+    week = models.ForeignKey(BossWeek, on_delete=models.CASCADE, related_name='clears')
+    date = models.DateField('날짜')
+    time = models.TimeField('시간')
+    boss_name_raw = models.CharField('입력 보스명', max_length=80)  # "베나투스1" 등 원본
+    boss = models.ForeignKey(Boss, on_delete=models.SET_NULL, null=True, blank=True, related_name='clears')
+    score_override = models.IntegerField('점수 보정', null=True, blank=True)
+    note = models.CharField('메모', max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-time']
+        unique_together = [('week', 'date', 'time', 'boss_name_raw')]
+        verbose_name = '보스 토벌'
+        verbose_name_plural = '보스 토벌'
+
+    @property
+    def effective_score(self):
+        if self.score_override is not None:
+            return self.score_override
+        return self.boss.score if self.boss else 0
+
+    def __str__(self):
+        return f'{self.date} {self.time} {self.boss_name_raw}'
+
+
+class BossClearParticipant(models.Model):
+    clear = models.ForeignKey(BossClear, on_delete=models.CASCADE, related_name='participants')
+    member = models.ForeignKey(GuildMember, on_delete=models.CASCADE, related_name='boss_clears')
+
+    class Meta:
+        unique_together = [('clear', 'member')]
+        verbose_name = '토벌 참여자'
+        verbose_name_plural = '토벌 참여자'
+
+    def __str__(self):
+        return f'{self.clear} - {self.member.nickname}'

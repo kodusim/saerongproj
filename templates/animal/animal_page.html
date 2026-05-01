@@ -477,6 +477,225 @@ header {
 .eq-stats .badge.s-owned_out .dot { background: var(--orange); }
 .eq-stats .badge.s-passed .dot { background: #c89aff; }
 
+/* ── 보스 참여 ── */
+.boss-section {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.boss-section-title {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.boss-section-title .ico { font-size: 16px; }
+.boss-section-title .right { margin-left: auto; }
+
+.boss-week-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 12px;
+}
+.boss-week-select {
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 7px; padding: 8px 10px;
+  color: var(--text); font-size: 14px; font-family: inherit;
+  min-width: 160px;
+}
+.boss-week-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 12px;
+  background: rgba(74,222,128,.15);
+  border: 1px solid rgba(74,222,128,.4);
+  color: #4ade80; font-size: 12px; font-weight: 700;
+}
+.boss-week-tag.closed {
+  background: rgba(255,255,255,.04);
+  border-color: var(--line); color: var(--text-mute);
+}
+
+.boss-toggle {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.boss-toggle-btn {
+  padding: 7px 12px; font-size: 13px; font-weight: 600;
+  background: rgba(255,255,255,.04); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text-dim); cursor: pointer;
+  font-family: inherit; transition: all .12s;
+}
+.boss-toggle-btn:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.boss-toggle-btn.danger {
+  border-color: rgba(255,123,123,.4); color: #ff9b9b;
+  background: rgba(255,123,123,.08);
+}
+.boss-toggle-btn.primary {
+  background: linear-gradient(135deg, #5b6cff, #8b5cff);
+  border-color: transparent; color: #fff;
+}
+.boss-toggle-btn.primary:hover { box-shadow: 0 4px 14px rgba(91,108,255,.4); }
+
+/* 보스 마스터 관리 */
+.boss-master-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px; margin-top: 10px;
+}
+.boss-master-item {
+  background: rgba(0,0,0,.2);
+  border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px;
+}
+.boss-master-item input.bm-name {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; color: var(--text);
+  font-size: 13px; font-weight: 600; padding: 2px 0;
+  font-family: inherit; outline: none;
+}
+.boss-master-item input.bm-score {
+  width: 50px; background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 5px; padding: 3px 6px; color: var(--text);
+  font-size: 12px; font-family: var(--mono); text-align: right; outline: none;
+}
+.boss-master-item button {
+  border: none; background: rgba(255,123,123,.15);
+  color: #ff9b9b; padding: 3px 8px; border-radius: 5px;
+  font-size: 11px; cursor: pointer;
+}
+.boss-master-add {
+  display: grid; grid-template-columns: 1fr 70px auto;
+  gap: 6px; margin-top: 10px;
+}
+.boss-master-add input {
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 9px; color: var(--text);
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.boss-master-add input:focus { border-color: var(--accent); }
+.boss-master-add button {
+  border: none; background: linear-gradient(135deg, #5b6cff, #8b5cff);
+  color: #fff; border-radius: 6px; font-weight: 700; cursor: pointer;
+  font-size: 12px; font-family: inherit; padding: 0 14px;
+}
+
+/* 입력 텍스트박스 */
+.boss-ingest-area {
+  width: 100%; min-height: 160px; resize: vertical;
+  background: rgba(0,0,0,.35); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px;
+  color: var(--text); font-size: 13px;
+  font-family: var(--mono); line-height: 1.5;
+  outline: none;
+}
+.boss-ingest-area:focus { border-color: var(--accent); }
+.boss-ingest-hint {
+  font-size: 11px; color: var(--text-mute); margin: 6px 0 10px;
+}
+.boss-ingest-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;
+}
+.boss-ingest-result {
+  margin-top: 10px; padding: 10px 12px;
+  border-radius: 8px; font-size: 12px; line-height: 1.55;
+}
+.boss-ingest-result.ok {
+  background: rgba(74,222,128,.1);
+  border: 1px solid rgba(74,222,128,.35);
+  color: #b3f5cf;
+}
+.boss-ingest-result.err {
+  background: rgba(255,123,123,.1);
+  border: 1px solid rgba(255,123,123,.35);
+  color: #ffb3b3;
+}
+
+/* 토벌 목록 */
+.boss-clear-list { display: flex; flex-direction: column; gap: 8px; }
+.boss-clear-item {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--line);
+  border-radius: 10px; overflow: hidden;
+}
+.boss-clear-note {
+  background: linear-gradient(90deg, rgba(220,38,38,.85), rgba(220,38,38,.7));
+  color: #fff; font-weight: 700; font-size: 12px;
+  padding: 5px 12px; letter-spacing: .02em;
+}
+.boss-clear-row {
+  display: grid;
+  grid-template-columns: 105px 1fr 70px;
+  gap: 10px; align-items: center;
+  padding: 10px 12px;
+}
+.boss-clear-when {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--text-dim); line-height: 1.4;
+}
+.boss-clear-when .d { color: var(--text); font-weight: 600; }
+.boss-clear-name {
+  font-weight: 700; font-size: 14px; color: var(--text);
+}
+.boss-clear-name .raw { font-weight: 400; font-size: 12px; color: var(--text-mute); margin-left: 5px; }
+.boss-clear-name .unmatched {
+  display: inline-block; margin-left: 6px;
+  background: rgba(255,184,107,.18); color: var(--orange);
+  border: 1px solid rgba(255,184,107,.4);
+  padding: 1px 6px; border-radius: 9px; font-size: 10px; font-weight: 700;
+}
+.boss-clear-score {
+  font-family: var(--mono); font-size: 16px; font-weight: 700;
+  text-align: right; color: var(--accent);
+}
+.boss-clear-score .lbl { font-size: 10px; color: var(--text-mute); font-weight: 500; display: block; }
+
+.boss-clear-body {
+  border-top: 1px solid var(--line);
+  padding: 10px 12px; display: none;
+  background: rgba(0,0,0,.15);
+}
+.boss-clear-item.open .boss-clear-body { display: block; }
+.boss-clear-parts {
+  font-size: 12px; line-height: 1.7;
+  color: var(--text-dim);
+}
+.boss-clear-parts .nick {
+  display: inline-block;
+  padding: 2px 8px; margin: 2px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-weight: 500; color: var(--text);
+}
+
+.boss-clear-edit {
+  display: grid; grid-template-columns: 70px 1fr auto;
+  gap: 6px; margin-top: 10px; align-items: center;
+}
+.boss-clear-edit input {
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 5px; padding: 5px 8px; color: var(--text);
+  font-size: 12px; font-family: inherit; outline: none;
+}
+.boss-clear-edit .actions { display: flex; gap: 5px; }
+
+/* 길드원 점수 합계 */
+.boss-scoreboard {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+.boss-score-row {
+  display: grid; grid-template-columns: 30px 1fr 50px;
+  gap: 6px; align-items: center;
+  background: rgba(0,0,0,.2);
+  border: 1px solid var(--line);
+  border-radius: 7px; padding: 6px 9px;
+  font-size: 12px;
+}
+.boss-score-row .no { color: var(--text-mute); font-family: var(--mono); text-align: center; font-size: 11px; }
+.boss-score-row .nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boss-score-row .pt { font-family: var(--mono); font-weight: 700; color: var(--accent); text-align: right; }
+
 /* coming-soon panel */
 .coming {
   padding: 60px 20px; text-align: center; color: var(--text-mute);
@@ -551,7 +770,93 @@ header {
   </div>
 
   <!-- 다른 탭들 (개발 예정) -->
-  <div class="panel" id="panel-boss"><div class="coming"><div class="coming-icon">🗡️</div><div class="coming-title">보스 참여</div><div class="coming-sub">개발 예정</div></div></div>
+  <!-- 보스 참여 -->
+  <div class="panel" id="panel-boss">
+    <div class="ph">
+      <div class="ph-title">🗡️ 보스 참여</div>
+    </div>
+
+    <!-- 주차 선택 / 관리 -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📅</span>
+        <span>주차</span>
+        <span class="right" id="bw-current-tag"></span>
+      </div>
+      <div class="boss-week-bar">
+        <select class="boss-week-select" id="bw-select"></select>
+        {% if is_admin %}
+        <button class="boss-toggle-btn" id="bw-new-toggle">＋ 새 주차</button>
+        <button class="boss-toggle-btn danger" id="bw-close-btn">분배 끝</button>
+        {% endif %}
+      </div>
+      {% if is_admin %}
+      <div id="bw-new-form" style="display:none; margin-top:8px;">
+        <div class="boss-master-add">
+          <input id="bw-name" type="text" placeholder="주차명 (예: 4주차, 5월1주차)">
+          <input id="bw-start" type="date">
+          <button onclick="bossWeekCreate()">생성</button>
+        </div>
+        <div class="boss-ingest-hint">기존 활성 주차는 자동으로 닫히고 이 주차가 활성됩니다.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if is_admin %}
+    <!-- 보스 점수 관리 (토글) -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">⚙️</span>
+        <span>보스 점수 관리</span>
+        <button class="boss-toggle-btn right" id="bm-toggle">펼치기</button>
+      </div>
+      <div id="bm-body" style="display:none">
+        <div class="boss-master-add">
+          <input id="bm-name" type="text" placeholder="보스명 (예: 베나투스)">
+          <input id="bm-score" type="number" placeholder="점수" min="0">
+          <button onclick="bossMasterAdd()">추가</button>
+        </div>
+        <div class="boss-ingest-hint">참고: 입력 시 보스명 끝의 숫자(베나투스1, 2, 3 등)는 자동으로 떼고 매칭됩니다.</div>
+        <div class="boss-master-list" id="bm-list"></div>
+      </div>
+    </div>
+
+    <!-- 토벌 입력 -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📝</span>
+        <span>토벌 기록 입력</span>
+      </div>
+      <textarea id="bi-text" class="boss-ingest-area" placeholder="날짜&#9;시간&#9;보스&#9;획득 아이템&#9;컷자&#9;참여자
+2026-04-30&#9;21:49:53&#9;언두미엘&#9;&#9;케아&#9;강치, 항공, 흑여우, ..."></textarea>
+      <div class="boss-ingest-hint">탭 구분 / 참여자는 콤마. 헤더 행은 있어도 됨.</div>
+      <div class="boss-ingest-actions">
+        <button class="boss-toggle-btn" onclick="document.getElementById('bi-text').value=''">지우기</button>
+        <button class="boss-toggle-btn primary" onclick="bossIngest()">입력</button>
+      </div>
+      <div id="bi-result"></div>
+    </div>
+    {% endif %}
+
+    <!-- 길드원 점수 합계 -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">🏅</span>
+        <span>길드원 점수 합계</span>
+      </div>
+      <div class="boss-scoreboard" id="b-scoreboard"></div>
+    </div>
+
+    <!-- 토벌 목록 -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📜</span>
+        <span>토벌 기록</span>
+        <span class="right" id="b-count" style="font-size:12px; color:var(--text-mute); font-weight:500"></span>
+      </div>
+      <div class="boss-clear-list" id="b-clears"><div class="empty">로딩 중…</div></div>
+    </div>
+  </div>
   <!-- 장비 내판 -->
   <div class="panel" id="panel-equipment">
     <div class="ph">
@@ -1195,6 +1500,373 @@ async function setEqStatus(chip, next) {
   } finally {
     chip.classList.remove('saving');
   }
+}
+
+// ─ 보스 참여 ─
+const BOSS = {
+  weeks: [],
+  currentWeekId: null,    // 활성 주차 ID
+  selectedWeekId: null,   // 화면에서 선택된 주차 ID
+  master: [],
+  loaded: false,
+};
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'boss' && !BOSS.loaded) {
+      bossInit();
+    }
+  });
+});
+
+async function bossInit() {
+  BOSS.loaded = true;
+  await Promise.all([bossLoadWeeks(), bossLoadMaster()]);
+  await bossLoadClears();
+}
+
+async function bossLoadWeeks() {
+  try {
+    const res = await fetch('/animal/api/boss/weeks/', { credentials: 'same-origin' });
+    const j = await res.json();
+    BOSS.weeks = j.weeks || [];
+    BOSS.currentWeekId = j.current_id;
+    if (!BOSS.selectedWeekId) BOSS.selectedWeekId = BOSS.currentWeekId || (BOSS.weeks[0] && BOSS.weeks[0].id);
+    bossRenderWeekBar();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function bossRenderWeekBar() {
+  const sel = document.getElementById('bw-select');
+  if (!sel) return;
+  sel.innerHTML = BOSS.weeks.map(w => {
+    const lbl = w.name + (w.is_current ? ' (현재)' : '') + ' · ' + w.start_date;
+    return `<option value="${w.id}" ${w.id === BOSS.selectedWeekId ? 'selected' : ''}>${escapeHtml(lbl)}</option>`;
+  }).join('') || '<option value="">(주차 없음)</option>';
+  sel.onchange = () => {
+    BOSS.selectedWeekId = parseInt(sel.value, 10) || null;
+    bossLoadClears();
+  };
+  // 현재 주차 태그
+  const tag = document.getElementById('bw-current-tag');
+  if (tag) {
+    const w = BOSS.weeks.find(x => x.id === BOSS.selectedWeekId);
+    if (!w) { tag.innerHTML = ''; return; }
+    if (w.is_current) tag.innerHTML = `<span class="boss-week-tag">진행 중</span>`;
+    else tag.innerHTML = `<span class="boss-week-tag closed">종료${w.closed_at ? ' · ' + w.closed_at.slice(0,10) : ''}</span>`;
+  }
+}
+
+if (IS_ADMIN) {
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'bw-new-toggle') {
+      const f = document.getElementById('bw-new-form');
+      if (f) f.style.display = (f.style.display === 'none') ? 'block' : 'none';
+    }
+    if (e.target && e.target.id === 'bw-close-btn') bossWeekClose();
+    if (e.target && e.target.id === 'bm-toggle') {
+      const f = document.getElementById('bm-body');
+      const btn = e.target;
+      if (f.style.display === 'none') { f.style.display = 'block'; btn.textContent = '접기'; }
+      else { f.style.display = 'none'; btn.textContent = '펼치기'; }
+    }
+  });
+}
+
+async function bossWeekCreate() {
+  const name = (document.getElementById('bw-name').value || '').trim();
+  const sd = document.getElementById('bw-start').value;
+  if (!name) { toast('주차명을 입력하세요', 'err'); return; }
+  if (!sd) { toast('시작일을 선택하세요', 'err'); return; }
+  if (BOSS.currentWeekId) {
+    if (!confirm('현재 주차가 있습니다. 닫고 새 주차를 시작하시겠습니까?')) return;
+  }
+  try {
+    const res = await fetch('/animal/api/boss/weeks/create/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, start_date: sd }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '생성 실패', 'err'); return; }
+    toast('주차 생성 완료', 'ok');
+    document.getElementById('bw-new-form').style.display = 'none';
+    document.getElementById('bw-name').value = '';
+    document.getElementById('bw-start').value = '';
+    BOSS.selectedWeekId = j.id;
+    await bossLoadWeeks();
+    await bossLoadClears();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bossWeekClose() {
+  if (!BOSS.currentWeekId) { toast('활성 주차가 없습니다', 'err'); return; }
+  const w = BOSS.weeks.find(x => x.id === BOSS.currentWeekId);
+  if (!confirm(`"${w ? w.name : ''}" 주차의 분배를 종료합니다. 종료 후에는 입력/수정 불가.`)) return;
+  try {
+    const res = await fetch('/animal/api/boss/weeks/close/', {
+      method: 'POST', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+    toast('주차 종료', 'ok');
+    await bossLoadWeeks();
+    await bossLoadClears();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bossLoadMaster() {
+  try {
+    const res = await fetch('/animal/api/boss/list/', { credentials: 'same-origin' });
+    const j = await res.json();
+    BOSS.master = j.items || [];
+    bossRenderMaster();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function bossRenderMaster() {
+  const host = document.getElementById('bm-list');
+  if (!host) return;
+  if (BOSS.master.length === 0) {
+    host.innerHTML = '<div class="empty" style="grid-column:1/-1; padding: 20px">아직 등록된 보스가 없습니다.</div>';
+    return;
+  }
+  host.innerHTML = BOSS.master.map(b => `
+    <div class="boss-master-item" data-id="${b.id}">
+      <input class="bm-name" value="${escapeHtml(b.name)}" data-orig="${escapeHtml(b.name)}">
+      <input class="bm-score" type="number" min="0" value="${b.score}" data-orig="${b.score}">
+      <button onclick="bossMasterDel(${b.id})">삭제</button>
+    </div>
+  `).join('');
+  // 인풋 blur 시 자동 저장
+  host.querySelectorAll('.boss-master-item').forEach(item => {
+    const id = parseInt(item.dataset.id, 10);
+    item.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('blur', () => bossMasterSaveItem(id, item));
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+    });
+  });
+}
+
+async function bossMasterAdd() {
+  const name = (document.getElementById('bm-name').value || '').trim();
+  const score = parseInt(document.getElementById('bm-score').value || '1', 10) || 1;
+  if (!name) { toast('보스명 입력', 'err'); return; }
+  try {
+    const res = await fetch('/animal/api/boss/create/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+    document.getElementById('bm-name').value = '';
+    document.getElementById('bm-score').value = '';
+    await bossLoadMaster();
+    await bossLoadClears();
+    toast('추가됨', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bossMasterSaveItem(id, item) {
+  const nameEl = item.querySelector('.bm-name');
+  const scoreEl = item.querySelector('.bm-score');
+  const newName = nameEl.value.trim();
+  const newScore = parseInt(scoreEl.value || '0', 10);
+  const origName = nameEl.dataset.orig;
+  const origScore = parseInt(scoreEl.dataset.orig || '0', 10);
+  if (newName === origName && newScore === origScore) return;
+  if (!newName) { nameEl.value = origName; toast('보스명 비울 수 없음', 'err'); return; }
+  try {
+    const res = await fetch('/animal/api/boss/' + id + '/', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName, score: newScore }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); nameEl.value = origName; scoreEl.value = origScore; return; }
+    nameEl.dataset.orig = newName;
+    scoreEl.dataset.orig = newScore;
+    toast('저장', 'ok');
+    await bossLoadClears();  // 점수 변경시 토벌 점수도 다시
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bossMasterDel(id) {
+  const b = BOSS.master.find(x => x.id === id);
+  if (!confirm(`"${b ? b.name : ''}" 보스를 삭제하시겠습니까? (해당 토벌 점수는 0 처리)`)) return;
+  try {
+    const res = await fetch('/animal/api/boss/' + id + '/', {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+    await bossLoadMaster();
+    await bossLoadClears();
+    toast('삭제됨', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bossIngest() {
+  const text = document.getElementById('bi-text').value;
+  const result = document.getElementById('bi-result');
+  result.innerHTML = '';
+  if (!text.trim()) { toast('입력 텍스트가 비어있음', 'err'); return; }
+  if (!BOSS.currentWeekId) { toast('먼저 주차를 생성하세요', 'err'); return; }
+  try {
+    const res = await fetch('/animal/api/boss/clears/ingest/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, week_id: BOSS.currentWeekId }),
+    });
+    const j = await res.json();
+    if (!res.ok) {
+      let msg = `<div><b>${escapeHtml(j.error || '입력 실패')}</b></div>`;
+      if (j.duplicates && j.duplicates.length) {
+        msg += `<div style="margin-top:6px">중복 행 (${j.duplicates.length}):</div>`;
+        msg += '<div>' + j.duplicates.slice(0, 10).map(escapeHtml).join('<br>') + '</div>';
+      }
+      if (j.errors && j.errors.length) {
+        msg += `<div style="margin-top:6px">오류 (${j.errors.length}):</div>`;
+        msg += '<div>' + j.errors.slice(0, 10).map(e => escapeHtml(e.reason + ' - ' + e.line)).join('<br>') + '</div>';
+      }
+      result.innerHTML = `<div class="boss-ingest-result err">${msg}</div>`;
+      return;
+    }
+    let msg = `<b>${j.created}건 추가됨</b>`;
+    if (j.unknown_members && j.unknown_members.length) {
+      msg += `<div style="margin-top:5px; color:var(--orange)">⚠ 길드원 명단에 없는 닉네임 (무시됨): ${j.unknown_members.map(escapeHtml).join(', ')}</div>`;
+    }
+    if (j.unmatched_bosses && j.unmatched_bosses.length) {
+      msg += `<div style="margin-top:5px; color:var(--orange)">⚠ 보스 점수표에 없는 보스 (점수 0): ${j.unmatched_bosses.map(escapeHtml).join(', ')}</div>`;
+    }
+    result.innerHTML = `<div class="boss-ingest-result ok">${msg}</div>`;
+    document.getElementById('bi-text').value = '';
+    await bossLoadClears();
+  } catch (e) {
+    result.innerHTML = `<div class="boss-ingest-result err">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function bossLoadClears() {
+  const host = document.getElementById('b-clears');
+  host.innerHTML = '<div class="empty">로딩 중…</div>';
+  try {
+    const url = '/animal/api/boss/clears/' + (BOSS.selectedWeekId ? '?week_id=' + BOSS.selectedWeekId : '');
+    const res = await fetch(url, { credentials: 'same-origin' });
+    const j = await res.json();
+    if (!res.ok) { host.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
+    bossRenderScoreboard(j.totals || []);
+    bossRenderClears(j);
+  } catch (e) {
+    host.innerHTML = `<div class="empty" style="color:#ff9b9b">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function bossRenderScoreboard(totals) {
+  const host = document.getElementById('b-scoreboard');
+  if (!host) return;
+  if (!totals.length) { host.innerHTML = '<div class="empty" style="grid-column:1/-1">길드원 없음</div>'; return; }
+  // 길드원 현황 순서 = order asc
+  totals.sort((a, b) => a.order - b.order);
+  host.innerHTML = totals.map(t => `
+    <div class="boss-score-row">
+      <div class="no">${t.order}</div>
+      <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
+      <div class="pt">${t.score}</div>
+    </div>
+  `).join('');
+}
+
+function bossRenderClears(d) {
+  const host = document.getElementById('b-clears');
+  const cnt = document.getElementById('b-count');
+  const clears = d.clears || [];
+  if (cnt) cnt.textContent = `${clears.length}건`;
+  const w = d.week;
+  const isEditable = IS_ADMIN && w && w.is_current;
+  if (clears.length === 0) {
+    host.innerHTML = '<div class="empty">기록 없음</div>';
+    return;
+  }
+  host.innerHTML = clears.map(c => `
+    <div class="boss-clear-item" data-id="${c.id}">
+      ${c.note ? `<div class="boss-clear-note">※ ${escapeHtml(c.note)}</div>` : ''}
+      <div class="boss-clear-row" ${isEditable ? 'style="cursor:pointer"' : ''}>
+        <div class="boss-clear-when">
+          <div class="d">${escapeHtml(c.date)}</div>
+          <div>${escapeHtml(c.time)}</div>
+        </div>
+        <div>
+          <div class="boss-clear-name">
+            ${escapeHtml(c.boss_name || c.boss_name_raw)}
+            ${c.boss_name_raw !== (c.boss_name || c.boss_name_raw) ? `<span class="raw">${escapeHtml(c.boss_name_raw)}</span>` : ''}
+            ${!c.matched ? '<span class="unmatched">미등록</span>' : ''}
+          </div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 3px">참여 ${c.participant_names.length}명</div>
+        </div>
+        <div class="boss-clear-score">
+          ${c.score}<span class="lbl">${c.score_override !== null ? '보정' : '점'}</span>
+        </div>
+      </div>
+      <div class="boss-clear-body">
+        <div class="boss-clear-parts">
+          ${c.participant_names.map(n => `<span class="nick">${escapeHtml(n)}</span>`).join('')}
+        </div>
+        ${isEditable ? `
+        <div class="boss-clear-edit">
+          <input type="number" placeholder="점수보정" id="bc-ov-${c.id}" value="${c.score_override !== null ? c.score_override : ''}">
+          <input type="text" placeholder="메모 (특수사항)" id="bc-note-${c.id}" value="${escapeHtml(c.note || '')}" maxlength="200">
+          <div class="actions">
+            <button class="btn-sm" onclick="bossClearSave(${c.id})">저장</button>
+            <button class="btn-sm danger" onclick="bossClearDel(${c.id})">삭제</button>
+          </div>
+        </div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // 행 클릭 → 펼치기
+  host.querySelectorAll('.boss-clear-item').forEach(item => {
+    const row = item.querySelector('.boss-clear-row');
+    if (!row) return;
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('button, input')) return;
+      item.classList.toggle('open');
+    });
+  });
+}
+
+async function bossClearSave(id) {
+  const ovEl = document.getElementById('bc-ov-' + id);
+  const noteEl = document.getElementById('bc-note-' + id);
+  const ovStr = ovEl.value.trim();
+  const ov = ovStr === '' ? null : parseInt(ovStr, 10);
+  const note = noteEl.value;
+  try {
+    const res = await fetch('/animal/api/boss/clears/' + id + '/', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ score_override: ov, note }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+    toast('저장', 'ok');
+    await bossLoadClears();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bossClearDel(id) {
+  if (!confirm('이 토벌 기록을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch('/animal/api/boss/clears/' + id + '/', {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+    toast('삭제됨', 'ok');
+    await bossLoadClears();
+  } catch (e) { toast(e.message, 'err'); }
 }
 </script>
 </body>
