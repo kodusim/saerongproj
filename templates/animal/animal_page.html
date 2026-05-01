@@ -935,7 +935,7 @@ header {
       <div class="boss-toggle" id="b-mode-tabs" style="margin-bottom: 10px">
         <button class="boss-toggle-btn" data-mode="war">쟁 참여 순위</button>
         <button class="boss-toggle-btn" data-mode="boss">보스 참여 순위</button>
-        <button class="boss-toggle-btn" data-mode="score">점수 합계</button>
+        <button class="boss-toggle-btn" data-mode="score">점수 합계 순위</button>
       </div>
       <div class="boss-scoreboard" id="b-scoreboard"></div>
     </div>
@@ -1866,7 +1866,7 @@ BOSS.lastWeekTotal = 0;
 const BOSS_TITLES = {
   war: '쟁 참여 순위',
   boss: '보스 참여 순위',
-  score: '점수 합계',
+  score: '점수 합계 순위',
 };
 
 function bossRenderBoardArea() {
@@ -1886,11 +1886,14 @@ function bossRenderScoreboard(totals) {
   if (!totals.length) { host.innerHTML = '<div class="empty" style="grid-column:1/-1">길드원 없음</div>'; return; }
   const mode = BOSS.boardMode;
   if (mode === 'score') {
-    // 점수 합계 — 길드원 현황 순서
-    const sorted = totals.slice().sort((a, b) => a.order - b.order);
-    host.innerHTML = sorted.map(t => `
+    // 점수 합계 순위 — 점수 내림차순, 동률은 order
+    const sorted = totals.slice().sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.order - b.order;
+    });
+    host.innerHTML = sorted.map((t, i) => `
       <div class="boss-score-row">
-        <div class="no">${t.order}</div>
+        <div class="no">${i + 1}</div>
         <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
         <div class="pt">${t.score}</div>
       </div>
