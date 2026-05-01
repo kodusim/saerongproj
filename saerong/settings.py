@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "collector",
     "analytics",
     "api",
+    "animal",
 ]
 
 if DEBUG:
