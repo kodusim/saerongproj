@@ -490,8 +490,8 @@ def boss_clears_api(request):
                 boss_counts[m.id] += 1
                 if is_war:
                     war_counts[m.id] += 1
-        # 주차 전체 점수: 토벌마다 (점수 × 참여자수)
-        week_total_score += score * len(parts)
+        # 주차 전체 점수: 토벌별 점수 합계 (한 명이 모든 보스에 참여했을 때 받는 점수)
+        week_total_score += score
         clears_payload.append({
             'id': c.id,
             'date': c.date.isoformat(),

@@ -933,7 +933,8 @@ header {
         <span class="right" id="b-week-total"></span>
       </div>
       <div class="boss-toggle" id="b-mode-tabs" style="margin-bottom: 10px">
-        <button class="boss-toggle-btn" data-mode="rank">참여 순위</button>
+        <button class="boss-toggle-btn" data-mode="war">쟁 참여 순위</button>
+        <button class="boss-toggle-btn" data-mode="boss">보스 참여 순위</button>
         <button class="boss-toggle-btn" data-mode="score">점수 합계</button>
       </div>
       <div class="boss-scoreboard" id="b-scoreboard"></div>
@@ -1857,22 +1858,25 @@ async function bossLoadClears() {
   }
 }
 
-// 화면 모드: 'rank' (보스/쟁 횟수) 또는 'score' (점수 합계)
-BOSS.boardMode = BOSS.boardMode || 'rank';
+// 화면 모드: 'war' (쟁 참여 순위, 기본) / 'boss' (보스 참여 순위) / 'score' (점수 합계)
+BOSS.boardMode = BOSS.boardMode || 'war';
 BOSS.lastTotals = [];
 BOSS.lastWeekTotal = 0;
 
+const BOSS_TITLES = {
+  war: '쟁 참여 순위',
+  boss: '보스 참여 순위',
+  score: '점수 합계',
+};
+
 function bossRenderBoardArea() {
-  // 토글 버튼 active 표시
   document.querySelectorAll('#b-mode-tabs .boss-toggle-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === BOSS.boardMode);
   });
-  // 헤더 라벨 + 우측 합계
   const title = document.getElementById('b-board-title');
   const right = document.getElementById('b-week-total');
-  if (title) title.textContent = (BOSS.boardMode === 'score') ? '길드원 점수 합계' : '길드원 보스 및 쟁 참여 순위';
+  if (title) title.textContent = BOSS_TITLES[BOSS.boardMode] || '참여 순위';
   if (right) right.innerHTML = `<span class="b-week-total"><span class="lbl">총 토벌점수</span>${BOSS.lastWeekTotal.toLocaleString()}</span>`;
-  // 본문
   bossRenderScoreboard(BOSS.lastTotals);
 }
 
@@ -1880,22 +1884,8 @@ function bossRenderScoreboard(totals) {
   const host = document.getElementById('b-scoreboard');
   if (!host) return;
   if (!totals.length) { host.innerHTML = '<div class="empty" style="grid-column:1/-1">길드원 없음</div>'; return; }
-  if (BOSS.boardMode === 'rank') {
-    // 보스 참여 횟수 내림차순, 동률은 쟁 횟수, 그다음 order
-    const sorted = totals.slice().sort((a, b) => {
-      if (b.boss_count !== a.boss_count) return b.boss_count - a.boss_count;
-      if (b.war_count !== a.war_count) return b.war_count - a.war_count;
-      return a.order - b.order;
-    });
-    host.innerHTML = sorted.map((t, i) => `
-      <div class="boss-score-row rank">
-        <div class="no">${i + 1}</div>
-        <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
-        <span class="stat boss"><span class="lbl">보스</span>${t.boss_count || 0}</span>
-        <span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>
-      </div>
-    `).join('');
-  } else {
+  const mode = BOSS.boardMode;
+  if (mode === 'score') {
     // 점수 합계 — 길드원 현황 순서
     const sorted = totals.slice().sort((a, b) => a.order - b.order);
     host.innerHTML = sorted.map(t => `
@@ -1905,7 +1895,27 @@ function bossRenderScoreboard(totals) {
         <div class="pt">${t.score}</div>
       </div>
     `).join('');
+    return;
   }
+  // war / boss 순위 모드
+  const sorted = totals.slice().sort((a, b) => {
+    if (mode === 'war') {
+      if (b.war_count !== a.war_count) return b.war_count - a.war_count;
+      if (b.boss_count !== a.boss_count) return b.boss_count - a.boss_count;
+    } else {
+      if (b.boss_count !== a.boss_count) return b.boss_count - a.boss_count;
+      if (b.war_count !== a.war_count) return b.war_count - a.war_count;
+    }
+    return a.order - b.order;
+  });
+  host.innerHTML = sorted.map((t, i) => `
+    <div class="boss-score-row rank">
+      <div class="no">${i + 1}</div>
+      <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
+      <span class="stat boss"><span class="lbl">보스</span>${t.boss_count || 0}</span>
+      <span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>
+    </div>
+  `).join('');
 }
 
 // 모드 토글 버튼 핸들러 (한 번만 부착)
