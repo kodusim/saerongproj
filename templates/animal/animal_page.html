@@ -660,12 +660,62 @@ header {
   color: var(--text-dim);
 }
 .boss-clear-parts .nick {
-  display: inline-block;
+  display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; margin: 2px;
   background: rgba(255,255,255,.05);
   border: 1px solid var(--line);
   border-radius: 10px;
   font-weight: 500; color: var(--text);
+  vertical-align: middle;
+}
+.boss-clear-parts .nick .x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(255,123,123,.25);
+  color: #ffb3b3; font-size: 10px; line-height: 1;
+  border: none; cursor: pointer; padding: 0;
+  margin-left: 2px;
+}
+.boss-clear-parts .nick .x:hover {
+  background: rgba(255,123,123,.5); color: #fff;
+}
+.boss-clear-parts .add-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 9px; margin: 2px;
+  background: rgba(91,108,255,.15);
+  border: 1px dashed rgba(122,143,255,.5);
+  border-radius: 10px;
+  color: var(--accent); font-weight: 600; font-size: 12px;
+  cursor: pointer; font-family: inherit;
+  vertical-align: middle;
+}
+.boss-clear-parts .add-btn:hover {
+  background: rgba(91,108,255,.25);
+  border-style: solid;
+}
+.boss-add-menu {
+  position: fixed; z-index: 1000;
+  background: rgba(15,20,40,.98);
+  border: 1px solid rgba(122,143,255,.45);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.6);
+  padding: 5px; min-width: 180px;
+  max-height: 320px; overflow-y: auto;
+  display: none;
+}
+.boss-add-menu.open { display: block; }
+.boss-add-menu .item {
+  padding: 6px 12px; border-radius: 5px; cursor: pointer;
+  font-size: 13px; color: var(--text);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.boss-add-menu .item:hover { background: rgba(255,255,255,.07); }
+.boss-add-menu .item .pw {
+  font-family: var(--mono); font-size: 11px; color: var(--text-mute);
+}
+.boss-add-menu .empty {
+  padding: 14px; text-align: center; font-size: 12px;
+  color: var(--text-mute);
 }
 
 .boss-clear-edit {
@@ -869,6 +919,7 @@ header {
     </div>
   </div>
   <div class="eq-menu" id="eq-menu"></div>
+  <div class="boss-add-menu" id="boss-add-menu"></div>
   <!-- 컬렉용 아이템 -->
   <div class="panel" id="panel-collect">
     <div class="ph">
@@ -1748,6 +1799,7 @@ async function bossIngest() {
   }
 }
 
+let BOSS_LAST_DATA = null;
 async function bossLoadClears() {
   const host = document.getElementById('b-clears');
   host.innerHTML = '<div class="empty">로딩 중…</div>';
@@ -1756,6 +1808,7 @@ async function bossLoadClears() {
     const res = await fetch(url, { credentials: 'same-origin' });
     const j = await res.json();
     if (!res.ok) { host.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
+    BOSS_LAST_DATA = j;
     bossRenderScoreboard(j.totals || []);
     bossRenderClears(j);
   } catch (e) {
@@ -1810,8 +1863,13 @@ function bossRenderClears(d) {
         </div>
       </div>
       <div class="boss-clear-body">
-        <div class="boss-clear-parts">
-          ${c.participant_names.map(n => `<span class="nick">${escapeHtml(n)}</span>`).join('')}
+        <div class="boss-clear-parts" data-clear-id="${c.id}">
+          ${c.participant_ids.map((mid, i) => `
+            <span class="nick" data-mid="${mid}">
+              ${escapeHtml(c.participant_names[i])}
+              ${isEditable ? `<button class="x" data-cid="${c.id}" data-mid="${mid}" title="제외">✕</button>` : ''}
+            </span>`).join('')}
+          ${isEditable ? `<button class="add-btn" data-cid="${c.id}">＋ 참여자 추가</button>` : ''}
         </div>
         ${isEditable ? `
         <div class="boss-clear-edit">
@@ -1835,7 +1893,99 @@ function bossRenderClears(d) {
       item.classList.toggle('open');
     });
   });
+
+  if (IS_ADMIN && d.week && d.week.is_current) {
+    // 참여자 제외(×)
+    host.querySelectorAll('.boss-clear-parts .x').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const cid = parseInt(btn.dataset.cid, 10);
+        const mid = parseInt(btn.dataset.mid, 10);
+        const span = btn.closest('.nick');
+        const nickName = span ? span.textContent.trim().replace(/✕\s*$/, '').trim() : '';
+        if (!confirm(`"${nickName}" 참여자를 이 토벌에서 제외하시겠습니까?`)) return;
+        try {
+          const res = await fetch(`/animal/api/boss/clears/${cid}/participants/${mid}/`, {
+            method: 'DELETE', credentials: 'same-origin',
+          });
+          const j = await res.json();
+          if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+          toast('제외됨', 'ok');
+          await bossLoadClears();
+        } catch (e) { toast(e.message, 'err'); }
+      });
+    });
+    // 참여자 추가 버튼
+    host.querySelectorAll('.boss-clear-parts .add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cid = parseInt(btn.dataset.cid, 10);
+        openBossAddMenu(btn, cid);
+      });
+    });
+  }
 }
+
+function openBossAddMenu(anchor, clearId) {
+  const menu = document.getElementById('boss-add-menu');
+  // 현재 토벌의 참여자 ID set
+  const clear = (BOSS_LAST_DATA && BOSS_LAST_DATA.clears.find(c => c.id === clearId));
+  const taken = new Set(clear ? clear.participant_ids : []);
+  // 길드원 목록 — order asc, 이미 참여한 사람은 제외
+  const totals = BOSS_LAST_DATA ? BOSS_LAST_DATA.totals : [];
+  const candidates = totals.slice().sort((a, b) => a.order - b.order).filter(t => !taken.has(t.member_id));
+  if (candidates.length === 0) {
+    menu.innerHTML = '<div class="empty">추가할 길드원 없음</div>';
+  } else {
+    menu.innerHTML = candidates.map(t => `
+      <div class="item" data-mid="${t.member_id}">
+        <span>${escapeHtml(t.nickname)}</span>
+        <span class="pw">#${t.order}</span>
+      </div>
+    `).join('');
+  }
+  // 위치
+  const r = anchor.getBoundingClientRect();
+  menu.style.top = (r.bottom + 4) + 'px';
+  const w = 200;
+  let left = r.left;
+  if (left + w > window.innerWidth - 10) left = window.innerWidth - w - 10;
+  menu.style.left = Math.max(10, left) + 'px';
+  menu.classList.add('open');
+  BOSS.addMenuFor = anchor;
+
+  menu.querySelectorAll('.item').forEach(it => {
+    it.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const mid = parseInt(it.dataset.mid, 10);
+      closeBossAddMenu();
+      try {
+        const res = await fetch(`/animal/api/boss/clears/${clearId}/participants/add/`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: mid }),
+        });
+        const j = await res.json();
+        if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+        toast('추가됨', 'ok');
+        await bossLoadClears();
+      } catch (e) { toast(e.message, 'err'); }
+    });
+  });
+}
+
+function closeBossAddMenu() {
+  const menu = document.getElementById('boss-add-menu');
+  if (menu) menu.classList.remove('open');
+  BOSS.addMenuFor = null;
+}
+
+document.addEventListener('click', (e) => {
+  if (!BOSS.addMenuFor) return;
+  const menu = document.getElementById('boss-add-menu');
+  if (!menu) return;
+  if (!menu.contains(e.target) && e.target !== BOSS.addMenuFor) closeBossAddMenu();
+});
 
 async function bossClearSave(id) {
   const ovEl = document.getElementById('bc-ov-' + id);

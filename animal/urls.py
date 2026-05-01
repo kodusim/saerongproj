@@ -24,4 +24,6 @@ urlpatterns = [
     path('api/boss/clears/', views.boss_clears_api, name='animal_boss_clears'),
     path('api/boss/clears/ingest/', views.boss_clear_ingest_api, name='animal_boss_clear_ingest'),
     path('api/boss/clears/<int:clear_id>/', views.boss_clear_detail_api, name='animal_boss_clear_detail'),
+    path('api/boss/clears/<int:clear_id>/participants/add/', views.boss_clear_participant_add_api, name='animal_boss_clear_part_add'),
+    path('api/boss/clears/<int:clear_id>/participants/<int:member_id>/', views.boss_clear_participant_remove_api, name='animal_boss_clear_part_remove'),
 ]

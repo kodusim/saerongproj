@@ -642,6 +642,54 @@ def boss_clear_ingest_api(request):
 
 
 @csrf_exempt
+@require_POST
+def boss_clear_participant_add_api(request, clear_id):
+    """{member_id} 또는 {nickname} — 토벌에 참여자 추가."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        c = BossClear.objects.get(id=clear_id)
+    except BossClear.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 토벌'}, status=404)
+    if not c.week.is_current:
+        return JsonResponse({'error': '과거 주차는 수정할 수 없습니다'}, status=400)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    m = None
+    if body.get('member_id'):
+        try:
+            m = GuildMember.objects.get(id=int(body['member_id']), active=True)
+        except (GuildMember.DoesNotExist, ValueError, TypeError):
+            return JsonResponse({'error': '존재하지 않는 길드원'}, status=404)
+    else:
+        nick = (body.get('nickname') or '').strip()
+        if not nick:
+            return JsonResponse({'error': 'member_id 또는 nickname 필요'}, status=400)
+        m = GuildMember.objects.filter(nickname=nick, active=True).first()
+        if not m:
+            return JsonResponse({'error': f'길드원 명단에 없음: {nick}'}, status=404)
+    obj, created = BossClearParticipant.objects.get_or_create(clear=c, member=m)
+    return JsonResponse({'ok': True, 'created': created, 'member': {'id': m.id, 'nickname': m.nickname}})
+
+
+@csrf_exempt
+@require_http_methods(['DELETE'])
+def boss_clear_participant_remove_api(request, clear_id, member_id):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        c = BossClear.objects.get(id=clear_id)
+    except BossClear.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 토벌'}, status=404)
+    if not c.week.is_current:
+        return JsonResponse({'error': '과거 주차는 수정할 수 없습니다'}, status=400)
+    BossClearParticipant.objects.filter(clear=c, member_id=member_id).delete()
+    return JsonResponse({'ok': True})
+
+
+@csrf_exempt
 @require_http_methods(['PUT', 'PATCH', 'DELETE'])
 def boss_clear_detail_api(request, clear_id):
     if not _is_admin(request):
