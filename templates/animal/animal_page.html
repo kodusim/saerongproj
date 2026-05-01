@@ -679,19 +679,30 @@ header {
 .boss-clear-parts .nick .x:hover {
   background: rgba(255,123,123,.5); color: #fff;
 }
-.boss-clear-parts .add-btn {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 9px; margin: 2px;
-  background: rgba(91,108,255,.15);
-  border: 1px dashed rgba(122,143,255,.5);
-  border-radius: 10px;
-  color: var(--accent); font-weight: 600; font-size: 12px;
-  cursor: pointer; font-family: inherit;
-  vertical-align: middle;
+.boss-clear-parts .add-input {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: 2px; vertical-align: middle;
 }
-.boss-clear-parts .add-btn:hover {
-  background: rgba(91,108,255,.25);
-  border-style: solid;
+.boss-clear-parts .add-input input {
+  background: rgba(0,0,0,.3); border: 1px dashed rgba(122,143,255,.5);
+  border-radius: 10px; padding: 2px 10px;
+  color: var(--text); font-size: 12px; font-weight: 500;
+  font-family: inherit; outline: none; width: 110px;
+}
+.boss-clear-parts .add-input input:focus {
+  border-style: solid; border-color: var(--accent);
+  background: rgba(91,108,255,.1);
+}
+.boss-clear-parts .add-input input::placeholder { color: var(--accent); opacity: .8; }
+.boss-clear-parts .add-input button {
+  border: 1px solid rgba(122,143,255,.5);
+  background: rgba(91,108,255,.2);
+  color: var(--accent); border-radius: 10px;
+  padding: 2px 9px; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.boss-clear-parts .add-input button:hover {
+  background: rgba(91,108,255,.4); color: #fff;
 }
 .boss-add-menu {
   position: fixed; z-index: 1000;
@@ -919,7 +930,6 @@ header {
     </div>
   </div>
   <div class="eq-menu" id="eq-menu"></div>
-  <div class="boss-add-menu" id="boss-add-menu"></div>
   <!-- 컬렉용 아이템 -->
   <div class="panel" id="panel-collect">
     <div class="ph">
@@ -1799,7 +1809,6 @@ async function bossIngest() {
   }
 }
 
-let BOSS_LAST_DATA = null;
 async function bossLoadClears() {
   const host = document.getElementById('b-clears');
   host.innerHTML = '<div class="empty">로딩 중…</div>';
@@ -1808,7 +1817,6 @@ async function bossLoadClears() {
     const res = await fetch(url, { credentials: 'same-origin' });
     const j = await res.json();
     if (!res.ok) { host.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
-    BOSS_LAST_DATA = j;
     bossRenderScoreboard(j.totals || []);
     bossRenderClears(j);
   } catch (e) {
@@ -1869,7 +1877,11 @@ function bossRenderClears(d) {
               ${escapeHtml(c.participant_names[i])}
               ${isEditable ? `<button class="x" data-cid="${c.id}" data-mid="${mid}" title="제외">✕</button>` : ''}
             </span>`).join('')}
-          ${isEditable ? `<button class="add-btn" data-cid="${c.id}">＋ 참여자 추가</button>` : ''}
+          ${isEditable ? `
+            <span class="add-input" data-cid="${c.id}">
+              <input type="text" placeholder="＋ 닉네임" data-cid="${c.id}" autocomplete="off">
+              <button data-cid="${c.id}">추가</button>
+            </span>` : ''}
         </div>
         ${isEditable ? `
         <div class="boss-clear-edit">
@@ -1915,77 +1927,48 @@ function bossRenderClears(d) {
         } catch (e) { toast(e.message, 'err'); }
       });
     });
-    // 참여자 추가 버튼
-    host.querySelectorAll('.boss-clear-parts .add-btn').forEach(btn => {
+    // 참여자 추가 (인풋 + Enter / 버튼)
+    host.querySelectorAll('.boss-clear-parts .add-input input').forEach(inp => {
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          bossAddParticipant(parseInt(inp.dataset.cid, 10), inp);
+        }
+      });
+      inp.addEventListener('click', (e) => e.stopPropagation());
+    });
+    host.querySelectorAll('.boss-clear-parts .add-input button').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const cid = parseInt(btn.dataset.cid, 10);
-        openBossAddMenu(btn, cid);
+        const inp = btn.parentElement.querySelector('input');
+        bossAddParticipant(cid, inp);
       });
     });
   }
 }
 
-function openBossAddMenu(anchor, clearId) {
-  const menu = document.getElementById('boss-add-menu');
-  // 현재 토벌의 참여자 ID set
-  const clear = (BOSS_LAST_DATA && BOSS_LAST_DATA.clears.find(c => c.id === clearId));
-  const taken = new Set(clear ? clear.participant_ids : []);
-  // 길드원 목록 — order asc, 이미 참여한 사람은 제외
-  const totals = BOSS_LAST_DATA ? BOSS_LAST_DATA.totals : [];
-  const candidates = totals.slice().sort((a, b) => a.order - b.order).filter(t => !taken.has(t.member_id));
-  if (candidates.length === 0) {
-    menu.innerHTML = '<div class="empty">추가할 길드원 없음</div>';
-  } else {
-    menu.innerHTML = candidates.map(t => `
-      <div class="item" data-mid="${t.member_id}">
-        <span>${escapeHtml(t.nickname)}</span>
-        <span class="pw">#${t.order}</span>
-      </div>
-    `).join('');
-  }
-  // 위치
-  const r = anchor.getBoundingClientRect();
-  menu.style.top = (r.bottom + 4) + 'px';
-  const w = 200;
-  let left = r.left;
-  if (left + w > window.innerWidth - 10) left = window.innerWidth - w - 10;
-  menu.style.left = Math.max(10, left) + 'px';
-  menu.classList.add('open');
-  BOSS.addMenuFor = anchor;
-
-  menu.querySelectorAll('.item').forEach(it => {
-    it.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const mid = parseInt(it.dataset.mid, 10);
-      closeBossAddMenu();
-      try {
-        const res = await fetch(`/animal/api/boss/clears/${clearId}/participants/add/`, {
-          method: 'POST', credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ member_id: mid }),
-        });
-        const j = await res.json();
-        if (!res.ok) { toast(j.error || '실패', 'err'); return; }
-        toast('추가됨', 'ok');
-        await bossLoadClears();
-      } catch (e) { toast(e.message, 'err'); }
+async function bossAddParticipant(clearId, inputEl) {
+  const nick = (inputEl.value || '').trim();
+  if (!nick) { toast('닉네임을 입력하세요', 'err'); inputEl.focus(); return; }
+  try {
+    const res = await fetch(`/animal/api/boss/clears/${clearId}/participants/add/`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: nick }),
     });
-  });
+    const j = await res.json();
+    if (!res.ok) {
+      toast(j.error || '추가 실패 — 길드원 명단에 없는 닉네임입니다', 'err');
+      inputEl.focus();
+      inputEl.select();
+      return;
+    }
+    toast(j.created ? '추가됨' : '이미 참여 중', j.created ? 'ok' : 'err');
+    inputEl.value = '';
+    await bossLoadClears();
+  } catch (e) { toast(e.message, 'err'); }
 }
-
-function closeBossAddMenu() {
-  const menu = document.getElementById('boss-add-menu');
-  if (menu) menu.classList.remove('open');
-  BOSS.addMenuFor = null;
-}
-
-document.addEventListener('click', (e) => {
-  if (!BOSS.addMenuFor) return;
-  const menu = document.getElementById('boss-add-menu');
-  if (!menu) return;
-  if (!menu.contains(e.target) && e.target !== BOSS.addMenuFor) closeBossAddMenu();
-});
 
 async function bossClearSave(id) {
   const ovEl = document.getElementById('bc-ov-' + id);
