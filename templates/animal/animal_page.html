@@ -30,9 +30,9 @@ body {
     var(--bg-0);
   color: var(--text);
   min-height: 100vh;
-  font-size: 21px; line-height: 1.5;
+  font-size: 18px; line-height: 1.5;
 }
-.wrap { max-width: 900px; margin: 0 auto; min-height: 100vh; padding-bottom: 40px; }
+.wrap { max-width: 750px; margin: 0 auto; min-height: 100vh; padding-bottom: 40px; }
 
 /* ── 헤더 ── */
 header {
@@ -50,11 +50,11 @@ header {
   display: flex; align-items: center; justify-content: center;
   font-size: 1rem; box-shadow: 0 4px 12px rgba(91,108,255,.35);
 }
-.brand-name { font-weight: 700; font-size: 22px; letter-spacing: -.3px; }
-.brand-sub  { font-size: 15px; color: var(--text-mute); letter-spacing: .04em; }
+.brand-name { font-weight: 700; font-size: 19px; letter-spacing: -.3px; }
+.brand-sub  { font-size: 12px; color: var(--text-mute); letter-spacing: .04em; }
 
 .head-btn {
-  padding: 7px 13px; font-size: 18px; font-weight: 600;
+  padding: 7px 13px; font-size: 15px; font-weight: 600;
   background: rgba(255,255,255,.06);
   border: 1px solid var(--line);
   border-radius: 8px; color: var(--text); cursor: pointer;
@@ -78,7 +78,7 @@ header {
   overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
 .tab {
-  padding: 10px 14px; font-size: 20px; font-weight: 600;
+  padding: 10px 14px; font-size: 16px; font-weight: 600;
   color: var(--text-mute); background: none; border: none;
   border-bottom: 2px solid transparent; cursor: pointer;
   white-space: nowrap; font-family: inherit;
@@ -100,15 +100,15 @@ header {
   margin-bottom: 14px;
 }
 .ph-title {
-  font-size: 24px; font-weight: 700;
+  font-size: 20px; font-weight: 700;
   display: flex; align-items: center; gap: 8px;
 }
 .ph-count {
-  font-size: 18px; color: var(--text-mute); font-family: var(--mono);
+  font-size: 15px; color: var(--text-mute); font-family: var(--mono);
   background: rgba(255,255,255,.05); padding: 3px 8px; border-radius: 10px;
 }
 .ph-add {
-  padding: 7px 12px; font-size: 18px; font-weight: 600;
+  padding: 7px 12px; font-size: 15px; font-weight: 600;
   background: linear-gradient(135deg, #5b6cff, #8b5cff);
   border: none; border-radius: 7px; color: #fff; cursor: pointer;
   font-family: inherit; transition: transform .1s, box-shadow .15s;
@@ -129,12 +129,12 @@ header {
   gap: 8px; align-items: center;
   padding: 11px 12px;
   border-bottom: 1px solid var(--line);
-  font-size: 20px;
+  font-size: 16px;
 }
 .member-row:last-child { border-bottom: none; }
 .member-row.head {
   background: rgba(255,255,255,.04);
-  font-size: 16px; color: var(--text-mute);
+  font-size: 14px; color: var(--text-mute);
   font-weight: 700; letter-spacing: .04em;
   padding: 9px 12px;
 }
@@ -142,7 +142,7 @@ header {
 .cell-no { font-family: var(--mono); color: var(--text-mute); text-align: center; }
 .cell-nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell-power { font-family: var(--mono); text-align: right; color: var(--text); }
-.cell-weapon { font-family: var(--mono); text-align: right; color: var(--text-dim); font-size: 18px; }
+.cell-weapon { font-family: var(--mono); text-align: right; color: var(--text-dim); font-size: 15px; }
 
 /* admin 모드: 행 클릭 → 액션 패널 펼치기 */
 .member-row.editable { cursor: pointer; }
@@ -162,12 +162,12 @@ header {
   background: rgba(0,0,0,.25);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 7px 10px; color: var(--text); font-size: 18px;
+  padding: 7px 10px; color: var(--text); font-size: 15px;
   font-family: inherit; outline: none;
 }
 .member-edit input:focus { border-color: var(--accent); }
 .member-edit .label {
-  font-size: 15px; color: var(--text-mute); margin-bottom: 3px;
+  font-size: 12px; color: var(--text-mute); margin-bottom: 3px;
   font-weight: 600; letter-spacing: .04em;
 }
 .member-edit-actions {
@@ -175,7 +175,7 @@ header {
   display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;
 }
 .btn-sm {
-  padding: 6px 12px; font-size: 16px; font-weight: 600;
+  padding: 6px 12px; font-size: 14px; font-weight: 600;
   border-radius: 6px; cursor: pointer; font-family: inherit;
   border: 1px solid var(--line); background: rgba(255,255,255,.05);
   color: var(--text); transition: all .12s;
@@ -191,7 +191,7 @@ header {
 
 .empty {
   padding: 36px; text-align: center; color: var(--text-mute);
-  font-size: 20px;
+  font-size: 16px;
 }
 
 /* 추가 폼 (어드민) */
@@ -204,7 +204,7 @@ header {
 }
 .add-form.open { display: block; }
 .add-form-head {
-  font-size: 18px; font-weight: 700; color: var(--accent);
+  font-size: 15px; font-weight: 700; color: var(--accent);
   margin-bottom: 10px; letter-spacing: .04em;
 }
 .add-grid {
@@ -213,7 +213,7 @@ header {
 .add-grid input {
   background: rgba(0,0,0,.3); border: 1px solid var(--line);
   border-radius: 6px; padding: 8px 10px; color: var(--text);
-  font-size: 18px; font-family: inherit; outline: none;
+  font-size: 15px; font-family: inherit; outline: none;
 }
 .add-grid input:focus { border-color: var(--accent); }
 .add-actions { display: flex; gap: 6px; justify-content: flex-end; }
@@ -223,7 +223,7 @@ header {
   background: rgba(20,25,45,.98);
   border: 1px solid var(--line);
   padding: 10px 18px; border-radius: 24px;
-  font-size: 18px; color: var(--text);
+  font-size: 15px; color: var(--text);
   box-shadow: 0 10px 30px rgba(0,0,0,.5);
   z-index: 100; opacity: 0; pointer-events: none;
   transition: opacity .2s, transform .2s;
@@ -237,7 +237,7 @@ header {
   display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
 }
 .col-subtab {
-  padding: 7px 12px; font-size: 18px; font-weight: 600;
+  padding: 7px 12px; font-size: 15px; font-weight: 600;
   background: rgba(255,255,255,.04);
   border: 1px solid var(--line);
   border-radius: 18px; color: var(--text-dim); cursor: pointer;
@@ -250,7 +250,7 @@ header {
   border-color: rgba(122,143,255,.5);
 }
 .col-meta {
-  font-size: 16px; color: var(--text-mute); margin-bottom: 10px;
+  font-size: 14px; color: var(--text-mute); margin-bottom: 10px;
   font-family: var(--mono); display: flex; gap: 12px; flex-wrap: wrap;
 }
 .col-meta span b { color: var(--text-dim); }
@@ -259,7 +259,7 @@ header {
   display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;
 }
 .col-prefix {
-  padding: 4px 10px; font-size: 16px; font-weight: 600;
+  padding: 4px 10px; font-size: 14px; font-weight: 600;
   background: rgba(255,255,255,.03);
   border: 1px solid var(--line);
   border-radius: 12px; color: var(--text-mute); cursor: pointer;
@@ -272,8 +272,8 @@ header {
   border-color: rgba(122,143,255,.55);
 }
 .col-prefix .cnt {
-  font-family: var(--mono); font-size: 15px; opacity: .7;
-  margin-left: 6px;
+  font-family: var(--mono); font-size: 12px; opacity: .7;
+  margin-left: 5px;
 }
 
 .col-table-wrap {
@@ -285,7 +285,7 @@ header {
 }
 .col-table {
   border-collapse: separate; border-spacing: 0;
-  font-size: 18px;
+  font-size: 15px;
 }
 .col-table th, .col-table td {
   border-bottom: 1px solid var(--line);
@@ -300,7 +300,7 @@ header {
 }
 .col-table th.col-name {
   /* 가로축: 아이템명 - 세로 쓰기 (한글 자연 순서: 위에서 아래로) */
-  height: 195px; width: 48px; min-width: 48px;
+  height: 162px; width: 40px; min-width: 40px;
   padding: 0;
   vertical-align: bottom;
   color: var(--text);
@@ -309,13 +309,13 @@ header {
   display: inline-block;
   writing-mode: vertical-lr;
   text-orientation: mixed;
-  font-size: 16px;
+  font-size: 14px;
   white-space: nowrap;
   padding: 8px 0 6px;
   letter-spacing: .02em;
 }
 .col-table th.col-no, .col-table th.col-nick, .col-table th.col-power {
-  font-size: 15px; padding: 8px 8px;
+  font-size: 12px; padding: 8px 8px;
   letter-spacing: .04em;
   text-align: center;
   color: var(--text-mute);
@@ -327,17 +327,17 @@ header {
 .col-table th.col-no, .col-table td.cell-no2 {
   position: sticky; left: 0; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 48px; min-width: 48px;
+  width: 40px; min-width: 40px;
 }
 .col-table th.col-nick, .col-table td.cell-nick2 {
-  position: sticky; left: 48px; z-index: 4;
+  position: sticky; left: 40px; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 120px; min-width: 120px; max-width: 120px;
+  width: 100px; min-width: 100px; max-width: 100px;
 }
 .col-table th.col-power, .col-table td.cell-power2 {
-  position: sticky; left: 168px; z-index: 4;
+  position: sticky; left: 140px; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 90px; min-width: 90px;
+  width: 75px; min-width: 75px;
 }
 .col-table th.col-no { z-index: 6; }
 .col-table th.col-nick { z-index: 6; }
@@ -345,27 +345,27 @@ header {
 
 .col-table td.cell-no2 {
   font-family: var(--mono); color: var(--text-mute);
-  text-align: center; font-size: 15px; padding: 4px 0;
+  text-align: center; font-size: 12px; padding: 4px 0;
 }
 .col-table td.cell-nick2 {
-  font-weight: 600; font-size: 16px;
+  font-weight: 600; font-size: 14px;
   padding: 4px 8px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
 .col-table td.cell-power2 {
-  font-family: var(--mono); font-size: 15px;
+  font-family: var(--mono); font-size: 12px;
   color: var(--text-dim); text-align: right; padding: 4px 8px;
 }
 .col-table td.cell-chk {
-  width: 48px; min-width: 48px; height: 48px;
+  width: 40px; min-width: 40px; height: 40px;
   text-align: center; padding: 0;
 }
 .col-chk {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 33px; height: 33px; border-radius: 5px;
+  width: 28px; height: 28px; border-radius: 5px;
   background: rgba(255,255,255,.04);
   border: 1px solid var(--line);
-  color: var(--text-mute); font-size: 20px;
+  color: var(--text-mute); font-size: 16px;
   cursor: default; user-select: none;
   transition: all .1s;
 }
@@ -393,8 +393,8 @@ header {
   padding: 60px 20px; text-align: center; color: var(--text-mute);
 }
 .coming-icon { font-size: 2rem; margin-bottom: 12px; opacity: .6; }
-.coming-title { font-size: 21px; color: var(--text-dim); margin-bottom: 4px; font-weight: 600; }
-.coming-sub { font-size: 18px; }
+.coming-title { font-size: 18px; color: var(--text-dim); margin-bottom: 4px; font-weight: 600; }
+.coming-sub { font-size: 15px; }
 </style>
 </head>
 <body>
