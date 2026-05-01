@@ -232,6 +232,134 @@ header {
 .toast.err { color: #ffb3b3; border-color: rgba(255,123,123,.4); }
 .toast.ok  { color: #b3ffcd; border-color: rgba(74,222,128,.4); }
 
+/* ── 컬렉용 아이템 ── */
+.col-subtabs {
+  display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.col-subtab {
+  padding: 7px 12px; font-size: 12px; font-weight: 600;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+  border-radius: 18px; color: var(--text-dim); cursor: pointer;
+  font-family: inherit; transition: all .12s; white-space: nowrap;
+}
+.col-subtab:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.col-subtab.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(91,108,255,.5), rgba(181,108,255,.5));
+  border-color: rgba(122,143,255,.5);
+}
+.col-meta {
+  font-size: 11px; color: var(--text-mute); margin-bottom: 10px;
+  font-family: var(--mono); display: flex; gap: 12px; flex-wrap: wrap;
+}
+.col-meta span b { color: var(--text-dim); }
+
+.col-table-wrap {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--line);
+  border-radius: 12px; overflow: auto;
+  max-height: 70vh;
+  -webkit-overflow-scrolling: touch;
+}
+.col-table {
+  border-collapse: separate; border-spacing: 0;
+  font-size: 12px;
+}
+.col-table th, .col-table td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 0; vertical-align: middle;
+}
+.col-table th {
+  background: rgba(20,25,45,.96);
+  font-weight: 600;
+  color: var(--text-dim);
+  position: sticky; top: 0; z-index: 5;
+}
+.col-table th.col-name {
+  /* 가로축: 아이템명 - 세로쓰기 */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  height: 130px; width: 32px; min-width: 32px;
+  font-size: 11px; padding: 8px 0;
+  white-space: nowrap;
+  color: var(--text);
+}
+.col-table th.col-no, .col-table th.col-nick, .col-table th.col-power {
+  font-size: 10px; padding: 8px 8px;
+  letter-spacing: .04em;
+  text-align: center;
+  color: var(--text-mute);
+}
+.col-table th.col-nick { text-align: left; }
+.col-table th.col-power { text-align: right; }
+
+/* sticky left columns */
+.col-table th.col-no, .col-table td.cell-no2 {
+  position: sticky; left: 0; z-index: 4;
+  background: rgba(20,25,45,.96);
+  width: 32px; min-width: 32px;
+}
+.col-table th.col-nick, .col-table td.cell-nick2 {
+  position: sticky; left: 32px; z-index: 4;
+  background: rgba(20,25,45,.96);
+  width: 80px; min-width: 80px; max-width: 80px;
+}
+.col-table th.col-power, .col-table td.cell-power2 {
+  position: sticky; left: 112px; z-index: 4;
+  background: rgba(20,25,45,.96);
+  width: 60px; min-width: 60px;
+}
+.col-table th.col-no { z-index: 6; }
+.col-table th.col-nick { z-index: 6; }
+.col-table th.col-power { z-index: 6; }
+
+.col-table td.cell-no2 {
+  font-family: var(--mono); color: var(--text-mute);
+  text-align: center; font-size: 10px; padding: 4px 0;
+}
+.col-table td.cell-nick2 {
+  font-weight: 600; font-size: 11px;
+  padding: 4px 8px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.col-table td.cell-power2 {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-dim); text-align: right; padding: 4px 8px;
+}
+.col-table td.cell-chk {
+  width: 32px; min-width: 32px; height: 32px;
+  text-align: center; padding: 0;
+}
+.col-chk {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 5px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+  color: var(--text-mute); font-size: 13px;
+  cursor: default; user-select: none;
+  transition: all .1s;
+}
+.col-chk.owned {
+  background: linear-gradient(135deg, rgba(74,222,128,.25), rgba(74,222,128,.12));
+  border-color: rgba(74,222,128,.5);
+  color: #4ade80;
+}
+.col-chk.admin { cursor: pointer; }
+.col-chk.admin:hover { transform: scale(1.08); border-color: var(--accent); }
+.col-chk.saving { opacity: .4; }
+
+/* 행 호버 (admin 만) — sticky 셀 배경도 같이 변하도록 */
+.col-table tr.row.admin:hover td {
+  background: rgba(91,108,255,.06);
+}
+.col-table tr.row.admin:hover td.cell-no2,
+.col-table tr.row.admin:hover td.cell-nick2,
+.col-table tr.row.admin:hover td.cell-power2 {
+  background: linear-gradient(180deg, rgba(91,108,255,.18), rgba(91,108,255,.12)), rgba(20,25,45,.96);
+}
+
 /* coming-soon panel */
 .coming {
   padding: 60px 20px; text-align: center; color: var(--text-mute);
@@ -308,7 +436,17 @@ header {
   <!-- 다른 탭들 (개발 예정) -->
   <div class="panel" id="panel-boss"><div class="coming"><div class="coming-icon">🗡️</div><div class="coming-title">보스 참여</div><div class="coming-sub">개발 예정</div></div></div>
   <div class="panel" id="panel-equipment"><div class="coming"><div class="coming-icon">⚔️</div><div class="coming-title">장비 내판</div><div class="coming-sub">개발 예정</div></div></div>
-  <div class="panel" id="panel-collect"><div class="coming"><div class="coming-icon">💎</div><div class="coming-title">컬렉용 아이템</div><div class="coming-sub">개발 예정</div></div></div>
+  <!-- 컬렉용 아이템 -->
+  <div class="panel" id="panel-collect">
+    <div class="ph">
+      <div class="ph-title">💎 컬렉용 아이템</div>
+    </div>
+    <div class="col-subtabs" id="col-subtabs"></div>
+    <div class="col-meta" id="col-meta"></div>
+    <div class="col-table-wrap" id="col-table-wrap">
+      <div class="empty">로딩 중…</div>
+    </div>
+  </div>
   <div class="panel" id="panel-settle"><div class="coming"><div class="coming-icon">💰</div><div class="coming-title">정산</div><div class="coming-sub">개발 예정</div></div></div>
   <div class="panel" id="panel-cash"><div class="coming"><div class="coming-icon">📒</div><div class="coming-title">자금 출납</div><div class="coming-sub">개발 예정</div></div></div>
 
@@ -488,6 +626,152 @@ if (IS_ADMIN) {
 }
 
 loadMembers();
+
+// ─ 컬렉용 아이템 ─
+const COL = {
+  category: 'accessory',
+  data: null,
+  loaded: new Set(),
+};
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'collect' && !COL.data) {
+      loadCollectibles(COL.category);
+    }
+  });
+});
+
+async function loadCollectibles(category) {
+  COL.category = category;
+  const wrap = document.getElementById('col-table-wrap');
+  wrap.innerHTML = '<div class="empty">로딩 중…</div>';
+  try {
+    const res = await fetch('/animal/api/collectibles/?category=' + encodeURIComponent(category), { credentials: 'same-origin' });
+    const j = await res.json();
+    if (!res.ok) { wrap.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
+    COL.data = j;
+    renderCollectiblesSubtabs();
+    renderCollectiblesTable();
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty" style="color:#ff9b9b">로드 실패: ${e.message}</div>`;
+  }
+}
+
+function renderCollectiblesSubtabs() {
+  const cats = COL.data.categories || [];
+  const html = cats.map(c => `
+    <button class="col-subtab ${c.key === COL.category ? 'active' : ''}" data-cat="${c.key}">${escapeHtml(c.label)}</button>
+  `).join('');
+  const host = document.getElementById('col-subtabs');
+  host.innerHTML = html;
+  host.querySelectorAll('.col-subtab').forEach(btn => {
+    btn.addEventListener('click', () => loadCollectibles(btn.dataset.cat));
+  });
+}
+
+function renderCollectiblesTable() {
+  const d = COL.data;
+  const wrap = document.getElementById('col-table-wrap');
+  const meta = document.getElementById('col-meta');
+
+  // owned set: "memberId:itemId"
+  const ownedSet = new Set((d.owned || []).map(([m, i]) => m + ':' + i));
+
+  // 통계
+  const total = d.members.length * d.items.length;
+  let ownedCount = 0;
+  d.owned.forEach(() => ownedCount++);
+  const pct = total ? ((ownedCount / total) * 100).toFixed(1) : '0.0';
+  meta.innerHTML = `
+    <span><b>아이템</b> ${d.items.length}종</span>
+    <span><b>길드원</b> ${d.members.length}명</span>
+    <span><b>전체 보유율</b> ${ownedCount} / ${total} (${pct}%)</span>
+  `;
+
+  if (d.items.length === 0) {
+    wrap.innerHTML = '<div class="empty">아이템 없음</div>';
+    return;
+  }
+
+  // 헤더
+  let html = '<table class="col-table"><thead><tr>';
+  html += '<th class="col-no">#</th>';
+  html += '<th class="col-nick">닉네임</th>';
+  html += '<th class="col-power">전투력</th>';
+  d.items.forEach(it => {
+    html += `<th class="col-name" title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  d.members.forEach((m, idx) => {
+    const rowCls = 'row' + (IS_ADMIN ? ' admin' : '');
+    html += `<tr class="${rowCls}" data-mid="${m.id}">`;
+    html += `<td class="cell-no2">${idx + 1}</td>`;
+    html += `<td class="cell-nick2" title="${escapeHtml(m.nickname)}">${escapeHtml(m.nickname)}</td>`;
+    html += `<td class="cell-power2">${fmtPower(m.power)}</td>`;
+    d.items.forEach(it => {
+      const owned = ownedSet.has(m.id + ':' + it.id);
+      const cls = 'col-chk' + (owned ? ' owned' : '') + (IS_ADMIN ? ' admin' : '');
+      const symbol = owned ? '✓' : '';
+      html += `<td class="cell-chk"><span class="${cls}" data-mid="${m.id}" data-iid="${it.id}" data-owned="${owned ? 1 : 0}">${symbol}</span></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  if (IS_ADMIN) {
+    wrap.querySelectorAll('.col-chk.admin').forEach(el => {
+      el.addEventListener('click', () => toggleCollectible(el));
+    });
+  }
+}
+
+async function toggleCollectible(el) {
+  if (el.classList.contains('saving')) return;
+  const mid = parseInt(el.dataset.mid, 10);
+  const iid = parseInt(el.dataset.iid, 10);
+  const cur = el.dataset.owned === '1';
+  const next = !cur;
+  el.classList.add('saving');
+  try {
+    const res = await fetch('/animal/api/collectibles/toggle/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: mid, item_id: iid, owned: next }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '저장 실패', 'err'); return; }
+    el.dataset.owned = next ? '1' : '0';
+    el.textContent = next ? '✓' : '';
+    el.classList.toggle('owned', next);
+
+    // owned set in cached data 갱신 — 메타 업데이트용
+    if (COL.data && COL.data.owned) {
+      const key = [mid, iid];
+      const idx = COL.data.owned.findIndex(([a, b]) => a === mid && b === iid);
+      if (next && idx === -1) COL.data.owned.push(key);
+      if (!next && idx !== -1) COL.data.owned.splice(idx, 1);
+      // 메타만 다시 계산
+      const total = COL.data.members.length * COL.data.items.length;
+      const cnt = COL.data.owned.length;
+      const pct = total ? ((cnt / total) * 100).toFixed(1) : '0.0';
+      const m = document.getElementById('col-meta');
+      if (m) {
+        m.innerHTML = `
+          <span><b>아이템</b> ${COL.data.items.length}종</span>
+          <span><b>길드원</b> ${COL.data.members.length}명</span>
+          <span><b>전체 보유율</b> ${cnt} / ${total} (${pct}%)</span>
+        `;
+      }
+    }
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    el.classList.remove('saving');
+  }
+}
 </script>
 </body>
 </html>

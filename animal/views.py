@@ -13,7 +13,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import Max
 
-from .models import GuildMember
+from .models import GuildMember, CollectibleItem, MemberCollectible
+
+
+CATEGORY_LABELS = dict(CollectibleItem.CATEGORY_CHOICES)
+CATEGORY_KEYS = [k for k, _ in CollectibleItem.CATEGORY_CHOICES]
 
 
 ADMIN_ID = 'admin_an'
@@ -140,6 +144,67 @@ def member_detail_api(request, member_id):
                 x.order = i
                 x.save(update_fields=['order'])
     return JsonResponse({'ok': True})
+
+
+# ─ 컬렉용 아이템 API ────────────────────────────────
+
+@require_GET
+def collectibles_api(request):
+    """카테고리별 컬렉용 매트릭스. 길드원은 전투력 내림차순."""
+    category = (request.GET.get('category') or 'accessory').strip()
+    if category not in CATEGORY_LABELS:
+        return JsonResponse({'error': '잘못된 카테고리'}, status=400)
+    items = list(
+        CollectibleItem.objects.filter(category=category).order_by('order', 'id')
+    )
+    members = list(
+        GuildMember.objects.filter(active=True).order_by('-power', 'order', 'id')
+    )
+    item_ids = [it.id for it in items]
+    member_ids = [m.id for m in members]
+    owned_set = set(
+        MemberCollectible.objects
+        .filter(member_id__in=member_ids, item_id__in=item_ids, owned=True)
+        .values_list('member_id', 'item_id')
+    )
+    return JsonResponse({
+        'category': category,
+        'category_label': CATEGORY_LABELS[category],
+        'categories': [{'key': k, 'label': v} for k, v in CollectibleItem.CATEGORY_CHOICES],
+        'items': [{'id': it.id, 'name': it.name, 'order': it.order} for it in items],
+        'members': [
+            {'id': m.id, 'nickname': m.nickname, 'power': m.power, 'weapon': m.weapon}
+            for m in members
+        ],
+        'owned': [[mid, iid] for (mid, iid) in owned_set],
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def collectible_toggle_api(request):
+    """{member_id, item_id, owned: bool} — 관리자만."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    try:
+        member_id = int(body.get('member_id'))
+        item_id = int(body.get('item_id'))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'member_id, item_id 필요'}, status=400)
+    owned = bool(body.get('owned'))
+    if not GuildMember.objects.filter(id=member_id, active=True).exists():
+        return JsonResponse({'error': '존재하지 않는 길드원'}, status=404)
+    if not CollectibleItem.objects.filter(id=item_id).exists():
+        return JsonResponse({'error': '존재하지 않는 아이템'}, status=404)
+    obj, _created = MemberCollectible.objects.update_or_create(
+        member_id=member_id, item_id=item_id, defaults={'owned': owned}
+    )
+    return JsonResponse({'ok': True, 'owned': obj.owned})
 
 
 @csrf_exempt
