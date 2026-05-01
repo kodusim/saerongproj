@@ -767,7 +767,7 @@ header {
   border-radius: 7px; padding: 6px 9px;
   font-size: 12px;
 }
-.boss-score-row.rank { grid-template-columns: 30px 1fr auto auto; gap: 8px; }
+.boss-score-row.rank { grid-template-columns: 30px 1fr auto; gap: 8px; }
 .boss-score-row .no { color: var(--text-mute); font-family: var(--mono); text-align: center; font-size: 11px; }
 .boss-score-row .nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .boss-score-row .pt { font-family: var(--mono); font-weight: 700; color: var(--accent); text-align: right; }
@@ -1909,14 +1909,14 @@ function bossRenderScoreboard(totals) {
     return a.order - b.order;
   });
   host.innerHTML = sorted.map((t, i) => {
-    const bossChip = (mode === 'boss')
-      ? `<span class="stat boss"><span class="lbl">보스</span>${t.boss_count || 0}</span>` : '';
-    const warChip = `<span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>`;
+    const chip = (mode === 'boss')
+      ? `<span class="stat boss">${t.boss_count || 0}</span>`
+      : `<span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>`;
     return `
       <div class="boss-score-row rank">
         <div class="no">${i + 1}</div>
         <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
-        ${bossChip}${warChip}
+        ${chip}
       </div>`;
   }).join('');
 }
