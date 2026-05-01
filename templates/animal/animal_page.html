@@ -534,6 +534,19 @@ header {
   border-color: transparent; color: #fff;
 }
 .boss-toggle-btn.primary:hover { box-shadow: 0 4px 14px rgba(91,108,255,.4); }
+.boss-toggle-btn.active {
+  background: linear-gradient(135deg, rgba(91,108,255,.35), rgba(181,108,255,.3));
+  border-color: rgba(122,143,255,.55); color: #fff;
+}
+
+.b-week-total {
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  color: var(--accent);
+}
+.b-week-total .lbl {
+  font-size: 11px; color: var(--text-mute);
+  font-weight: 500; margin-right: 5px; letter-spacing: .04em;
+}
 
 /* 보스 마스터 관리 */
 .boss-master-list {
@@ -746,16 +759,29 @@ header {
   gap: 6px;
 }
 .boss-score-row {
-  display: grid; grid-template-columns: 30px 1fr 50px;
+  display: grid;
+  grid-template-columns: 30px 1fr 50px;
   gap: 6px; align-items: center;
   background: rgba(0,0,0,.2);
   border: 1px solid var(--line);
   border-radius: 7px; padding: 6px 9px;
   font-size: 12px;
 }
+.boss-score-row.rank { grid-template-columns: 30px 1fr auto auto; gap: 8px; }
 .boss-score-row .no { color: var(--text-mute); font-family: var(--mono); text-align: center; font-size: 11px; }
 .boss-score-row .nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .boss-score-row .pt { font-family: var(--mono); font-weight: 700; color: var(--accent); text-align: right; }
+.boss-score-row .stat {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--mono); font-size: 12px;
+  padding: 2px 7px; border-radius: 9px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+}
+.boss-score-row .stat .lbl { color: var(--text-mute); font-size: 10px; font-weight: 500; }
+.boss-score-row .stat.boss { color: #4ade80; border-color: rgba(74,222,128,.35); background: rgba(74,222,128,.08); }
+.boss-score-row .stat.war  { color: #ff9b9b; border-color: rgba(255,123,123,.35); background: rgba(255,123,123,.08); }
+.boss-score-row .stat.war.zero { color: var(--text-mute); border-color: var(--line); background: rgba(255,255,255,.04); }
 
 /* coming-soon panel */
 .coming {
@@ -899,11 +925,16 @@ header {
     </div>
     {% endif %}
 
-    <!-- 길드원 점수 합계 -->
+    <!-- 길드원 점수 / 참여 순위 -->
     <div class="boss-section">
       <div class="boss-section-title">
         <span class="ico">🏅</span>
-        <span>길드원 점수 합계</span>
+        <span id="b-board-title">참여 순위</span>
+        <span class="right" id="b-week-total"></span>
+      </div>
+      <div class="boss-toggle" id="b-mode-tabs" style="margin-bottom: 10px">
+        <button class="boss-toggle-btn" data-mode="rank">참여 순위</button>
+        <button class="boss-toggle-btn" data-mode="score">점수 합계</button>
       </div>
       <div class="boss-scoreboard" id="b-scoreboard"></div>
     </div>
@@ -1817,27 +1848,77 @@ async function bossLoadClears() {
     const res = await fetch(url, { credentials: 'same-origin' });
     const j = await res.json();
     if (!res.ok) { host.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
-    bossRenderScoreboard(j.totals || []);
+    BOSS.lastTotals = j.totals || [];
+    BOSS.lastWeekTotal = j.week_total_score || 0;
+    bossRenderBoardArea();
     bossRenderClears(j);
   } catch (e) {
     host.innerHTML = `<div class="empty" style="color:#ff9b9b">${escapeHtml(e.message)}</div>`;
   }
 }
 
+// 화면 모드: 'rank' (보스/쟁 횟수) 또는 'score' (점수 합계)
+BOSS.boardMode = BOSS.boardMode || 'rank';
+BOSS.lastTotals = [];
+BOSS.lastWeekTotal = 0;
+
+function bossRenderBoardArea() {
+  // 토글 버튼 active 표시
+  document.querySelectorAll('#b-mode-tabs .boss-toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === BOSS.boardMode);
+  });
+  // 헤더 라벨 + 우측 합계
+  const title = document.getElementById('b-board-title');
+  const right = document.getElementById('b-week-total');
+  if (title) title.textContent = (BOSS.boardMode === 'score') ? '길드원 점수 합계' : '길드원 보스 및 쟁 참여 순위';
+  if (right) right.innerHTML = `<span class="b-week-total"><span class="lbl">총 토벌점수</span>${BOSS.lastWeekTotal.toLocaleString()}</span>`;
+  // 본문
+  bossRenderScoreboard(BOSS.lastTotals);
+}
+
 function bossRenderScoreboard(totals) {
   const host = document.getElementById('b-scoreboard');
   if (!host) return;
   if (!totals.length) { host.innerHTML = '<div class="empty" style="grid-column:1/-1">길드원 없음</div>'; return; }
-  // 길드원 현황 순서 = order asc
-  totals.sort((a, b) => a.order - b.order);
-  host.innerHTML = totals.map(t => `
-    <div class="boss-score-row">
-      <div class="no">${t.order}</div>
-      <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
-      <div class="pt">${t.score}</div>
-    </div>
-  `).join('');
+  if (BOSS.boardMode === 'rank') {
+    // 보스 참여 횟수 내림차순, 동률은 쟁 횟수, 그다음 order
+    const sorted = totals.slice().sort((a, b) => {
+      if (b.boss_count !== a.boss_count) return b.boss_count - a.boss_count;
+      if (b.war_count !== a.war_count) return b.war_count - a.war_count;
+      return a.order - b.order;
+    });
+    host.innerHTML = sorted.map((t, i) => `
+      <div class="boss-score-row rank">
+        <div class="no">${i + 1}</div>
+        <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
+        <span class="stat boss"><span class="lbl">보스</span>${t.boss_count || 0}</span>
+        <span class="stat war ${(t.war_count || 0) === 0 ? 'zero' : ''}"><span class="lbl">쟁</span>${t.war_count || 0}</span>
+      </div>
+    `).join('');
+  } else {
+    // 점수 합계 — 길드원 현황 순서
+    const sorted = totals.slice().sort((a, b) => a.order - b.order);
+    host.innerHTML = sorted.map(t => `
+      <div class="boss-score-row">
+        <div class="no">${t.order}</div>
+        <div class="nick" title="${escapeHtml(t.nickname)}">${escapeHtml(t.nickname)}</div>
+        <div class="pt">${t.score}</div>
+      </div>
+    `).join('');
+  }
 }
+
+// 모드 토글 버튼 핸들러 (한 번만 부착)
+(function bossWireBoardTabs() {
+  const tabs = document.getElementById('b-mode-tabs');
+  if (!tabs) return;
+  tabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.boss-toggle-btn');
+    if (!btn) return;
+    BOSS.boardMode = btn.dataset.mode;
+    bossRenderBoardArea();
+  });
+})();
 
 function bossRenderClears(d) {
   const host = document.getElementById('b-clears');
@@ -2005,7 +2086,11 @@ function bossUpdateScoreLocal(clearId, delta, memberId) {
   fetch('/animal/api/boss/clears/' + (BOSS.selectedWeekId ? '?week_id=' + BOSS.selectedWeekId : ''), { credentials: 'same-origin' })
     .then(r => r.json())
     .then(d => {
-      if (d && d.totals) bossRenderScoreboard(d.totals);
+      if (d) {
+        if (d.totals) BOSS.lastTotals = d.totals;
+        if (typeof d.week_total_score === 'number') BOSS.lastWeekTotal = d.week_total_score;
+        bossRenderBoardArea();
+      }
     })
     .catch(() => {});
 }

@@ -473,8 +473,12 @@ def boss_clears_api(request):
 
     clears_payload = []
     totals = {m.id: 0 for m in members}
+    boss_counts = {m.id: 0 for m in members}
+    war_counts = {m.id: 0 for m in members}
+    week_total_score = 0
     for c in clears:
         score = c.effective_score
+        is_war = '쟁' in (c.note or '')
         # 참여자 — 길드원 order 순으로 정렬
         parts = sorted(
             (p.member for p in c.participants.all()),
@@ -483,6 +487,11 @@ def boss_clears_api(request):
         for m in parts:
             if m.id in totals:
                 totals[m.id] += score
+                boss_counts[m.id] += 1
+                if is_war:
+                    war_counts[m.id] += 1
+        # 주차 전체 점수: 토벌마다 (점수 × 참여자수)
+        week_total_score += score * len(parts)
         clears_payload.append({
             'id': c.id,
             'date': c.date.isoformat(),
@@ -505,8 +514,15 @@ def boss_clears_api(request):
             'closed_at': week.closed_at.isoformat() if week.closed_at else None,
         },
         'clears': clears_payload,
+        'week_total_score': week_total_score,
         'totals': [
-            {'member_id': m.id, 'nickname': m.nickname, 'order': member_order[m.id] + 1, 'score': totals[m.id]}
+            {
+                'member_id': m.id, 'nickname': m.nickname,
+                'order': member_order[m.id] + 1,
+                'score': totals[m.id],
+                'boss_count': boss_counts[m.id],
+                'war_count': war_counts[m.id],
+            }
             for m in members
         ],
         'is_admin': _is_admin(request),
