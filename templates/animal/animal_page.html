@@ -1909,23 +1909,7 @@ function bossRenderClears(d) {
   if (IS_ADMIN && d.week && d.week.is_current) {
     // 참여자 제외(×)
     host.querySelectorAll('.boss-clear-parts .x').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const cid = parseInt(btn.dataset.cid, 10);
-        const mid = parseInt(btn.dataset.mid, 10);
-        const span = btn.closest('.nick');
-        const nickName = span ? span.textContent.trim().replace(/✕\s*$/, '').trim() : '';
-        if (!confirm(`"${nickName}" 참여자를 이 토벌에서 제외하시겠습니까?`)) return;
-        try {
-          const res = await fetch(`/animal/api/boss/clears/${cid}/participants/${mid}/`, {
-            method: 'DELETE', credentials: 'same-origin',
-          });
-          const j = await res.json();
-          if (!res.ok) { toast(j.error || '실패', 'err'); return; }
-          toast('제외됨', 'ok');
-          await bossLoadClears();
-        } catch (e) { toast(e.message, 'err'); }
-      });
+      btn.addEventListener('click', (e) => bossRemoveParticipantHandler(e, btn));
     });
     // 참여자 추가 (인풋 + Enter / 버튼)
     host.querySelectorAll('.boss-clear-parts .add-input input').forEach(inp => {
@@ -1964,10 +1948,86 @@ async function bossAddParticipant(clearId, inputEl) {
       inputEl.select();
       return;
     }
-    toast(j.created ? '추가됨' : '이미 참여 중', j.created ? 'ok' : 'err');
+    if (!j.created) {
+      toast('이미 참여 중', 'err');
+    } else {
+      toast('추가됨', 'ok');
+      // 칩 추가 (DOM 만 부분 갱신)
+      bossInsertParticipantChip(clearId, j.member);
+      bossUpdateScoreLocal(clearId, +1, j.member.id);
+    }
     inputEl.value = '';
-    await bossLoadClears();
-  } catch (e) { toast(e.message, 'err'); }
+    inputEl.focus();
+  } catch (e) { toast(e.message, 'err'); inputEl.focus(); }
+}
+
+function bossInsertParticipantChip(clearId, member) {
+  const parts = document.querySelector(`.boss-clear-parts[data-clear-id="${clearId}"]`);
+  if (!parts) return;
+  const span = document.createElement('span');
+  span.className = 'nick';
+  span.dataset.mid = member.id;
+  span.innerHTML = `${escapeHtml(member.nickname)} <button class="x" data-cid="${clearId}" data-mid="${member.id}" title="제외">✕</button>`;
+  // 입력 칸 앞에 삽입
+  const addInput = parts.querySelector('.add-input');
+  parts.insertBefore(span, addInput);
+  // x 버튼 핸들러 부착
+  const xBtn = span.querySelector('.x');
+  xBtn.addEventListener('click', (e) => bossRemoveParticipantHandler(e, xBtn));
+  // 참여자 수 텍스트 갱신
+  bossUpdateParticipantCount(clearId, +1);
+}
+
+function bossUpdateParticipantCount(clearId, delta) {
+  const item = document.querySelector(`.boss-clear-item[data-id="${clearId}"]`);
+  if (!item) return;
+  const lbl = item.querySelector('.boss-clear-row > div:nth-child(2) > div:nth-child(2)');
+  if (!lbl) return;
+  const m = lbl.textContent.match(/(\d+)/);
+  if (!m) return;
+  const n = Math.max(0, parseInt(m[1], 10) + delta);
+  lbl.textContent = `참여 ${n}명`;
+}
+
+function bossUpdateScoreLocal(clearId, delta, memberId) {
+  // 카드의 점수
+  const item = document.querySelector(`.boss-clear-item[data-id="${clearId}"]`);
+  if (!item) return;
+  const scoreEl = item.querySelector('.boss-clear-score');
+  if (!scoreEl) return;
+  const scoreText = scoreEl.firstChild ? scoreEl.firstChild.textContent : '';
+  const cur = parseInt(scoreText, 10) || 0;
+  // 점수 합계 보드 — 해당 멤버의 점수에 cur*delta 더함
+  const sb = document.getElementById('b-scoreboard');
+  if (!sb) return;
+  // 현재 점수보드는 nickname이 텍스트로만 있어 mid 매핑이 어려워서, 다음 로드에 반영하지 말고 별도 갱신은 생략.
+  // 합계 정확성을 위해 비동기로 부분 새로고침: 합계 보드만 다시 그림.
+  fetch('/animal/api/boss/clears/' + (BOSS.selectedWeekId ? '?week_id=' + BOSS.selectedWeekId : ''), { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(d => {
+      if (d && d.totals) bossRenderScoreboard(d.totals);
+    })
+    .catch(() => {});
+}
+
+async function bossRemoveParticipantHandler(e, btn) {
+  e.stopPropagation();
+  const cid = parseInt(btn.dataset.cid, 10);
+  const mid = parseInt(btn.dataset.mid, 10);
+  const span = btn.closest('.nick');
+  const nickName = span ? span.firstChild.textContent.trim() : '';
+  if (!confirm(`"${nickName}" 참여자를 이 토벌에서 제외하시겠습니까?`)) return;
+  try {
+    const res = await fetch(`/animal/api/boss/clears/${cid}/participants/${mid}/`, {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '실패', 'err'); return; }
+    toast('제외됨', 'ok');
+    if (span) span.remove();
+    bossUpdateParticipantCount(cid, -1);
+    bossUpdateScoreLocal(cid, -1, mid);
+  } catch (err) { toast(err.message, 'err'); }
 }
 
 async function bossClearSave(id) {
