@@ -125,12 +125,13 @@ header {
 }
 .member-row {
   display: grid;
-  grid-template-columns: 38px 1fr 90px 90px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 8px; align-items: center;
   padding: 11px 12px;
   border-bottom: 1px solid var(--line);
   font-size: 16px;
 }
+.member-row > div { text-align: center; }
 .member-row:last-child { border-bottom: none; }
 .member-row.head {
   background: rgba(255,255,255,.04);
@@ -139,10 +140,10 @@ header {
   padding: 9px 12px;
 }
 
-.cell-no { font-family: var(--mono); color: var(--text-mute); text-align: center; }
+.cell-no { font-family: var(--mono); color: var(--text-mute); }
 .cell-nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cell-power { font-family: var(--mono); text-align: right; color: var(--text); }
-.cell-weapon { font-family: var(--mono); text-align: right; color: var(--text-dim); font-size: 15px; }
+.cell-power { font-family: var(--mono); color: var(--text); }
+.cell-weapon { font-family: var(--mono); color: var(--text-dim); font-size: 16px; }
 
 /* admin 모드: 행 클릭 → 액션 패널 펼치기 */
 .member-row.editable { cursor: pointer; }
@@ -315,29 +316,28 @@ header {
   letter-spacing: .02em;
 }
 .col-table th.col-no, .col-table th.col-nick, .col-table th.col-power {
-  font-size: 12px; padding: 8px 8px;
+  font-size: 14px; padding: 10px 8px;
   letter-spacing: .04em;
   text-align: center;
   color: var(--text-mute);
+  font-weight: 700;
 }
-.col-table th.col-nick { text-align: left; }
-.col-table th.col-power { text-align: right; }
 
-/* sticky left columns */
+/* sticky left columns — 동일 폭 80px */
 .col-table th.col-no, .col-table td.cell-no2 {
   position: sticky; left: 0; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 40px; min-width: 40px;
+  width: 50px; min-width: 50px;
 }
 .col-table th.col-nick, .col-table td.cell-nick2 {
-  position: sticky; left: 40px; z-index: 4;
+  position: sticky; left: 50px; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 100px; min-width: 100px; max-width: 100px;
+  width: 110px; min-width: 110px; max-width: 110px;
 }
 .col-table th.col-power, .col-table td.cell-power2 {
-  position: sticky; left: 140px; z-index: 4;
+  position: sticky; left: 160px; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 75px; min-width: 75px;
+  width: 90px; min-width: 90px;
 }
 .col-table th.col-no { z-index: 6; }
 .col-table th.col-nick { z-index: 6; }
@@ -345,16 +345,17 @@ header {
 
 .col-table td.cell-no2 {
   font-family: var(--mono); color: var(--text-mute);
-  text-align: center; font-size: 12px; padding: 4px 0;
+  text-align: center; font-size: 14px; padding: 6px 4px;
 }
 .col-table td.cell-nick2 {
   font-weight: 600; font-size: 14px;
-  padding: 4px 8px; overflow: hidden;
+  text-align: center;
+  padding: 6px 8px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
 .col-table td.cell-power2 {
-  font-family: var(--mono); font-size: 12px;
-  color: var(--text-dim); text-align: right; padding: 4px 8px;
+  font-family: var(--mono); font-size: 14px;
+  color: var(--text-dim); text-align: center; padding: 6px 8px;
 }
 .col-table td.cell-chk {
   width: 40px; min-width: 40px; height: 40px;
@@ -428,11 +429,11 @@ header {
 .col-table th.col-wp, .col-table td.cell-wp {
   position: sticky; z-index: 4;
   background: rgba(20,25,45,.96);
-  width: 70px; min-width: 70px;
-  font-size: 13px; padding: 4px 8px;
+  width: 80px; min-width: 80px;
+  font-size: 14px; padding: 6px 8px;
   font-family: var(--mono); color: var(--text-dim); text-align: center;
 }
-.col-table th.col-wp { z-index: 6; font-size: 13px; color: var(--text-mute); letter-spacing: .04em; padding: 8px; }
+.col-table th.col-wp { z-index: 6; font-weight: 700; color: var(--text-mute); letter-spacing: .04em; padding: 10px 8px; }
 
 /* 드롭다운 */
 .eq-menu {
@@ -542,8 +543,8 @@ header {
       <div class="member-row head">
         <div>연번</div>
         <div>닉네임</div>
-        <div style="text-align:right">전투력</div>
-        <div style="text-align:right">무기</div>
+        <div>전투력</div>
+        <div>무기</div>
       </div>
       <div class="empty">로딩 중…</div>
     </div>
@@ -627,10 +628,10 @@ function renderMembers() {
   const list = document.getElementById('m-list');
   document.getElementById('m-count').textContent = STATE.members.length + '명';
   if (STATE.members.length === 0) {
-    list.innerHTML = `<div class="member-row head"><div>연번</div><div>닉네임</div><div style="text-align:right">전투력</div><div style="text-align:right">무기</div></div><div class="empty">길드원이 없습니다.</div>`;
+    list.innerHTML = `<div class="member-row head"><div>연번</div><div>닉네임</div><div>전투력</div><div>무기</div></div><div class="empty">길드원이 없습니다.</div>`;
     return;
   }
-  const headHtml = `<div class="member-row head"><div>연번</div><div>닉네임</div><div style="text-align:right">전투력</div><div style="text-align:right">무기</div></div>`;
+  const headHtml = `<div class="member-row head"><div>연번</div><div>닉네임</div><div>전투력</div><div>무기</div></div>`;
   const rowsHtml = STATE.members.map(m => {
     const expanded = STATE.expandedId === m.id;
     return `
@@ -1054,7 +1055,7 @@ function renderEqTable() {
   html += '<th class="col-no">#</th>';
   html += '<th class="col-nick">닉네임</th>';
   html += '<th class="col-power">전투력</th>';
-  if (showWeapon) html += '<th class="col-wp" style="left:215px">무기</th>';
+  if (showWeapon) html += '<th class="col-wp" style="left:250px">무기</th>';
   d.slots.forEach(s => {
     html += `<th class="col-name" title="${escapeHtml(s.name)}"><span class="vtxt">${escapeHtml(s.name)}</span></th>`;
   });
@@ -1066,7 +1067,7 @@ function renderEqTable() {
     html += `<td class="cell-no2">${idx + 1}</td>`;
     html += `<td class="cell-nick2" title="${escapeHtml(m.nickname)}">${escapeHtml(m.nickname)}</td>`;
     html += `<td class="cell-power2">${fmtPower(m.power)}</td>`;
-    if (showWeapon) html += `<td class="cell-wp" style="left:215px">${escapeHtml(m.weapon || '-')}</td>`;
+    if (showWeapon) html += `<td class="cell-wp" style="left:250px">${escapeHtml(m.weapon || '-')}</td>`;
     d.slots.forEach(s => {
       const st = sm.get(m.id + ':' + s.id) || 'none';
       const cls = 'eq-chip s-' + st + (IS_ADMIN ? ' admin' : '');
