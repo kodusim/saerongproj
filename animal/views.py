@@ -41,6 +41,45 @@ def _normalize_boss_name(raw):
     return s
 
 
+def _war_score_map():
+    """현재 주차 기준 길드원별 쟁 점수 계산.
+    쟁 토벌이 0개면 쟁 점수 = 전투력 그대로.
+    아니면 전투력 × (0.5 + 0.5 × 본인쟁참여 / 전체쟁토벌).
+    Returns: { member_id: {'war_score': int, 'war_count': int, 'war_total': int} }
+    """
+    week = BossWeek.objects.filter(is_current=True).first()
+    if not week:
+        # 활성 주차 없음 — 모든 길드원 쟁 점수 = 전투력
+        return {
+            m.id: {'war_score': m.power, 'war_count': 0, 'war_total': 0, 'war_rate': 0.0}
+            for m in GuildMember.objects.filter(active=True)
+        }
+    war_clears = list(BossClear.objects.filter(week=week).exclude(note='').filter(note__icontains='쟁'))
+    war_total = len(war_clears)
+    war_clear_ids = [c.id for c in war_clears]
+    # 길드원별 쟁 참여 횟수
+    counts = {}
+    if war_total:
+        for p in BossClearParticipant.objects.filter(clear_id__in=war_clear_ids).values_list('member_id'):
+            counts[p[0]] = counts.get(p[0], 0) + 1
+    out = {}
+    for m in GuildMember.objects.filter(active=True):
+        c = counts.get(m.id, 0)
+        if war_total == 0:
+            war_score = m.power
+            rate = 0.0
+        else:
+            rate = c / war_total
+            war_score = int(round(m.power * (0.5 + 0.5 * rate)))
+        out[m.id] = {
+            'war_score': war_score,
+            'war_count': c,
+            'war_total': war_total,
+            'war_rate': rate,
+        }
+    return out
+
+
 ADMIN_ID = 'admin_an'
 ADMIN_PW = 'admin'
 
@@ -188,13 +227,19 @@ def collectibles_api(request):
         .filter(member_id__in=member_ids, item_id__in=item_ids, owned=True)
         .values_list('member_id', 'item_id')
     )
+    war_map = _war_score_map()
     return JsonResponse({
         'category': category,
         'category_label': CATEGORY_LABELS[category],
         'categories': [{'key': k, 'label': v} for k, v in CollectibleItem.CATEGORY_CHOICES],
         'items': [{'id': it.id, 'name': it.name, 'order': it.order} for it in items],
         'members': [
-            {'id': m.id, 'nickname': m.nickname, 'power': m.power, 'weapon': m.weapon}
+            {
+                'id': m.id, 'nickname': m.nickname, 'power': m.power, 'weapon': m.weapon,
+                'war_score': war_map.get(m.id, {}).get('war_score', m.power),
+                'war_count': war_map.get(m.id, {}).get('war_count', 0),
+                'war_total': war_map.get(m.id, {}).get('war_total', 0),
+            }
             for m in members
         ],
         'owned': [[mid, iid] for (mid, iid) in owned_set],
@@ -246,6 +291,7 @@ def equips_api(request):
         member_id__in=member_ids, slot_id__in=slot_ids
     ).exclude(status='none'):
         status_map[(me.member_id, me.slot_id)] = me.status
+    war_map = _war_score_map()
     return JsonResponse({
         'section': section,
         'section_label': SECTION_LABELS[section],
@@ -253,7 +299,12 @@ def equips_api(request):
         'statuses': [{'key': k, 'label': v} for k, v in MemberEquip.STATUS_CHOICES],
         'slots': [{'id': s.id, 'name': s.name, 'order': s.order} for s in slots],
         'members': [
-            {'id': m.id, 'nickname': m.nickname, 'power': m.power, 'weapon': m.weapon}
+            {
+                'id': m.id, 'nickname': m.nickname, 'power': m.power, 'weapon': m.weapon,
+                'war_score': war_map.get(m.id, {}).get('war_score', m.power),
+                'war_count': war_map.get(m.id, {}).get('war_count', 0),
+                'war_total': war_map.get(m.id, {}).get('war_total', 0),
+            }
             for m in members
         ],
         'entries': [[mid, sid, st] for (mid, sid), st in status_map.items()],

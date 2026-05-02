@@ -356,6 +356,14 @@ header {
 .col-table td.cell-power2 {
   font-family: var(--mono); font-size: 14px;
   color: var(--text-dim); text-align: center; padding: 6px 8px;
+  line-height: 1.25;
+}
+.col-table td.cell-power2 .war-sub {
+  display: block;
+  font-size: 11px;
+  color: #ff9b9b;
+  margin-top: 1px;
+  font-weight: 700;
 }
 .col-table td.cell-chk {
   width: 40px; min-width: 40px; height: 40px;
@@ -816,7 +824,9 @@ header {
     <button class="tab active" data-tab="members">길드원 현황</button>
     <button class="tab" data-tab="boss">보스 및 쟁 참여</button>
     <button class="tab" data-tab="equipment">장비 내판</button>
+    <button class="tab" data-tab="equipment-war">장비 내판 (쟁)</button>
     <button class="tab" data-tab="collect">컬렉용 아이템</button>
+    <button class="tab" data-tab="collect-war">컬렉용 아이템 (쟁)</button>
     <button class="tab" data-tab="settle">정산</button>
     <button class="tab" data-tab="cash">자금 출납</button>
   </div>
@@ -962,6 +972,19 @@ header {
     </div>
   </div>
   <div class="eq-menu" id="eq-menu"></div>
+
+  <!-- 장비 내판 (쟁) — 같은 데이터, 쟁 점수 정렬 -->
+  <div class="panel" id="panel-equipment-war">
+    <div class="ph">
+      <div class="ph-title">⚔️ 장비 내판 <span style="font-size:13px; color:#ff9b9b; font-weight:600">(쟁)</span></div>
+    </div>
+    <div class="col-subtabs" id="eq-war-subtabs"></div>
+    <div class="eq-stats" id="eq-war-stats"></div>
+    <div class="col-table-wrap" id="eq-war-table-wrap">
+      <div class="empty">로딩 중…</div>
+    </div>
+  </div>
+
   <!-- 컬렉용 아이템 -->
   <div class="panel" id="panel-collect">
     <div class="ph">
@@ -971,6 +994,19 @@ header {
     <div class="col-meta" id="col-meta"></div>
     <div class="col-prefixes" id="col-prefixes"></div>
     <div class="col-table-wrap" id="col-table-wrap">
+      <div class="empty">로딩 중…</div>
+    </div>
+  </div>
+
+  <!-- 컬렉용 아이템 (쟁) -->
+  <div class="panel" id="panel-collect-war">
+    <div class="ph">
+      <div class="ph-title">💎 컬렉용 아이템 <span style="font-size:13px; color:#ff9b9b; font-weight:600">(쟁)</span></div>
+    </div>
+    <div class="col-subtabs" id="col-war-subtabs"></div>
+    <div class="col-meta" id="col-war-meta"></div>
+    <div class="col-prefixes" id="col-war-prefixes"></div>
+    <div class="col-table-wrap" id="col-war-table-wrap">
       <div class="empty">로딩 중…</div>
     </div>
   </div>
@@ -1156,47 +1192,60 @@ loadMembers();
 
 // ─ 컬렉용 아이템 ─
 const COL = {
-  category: 'accessory',
-  data: null,
-  prefix: null,   // 활성 prefix 필터 (null = 전체)
+  category: 'accessory', data: null, prefix: null, mode: 'normal',
+};
+const COL_WAR = {
+  category: 'accessory', data: null, prefix: null, mode: 'war',
 };
 
+function colIds(state) {
+  const p = (state.mode === 'war') ? 'col-war-' : 'col-';
+  return {
+    wrap: p + 'table-wrap',
+    prefixes: p + 'prefixes',
+    subtabs: p + 'subtabs',
+    meta: p + 'meta',
+  };
+}
+
 function itemPrefix(name) {
-  // "계승자의 목걸이" → "계승자의", "세라드허리띠" → "세라드허리띠" (split 안 되면 원본)
   const i = name.indexOf(' ');
   return i > 0 ? name.slice(0, i) : name;
 }
 
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.tab === 'collect' && !COL.data) {
-      loadCollectibles(COL.category);
-    }
+    if (btn.dataset.tab === 'collect' && !COL.data) loadCollectibles(COL, COL.category);
+    if (btn.dataset.tab === 'collect-war' && !COL_WAR.data) loadCollectibles(COL_WAR, COL_WAR.category);
+    // 탭 전환 시: 이미 로드돼 있어도 쟁 점수가 변할 수 있으니 (쟁) 탭 진입 시 항상 새로고침
+    if (btn.dataset.tab === 'collect-war' && COL_WAR.data) loadCollectibles(COL_WAR, COL_WAR.category);
+    if (btn.dataset.tab === 'collect' && COL.data) loadCollectibles(COL, COL.category);
   });
 });
 
-async function loadCollectibles(category) {
-  COL.category = category;
-  COL.prefix = null;
-  const wrap = document.getElementById('col-table-wrap');
+async function loadCollectibles(state, category) {
+  state.category = category;
+  state.prefix = null;
+  const ids = colIds(state);
+  const wrap = document.getElementById(ids.wrap);
   wrap.innerHTML = '<div class="empty">로딩 중…</div>';
-  document.getElementById('col-prefixes').innerHTML = '';
+  const px = document.getElementById(ids.prefixes);
+  if (px) px.innerHTML = '';
   try {
     const res = await fetch('/animal/api/collectibles/?category=' + encodeURIComponent(category), { credentials: 'same-origin' });
     const j = await res.json();
     if (!res.ok) { wrap.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
-    COL.data = j;
-    renderCollectiblesSubtabs();
-    renderCollectiblesPrefixes();
-    renderCollectiblesTable();
+    state.data = j;
+    renderCollectiblesSubtabs(state);
+    renderCollectiblesPrefixes(state);
+    renderCollectiblesTable(state);
   } catch (e) {
     wrap.innerHTML = `<div class="empty" style="color:#ff9b9b">로드 실패: ${e.message}</div>`;
   }
 }
 
-function renderCollectiblesPrefixes() {
-  const items = COL.data.items || [];
-  // 등장 순서 유지하면서 prefix 카운트
+function renderCollectiblesPrefixes(state) {
+  const items = state.data.items || [];
   const order = [];
   const counts = new Map();
   items.forEach(it => {
@@ -1204,63 +1253,72 @@ function renderCollectiblesPrefixes() {
     if (!counts.has(p)) order.push(p);
     counts.set(p, (counts.get(p) || 0) + 1);
   });
-  const host = document.getElementById('col-prefixes');
+  const host = document.getElementById(colIds(state).prefixes);
+  if (!host) return;
   if (order.length <= 1) { host.innerHTML = ''; return; }
-  let html = `<button class="col-prefix ${COL.prefix === null ? 'active' : ''}" data-prefix="">전체<span class="cnt">${items.length}</span></button>`;
+  let html = `<button class="col-prefix ${state.prefix === null ? 'active' : ''}" data-prefix="">전체<span class="cnt">${items.length}</span></button>`;
   order.forEach(p => {
-    html += `<button class="col-prefix ${COL.prefix === p ? 'active' : ''}" data-prefix="${escapeHtml(p)}">${escapeHtml(p)}<span class="cnt">${counts.get(p)}</span></button>`;
+    html += `<button class="col-prefix ${state.prefix === p ? 'active' : ''}" data-prefix="${escapeHtml(p)}">${escapeHtml(p)}<span class="cnt">${counts.get(p)}</span></button>`;
   });
   host.innerHTML = html;
   host.querySelectorAll('.col-prefix').forEach(btn => {
     btn.addEventListener('click', () => {
       const p = btn.dataset.prefix || null;
-      COL.prefix = (COL.prefix === p) ? null : p;
-      renderCollectiblesPrefixes();
-      renderCollectiblesTable();
+      state.prefix = (state.prefix === p) ? null : p;
+      renderCollectiblesPrefixes(state);
+      renderCollectiblesTable(state);
     });
   });
 }
 
-function renderCollectiblesSubtabs() {
-  const cats = COL.data.categories || [];
+function renderCollectiblesSubtabs(state) {
+  const cats = state.data.categories || [];
   const html = cats.map(c => `
-    <button class="col-subtab ${c.key === COL.category ? 'active' : ''}" data-cat="${c.key}">${escapeHtml(c.label)}</button>
+    <button class="col-subtab ${c.key === state.category ? 'active' : ''}" data-cat="${c.key}">${escapeHtml(c.label)}</button>
   `).join('');
-  const host = document.getElementById('col-subtabs');
+  const host = document.getElementById(colIds(state).subtabs);
+  if (!host) return;
   host.innerHTML = html;
   host.querySelectorAll('.col-subtab').forEach(btn => {
-    btn.addEventListener('click', () => loadCollectibles(btn.dataset.cat));
+    btn.addEventListener('click', () => loadCollectibles(state, btn.dataset.cat));
   });
 }
 
-function renderCollectiblesTable() {
-  const d = COL.data;
-  const wrap = document.getElementById('col-table-wrap');
-  const meta = document.getElementById('col-meta');
+function renderCollectiblesTable(state) {
+  const d = state.data;
+  const ids = colIds(state);
+  const wrap = document.getElementById(ids.wrap);
+  const meta = document.getElementById(ids.meta);
 
-  // 필터 적용한 아이템 목록
-  const visibleItems = COL.prefix
-    ? d.items.filter(it => itemPrefix(it.name) === COL.prefix)
+  const visibleItems = state.prefix
+    ? d.items.filter(it => itemPrefix(it.name) === state.prefix)
     : d.items;
 
-  // owned set: "memberId:itemId"
   const ownedSet = new Set((d.owned || []).map(([m, i]) => m + ':' + i));
 
-  // 통계 — 전체 / 화면 표시중
+  // 멤버 정렬: 쟁 모드면 war_score 내림차순, 아니면 power 내림차순
+  const sortedMembers = d.members.slice().sort((a, b) => {
+    if (state.mode === 'war') {
+      const sb = b.war_score || 0, sa = a.war_score || 0;
+      if (sb !== sa) return sb - sa;
+    }
+    return (b.power || 0) - (a.power || 0);
+  });
+
   const totalAll = d.members.length * d.items.length;
   const ownedAll = d.owned.length;
   const pctAll = totalAll ? ((ownedAll / totalAll) * 100).toFixed(1) : '0.0';
   let viewLine = '';
-  if (COL.prefix) {
+  if (state.prefix) {
     const totalView = d.members.length * visibleItems.length;
     let ownedView = 0;
     visibleItems.forEach(it => {
       d.members.forEach(m => { if (ownedSet.has(m.id + ':' + it.id)) ownedView++; });
     });
     const pctView = totalView ? ((ownedView / totalView) * 100).toFixed(1) : '0.0';
-    viewLine = ` <span><b>${escapeHtml(COL.prefix)}</b> ${ownedView} / ${totalView} (${pctView}%)</span>`;
+    viewLine = ` <span><b>${escapeHtml(state.prefix)}</b> ${ownedView} / ${totalView} (${pctView}%)</span>`;
   }
-  meta.innerHTML = `
+  if (meta) meta.innerHTML = `
     <span><b>아이템</b> ${visibleItems.length}/${d.items.length}종</span>
     <span><b>길드원</b> ${d.members.length}명</span>
     <span><b>전체 보유율</b> ${ownedAll} / ${totalAll} (${pctAll}%)</span>${viewLine}
@@ -1271,7 +1329,6 @@ function renderCollectiblesTable() {
     return;
   }
 
-  // 헤더
   let html = '<table class="col-table"><thead><tr>';
   html += '<th class="col-no">#</th>';
   html += '<th class="col-nick">닉네임</th>';
@@ -1281,17 +1338,22 @@ function renderCollectiblesTable() {
   });
   html += '</tr></thead><tbody>';
 
-  d.members.forEach((m, idx) => {
+  sortedMembers.forEach((m, idx) => {
     const rowCls = 'row' + (IS_ADMIN ? ' admin' : '');
     html += `<tr class="${rowCls}" data-mid="${m.id}">`;
     html += `<td class="cell-no2">${idx + 1}</td>`;
     html += `<td class="cell-nick2" title="${escapeHtml(m.nickname)}">${escapeHtml(m.nickname)}</td>`;
-    html += `<td class="cell-power2">${fmtPower(m.power)}</td>`;
+    let powerCell = `<td class="cell-power2">${fmtPower(m.power)}`;
+    if (state.mode === 'war') {
+      powerCell += `<span class="war-sub">쟁 ${fmtPower(m.war_score || 0)}</span>`;
+    }
+    powerCell += `</td>`;
+    html += powerCell;
     visibleItems.forEach(it => {
       const owned = ownedSet.has(m.id + ':' + it.id);
       const cls = 'col-chk' + (owned ? ' owned' : '') + (IS_ADMIN ? ' admin' : '');
       const symbol = owned ? '✓' : '';
-      html += `<td class="cell-chk"><span class="${cls}" data-mid="${m.id}" data-iid="${it.id}" data-owned="${owned ? 1 : 0}">${symbol}</span></td>`;
+      html += `<td class="cell-chk"><span class="${cls}" data-mid="${m.id}" data-iid="${it.id}" data-owned="${owned ? 1 : 0}" data-state-mode="${state.mode}">${symbol}</span></td>`;
     });
     html += '</tr>';
   });
@@ -1324,31 +1386,37 @@ async function toggleCollectible(el) {
     el.textContent = next ? '✓' : '';
     el.classList.toggle('owned', next);
 
-    // 캐시 갱신 후 메타만 재계산 (전체 다시 그리면 깜빡임)
-    if (COL.data && COL.data.owned) {
-      const idx = COL.data.owned.findIndex(([a, b]) => a === mid && b === iid);
-      if (next && idx === -1) COL.data.owned.push([mid, iid]);
-      if (!next && idx !== -1) COL.data.owned.splice(idx, 1);
-      // 메타만 살짝 업데이트
-      const d = COL.data;
+    // 양 상태 캐시 동기화 (다른 탭으로 갈 때 stale 방지)
+    [COL, COL_WAR].forEach(state => {
+      if (!state.data || !state.data.owned) return;
+      const idx = state.data.owned.findIndex(([a, b]) => a === mid && b === iid);
+      if (next && idx === -1) state.data.owned.push([mid, iid]);
+      if (!next && idx !== -1) state.data.owned.splice(idx, 1);
+    });
+
+    // 현재 화면(클릭한 셀이 속한 모드)의 메타만 다시 그리기 — 깜빡임 없이
+    const stateMode = el.dataset.stateMode || 'normal';
+    const state = (stateMode === 'war') ? COL_WAR : COL;
+    if (state.data) {
+      const d = state.data;
       const ownedSet = new Set(d.owned.map(([m2, i2]) => m2 + ':' + i2));
-      const visibleItems = COL.prefix
-        ? d.items.filter(it => itemPrefix(it.name) === COL.prefix)
+      const visibleItems = state.prefix
+        ? d.items.filter(it => itemPrefix(it.name) === state.prefix)
         : d.items;
       const totalAll = d.members.length * d.items.length;
       const ownedAll = d.owned.length;
       const pctAll = totalAll ? ((ownedAll / totalAll) * 100).toFixed(1) : '0.0';
       let viewLine = '';
-      if (COL.prefix) {
+      if (state.prefix) {
         const totalView = d.members.length * visibleItems.length;
         let ownedView = 0;
         visibleItems.forEach(it => {
           d.members.forEach(m2 => { if (ownedSet.has(m2.id + ':' + it.id)) ownedView++; });
         });
         const pctView = totalView ? ((ownedView / totalView) * 100).toFixed(1) : '0.0';
-        viewLine = ` <span><b>${escapeHtml(COL.prefix)}</b> ${ownedView} / ${totalView} (${pctView}%)</span>`;
+        viewLine = ` <span><b>${escapeHtml(state.prefix)}</b> ${ownedView} / ${totalView} (${pctView}%)</span>`;
       }
-      const m = document.getElementById('col-meta');
+      const m = document.getElementById(colIds(state).meta);
       if (m) {
         m.innerHTML = `
           <span><b>아이템</b> ${visibleItems.length}/${d.items.length}종</span>
@@ -1357,6 +1425,10 @@ async function toggleCollectible(el) {
         `;
       }
     }
+
+    // 다른 모드 데이터는 다음 진입 시 자동 새로고침되도록 invalidate
+    const otherState = (stateMode === 'war') ? COL : COL_WAR;
+    otherState.data = null;
   } catch (e) {
     toast(e.message, 'err');
   } finally {
@@ -1365,50 +1437,57 @@ async function toggleCollectible(el) {
 }
 
 // ─ 장비 내판 ─
-const EQ = {
-  section: 'equip',
-  data: null,
-  menuFor: null,
-};
+const EQ = { section: 'equip', data: null, menuFor: null, mode: 'normal' };
+const EQ_WAR = { section: 'equip', data: null, menuFor: null, mode: 'war' };
+
+function eqIds(state) {
+  const p = (state.mode === 'war') ? 'eq-war-' : 'eq-';
+  return {
+    wrap: p + 'table-wrap',
+    subtabs: p + 'subtabs',
+    stats: p + 'stats',
+  };
+}
 
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.tab === 'equipment' && !EQ.data) {
-      loadEquips(EQ.section);
-    }
+    if (btn.dataset.tab === 'equipment') loadEquips(EQ, EQ.section);
+    if (btn.dataset.tab === 'equipment-war') loadEquips(EQ_WAR, EQ_WAR.section);
   });
 });
 
-async function loadEquips(section) {
-  EQ.section = section;
-  const wrap = document.getElementById('eq-table-wrap');
+async function loadEquips(state, section) {
+  state.section = section;
+  const ids = eqIds(state);
+  const wrap = document.getElementById(ids.wrap);
   wrap.innerHTML = '<div class="empty">로딩 중…</div>';
   try {
     const res = await fetch('/animal/api/equips/?section=' + encodeURIComponent(section), { credentials: 'same-origin' });
     const j = await res.json();
     if (!res.ok) { wrap.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
-    EQ.data = j;
-    renderEqSubtabs();
-    renderEqTable();
+    state.data = j;
+    renderEqSubtabs(state);
+    renderEqTable(state);
   } catch (e) {
     wrap.innerHTML = `<div class="empty" style="color:#ff9b9b">로드 실패: ${e.message}</div>`;
   }
 }
 
-function renderEqSubtabs() {
-  const sects = EQ.data.sections || [];
+function renderEqSubtabs(state) {
+  const sects = state.data.sections || [];
   const html = sects.map(s => `
-    <button class="col-subtab ${s.key === EQ.section ? 'active' : ''}" data-sec="${s.key}">${escapeHtml(s.label)}</button>
+    <button class="col-subtab ${s.key === state.section ? 'active' : ''}" data-sec="${s.key}">${escapeHtml(s.label)}</button>
   `).join('');
-  const host = document.getElementById('eq-subtabs');
+  const host = document.getElementById(eqIds(state).subtabs);
+  if (!host) return;
   host.innerHTML = html;
   host.querySelectorAll('.col-subtab').forEach(btn => {
-    btn.addEventListener('click', () => loadEquips(btn.dataset.sec));
+    btn.addEventListener('click', () => loadEquips(state, btn.dataset.sec));
   });
 }
 
-function statusLabel(key) {
-  const f = (EQ.data.statuses || []).find(s => s.key === key);
+function statusLabel(state, key) {
+  const f = (state.data.statuses || []).find(s => s.key === key);
   return f ? f.label : key;
 }
 function statusShort(key) {
@@ -1418,21 +1497,20 @@ function statusShort(key) {
   return '';
 }
 
-function renderEqTable() {
-  const d = EQ.data;
-  const wrap = document.getElementById('eq-table-wrap');
-  const stats = document.getElementById('eq-stats');
+function renderEqTable(state) {
+  const d = state.data;
+  const ids = eqIds(state);
+  const wrap = document.getElementById(ids.wrap);
+  const stats = document.getElementById(ids.stats);
 
-  // status map: "mid:sid" -> status
   const sm = new Map();
   (d.entries || []).forEach(([m, s, st]) => sm.set(m + ':' + s, st));
 
-  // 상태별 카운트
   const counts = { owned_in: 0, owned_out: 0, passed: 0 };
   sm.forEach(v => { if (counts[v] !== undefined) counts[v]++; });
   const total = d.members.length * d.slots.length;
   const known = counts.owned_in + counts.owned_out + counts.passed;
-  stats.innerHTML = `
+  if (stats) stats.innerHTML = `
     <span><b>슬롯</b> ${d.slots.length}개</span>
     <span><b>길드원</b> ${d.members.length}명</span>
     <span class="badge s-owned_in"><span class="dot"></span>소유 (내판O) ${counts.owned_in}</span>
@@ -1446,8 +1524,16 @@ function renderEqTable() {
     return;
   }
 
-  // 무기종류 컬럼은 장비 내판 섹션에서만 표시 (탈것/특수컬렉은 무관)
-  const showWeapon = (EQ.section === 'equip');
+  const showWeapon = (state.section === 'equip');
+
+  // 멤버 정렬
+  const sortedMembers = d.members.slice().sort((a, b) => {
+    if (state.mode === 'war') {
+      const sb = b.war_score || 0, sa = a.war_score || 0;
+      if (sb !== sa) return sb - sa;
+    }
+    return (b.power || 0) - (a.power || 0);
+  });
 
   let html = '<table class="col-table"><thead><tr>';
   html += '<th class="col-no">#</th>';
@@ -1459,18 +1545,23 @@ function renderEqTable() {
   });
   html += '</tr></thead><tbody>';
 
-  d.members.forEach((m, idx) => {
+  sortedMembers.forEach((m, idx) => {
     const rowCls = 'row' + (IS_ADMIN ? ' admin' : '');
     html += `<tr class="${rowCls}" data-mid="${m.id}">`;
     html += `<td class="cell-no2">${idx + 1}</td>`;
     html += `<td class="cell-nick2" title="${escapeHtml(m.nickname)}">${escapeHtml(m.nickname)}</td>`;
-    html += `<td class="cell-power2">${fmtPower(m.power)}</td>`;
+    let powerCell = `<td class="cell-power2">${fmtPower(m.power)}`;
+    if (state.mode === 'war') {
+      powerCell += `<span class="war-sub">쟁 ${fmtPower(m.war_score || 0)}</span>`;
+    }
+    powerCell += `</td>`;
+    html += powerCell;
     if (showWeapon) html += `<td class="cell-wp" style="left:250px">${escapeHtml(m.weapon || '-')}</td>`;
     d.slots.forEach(s => {
       const st = sm.get(m.id + ':' + s.id) || 'none';
       const cls = 'eq-chip s-' + st + (IS_ADMIN ? ' admin' : '');
       const sym = statusShort(st);
-      html += `<td class="eq-cell"><span class="${cls}" data-mid="${m.id}" data-sid="${s.id}" data-st="${st}" title="${escapeHtml(statusLabel(st))}">${sym || '·'}</span></td>`;
+      html += `<td class="eq-cell"><span class="${cls}" data-mid="${m.id}" data-sid="${s.id}" data-st="${st}" data-state-mode="${state.mode}" title="${escapeHtml(statusLabel(state, st))}">${sym || '·'}</span></td>`;
     });
     html += '</tr>';
   });
@@ -1488,9 +1579,11 @@ function renderEqTable() {
 }
 
 function openEqMenu(anchor) {
+  const stateMode = anchor.dataset.stateMode || 'normal';
+  const state = (stateMode === 'war') ? EQ_WAR : EQ;
   const menu = document.getElementById('eq-menu');
   const cur = anchor.dataset.st || 'none';
-  const statuses = EQ.data.statuses || [];
+  const statuses = state.data ? (state.data.statuses || []) : [];
   const swatchClass = (k) => 's-' + k;
   menu.innerHTML = statuses.map(s => `
     <div class="eq-menu-item ${s.key === cur ? 'active' : ''}" data-st="${s.key}">
@@ -1498,10 +1591,8 @@ function openEqMenu(anchor) {
       <span>${escapeHtml(s.label)}</span>
     </div>
   `).join('');
-  // 위치
   const r = anchor.getBoundingClientRect();
   menu.style.top = (r.bottom + 4) + 'px';
-  // viewport 우측 넘침 방지
   const menuW = 180;
   let left = r.left;
   if (left + menuW > window.innerWidth - 10) left = window.innerWidth - menuW - 10;
@@ -1548,6 +1639,9 @@ document.addEventListener('click', (e) => {
 async function setEqStatus(chip, next) {
   const mid = parseInt(chip.dataset.mid, 10);
   const sid = parseInt(chip.dataset.sid, 10);
+  const stateMode = chip.dataset.stateMode || 'normal';
+  const state = (stateMode === 'war') ? EQ_WAR : EQ;
+  const otherState = (stateMode === 'war') ? EQ : EQ_WAR;
   if (chip.classList.contains('saving')) return;
   chip.classList.add('saving');
   try {
@@ -1558,36 +1652,42 @@ async function setEqStatus(chip, next) {
     });
     const j = await res.json();
     if (!res.ok) { toast(j.error || '저장 실패', 'err'); return; }
-    // chip update
     chip.className = 'eq-chip s-' + next + (IS_ADMIN ? ' admin' : '');
     chip.dataset.st = next;
-    chip.title = statusLabel(next);
+    chip.title = statusLabel(state, next);
     chip.textContent = statusShort(next) || '·';
 
-    // cache update
-    const idx = (EQ.data.entries || []).findIndex(([m, s]) => m === mid && s === sid);
-    if (next === 'none') {
-      if (idx !== -1) EQ.data.entries.splice(idx, 1);
-    } else {
-      if (idx !== -1) EQ.data.entries[idx][2] = next;
-      else EQ.data.entries.push([mid, sid, next]);
-    }
+    // 양 상태 캐시 동기화
+    [EQ, EQ_WAR].forEach(s => {
+      if (!s.data) return;
+      const idx = (s.data.entries || []).findIndex(([m, sl]) => m === mid && sl === sid);
+      if (next === 'none') {
+        if (idx !== -1) s.data.entries.splice(idx, 1);
+      } else {
+        if (idx !== -1) s.data.entries[idx][2] = next;
+        else s.data.entries.push([mid, sid, next]);
+      }
+    });
 
-    // 통계만 다시 그리기
-    const d = EQ.data;
-    const counts = { owned_in: 0, owned_out: 0, passed: 0 };
-    (d.entries || []).forEach(([, , st]) => { if (counts[st] !== undefined) counts[st]++; });
-    const total = d.members.length * d.slots.length;
-    const known = counts.owned_in + counts.owned_out + counts.passed;
-    const stats = document.getElementById('eq-stats');
-    if (stats) stats.innerHTML = `
-      <span><b>슬롯</b> ${d.slots.length}개</span>
-      <span><b>길드원</b> ${d.members.length}명</span>
-      <span class="badge s-owned_in"><span class="dot"></span>소유 (내판O) ${counts.owned_in}</span>
-      <span class="badge s-owned_out"><span class="dot"></span>소유 (내판X) ${counts.owned_out}</span>
-      <span class="badge s-passed"><span class="dot"></span>내림 ${counts.passed}</span>
-      <span><b>등록</b> ${known}/${total}</span>
-    `;
+    // 현재 화면 통계 갱신
+    const d = state.data;
+    if (d) {
+      const counts = { owned_in: 0, owned_out: 0, passed: 0 };
+      (d.entries || []).forEach(([, , st]) => { if (counts[st] !== undefined) counts[st]++; });
+      const total = d.members.length * d.slots.length;
+      const known = counts.owned_in + counts.owned_out + counts.passed;
+      const stats = document.getElementById(eqIds(state).stats);
+      if (stats) stats.innerHTML = `
+        <span><b>슬롯</b> ${d.slots.length}개</span>
+        <span><b>길드원</b> ${d.members.length}명</span>
+        <span class="badge s-owned_in"><span class="dot"></span>소유 (내판O) ${counts.owned_in}</span>
+        <span class="badge s-owned_out"><span class="dot"></span>소유 (내판X) ${counts.owned_out}</span>
+        <span class="badge s-passed"><span class="dot"></span>내림 ${counts.passed}</span>
+        <span><b>등록</b> ${known}/${total}</span>
+      `;
+    }
+    // 다른 모드는 다음 진입 시 새로고침 (쟁 점수가 변하는 건 아니지만 안전하게)
+    // 이미 entries 캐시는 동기화했으니 invalidate 불필요
   } catch (e) {
     toast(e.message, 'err');
   } finally {
