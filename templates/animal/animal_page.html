@@ -2053,7 +2053,7 @@ function bossRenderClears(d) {
       <div class="boss-clear-row" ${isEditable ? 'style="cursor:pointer"' : ''}>
         <div class="boss-clear-when">
           <div class="d">${escapeHtml(c.date)}</div>
-          <div>${escapeHtml(c.time)}</div>
+          ${IS_ADMIN ? `<div>${escapeHtml(c.time)}</div>` : ''}
         </div>
         <div>
           <div class="boss-clear-name">
