@@ -170,3 +170,21 @@ class BossClearParticipant(models.Model):
 
     def __str__(self):
         return f'{self.clear} - {self.member.nickname}'
+
+
+class VisitLog(models.Model):
+    """/animal/ 페이지 방문 로그. 7일 후 자동 삭제."""
+    path = models.CharField('경로', max_length=200, db_index=True)
+    ip = models.CharField('IP', max_length=64, blank=True, default='')
+    user_agent = models.CharField('User-Agent', max_length=300, blank=True, default='')
+    referer = models.CharField('Referer', max_length=300, blank=True, default='')
+    is_admin = models.BooleanField('관리자', default=False)
+    ts = models.DateTimeField('시각', auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-ts']
+        verbose_name = '방문 로그'
+        verbose_name_plural = '방문 로그'
+
+    def __str__(self):
+        return f'{self.ts} {self.path} {self.ip}'

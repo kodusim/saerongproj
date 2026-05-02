@@ -20,6 +20,7 @@ from django.utils import timezone
 from .models import (
     GuildMember, CollectibleItem, MemberCollectible, EquipSlot, MemberEquip,
     Boss, BossWeek, BossClear, BossClearParticipant,
+    VisitLog,
 )
 
 
@@ -788,6 +789,37 @@ def boss_clear_detail_api(request, clear_id):
     # DELETE
     c.delete()
     return JsonResponse({'ok': True})
+
+
+# ─ 방문 로그 (관리자) ──────────────────────────
+
+@require_GET
+def visit_log_api(request):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    limit = min(int(request.GET.get('limit') or 200), 1000)
+    qs = VisitLog.objects.all().order_by('-ts')[:limit]
+    items = []
+    for v in qs:
+        items.append({
+            'ts': timezone.localtime(v.ts).strftime('%Y-%m-%d %H:%M:%S'),
+            'path': v.path,
+            'ip': v.ip,
+            'is_admin': v.is_admin,
+            'ua': v.user_agent,
+            'referer': v.referer,
+        })
+    # 일자별 카운트 (최근 7일)
+    from collections import Counter
+    day_counter = Counter()
+    for v in VisitLog.objects.all().only('ts'):
+        day_counter[timezone.localtime(v.ts).date().isoformat()] += 1
+    days = sorted(day_counter.items(), reverse=True)[:7]
+    return JsonResponse({
+        'count': VisitLog.objects.count(),
+        'items': items,
+        'days': [{'date': d, 'count': c} for d, c in days],
+    })
 
 
 @csrf_exempt

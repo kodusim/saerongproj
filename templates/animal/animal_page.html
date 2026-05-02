@@ -791,6 +791,34 @@ header {
 .boss-score-row .stat.war  { color: #ff9b9b; border-color: rgba(255,123,123,.35); background: rgba(255,123,123,.08); }
 .boss-score-row .stat.war.zero { color: var(--text-mute); border-color: var(--line); background: rgba(255,255,255,.04); }
 
+/* ── 방문 로그 ── */
+.vl-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 110px 24px;
+  gap: 8px; align-items: center;
+  background: rgba(0,0,0,.2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 7px 10px; margin-bottom: 4px;
+  font-size: 12px;
+}
+.vl-row.admin { border-color: rgba(122,143,255,.4); background: rgba(91,108,255,.07); }
+.vl-row .ts { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.vl-row .path { font-family: var(--mono); font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-row .ip { font-family: var(--mono); font-size: 11px; color: var(--text-mute); text-align: right; }
+.vl-row .badge {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  background: rgba(255,255,255,.05); color: var(--text-mute);
+}
+.vl-row.admin .badge { background: rgba(91,108,255,.4); color: #fff; }
+.vl-ua {
+  margin-top: 3px; font-size: 10px; color: var(--text-mute);
+  font-family: var(--mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* coming-soon panel */
 .coming {
   padding: 60px 20px; text-align: center; color: var(--text-mute);
@@ -829,6 +857,7 @@ header {
     <button class="tab" data-tab="collect-war">컬렉용 아이템 (쟁)</button>
     <button class="tab" data-tab="settle">정산</button>
     <button class="tab" data-tab="cash">자금 출납</button>
+    {% if is_admin %}<button class="tab" data-tab="visits">방문 로그</button>{% endif %}
   </div>
 
   <!-- 길드원 현황 -->
@@ -1012,6 +1041,32 @@ header {
   </div>
   <div class="panel" id="panel-settle"><div class="coming"><div class="coming-icon">💰</div><div class="coming-title">정산</div><div class="coming-sub">개발 예정</div></div></div>
   <div class="panel" id="panel-cash"><div class="coming"><div class="coming-icon">📒</div><div class="coming-title">자금 출납</div><div class="coming-sub">개발 예정</div></div></div>
+
+  {% if is_admin %}
+  <!-- 방문 로그 (관리자) -->
+  <div class="panel" id="panel-visits">
+    <div class="ph">
+      <div class="ph-title">📊 방문 로그 <span class="ph-count" id="vl-count">0</span></div>
+      <button class="ph-add" id="vl-refresh">↻ 새로고침</button>
+    </div>
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📅</span>
+        <span>최근 7일 일별 방문 수</span>
+      </div>
+      <div id="vl-days" class="boss-scoreboard"></div>
+    </div>
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📜</span>
+        <span>방문 기록 (최근 200건)</span>
+      </div>
+      <div id="vl-list">
+        <div class="empty">로딩 중…</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 
@@ -1694,6 +1749,66 @@ async function setEqStatus(chip, next) {
     chip.classList.remove('saving');
   }
 }
+
+// ─ 방문 로그 (관리자) ─
+{% if is_admin %}
+let VL_LOADED = false;
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'visits') loadVisitLog();
+  });
+});
+const refreshBtn = document.getElementById('vl-refresh');
+if (refreshBtn) refreshBtn.addEventListener('click', loadVisitLog);
+
+async function loadVisitLog() {
+  const list = document.getElementById('vl-list');
+  list.innerHTML = '<div class="empty">로딩 중…</div>';
+  try {
+    const res = await fetch('/animal/api/visit-log/?limit=200', { credentials: 'same-origin' });
+    const j = await res.json();
+    if (!res.ok) { list.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
+    document.getElementById('vl-count').textContent = `총 ${j.count}건`;
+    // 일별
+    const days = j.days || [];
+    const daysHost = document.getElementById('vl-days');
+    if (days.length === 0) {
+      daysHost.innerHTML = '<div class="empty" style="grid-column:1/-1">기록 없음</div>';
+    } else {
+      daysHost.innerHTML = days.map(d => `
+        <div class="boss-score-row">
+          <div class="no" style="font-size:13px;">📅</div>
+          <div class="nick">${escapeHtml(d.date)}</div>
+          <div class="pt">${d.count}</div>
+        </div>
+      `).join('');
+    }
+    // 목록
+    const items = j.items || [];
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty">기록 없음</div>';
+      return;
+    }
+    list.innerHTML = items.map(v => {
+      const ua = (v.ua || '').slice(0, 100);
+      return `
+        <div class="vl-row ${v.is_admin ? 'admin' : ''}">
+          <div class="ts">${escapeHtml(v.ts)}</div>
+          <div>
+            <div class="path" title="${escapeHtml(v.path)}">${escapeHtml(v.path)}</div>
+            ${ua ? `<div class="vl-ua" title="${escapeHtml(v.ua)}">${escapeHtml(ua)}</div>` : ''}
+          </div>
+          <div class="ip" title="${escapeHtml(v.ip)}">${escapeHtml(v.ip)}</div>
+          <div class="badge" title="${v.is_admin ? '관리자 세션' : '일반 방문'}">${v.is_admin ? '★' : '·'}</div>
+        </div>
+      `;
+    }).join('');
+    VL_LOADED = true;
+  } catch (e) {
+    list.innerHTML = `<div class="empty" style="color:#ff9b9b">${escapeHtml(e.message)}</div>`;
+  }
+}
+{% endif %}
 
 // ─ 보스 참여 ─
 const BOSS = {
