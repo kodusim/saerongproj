@@ -14,6 +14,8 @@ urlpatterns = [
     path('api/collectibles/toggle/', views.collectible_toggle_api, name='animal_collectible_toggle'),
     path('api/equips/', views.equips_api, name='animal_equips'),
     path('api/equips/set/', views.equip_set_api, name='animal_equip_set'),
+    path('api/equips/slots/create/', views.equip_slot_create_api, name='animal_equip_slot_create'),
+    path('api/equips/slots/<int:slot_id>/', views.equip_slot_delete_api, name='animal_equip_slot_delete'),
     # 보스
     path('api/boss/list/', views.boss_list_api, name='animal_boss_list'),
     path('api/boss/create/', views.boss_create_api, name='animal_boss_create'),

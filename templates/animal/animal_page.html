@@ -397,6 +397,31 @@ header {
   background: linear-gradient(180deg, rgba(91,108,255,.18), rgba(91,108,255,.12)), rgba(20,25,45,.96);
 }
 
+.eq-add-row {
+  display: flex; gap: 6px; align-items: center; margin-bottom: 12px;
+}
+.eq-add-row input {
+  flex: 1; max-width: 240px;
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 7px; padding: 7px 10px; color: var(--text);
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.eq-add-row input:focus { border-color: var(--accent); }
+
+/* 헤더 슬롯 셀 안 삭제 버튼 (관리자) */
+.col-table th.col-name .slot-del {
+  position: absolute; top: 2px; right: 2px;
+  width: 16px; height: 16px; line-height: 14px;
+  border-radius: 50%; border: none;
+  background: rgba(255,123,123,.25); color: #ffb3b3;
+  font-size: 10px; font-weight: 700;
+  cursor: pointer; padding: 0;
+  display: none;
+}
+.col-table th.col-name { position: relative; }
+.col-table th.col-name:hover .slot-del { display: block; }
+.col-table th.col-name .slot-del:hover { background: rgba(255,123,123,.55); color: #fff; }
+
 /* ── 장비 내판 ── */
 /* 컬렉 매트릭스의 .col-* 클래스를 재사용하되, equip 전용 변형은 .eq- prefix */
 .eq-cell {
@@ -995,6 +1020,12 @@ header {
       <div class="ph-title">⚔️ 장비 내판</div>
     </div>
     <div class="col-subtabs" id="eq-subtabs"></div>
+    {% if is_admin %}
+    <div class="eq-add-row">
+      <input id="eq-add-name" type="text" placeholder="새 슬롯명">
+      <button class="btn-sm primary" onclick="eqSlotAdd(EQ)">＋ 슬롯 추가</button>
+    </div>
+    {% endif %}
     <div class="eq-stats" id="eq-stats"></div>
     <div class="col-table-wrap" id="eq-table-wrap">
       <div class="empty">로딩 중…</div>
@@ -1008,6 +1039,12 @@ header {
       <div class="ph-title">⚔️ 장비 내판 <span style="font-size:13px; color:#ff9b9b; font-weight:600">(쟁)</span></div>
     </div>
     <div class="col-subtabs" id="eq-war-subtabs"></div>
+    {% if is_admin %}
+    <div class="eq-add-row">
+      <input id="eq-war-add-name" type="text" placeholder="새 슬롯명">
+      <button class="btn-sm primary" onclick="eqSlotAdd(EQ_WAR)">＋ 슬롯 추가</button>
+    </div>
+    {% endif %}
     <div class="eq-stats" id="eq-war-stats"></div>
     <div class="col-table-wrap" id="eq-war-table-wrap">
       <div class="empty">로딩 중…</div>
@@ -1596,7 +1633,8 @@ function renderEqTable(state) {
   html += '<th class="col-power">전투력</th>';
   if (showWeapon) html += '<th class="col-wp" style="left:250px">무기</th>';
   d.slots.forEach(s => {
-    html += `<th class="col-name" title="${escapeHtml(s.name)}"><span class="vtxt">${escapeHtml(s.name)}</span></th>`;
+    const delBtn = IS_ADMIN ? `<button class="slot-del" data-sid="${s.id}" data-name="${escapeHtml(s.name)}" title="삭제">✕</button>` : '';
+    html += `<th class="col-name" title="${escapeHtml(s.name)}"><span class="vtxt">${escapeHtml(s.name)}</span>${delBtn}</th>`;
   });
   html += '</tr></thead><tbody>';
 
@@ -1628,6 +1666,12 @@ function renderEqTable(state) {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         openEqMenu(el);
+      });
+    });
+    wrap.querySelectorAll('th.col-name .slot-del').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        eqSlotDelete(state, parseInt(btn.dataset.sid, 10), btn.dataset.name);
       });
     });
   }
@@ -1748,6 +1792,43 @@ async function setEqStatus(chip, next) {
   } finally {
     chip.classList.remove('saving');
   }
+}
+
+async function eqSlotAdd(state) {
+  if (!IS_ADMIN) return;
+  const inputId = (state.mode === 'war') ? 'eq-war-add-name' : 'eq-add-name';
+  const inp = document.getElementById(inputId);
+  const name = (inp.value || '').trim();
+  if (!name) { toast('슬롯명을 입력하세요', 'err'); inp.focus(); return; }
+  try {
+    const res = await fetch('/animal/api/equips/slots/create/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ section: state.section, name }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '추가 실패', 'err'); return; }
+    toast('추가됨', 'ok');
+    inp.value = '';
+    // 두 모드 캐시 invalidate 후 현재 다시 로드
+    EQ.data = null; EQ_WAR.data = null;
+    loadEquips(state, state.section);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function eqSlotDelete(state, slotId, slotName) {
+  if (!IS_ADMIN) return;
+  if (!confirm(`"${slotName}" 슬롯을 삭제합니다.\n해당 슬롯의 모든 길드원 보유 기록도 함께 사라집니다. 진행할까요?`)) return;
+  try {
+    const res = await fetch('/animal/api/equips/slots/' + slotId + '/', {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '삭제 실패', 'err'); return; }
+    toast('삭제됨', 'ok');
+    EQ.data = null; EQ_WAR.data = null;
+    loadEquips(state, state.section);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // ─ 방문 로그 (관리자) ─

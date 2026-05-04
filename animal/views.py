@@ -315,6 +315,43 @@ def equips_api(request):
 
 @csrf_exempt
 @require_POST
+def equip_slot_create_api(request):
+    """관리자만 — 새 슬롯 추가. body: {section, name}. order는 해당 섹션 max+1."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    section = (body.get('section') or '').strip()
+    name = (body.get('name') or '').strip()
+    if section not in SECTION_LABELS:
+        return JsonResponse({'error': '잘못된 섹션'}, status=400)
+    if not name:
+        return JsonResponse({'error': '슬롯명은 필수입니다'}, status=400)
+    if EquipSlot.objects.filter(section=section, name=name).exists():
+        return JsonResponse({'error': '이미 존재하는 슬롯입니다'}, status=400)
+    next_order = (EquipSlot.objects.filter(section=section).aggregate(Max('order'))['order__max'] or 0) + 1
+    s = EquipSlot.objects.create(section=section, name=name, order=next_order)
+    return JsonResponse({'ok': True, 'id': s.id, 'name': s.name, 'order': s.order})
+
+
+@csrf_exempt
+@require_http_methods(['DELETE'])
+def equip_slot_delete_api(request, slot_id):
+    """관리자만 — 슬롯 삭제 (해당 슬롯의 모든 길드원 보유 기록도 같이 삭제)."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        s = EquipSlot.objects.get(id=slot_id)
+    except EquipSlot.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 슬롯'}, status=404)
+    s.delete()
+    return JsonResponse({'ok': True})
+
+
+@csrf_exempt
+@require_POST
 def equip_set_api(request):
     """{member_id, slot_id, status} — 관리자만."""
     if not _is_admin(request):
