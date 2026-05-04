@@ -32,12 +32,17 @@ SECRET_KEY = env.str(
 DEBUG = env.bool("DEBUG", default=False)  
 
 ALLOWED_HOSTS = [
-    'localhost', 
-    '127.0.0.1', 
-    '15.164.130.99',  # 서버 IP 
-    'saerong.com', 
-    'www.saerong.com'  # www 도메인 추가
+    'localhost',
+    '127.0.0.1',
+    '15.164.130.99',  # 서버 IP
+    'saerong.com',
+    'www.saerong.com',  # www 도메인 추가
+    'moscom.ai',
+    'www.moscom.ai',
 ]
+
+# moscom.ai 호스트로 들어왔을 때 mosquito-test 페이지를 루트(/)로 보여주기 위한 설정
+MOSCOM_HOSTS = {'moscom.ai', 'www.moscom.ai'}
 COMPONENTS = {
      # 0.67 미만 버전과 동일한 동작을 맞추기 위한 설정 (강의에서는 0.61 버전)
      "slot_context_behavior": "allow_override",  # 디폴트: "prefer_root"
@@ -80,6 +85,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "saerong.host_routing.MoscomHostMiddleware",  # moscom.ai 호스트 가상 라우팅
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
