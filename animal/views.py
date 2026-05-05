@@ -871,15 +871,30 @@ def settle_api(request):
                 attend_count[p.member_id] += 1
                 attend_score[p.member_id] += score
 
-    sum_attendance_score = sum(attend_score.values())
+    # 참여율 30% 미만은 분배에서 제외 — 분배 비율 분모는 적격자 점수 합으로 새로 계산
+    THRESHOLD = 0.30
+    eligible_score_sum = 0
+    rate_map = {}
+    for m in members:
+        ascore = attend_score[m.id]
+        rate = (ascore / total_boss_score) if total_boss_score > 0 else 0.0
+        rate_map[m.id] = rate
+        if rate >= THRESHOLD:
+            eligible_score_sum += ascore
+
+    sum_attendance_score = sum(attend_score.values())  # 참고용 (전체 합)
 
     diamond = week.settle_diamond or 0
     rows = []
     for i, m in enumerate(members, start=1):
         ascore = attend_score[m.id]
-        rate = (ascore / total_boss_score) if total_boss_score > 0 else 0.0
-        share = (ascore / sum_attendance_score) if sum_attendance_score > 0 else 0.0
-        give = int(diamond * share) if diamond > 0 else 0
+        rate = rate_map[m.id]
+        eligible = rate >= THRESHOLD
+        if eligible and eligible_score_sum > 0:
+            share = ascore / eligible_score_sum
+        else:
+            share = 0.0
+        give = int(diamond * share) if (diamond > 0 and eligible) else 0
         rows.append({
             'order': i,
             'member_id': m.id,
@@ -887,8 +902,9 @@ def settle_api(request):
             'attend_count': attend_count[m.id],
             'attend_score': ascore,
             'rate': round(rate, 4),       # 참여율
-            'share': round(share, 4),     # 분배 비율
+            'share': round(share, 4),     # 분배 비율 (적격자 기준)
             'give_diamond': give,
+            'eligible': eligible,
         })
 
     return JsonResponse({
