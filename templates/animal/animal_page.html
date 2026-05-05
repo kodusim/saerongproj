@@ -816,6 +816,60 @@ header {
 .boss-score-row .stat.war  { color: #ff9b9b; border-color: rgba(255,123,123,.35); background: rgba(255,123,123,.08); }
 .boss-score-row .stat.war.zero { color: var(--text-mute); border-color: var(--line); background: rgba(255,255,255,.04); }
 
+/* ── 정산 ── */
+.settle-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+.settle-meta-item {
+  background: rgba(0,0,0,.25);
+  border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px;
+}
+.settle-meta-lbl {
+  font-size: 11px; color: var(--text-mute);
+  font-weight: 600; letter-spacing: .04em; margin-bottom: 5px;
+}
+.settle-meta-val {
+  font-family: var(--mono); font-size: 16px; font-weight: 700;
+  color: var(--accent);
+}
+.settle-meta-item input {
+  width: 100%;
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 9px; color: var(--text);
+  font-size: 14px; font-family: var(--mono); outline: none;
+}
+.settle-meta-item input:focus { border-color: var(--accent); }
+
+.settle-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0,0,0,.18);
+}
+table.settle-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px;
+}
+table.settle-table th, table.settle-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+table.settle-table th {
+  background: rgba(20,25,45,.96);
+  font-weight: 700; font-size: 12px;
+  color: var(--text-mute); letter-spacing: .04em;
+  position: sticky; top: 0; z-index: 1;
+}
+table.settle-table td.nick { font-weight: 600; }
+table.settle-table td.num { font-family: var(--mono); }
+table.settle-table td.give { font-family: var(--mono); font-weight: 700; color: var(--accent); }
+table.settle-table tr:last-child td { border-bottom: none; }
+table.settle-table tr:hover td { background: rgba(255,255,255,.025); }
+
 /* ── 방문 로그 ── */
 .vl-row {
   display: grid;
@@ -1076,7 +1130,58 @@ header {
       <div class="empty">로딩 중…</div>
     </div>
   </div>
-  <div class="panel" id="panel-settle"><div class="coming"><div class="coming-icon">💰</div><div class="coming-title">정산</div><div class="coming-sub">개발 예정</div></div></div>
+  <!-- 정산 -->
+  <div class="panel" id="panel-settle">
+    <div class="ph">
+      <div class="ph-title">💎 정산 <span class="ph-count" id="st-week"></span></div>
+    </div>
+
+    <!-- 상단: 분배 다이아 / 정산일 / 총 보스 점수 -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">⚙️</span>
+        <span>정산 설정</span>
+      </div>
+      <div class="settle-meta">
+        <div class="settle-meta-item">
+          <div class="settle-meta-lbl">분배 다이아</div>
+          {% if is_admin %}
+          <input type="number" id="st-diamond" min="0" step="1000" placeholder="0">
+          {% else %}
+          <div class="settle-meta-val" id="st-diamond-view">0</div>
+          {% endif %}
+        </div>
+        <div class="settle-meta-item">
+          <div class="settle-meta-lbl">정산일</div>
+          {% if is_admin %}
+          <input type="date" id="st-date">
+          {% else %}
+          <div class="settle-meta-val" id="st-date-view">-</div>
+          {% endif %}
+        </div>
+        <div class="settle-meta-item">
+          <div class="settle-meta-lbl">총 보스 점수</div>
+          <div class="settle-meta-val" id="st-total"></div>
+        </div>
+      </div>
+      {% if is_admin %}
+      <div style="display:flex; justify-content:flex-end; margin-top:8px">
+        <button class="boss-toggle-btn primary" onclick="settleSave()">저장</button>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 정산 표 -->
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📜</span>
+        <span>정산 내역</span>
+      </div>
+      <div class="settle-table-wrap" id="st-table">
+        <div class="empty">로딩 중…</div>
+      </div>
+    </div>
+  </div>
   <div class="panel" id="panel-cash"><div class="coming"><div class="coming-icon">📒</div><div class="coming-title">자금 출납</div><div class="coming-sub">개발 예정</div></div></div>
 
   {% if is_admin %}
@@ -2456,6 +2561,90 @@ async function bossClearDel(id) {
     if (!res.ok) { toast(j.error || '실패', 'err'); return; }
     toast('삭제됨', 'ok');
     await bossLoadClears();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ─ 정산 ─
+let SETTLE_LOADED = false;
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'settle') loadSettle();
+  });
+});
+
+async function loadSettle() {
+  const tbl = document.getElementById('st-table');
+  tbl.innerHTML = '<div class="empty">로딩 중…</div>';
+  try {
+    const res = await fetch('/animal/api/settle/', { credentials: 'same-origin' });
+    const j = await res.json();
+    if (!res.ok) { tbl.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
+
+    const wkLbl = document.getElementById('st-week');
+    if (wkLbl) wkLbl.textContent = j.week ? j.week.name : '활성 주차 없음';
+
+    const totalEl = document.getElementById('st-total');
+    if (totalEl) totalEl.textContent = (j.total_boss_score || 0).toLocaleString();
+
+    // 분배 다이아 / 정산일 (관리자 입력 / 일반 표시)
+    const dInput = document.getElementById('st-diamond');
+    const dView = document.getElementById('st-diamond-view');
+    if (dInput) dInput.value = j.settle_diamond || '';
+    if (dView) dView.textContent = (j.settle_diamond || 0).toLocaleString();
+
+    const dateInput = document.getElementById('st-date');
+    const dateView = document.getElementById('st-date-view');
+    if (dateInput) dateInput.value = j.settle_date || '';
+    if (dateView) dateView.textContent = j.settle_date || '-';
+
+    if (!j.week) {
+      tbl.innerHTML = '<div class="empty">활성 주차가 없습니다. 보스 참여 탭에서 주차를 먼저 생성하세요.</div>';
+      return;
+    }
+    const rows = j.rows || [];
+    if (rows.length === 0) {
+      tbl.innerHTML = '<div class="empty">길드원이 없습니다</div>';
+      return;
+    }
+    const fmtPct = (x) => ((x || 0) * 100).toFixed(2) + '%';
+    let html = '<table class="settle-table"><thead><tr>';
+    html += '<th>연번</th><th>닉네임</th><th>참여율</th><th>출석 횟수</th><th>출석 점수</th><th>분배 비율</th><th>지급 다이아</th>';
+    html += '</tr></thead><tbody>';
+    rows.forEach(r => {
+      html += `<tr>
+        <td class="num">${r.order}</td>
+        <td class="nick">${escapeHtml(r.nickname)}</td>
+        <td class="num">${fmtPct(r.rate)}</td>
+        <td class="num">${r.attend_count}</td>
+        <td class="num">${(r.attend_score || 0).toLocaleString()}</td>
+        <td class="num">${fmtPct(r.share)}</td>
+        <td class="give">${(r.give_diamond || 0).toLocaleString()}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    tbl.innerHTML = html;
+    SETTLE_LOADED = true;
+  } catch (e) {
+    tbl.innerHTML = `<div class="empty" style="color:#ff9b9b">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function settleSave() {
+  const dInput = document.getElementById('st-diamond');
+  const dateInput = document.getElementById('st-date');
+  if (!dInput) return;
+  const diamond = parseInt(dInput.value || '0', 10) || 0;
+  const sd = (dateInput && dateInput.value) ? dateInput.value : '';
+  try {
+    const res = await fetch('/animal/api/settle/save/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settle_diamond: diamond, settle_date: sd }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '저장 실패', 'err'); return; }
+    toast('저장됨', 'ok');
+    loadSettle();
   } catch (e) { toast(e.message, 'err'); }
 }
 </script>

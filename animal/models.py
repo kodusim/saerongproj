@@ -122,6 +122,9 @@ class BossWeek(models.Model):
     is_current = models.BooleanField('현재 주차', default=False, db_index=True)
     closed_at = models.DateTimeField('분배 종료', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # 정산
+    settle_diamond = models.BigIntegerField('분배 다이아', default=0)
+    settle_date = models.DateField('정산일', null=True, blank=True)
 
     class Meta:
         ordering = ['-start_date', '-id']

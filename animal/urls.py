@@ -28,6 +28,9 @@ urlpatterns = [
     path('api/boss/clears/<int:clear_id>/', views.boss_clear_detail_api, name='animal_boss_clear_detail'),
     path('api/boss/clears/<int:clear_id>/participants/add/', views.boss_clear_participant_add_api, name='animal_boss_clear_part_add'),
     path('api/boss/clears/<int:clear_id>/participants/<int:member_id>/', views.boss_clear_participant_remove_api, name='animal_boss_clear_part_remove'),
+    # 정산
+    path('api/settle/', views.settle_api, name='animal_settle'),
+    path('api/settle/save/', views.settle_save_api, name='animal_settle_save'),
     # 방문 로그
     path('api/visit-log/', views.visit_log_api, name='animal_visit_log'),
 ]

@@ -828,6 +828,115 @@ def boss_clear_detail_api(request, clear_id):
     return JsonResponse({'ok': True})
 
 
+# ─ 정산 ──────────────────────────────────────
+
+@require_GET
+def settle_api(request):
+    """현재 활성 주차의 정산 정보 조회.
+    - 분배 다이아 / 정산일: BossWeek에 저장된 값 (관리자가 입력)
+    - 출석 횟수, 출석 점수: 그 주차의 BossClear 참여 기준
+    - 총 보스 점수: Σ(각 토벌 점수)  (1명이 다 참여했을 때 받는 만점)
+    - 참여율: 본인 출석 점수 / 총 보스 점수
+    - 분배 비율: 본인 출석 점수 / 모든 길드원 출석 점수 합계
+    - 지급 다이아: 분배 다이아 × 분배 비율 (정수 내림)
+    """
+    week = BossWeek.objects.filter(is_current=True).first()
+    if not week:
+        return JsonResponse({
+            'week': None,
+            'settle_diamond': 0,
+            'settle_date': None,
+            'total_boss_score': 0,
+            'sum_attendance_score': 0,
+            'rows': [],
+            'is_admin': _is_admin(request),
+        })
+
+    members = list(GuildMember.objects.filter(active=True).order_by('order', 'id'))
+
+    # 토벌별 점수 + 참여자
+    clears = list(
+        BossClear.objects.filter(week=week)
+        .select_related('boss')
+        .prefetch_related('participants')
+    )
+    total_boss_score = 0
+    attend_count = {m.id: 0 for m in members}
+    attend_score = {m.id: 0 for m in members}
+    for c in clears:
+        score = c.effective_score
+        total_boss_score += score
+        for p in c.participants.all():
+            if p.member_id in attend_count:
+                attend_count[p.member_id] += 1
+                attend_score[p.member_id] += score
+
+    sum_attendance_score = sum(attend_score.values())
+
+    diamond = week.settle_diamond or 0
+    rows = []
+    for i, m in enumerate(members, start=1):
+        ascore = attend_score[m.id]
+        rate = (ascore / total_boss_score) if total_boss_score > 0 else 0.0
+        share = (ascore / sum_attendance_score) if sum_attendance_score > 0 else 0.0
+        give = int(diamond * share) if diamond > 0 else 0
+        rows.append({
+            'order': i,
+            'member_id': m.id,
+            'nickname': m.nickname,
+            'attend_count': attend_count[m.id],
+            'attend_score': ascore,
+            'rate': round(rate, 4),       # 참여율
+            'share': round(share, 4),     # 분배 비율
+            'give_diamond': give,
+        })
+
+    return JsonResponse({
+        'week': {
+            'id': week.id, 'name': week.name,
+            'start_date': week.start_date.isoformat(),
+            'is_current': week.is_current,
+        },
+        'settle_diamond': diamond,
+        'settle_date': week.settle_date.isoformat() if week.settle_date else None,
+        'total_boss_score': total_boss_score,
+        'sum_attendance_score': sum_attendance_score,
+        'rows': rows,
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def settle_save_api(request):
+    """관리자: 현재 활성 주차의 분배 다이아 / 정산일 저장."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    week = BossWeek.objects.filter(is_current=True).first()
+    if not week:
+        return JsonResponse({'error': '활성 주차가 없습니다'}, status=400)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    if 'settle_diamond' in body:
+        try:
+            week.settle_diamond = max(0, int(body.get('settle_diamond') or 0))
+        except (TypeError, ValueError):
+            return JsonResponse({'error': '분배 다이아 형식 오류'}, status=400)
+    if 'settle_date' in body:
+        sd = (body.get('settle_date') or '').strip()
+        if sd:
+            try:
+                week.settle_date = date.fromisoformat(sd)
+            except ValueError:
+                return JsonResponse({'error': '정산일 형식 오류 (YYYY-MM-DD)'}, status=400)
+        else:
+            week.settle_date = None
+    week.save(update_fields=['settle_diamond', 'settle_date'])
+    return JsonResponse({'ok': True})
+
+
 # ─ 방문 로그 (관리자) ──────────────────────────
 
 @require_GET
