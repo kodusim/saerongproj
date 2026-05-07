@@ -250,6 +250,42 @@ def collectibles_api(request):
 
 @csrf_exempt
 @require_POST
+def collectible_item_create_api(request):
+    """관리자만 — 새 아이템 추가. body: {category, name}. order는 해당 카테고리 max+1."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    category = (body.get('category') or '').strip()
+    name = (body.get('name') or '').strip()
+    if category not in CATEGORY_LABELS:
+        return JsonResponse({'error': '잘못된 카테고리'}, status=400)
+    if not name:
+        return JsonResponse({'error': '아이템명은 필수입니다'}, status=400)
+    if CollectibleItem.objects.filter(category=category, name=name).exists():
+        return JsonResponse({'error': '이미 존재하는 아이템입니다'}, status=400)
+    next_order = (CollectibleItem.objects.filter(category=category).aggregate(Max('order'))['order__max'] or 0) + 1
+    it = CollectibleItem.objects.create(category=category, name=name, order=next_order)
+    return JsonResponse({'ok': True, 'id': it.id, 'name': it.name, 'order': it.order})
+
+
+@csrf_exempt
+@require_http_methods(['DELETE'])
+def collectible_item_delete_api(request, item_id):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        it = CollectibleItem.objects.get(id=item_id)
+    except CollectibleItem.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 아이템'}, status=404)
+    it.delete()
+    return JsonResponse({'ok': True})
+
+
+@csrf_exempt
+@require_POST
 def collectible_toggle_api(request):
     """{member_id, item_id, owned: bool} — 관리자만."""
     if not _is_admin(request):

@@ -1119,6 +1119,12 @@ table.settle-table tr.excluded td.give { color: var(--text-mute); }
       <div class="ph-title">💎 컬렉용 아이템</div>
     </div>
     <div class="col-subtabs" id="col-subtabs"></div>
+    {% if is_admin %}
+    <div class="eq-add-row">
+      <input id="col-add-name" type="text" placeholder="새 아이템명">
+      <button class="btn-sm primary" onclick="colItemAdd(COL)">＋ 아이템 추가</button>
+    </div>
+    {% endif %}
     <div class="col-meta" id="col-meta"></div>
     <div class="col-prefixes" id="col-prefixes"></div>
     <div class="col-table-wrap" id="col-table-wrap">
@@ -1132,6 +1138,12 @@ table.settle-table tr.excluded td.give { color: var(--text-mute); }
       <div class="ph-title">💎 컬렉용 아이템 <span style="font-size:13px; color:#ff9b9b; font-weight:600">(쟁)</span></div>
     </div>
     <div class="col-subtabs" id="col-war-subtabs"></div>
+    {% if is_admin %}
+    <div class="eq-add-row">
+      <input id="col-war-add-name" type="text" placeholder="새 아이템명">
+      <button class="btn-sm primary" onclick="colItemAdd(COL_WAR)">＋ 아이템 추가</button>
+    </div>
+    {% endif %}
     <div class="col-meta" id="col-war-meta"></div>
     <div class="col-prefixes" id="col-war-prefixes"></div>
     <div class="col-table-wrap" id="col-war-table-wrap">
@@ -1539,7 +1551,8 @@ function renderCollectiblesTable(state) {
   html += '<th class="col-nick">닉네임</th>';
   html += '<th class="col-power">전투력</th>';
   visibleItems.forEach(it => {
-    html += `<th class="col-name" title="${escapeHtml(it.name)}"><span class="vtxt">${escapeHtml(it.name)}</span></th>`;
+    const delBtn = IS_ADMIN ? `<button class="slot-del" data-iid="${it.id}" data-name="${escapeHtml(it.name)}" title="삭제">✕</button>` : '';
+    html += `<th class="col-name" title="${escapeHtml(it.name)}"><span class="vtxt">${escapeHtml(it.name)}</span>${delBtn}</th>`;
   });
   html += '</tr></thead><tbody>';
 
@@ -1564,8 +1577,13 @@ function renderCollectiblesTable(state) {
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
-
   if (IS_ADMIN) {
+    wrap.querySelectorAll('th.col-name .slot-del').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        colItemDelete(state, parseInt(btn.dataset.iid, 10), btn.dataset.name);
+      });
+    });
     wrap.querySelectorAll('.col-chk.admin').forEach(el => {
       el.addEventListener('click', () => toggleCollectible(el));
     });
@@ -1639,6 +1657,42 @@ async function toggleCollectible(el) {
   } finally {
     el.classList.remove('saving');
   }
+}
+
+async function colItemAdd(state) {
+  if (!IS_ADMIN) return;
+  const inputId = (state.mode === 'war') ? 'col-war-add-name' : 'col-add-name';
+  const inp = document.getElementById(inputId);
+  const name = (inp.value || '').trim();
+  if (!name) { toast('아이템명을 입력하세요', 'err'); inp.focus(); return; }
+  try {
+    const res = await fetch('/animal/api/collectibles/items/create/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: state.category, name }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '추가 실패', 'err'); return; }
+    toast('추가됨', 'ok');
+    inp.value = '';
+    COL.data = null; COL_WAR.data = null;
+    loadCollectibles(state, state.category);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function colItemDelete(state, itemId, itemName) {
+  if (!IS_ADMIN) return;
+  if (!confirm(`"${itemName}" 아이템을 삭제합니다.\n해당 아이템의 모든 길드원 보유 기록도 함께 사라집니다. 진행할까요?`)) return;
+  try {
+    const res = await fetch('/animal/api/collectibles/items/' + itemId + '/', {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '삭제 실패', 'err'); return; }
+    toast('삭제됨', 'ok');
+    COL.data = null; COL_WAR.data = null;
+    loadCollectibles(state, state.category);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // ─ 장비 내판 ─
