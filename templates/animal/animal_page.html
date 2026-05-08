@@ -878,6 +878,97 @@ table.settle-table tr.excluded td.give { color: var(--text-mute); }
   border: 1px solid rgba(255,123,123,.3);
 }
 
+/* ── 자금 출납 ── */
+.cash-add {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.4fr auto;
+  gap: 6px; align-items: center;
+}
+.cash-add input {
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; color: var(--text);
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.cash-add input:focus { border-color: var(--accent); }
+@media (max-width: 600px) {
+  .cash-add { grid-template-columns: 1fr 1fr; }
+  .cash-add button { grid-column: 1 / -1; }
+}
+
+.cash-list { display: flex; flex-direction: column; gap: 6px; }
+.cash-row {
+  display: grid;
+  grid-template-columns: 1fr 110px 30px;
+  gap: 8px; align-items: center;
+  background: rgba(0,0,0,.2);
+  border: 1px solid var(--line);
+  border-radius: 8px; padding: 9px 12px;
+  font-size: 13px;
+}
+.cash-row.carryover { border-color: rgba(122,143,255,.5); background: rgba(91,108,255,.1); }
+.cash-row .name { font-weight: 600; }
+.cash-row .name .badge {
+  display: inline-block; margin-left: 5px;
+  padding: 1px 7px; border-radius: 8px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(122,143,255,.2); color: var(--accent);
+  border: 1px solid rgba(122,143,255,.4);
+}
+.cash-row .meta {
+  font-size: 11px; color: var(--text-mute); margin-top: 2px;
+  font-family: var(--mono);
+}
+.cash-row .amount {
+  font-family: var(--mono); font-weight: 700;
+  text-align: right; font-size: 14px;
+}
+.cash-row .amount.plus { color: #4ade80; }
+.cash-row .amount.minus { color: #ff9b9b; }
+.cash-row .del-btn {
+  background: rgba(255,123,123,.15); color: #ffb3b3;
+  border: none; border-radius: 50%;
+  width: 22px; height: 22px; cursor: pointer;
+  font-size: 11px; padding: 0;
+}
+.cash-row .del-btn:hover { background: rgba(255,123,123,.5); color: #fff; }
+.cash-row.total {
+  background: linear-gradient(135deg, rgba(91,108,255,.2), rgba(181,108,255,.15));
+  border-color: rgba(122,143,255,.45);
+  font-weight: 700;
+}
+.cash-row.total .amount { font-size: 16px; color: var(--accent); }
+
+/* 모달 */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,.65);
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-backdrop.open { display: flex; }
+.modal-box {
+  background: var(--bg-1);
+  border: 1px solid rgba(122,143,255,.4);
+  border-radius: 12px;
+  width: 100%; max-width: 480px;
+  padding: 20px 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.modal-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.45; }
+.modal-grid { display: grid; gap: 10px; margin-bottom: 18px; }
+.modal-grid label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 12px; color: var(--text-dim); font-weight: 600;
+}
+.modal-grid input {
+  background: rgba(0,0,0,.3); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; color: var(--text);
+  font-size: 14px; font-family: inherit; outline: none;
+}
+.modal-grid input:focus { border-color: var(--accent); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
 /* ── 방문 로그 ── */
 .vl-row {
   display: grid;
@@ -1202,7 +1293,48 @@ table.settle-table tr.excluded td.give { color: var(--text-mute); }
       </div>
     </div>
   </div>
-  <div class="panel" id="panel-cash"><div class="coming"><div class="coming-icon">📒</div><div class="coming-title">자금 출납</div><div class="coming-sub">개발 예정</div></div></div>
+  <!-- 자금 출납 -->
+  <div class="panel" id="panel-cash">
+    <div class="ph">
+      <div class="ph-title">📒 자금 출납</div>
+    </div>
+
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📅</span>
+        <span>주차</span>
+        <span class="right" id="cash-summary"></span>
+      </div>
+      <div class="boss-week-bar">
+        <select class="boss-week-select" id="cash-week-select"></select>
+      </div>
+    </div>
+
+    {% if is_admin %}
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">＋</span>
+        <span>항목 추가</span>
+      </div>
+      <div class="cash-add">
+        <input id="cash-add-name" type="text" placeholder="항목명 (예: 창고확장)">
+        <input id="cash-add-amount" type="number" placeholder="금액 (음수=출금)">
+        <input id="cash-add-note" type="text" placeholder="비고 (선택)">
+        <button class="boss-toggle-btn primary" onclick="cashAdd()">추가</button>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="boss-section">
+      <div class="boss-section-title">
+        <span class="ico">📜</span>
+        <span>출납 내역</span>
+      </div>
+      <div class="cash-list" id="cash-list">
+        <div class="empty">로딩 중…</div>
+      </div>
+    </div>
+  </div>
 
   {% if is_admin %}
   <!-- 방문 로그 (관리자) -->
@@ -1231,6 +1363,28 @@ table.settle-table tr.excluded td.give { color: var(--text-mute); }
   {% endif %}
 
 </div>
+
+{% if is_admin %}
+<!-- 분배 끝 → 새 주차 시작 모달 -->
+<div class="modal-backdrop" id="bw-close-modal">
+  <div class="modal-box">
+    <div class="modal-title">분배 종료 + 새 주차 시작</div>
+    <div class="modal-desc" id="bw-close-desc">현재 주차의 자금 누계가 새 주차의 "적립시작금"으로 자동 이월됩니다.</div>
+    <div class="modal-grid">
+      <label>새 주차명
+        <input id="bw-next-name" type="text" placeholder="예: 6주차">
+      </label>
+      <label>새 주차 시작일
+        <input id="bw-next-start" type="date">
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="boss-toggle-btn" onclick="bossWeekCloseCancel()">취소</button>
+      <button class="boss-toggle-btn primary" onclick="bossWeekCloseConfirm()">확인 — 분배 종료</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <div id="toast" class="toast"></div>
 
@@ -2155,19 +2309,58 @@ async function bossWeekCreate() {
   } catch (e) { toast(e.message, 'err'); }
 }
 
-async function bossWeekClose() {
+function bossWeekClose() {
   if (!BOSS.currentWeekId) { toast('활성 주차가 없습니다', 'err'); return; }
   const w = BOSS.weeks.find(x => x.id === BOSS.currentWeekId);
-  if (!confirm(`"${w ? w.name : ''}" 주차의 분배를 종료합니다. 종료 후에는 입력/수정 불가.`)) return;
+  const desc = document.getElementById('bw-close-desc');
+  if (desc && w) {
+    desc.textContent = `"${w.name}" 주차의 분배를 종료하고 새 주차를 시작합니다. 자금 누계는 새 주차의 "적립시작금"으로 자동 이월됩니다.`;
+  }
+  // 시작일 기본값 = 오늘
+  const dateInp = document.getElementById('bw-next-start');
+  if (dateInp && !dateInp.value) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    dateInp.value = `${yyyy}-${mm}-${dd}`;
+  }
+  document.getElementById('bw-next-name').value = '';
+  document.getElementById('bw-close-modal').classList.add('open');
+  setTimeout(() => document.getElementById('bw-next-name').focus(), 50);
+}
+
+function bossWeekCloseCancel() {
+  document.getElementById('bw-close-modal').classList.remove('open');
+}
+
+async function bossWeekCloseConfirm() {
+  const name = (document.getElementById('bw-next-name').value || '').trim();
+  const start = (document.getElementById('bw-next-start').value || '').trim();
+  if (!name) { toast('새 주차명을 입력하세요', 'err'); return; }
+  if (!start) { toast('시작일을 선택하세요', 'err'); return; }
   try {
     const res = await fetch('/animal/api/boss/weeks/close/', {
       method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ next_name: name, next_start_date: start }),
     });
     const j = await res.json();
     if (!res.ok) { toast(j.error || '실패', 'err'); return; }
-    toast('주차 종료', 'ok');
+    bossWeekCloseCancel();
+    const carry = j.carryover || 0;
+    if (carry !== 0) {
+      toast(`주차 종료 — 이월 ${carry.toLocaleString()}원`, 'ok');
+    } else {
+      toast('주차 종료 + 새 주차 시작', 'ok');
+    }
+    BOSS.selectedWeekId = j.new_week_id || null;
     await bossLoadWeeks();
     await bossLoadClears();
+    // 자금 출납 패널이 떠있으면 새로고침
+    if (typeof loadCash === 'function' && document.getElementById('panel-cash').classList.contains('active')) {
+      loadCash();
+    }
   } catch (e) { toast(e.message, 'err'); }
 }
 
@@ -2709,6 +2902,130 @@ async function settleSave() {
     if (!res.ok) { toast(j.error || '저장 실패', 'err'); return; }
     toast('저장됨', 'ok');
     loadSettle();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ─ 자금 출납 ─
+const CASH = { weekId: null };
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'cash') loadCash();
+  });
+});
+
+async function loadCash() {
+  const list = document.getElementById('cash-list');
+  list.innerHTML = '<div class="empty">로딩 중…</div>';
+  try {
+    const url = '/animal/api/cash/' + (CASH.weekId ? '?week_id=' + CASH.weekId : '');
+    const res = await fetch(url, { credentials: 'same-origin' });
+    const j = await res.json();
+    if (!res.ok) { list.innerHTML = `<div class="empty" style="color:#ff9b9b">${j.error || '로드 실패'}</div>`; return; }
+
+    // 주차 드롭다운
+    const sel = document.getElementById('cash-week-select');
+    const weeks = j.weeks || [];
+    sel.innerHTML = weeks.length === 0
+      ? '<option value="">(주차 없음)</option>'
+      : weeks.map(w => {
+          const lbl = w.name + (w.is_current ? ' (현재)' : '');
+          const sid = (j.week && j.week.id === w.id) ? 'selected' : '';
+          return `<option value="${w.id}" ${sid}>${escapeHtml(lbl)}</option>`;
+        }).join('');
+    sel.onchange = () => {
+      CASH.weekId = parseInt(sel.value, 10) || null;
+      loadCash();
+    };
+
+    // 요약
+    const summary = document.getElementById('cash-summary');
+    if (summary) {
+      if (!j.week) { summary.innerHTML = ''; }
+      else {
+        const totalCls = (j.total >= 0) ? 'plus' : 'minus';
+        const sign = (j.total >= 0) ? '+' : '';
+        summary.innerHTML = `누계 <span style="font-family:var(--mono); font-weight:700; color:${j.total >= 0 ? '#4ade80' : '#ff9b9b'}">${sign}${(j.total || 0).toLocaleString()}</span>`;
+      }
+    }
+
+    // 항목들
+    if (!j.week) {
+      list.innerHTML = '<div class="empty">주차가 없습니다. 보스 참여 탭에서 먼저 주차를 만드세요.</div>';
+      return;
+    }
+    const entries = j.entries || [];
+    if (entries.length === 0) {
+      list.innerHTML = '<div class="empty">출납 내역이 없습니다.</div>';
+      return;
+    }
+
+    let html = entries.map(e => {
+      const cls = e.is_carryover ? 'cash-row carryover' : 'cash-row';
+      const amtCls = e.amount >= 0 ? 'plus' : 'minus';
+      const sign = e.amount >= 0 ? '+' : '';
+      const badge = e.is_carryover ? '<span class="badge">이월</span>' : '';
+      const meta = (e.note || e.created_at) ? `<div class="meta">${e.note ? escapeHtml(e.note) + ' · ' : ''}${escapeHtml(e.created_at)}</div>` : '';
+      const delBtn = (IS_ADMIN && !e.is_carryover) ? `<button class="del-btn" onclick="cashDelete(${e.id})" title="삭제">✕</button>` : '<span></span>';
+      return `<div class="${cls}">
+        <div>
+          <div class="name">${escapeHtml(e.name)}${badge}</div>
+          ${meta}
+        </div>
+        <div class="amount ${amtCls}">${sign}${e.amount.toLocaleString()}</div>
+        ${delBtn}
+      </div>`;
+    }).join('');
+
+    // 누계 행
+    const totalSign = j.total >= 0 ? '+' : '';
+    const totalCls = j.total >= 0 ? 'plus' : 'minus';
+    html += `<div class="cash-row total">
+      <div class="name">누계</div>
+      <div class="amount ${totalCls}">${totalSign}${(j.total || 0).toLocaleString()}</div>
+      <span></span>
+    </div>`;
+
+    list.innerHTML = html;
+  } catch (e) {
+    list.innerHTML = `<div class="empty" style="color:#ff9b9b">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function cashAdd() {
+  const name = (document.getElementById('cash-add-name').value || '').trim();
+  const amtStr = (document.getElementById('cash-add-amount').value || '').trim();
+  const note = (document.getElementById('cash-add-note').value || '').trim();
+  if (!name) { toast('항목명을 입력하세요', 'err'); return; }
+  if (amtStr === '') { toast('금액을 입력하세요', 'err'); return; }
+  const amount = parseInt(amtStr, 10);
+  if (isNaN(amount)) { toast('금액 숫자 형식 오류', 'err'); return; }
+  try {
+    const res = await fetch('/animal/api/cash/create/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ week_id: CASH.weekId || null, name, amount, note }),
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '추가 실패', 'err'); return; }
+    toast('추가됨', 'ok');
+    document.getElementById('cash-add-name').value = '';
+    document.getElementById('cash-add-amount').value = '';
+    document.getElementById('cash-add-note').value = '';
+    loadCash();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function cashDelete(id) {
+  if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch('/animal/api/cash/' + id + '/', {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    const j = await res.json();
+    if (!res.ok) { toast(j.error || '삭제 실패', 'err'); return; }
+    toast('삭제됨', 'ok');
+    loadCash();
   } catch (e) { toast(e.message, 'err'); }
 }
 </script>

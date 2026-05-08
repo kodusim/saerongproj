@@ -20,6 +20,7 @@ from django.utils import timezone
 from .models import (
     GuildMember, CollectibleItem, MemberCollectible, EquipSlot, MemberEquip,
     Boss, BossWeek, BossClear, BossClearParticipant,
+    CashEntry,
     VisitLog,
 )
 
@@ -552,16 +553,52 @@ def week_create_api(request):
 @csrf_exempt
 @require_POST
 def week_close_api(request):
-    """현재 주차 분배 종료. (다음 주차는 자동으로 만들지 않음 — 새 주차는 별도 생성)"""
+    """현재 주차 분배 종료 + 새 주차 자동 생성.
+    body: {next_name, next_start_date}
+    이전 주차의 자금 누계가 새 주차의 첫 항목 "적립시작금" 으로 자동 추가됨.
+    """
     if not _is_admin(request):
         return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
     cur = BossWeek.objects.filter(is_current=True).first()
     if not cur:
         return JsonResponse({'error': '활성 주차가 없습니다'}, status=400)
-    cur.is_current = False
-    cur.closed_at = timezone.now()
-    cur.save(update_fields=['is_current', 'closed_at'])
-    return JsonResponse({'ok': True})
+
+    next_name = (body.get('next_name') or '').strip()
+    next_start_str = (body.get('next_start_date') or '').strip()
+    if not next_name:
+        return JsonResponse({'error': '새 주차명 필수'}, status=400)
+    if BossWeek.objects.filter(name=next_name).exists():
+        return JsonResponse({'error': '이미 존재하는 주차명'}, status=400)
+    try:
+        next_sd = date.fromisoformat(next_start_str) if next_start_str else timezone.localdate()
+    except ValueError:
+        return JsonResponse({'error': '시작일 형식 오류 (YYYY-MM-DD)'}, status=400)
+
+    # 자금 누계
+    carry_total = sum(e.amount for e in cur.cash_entries.all())
+
+    with transaction.atomic():
+        # 현재 주차 종료
+        cur.is_current = False
+        cur.closed_at = timezone.now()
+        cur.save(update_fields=['is_current', 'closed_at'])
+        # 새 주차 생성
+        new_w = BossWeek.objects.create(name=next_name, start_date=next_sd, is_current=True)
+        # 적립시작금 자동 항목 (음수든 양수든 그대로 이월)
+        if carry_total != 0:
+            CashEntry.objects.create(
+                week=new_w,
+                name='적립시작금',
+                amount=carry_total,
+                note=f'{cur.name} 누계에서 이월',
+                is_carryover=True,
+            )
+
+    return JsonResponse({'ok': True, 'new_week_id': new_w.id, 'carryover': carry_total})
 
 
 # ─ 보스 토벌 (BossClear) ────────────────────────
@@ -986,6 +1023,108 @@ def settle_save_api(request):
         else:
             week.settle_date = None
     week.save(update_fields=['settle_diamond', 'settle_date'])
+    return JsonResponse({'ok': True})
+
+
+# ─ 자금 출납 ──────────────────────────────────
+
+@require_GET
+def cash_list_api(request):
+    """주차별 자금 출납 항목 목록.
+    week_id 미지정 시 현재 활성 주차, 없으면 가장 최근 주차.
+    """
+    week_id = request.GET.get('week_id')
+    if week_id:
+        week = BossWeek.objects.filter(id=week_id).first()
+    else:
+        week = BossWeek.objects.filter(is_current=True).first() or BossWeek.objects.order_by('-start_date', '-id').first()
+    weeks = list(BossWeek.objects.order_by('-start_date', '-id'))
+    if not week:
+        return JsonResponse({
+            'week': None,
+            'weeks': [{'id': w.id, 'name': w.name, 'is_current': w.is_current} for w in weeks],
+            'entries': [],
+            'total': 0,
+            'is_admin': _is_admin(request),
+        })
+    entries = list(week.cash_entries.all())
+    total = sum(e.amount for e in entries)
+    return JsonResponse({
+        'week': {'id': week.id, 'name': week.name, 'is_current': week.is_current},
+        'weeks': [{'id': w.id, 'name': w.name, 'is_current': w.is_current} for w in weeks],
+        'entries': [
+            {
+                'id': e.id, 'name': e.name, 'amount': e.amount,
+                'note': e.note, 'is_carryover': e.is_carryover,
+                'created_at': timezone.localtime(e.created_at).strftime('%Y-%m-%d %H:%M'),
+            } for e in entries
+        ],
+        'total': total,
+        'is_admin': _is_admin(request),
+    })
+
+
+@csrf_exempt
+@require_POST
+def cash_create_api(request):
+    """관리자 — 항목 추가. body: {week_id?, name, amount, note?}.
+    week_id 없으면 활성 주차에 추가.
+    """
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    week_id = body.get('week_id')
+    if week_id:
+        week = BossWeek.objects.filter(id=week_id).first()
+    else:
+        week = BossWeek.objects.filter(is_current=True).first()
+    if not week:
+        return JsonResponse({'error': '활성 주차가 없습니다'}, status=400)
+    name = (body.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': '항목명 필수'}, status=400)
+    try:
+        amount = int(body.get('amount') or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': '금액 형식 오류'}, status=400)
+    note = (body.get('note') or '').strip()[:200]
+    e = CashEntry.objects.create(week=week, name=name, amount=amount, note=note, is_carryover=False)
+    return JsonResponse({'ok': True, 'id': e.id})
+
+
+@csrf_exempt
+@require_http_methods(['PUT', 'PATCH', 'DELETE'])
+def cash_detail_api(request, entry_id):
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        e = CashEntry.objects.get(id=entry_id)
+    except CashEntry.DoesNotExist:
+        return JsonResponse({'error': '존재하지 않는 항목'}, status=404)
+    if request.method in ('PUT', 'PATCH'):
+        try:
+            body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+        except json.JSONDecodeError:
+            body = {}
+        if 'name' in body:
+            n = (body.get('name') or '').strip()
+            if not n:
+                return JsonResponse({'error': '항목명 필수'}, status=400)
+            e.name = n
+        if 'amount' in body:
+            try:
+                e.amount = int(body.get('amount') or 0)
+            except (TypeError, ValueError):
+                return JsonResponse({'error': '금액 형식 오류'}, status=400)
+        if 'note' in body:
+            e.note = (body.get('note') or '').strip()[:200]
+        e.save()
+        return JsonResponse({'ok': True})
+    # DELETE
+    e.delete()
     return JsonResponse({'ok': True})
 
 

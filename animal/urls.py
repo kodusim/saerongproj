@@ -33,6 +33,10 @@ urlpatterns = [
     # 정산
     path('api/settle/', views.settle_api, name='animal_settle'),
     path('api/settle/save/', views.settle_save_api, name='animal_settle_save'),
+    # 자금 출납
+    path('api/cash/', views.cash_list_api, name='animal_cash_list'),
+    path('api/cash/create/', views.cash_create_api, name='animal_cash_create'),
+    path('api/cash/<int:entry_id>/', views.cash_detail_api, name='animal_cash_detail'),
     # 방문 로그
     path('api/visit-log/', views.visit_log_api, name='animal_visit_log'),
 ]

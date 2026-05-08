@@ -175,6 +175,24 @@ class BossClearParticipant(models.Model):
         return f'{self.clear} - {self.member.nickname}'
 
 
+class CashEntry(models.Model):
+    """주차별 자금 출납 항목. amount 는 부호 포함 (음수=출금)."""
+    week = models.ForeignKey(BossWeek, on_delete=models.CASCADE, related_name='cash_entries')
+    name = models.CharField('항목명', max_length=100)
+    amount = models.BigIntegerField('금액 (음수=출금)')
+    note = models.CharField('비고', max_length=200, blank=True, default='')
+    is_carryover = models.BooleanField('이월(적립시작금) 여부', default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_carryover', 'created_at', 'id']
+        verbose_name = '자금 출납'
+        verbose_name_plural = '자금 출납'
+
+    def __str__(self):
+        return f'[{self.week.name}] {self.name}: {self.amount:+,}'
+
+
 class VisitLog(models.Model):
     """/animal/ 페이지 방문 로그. 7일 후 자동 삭제."""
     path = models.CharField('경로', max_length=200, db_index=True)
