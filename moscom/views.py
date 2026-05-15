@@ -64,6 +64,11 @@ def device_list(request):
                     'warning_max': d.warning_max,
                     'bad_min': d.bad_min,
                 },
+                'temperature': d.temperature,
+                'humidity': d.humidity,
+                'precipitation': d.precipitation,
+                'wind_speed': d.wind_speed,
+                'weather_synced_at': d.weather_synced_at.isoformat() if d.weather_synced_at else None,
             }
             for d in qs
         ],
