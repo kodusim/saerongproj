@@ -213,12 +213,13 @@ body {
 .heatmap-table td { padding: 5px 8px; border: 1px solid #e8eaf0; text-align: center; font-family: var(--mono); font-size: 11px; }
 .heatmap-table td.st-name { text-align: left; font-family: var(--font); font-weight: 600; font-size: 11px; color: var(--gray6); background: var(--gray1); border-right: 2px solid var(--gray3); }
 .heatmap-table td.total-cell { background: var(--navy-l); color: var(--navy); font-weight: 700; }
-.h0   { background: #F5F5F5; color: #9E9E9E; }
-.h1   { background: #E8F5E9; color: #1B5E20; }
-.h2   { background: #DCEDC8; color: #33691E; }
+/* 히트맵 6구간 — 0~2 안전1 / 3~10 안전2 / 11~20 안전3 / 21~50 관심 / 51~100 주의 / 100+ 나쁨 */
+.h0   { background: #F1F8E9; color: #33691E; }
+.h1   { background: #DCEDC8; color: #33691E; }
+.h2   { background: #C5E1A5; color: #1B5E20; }
 .h3   { background: #FFE0B2; color: #E65100; }
-.h4   { background: #FFCDD2; color: #B71C1C; font-weight: 700; }
-.h5   { background: #F48FB1; color: #880E4F; font-weight: 700; }
+.h4   { background: #FFAB91; color: #BF360C; font-weight: 600; }
+.h5   { background: #EF5350; color: #FFFFFF; font-weight: 700; }
 
 /* ── 예측 카드 ── */
 .risk-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 12px; }
@@ -991,7 +992,7 @@ body {
   </div>
 
   <div class="nav-section">
-    <div class="nav-label">모니터링</div>
+    <div class="nav-label">방역 관리</div>
     <a class="nav-item active" onclick="showPage('overview')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
       종합 현황
@@ -1008,17 +1009,13 @@ body {
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 9,9 15,3"/></svg>
       7일 추세
     </a>
-  </div>
-
-  <div class="nav-section">
-    <div class="nav-label">방역 관리</div>
     <a class="nav-item" onclick="showPage('remedy')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
-      방역 내역 및 AI 추천
+      방역 내역
     </a>
-    <a class="nav-item" onclick="showPage('complaint')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="4"/><path d="M4 13 C4 11 12 11 12 13"/></svg>
-      민원 가능 지역
+    <a class="nav-item" onclick="showPage('equipment')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><line x1="6" y1="14" x2="10" y2="14"/><line x1="8" y1="12" x2="8" y2="14"/></svg>
+      장비 현황
     </a>
   </div>
 
@@ -1026,24 +1023,20 @@ body {
     <div class="nav-label">예측 시스템</div>
     <a class="nav-item" onclick="showPage('predict')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 C4 10 6 6 8 8 C10 10 12 5 14 4"/><line x1="2" y1="14" x2="14" y2="14"/></svg>
-      AI 예측
+      AI 모기 발생 예측
     </a>
     <a class="nav-item" onclick="showPage('forecast')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><polyline points="8,4 8,8 11,10"/></svg>
-      AI 예보
+      AI 위험도 예보
+    </a>
+    <a class="nav-item" onclick="showPage('admin')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>
+      AI 행정 판단
     </a>
   </div>
 
   <div class="nav-section">
     <div class="nav-label">시스템</div>
-    <a class="nav-item" onclick="showPage('equipment')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><line x1="6" y1="14" x2="10" y2="14"/><line x1="8" y1="12" x2="8" y2="14"/></svg>
-      장비 현황
-    </a>
-    <a class="nav-item" onclick="showPage('admin')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>
-      행정 판단
-    </a>
     {% if is_admin %}
     <a class="nav-item" onclick="showPage('moscom_admin')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 3-5 6-5s6 2 6 5"/><circle cx="13" cy="4" r="1" fill="currentColor"/></svg>
@@ -1117,6 +1110,21 @@ body {
 
   <!-- ══════════ 1. 종합 현황 ══════════ -->
   <div class="page active" id="page-overview">
+    <div class="card mb16" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:12px;color:var(--gray5);font-weight:600">기준일</span>
+        <input type="date" id="ov-date" style="background:var(--gray1);border:1px solid var(--gray3);border-radius:6px;padding:5px 8px;color:inherit;font-size:13px">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:12px;color:var(--gray5);font-weight:600">시각</span>
+        <select id="ov-hour" style="background:var(--gray1);border:1px solid var(--gray3);border-radius:6px;padding:5px 8px;color:inherit;font-size:13px">
+          <option value="">하루 집계</option>
+        </select>
+      </div>
+      <button id="ov-today-btn" onclick="ovApplyDefault()" style="padding:5px 12px;border:1px solid var(--gray3);background:var(--gray1);border-radius:6px;font-size:12px;cursor:pointer">기본값(전일)</button>
+      <span id="ov-applied" style="margin-left:auto;font-size:11px;color:var(--gray4)"></span>
+    </div>
+
     <div class="kpi-grid mb16" id="ov-kpis">
       <div class="kpi-card" style="grid-column:span 7"><div style="color:var(--gray4);font-size:12px;text-align:center;padding:10px">종합 현황 데이터 불러오는 중…</div></div>
     </div>
@@ -1136,12 +1144,12 @@ body {
         <table class="data-table" style="width:100%" id="ov-station-table">
           <thead id="ov-station-thead">
             <tr>
-              <th>장비</th><th>지역</th><th>형태</th><th>위험 등급</th>
-              <th>오늘</th><th>어제</th><th>7일 평균</th>
-              <th>민원 위험</th><th>장비 상태</th><th>추세</th>
+              <th>장비</th><th>지역</th><th>형태</th><th>방역 상태</th>
+              <th>기준일</th><th>전일</th><th>7일 평균</th>
+              <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
           </thead>
-          <tbody id="ov-station-body"><tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
+          <tbody id="ov-station-body"><tr><td colspan="11" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1175,11 +1183,12 @@ body {
     <div class="card" style="padding:12px 16px">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px">
         <span style="color:var(--gray4);font-weight:600">범례</span>
-        <span style="background:#E8F5E9;color:#1B5E20;padding:2px 8px;border-radius:4px">0~10 안전</span>
-        <span style="background:#DCEDC8;color:#33691E;padding:2px 8px;border-radius:4px">11~50 관심</span>
-        <span style="background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:4px">51~100 주의</span>
-        <span style="background:#FFCDD2;color:#B71C1C;padding:2px 8px;border-radius:4px;font-weight:700">101~200 경고</span>
-        <span style="background:#F48FB1;color:#880E4F;padding:2px 8px;border-radius:4px;font-weight:700">201+ 위험</span>
+        <span style="background:#F1F8E9;color:#33691E;padding:2px 8px;border-radius:4px">0~2 안전1</span>
+        <span style="background:#DCEDC8;color:#33691E;padding:2px 8px;border-radius:4px">3~10 안전2</span>
+        <span style="background:#C5E1A5;color:#1B5E20;padding:2px 8px;border-radius:4px">11~20 안전3</span>
+        <span style="background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:4px">21~50 관심</span>
+        <span style="background:#FFAB91;color:#BF360C;padding:2px 8px;border-radius:4px;font-weight:600">51~100 주의</span>
+        <span style="background:#EF5350;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">100+ 나쁨</span>
       </div>
     </div>
   </div>
@@ -1236,7 +1245,7 @@ body {
     <div class="card">
       <div class="sec-header" style="margin-bottom:10px">
         <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">전 장비 정상 범위 확인</div>
+        <div class="sec-title" style="font-size:13px">장비별 포집량</div>
       </div>
       <table class="data-table" id="anomaly-all-table"></table>
     </div>
@@ -1303,14 +1312,14 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 5. AI 예측 ══════════ -->
+  <!-- ══════════ 5. AI 모기 발생 예측 ══════════ -->
   <div class="page" id="page-predict">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">AI 예측</div>
-          <div class="sec-sub" id="predict-sub">모델 추론 준비 중…</div>
+          <div class="sec-title">AI 모기 발생 예측</div>
+          <div class="sec-sub" id="predict-sub">관측소별 향후 3일 포집량 예측</div>
         </div>
       </div>
       <div id="predict-badge" class="ai-model-badge" style="display:none">
@@ -1402,14 +1411,14 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 6. AI 예보 ══════════ -->
+  <!-- ══════════ 6. AI 위험도 예보 ══════════ -->
   <div class="page" id="page-forecast">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">AI 예보</div>
-          <div class="sec-sub" id="fc-sub">기간별 모기 발생 예측 · 게이지 시각화</div>
+          <div class="sec-title">AI 위험도 예보</div>
+          <div class="sec-sub" id="fc-sub">관측소별 향후 위험도 + 시민 행동 강령</div>
         </div>
       </div>
       <div id="fc-badge" class="ai-model-badge"><span class="dot"></span>예측 모델 · Random Forest</div>
@@ -1459,7 +1468,7 @@ body {
     <!-- 게이지 미터 가로 스크롤 -->
     <div class="card mb16" style="padding:16px">
       <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">
-        일별 예보 (선택 장비 합계 · 위험도 게이지)
+        관측소별 일별 예보 (위험도 게이지)
       </div>
       <div id="fc-gauges" class="gauge-scroll">
         <div style="padding:40px;color:var(--gray4);font-size:12px;width:100%;text-align:center">
@@ -1467,27 +1476,32 @@ body {
         </div>
       </div>
       <div style="font-size:10px;color:var(--gray4);margin-top:4px;padding:0 4px">
-        ※ 게이지: 선택된 장비들의 <strong>해당 일자 최대 예상 포집량</strong>을 0~200+ 스케일로 시각화.
+        ※ 게이지: 선택된 장비별 <strong>해당 일자 최대 예상 포집량</strong>을 0~200+ 스케일로 시각화.
       </div>
     </div>
 
-    <div class="card" style="padding:12px 16px;background:var(--yellow-l);border-color:#F5D788">
-      <span style="font-size:12px;color:var(--yellow);font-weight:600">⚠ 안내</span>
-      <span style="font-size:11px;color:var(--gray5)"> 예측 기간이 길수록 신뢰도는 감소합니다. 학습 데이터는 3개 관측소·2025년 7~8월이며, 장기 예측 또는 타지역·다른 계절은 <strong>참고값</strong>으로 활용하세요.</span>
+    <!-- 시민 행동 강령 -->
+    <div class="card mb16" style="padding:14px 18px;background:#F0F7FF;border-color:#9EC9FF">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">🛡️ 시민 행동 강령</div>
+      <ul id="fc-citizen-tips" style="font-size:12px;color:var(--gray6);line-height:1.7;margin:0;padding-left:18px">
+        <li>활동량이 많은 <strong>해질녘 18:00 ~ 22:00</strong> 외출 시 모기 기피제 사용을 권장합니다.</li>
+        <li>야외 활동 시 <strong>긴팔·긴바지</strong>로 노출을 줄이고, 짙은 색 옷은 피해주세요.</li>
+        <li>고인 물(화분 받침, 빈 캔, 폐타이어 등) 주기적으로 비워 모기 유충 발생을 차단해주세요.</li>
+        <li>방충망 손상 시 즉시 교체하고, 출입구 사용 시 빠르게 닫아주세요.</li>
+      </ul>
     </div>
   </div>
 
-  <!-- ══════════ 7. 방역 내역 및 AI 추천 ══════════ -->
+  <!-- ══════════ 7. 방역 내역 ══════════ -->
   <div class="page" id="page-remedy">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">방역 내역 및 AI 추천</div>
-          <div class="sec-sub" id="rm-sub">방역 일정 등록 시 AI 예측/예보에 감소 효과가 자동 반영됩니다</div>
+          <div class="sec-title">방역 내역</div>
+          <div class="sec-sub" id="rm-sub">방역 일정 등록 · 진행 이력 관리</div>
         </div>
       </div>
-      <div class="ai-model-badge"><span class="dot"></span>방역 효과 ↔ 예측 연동</div>
     </div>
 
     <div class="rm-layout">
@@ -1553,47 +1567,6 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 8. 민원 가능 지역 ══════════ -->
-  <div class="page" id="page-complaint">
-    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="sec-bar"></div>
-        <div>
-          <div class="sec-title">민원 발생 가능 지역</div>
-          <div class="sec-sub" id="cp-sub">4축 가중합 기반 AI 평가 · MOSCOM 실측</div>
-        </div>
-      </div>
-      <div class="ai-model-badge"><span class="dot"></span>MOSCOM 위험도 엔진 v1</div>
-    </div>
-
-    <!-- 필터 -->
-    <div class="cp-filters">
-      <button class="cp-chip active" data-filter="all">전체</button>
-      <button class="cp-chip" data-filter="높음">민원 높음</button>
-      <button class="cp-chip" data-filter="보통">민원 보통</button>
-      <button class="cp-chip" data-filter="낮음">민원 낮음</button>
-      <span style="color:var(--gray3);margin:0 4px">|</span>
-      <button class="cp-chip" data-filter="residential">주거지 인접</button>
-      <span id="cp-count" style="margin-left:auto;font-size:11px;color:var(--gray4)"></span>
-    </div>
-
-    <!-- 리스트 -->
-    <div id="cp-list" class="cp-list">
-      <div style="padding:40px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div>
-    </div>
-
-    <!-- 전체 상세 표 -->
-    <div class="card mb16" style="margin-top:16px">
-      <div class="sec-header" style="margin-bottom:10px">
-        <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">전 장비 상세 점수</div>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="data-table" id="complaint-table"></table>
-      </div>
-    </div>
-  </div>
-
   <!-- ══════════ 9. 장비 현황 ══════════ -->
   <div class="page" id="page-equipment">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
@@ -1625,13 +1598,13 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 10. 행정 판단 ══════════ -->
+  <!-- ══════════ 10. AI 행정 판단 ══════════ -->
   <div class="page" id="page-admin">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">행정 판단</div>
+          <div class="sec-title">AI 행정 판단</div>
           <div class="sec-sub" id="aj-sub">AI가 모든 탭 데이터를 종합하여 결재용 공문 형식으로 생성</div>
         </div>
       </div>
@@ -1877,12 +1850,12 @@ const GRADE_BADGE = {
 const EQUIP_BADGE = {"정상":"badge-ok","점검필요":"badge-check","오프라인":"badge-offline"};
 
 function heatClass(v){
-  if(v===0) return "h0";
-  if(v<=10) return "h1";
-  if(v<=50) return "h2";
-  if(v<=100)return "h3";
-  if(v<=200)return "h4";
-  return "h5";
+  if(v<=2)  return "h0";   // 0~2 안전1
+  if(v<=10) return "h1";   // 3~10 안전2
+  if(v<=20) return "h2";   // 11~20 안전3
+  if(v<=50) return "h3";   // 21~50 관심
+  if(v<=100)return "h4";   // 51~100 주의
+  return "h5";             // 100+ 나쁨
 }
 
 function diffStr(total,prev){
@@ -1928,7 +1901,13 @@ function ovFormatKstDate(dateStr) {
 async function buildStationTable() {
   // 호환용 이름. 종합현황 데이터 로드.
   try {
-    const res = await fetch('/mosquito-test/api/overview/', { credentials: 'same-origin' });
+    const dInp = document.getElementById('ov-date');
+    const hSel = document.getElementById('ov-hour');
+    const params = new URLSearchParams();
+    if (dInp && dInp.value) params.set('date', dInp.value);
+    if (hSel && hSel.value) params.set('hour', hSel.value);
+    const url = '/mosquito-test/api/overview/' + (params.toString() ? '?' + params.toString() : '');
+    const res = await fetch(url, { credentials: 'same-origin' });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
     OV_STATE.data = json;
@@ -1958,11 +1937,10 @@ function renderOvKpis(json) {
   const changeArrow = change > 0 ? '▲' : change < 0 ? '▼' : '·';
   const changeColor = change > 10 ? 'var(--red)' : change < -10 ? 'var(--green)' : 'var(--gray4)';
 
-  // 경고이상 + 기준초과 통합 (둘 다 위험 신호)
   const alertCount = (kpi.anomaly_today || 0) + (kpi.warn_count || 0);
   box.innerHTML = `
     <div class="kpi-card navy">
-      <div class="kpi-label">오늘 포집 합계</div>
+      <div class="kpi-label">기준일 포집 합계</div>
       <div class="kpi-value val-navy">${(kpi.today_total || 0).toLocaleString()}</div>
       <div class="kpi-sub" style="color:${changeColor}"><strong>${changeArrow} ${change >= 0 ? '+' : ''}${change}%</strong> 전일 대비</div>
     </div>
@@ -1972,19 +1950,14 @@ function renderOvKpis(json) {
       <div class="kpi-sub">${topCount}마리</div>
     </div>
     <div class="kpi-card red">
-      <div class="kpi-label">위험 신호</div>
+      <div class="kpi-label">방역 나쁨</div>
       <div class="kpi-value val-red">${alertCount}<span style="font-size:14px">건</span></div>
-      <div class="kpi-sub">기준 초과 ${kpi.anomaly_today || 0} · 경고 등급 ${kpi.warn_count || 0}</div>
-    </div>
-    <div class="kpi-card purple">
-      <div class="kpi-label">민원 가능 '높음'</div>
-      <div class="kpi-value val-purple">${kpi.complaint_high || 0}</div>
-      <div class="kpi-sub">사전 대응 권장</div>
+      <div class="kpi-sub">기준 초과 ${kpi.anomaly_today || 0} · 주의 ${kpi.warn_count || 0}</div>
     </div>
     <div class="kpi-card teal">
       <div class="kpi-label">장비 이상</div>
       <div class="kpi-value val-teal">${kpi.equip_bad || 0}</div>
-      <div class="kpi-sub">오프라인 ${kpi.offline_count || 0} / 점검 ${kpi.check_count || 0}</div>
+      <div class="kpi-sub">Offline ${kpi.offline_count || 0} / Low batt ${kpi.check_count || 0}</div>
     </div>
     <div class="kpi-card green">
       <div class="kpi-label">정상 운영</div>
@@ -1992,6 +1965,31 @@ function renderOvKpis(json) {
       <div class="kpi-sub">${kpi.total_devices || 0}대 중</div>
     </div>
   `;
+}
+
+// 방역 상태 3단계 매핑: 위험 등급 → 좋음/주의/나쁨
+function ovStatusLabel(riskLevel) {
+  if (riskLevel === '심각' || riskLevel === '경고' || riskLevel === '주의') return riskLevel === '주의' ? '주의' : '나쁨';
+  if (riskLevel === '관심') return '주의';
+  return '좋음';
+}
+function ovStatusBadgeCls(label) {
+  if (label === '나쁨') return 'badge-danger';
+  if (label === '주의') return 'badge-warn';
+  return 'badge-ok';
+}
+// 장비 상태 3단계: Online / Offline / Low batt
+function ovDeviceStatusLabel(d) {
+  // 1) battery 낮으면 Low batt 우선
+  const batt = (typeof d.battery === 'number') ? d.battery : (d.battery_pct || null);
+  if (batt !== null && batt < 20) return { label: 'Low batt', cls: 'badge-warn' };
+  // 2) updated_date 가 30분 이상 전이면 Offline
+  const u = d.updated_date || d.last_updated || d.device_date;
+  if (u) {
+    const age = (Date.now() - new Date(u).getTime()) / 60000;
+    if (age > 30) return { label: 'Offline', cls: 'badge-danger' };
+  }
+  return { label: 'Online', cls: 'badge-ok' };
 }
 
 // KST 현재 시간이 야간 수집창(18:00~05:59)인지
@@ -2031,50 +2029,93 @@ function renderOvStationTable(json) {
   const list = json.devices || [];
   if (sub) sub.textContent = `허용된 장비 ${list.length}대 전체`;
 
-  // 헤더: 오늘 컬럼에 측정중 라벨
-  const measuring = isNightCollectingNowKST();
   const thead = document.getElementById('ov-station-thead');
   if (thead) {
-    const todayHdr = measuring
-      ? `오늘 <span style="font-size:9px;font-weight:700;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;margin-left:3px;letter-spacing:.3px"><span style="display:inline-block;width:5px;height:5px;background:#fff;border-radius:50%;margin-right:3px;vertical-align:middle;animation:measPulse 0.9s ease-in-out infinite"></span>측정중</span>`
-      : `오늘 <span style="font-size:9px;font-weight:600;background:var(--gray3);color:var(--gray6);padding:1px 6px;border-radius:8px;margin-left:3px">측정 전</span>`;
     thead.innerHTML = `<tr>
-      <th>장비</th><th>지역</th><th>형태</th><th>위험 등급</th>
-      <th>${todayHdr}</th><th>어제</th><th>7일 평균</th>
-      <th>민원 위험</th><th>장비 상태</th><th>추세</th>
+      <th>장비</th><th>지역</th><th>형태</th><th>방역 상태</th>
+      <th>기준일</th><th>전일</th><th>7일 평균</th>
+      <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
     </tr>`;
   }
 
   if (list.length === 0) {
-    tb.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
     return;
   }
   tb.innerHTML = list.map(d => {
-    const cpCls = ovCpCls(d.complaint_level);
-    // 추세: 상승=↗(빨강), 하락=↘(초록), 보합=→(회색)
     let trendArrow = '→', trendColor = 'var(--gray4)';
     if (d.trend === '↑') { trendArrow = '↗'; trendColor = 'var(--red)'; }
     else if (d.trend === '↓') { trendArrow = '↘'; trendColor = 'var(--green)'; }
-    // 표 안의 장비 상태 컬럼은 항상 '측정중' 또는 '측정 전' 두 가지로만 표기
-    const statusLabel = measuring ? '측정중' : '측정 전';
-    const statusBadgeCls = measuring ? 'badge-ok' : 'badge-unknown';
+    // 방역 상태 (위험 등급 → 좋음/주의/나쁨)
+    const statusLabel = ovStatusLabel(d.risk_level || '');
+    const statusCls = ovStatusBadgeCls(statusLabel);
+    // 장비 상태 (Online/Offline/Low batt)
+    const ds = ovDeviceStatusLabel(d);
     // 위치 형태 분류
     const habitat = classifyHabitat(d);
     const hbColor = habitatBadgeColor(habitat);
+    // 온/습도 — 데이터 없으면 '-' 표시
+    const temp = (d.temperature != null) ? `${d.temperature}°C` : '-';
+    const humid = (d.humidity != null) ? `${d.humidity}%` : '-';
     return `<tr>
       <td><strong>${escapeHtml(d.name)}</strong></td>
       <td style="color:var(--gray5);font-size:11px">${escapeHtml(d.addr || '-')}</td>
       <td><span style="font-size:10px;font-weight:600;background:${hbColor.bg};color:${hbColor.color};padding:2px 8px;border-radius:10px">${habitat}</span></td>
-      <td><span class="badge ${ovRiskBadgeCls(d.risk_level)}">${d.risk_level}</span> <span style="font-family:var(--mono);font-size:10px;color:var(--gray4)">${d.risk_score}</span></td>
-      <td style="font-family:var(--mono);font-weight:600;color:var(--navy)">${d.today.toLocaleString()}</td>
+      <td><span class="badge ${statusCls}">${statusLabel}</span></td>
+      <td style="font-family:var(--mono);font-weight:600;color:var(--navy)">${(d.today || 0).toLocaleString()}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.yday || 0}</td>
-      <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg}</td>
-      <td><span class="complaint-pill ${cpCls}">${d.complaint_level}</span></td>
-      <td><span class="badge ${statusBadgeCls}">${statusLabel}</span></td>
+      <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg || 0}</td>
+      <td style="font-family:var(--mono);color:var(--gray5)">${temp}</td>
+      <td style="font-family:var(--mono);color:var(--gray5)">${humid}</td>
+      <td><span class="badge ${ds.cls}">${ds.label}</span></td>
       <td style="color:${trendColor};font-weight:700;font-size:18px">${trendArrow}</td>
     </tr>`;
   }).join('');
 }
+
+// ── 종합 현황: 날짜/시간 선택 ────────────────────
+function ovApplyDefault() {
+  // 기본값: 오늘이 5/15면 5/14 (오전엔 오늘 안 봄)
+  const today = new Date();
+  const kst = new Date(today.getTime() + 9 * 3600 * 1000);
+  const yest = new Date(kst.getTime() - 24 * 3600 * 1000);
+  const yyyy = yest.getUTCFullYear();
+  const mm = String(yest.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(yest.getUTCDate()).padStart(2, '0');
+  const dInp = document.getElementById('ov-date');
+  const hSel = document.getElementById('ov-hour');
+  if (dInp) dInp.value = `${yyyy}-${mm}-${dd}`;
+  if (hSel) hSel.value = '';
+  ovUpdateApplied();
+  buildStationTable();
+}
+function ovUpdateApplied() {
+  const dInp = document.getElementById('ov-date');
+  const hSel = document.getElementById('ov-hour');
+  const el = document.getElementById('ov-applied');
+  if (!el) return;
+  const d = dInp ? dInp.value : '';
+  const h = hSel ? hSel.value : '';
+  if (!d) { el.textContent = ''; return; }
+  el.textContent = `${d}${h ? ' ' + h + '시' : ' 하루 집계'}`;
+}
+// 시각 옵션 초기화 (0~23)
+(function initOvHourOptions() {
+  document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('ov-hour');
+    if (!sel) return;
+    for (let i = 0; i < 24; i++) {
+      const o = document.createElement('option');
+      o.value = String(i).padStart(2, '0');
+      o.textContent = String(i).padStart(2, '0');
+      sel.appendChild(o);
+    }
+    const d = document.getElementById('ov-date');
+    if (d) d.addEventListener('change', () => { ovUpdateApplied(); buildStationTable(); });
+    sel.addEventListener('change', () => { ovUpdateApplied(); buildStationTable(); });
+    ovApplyDefault();
+  });
+})();
 
 // ── 히트맵 (실제 MOSCOM 데이터) ─────────────────────────
 // 하루 기준: KST 10:00 ~ 다음날 09:59 (24시간)
@@ -2965,7 +3006,6 @@ function renderPredictTable() {
       <th colspan="${dates.length}" style="background:var(--navy)">AI 예측</th>
       <th rowspan="2">최대</th>
       <th rowspan="2">등급</th>
-      <th rowspan="2">신뢰도</th>
       <th rowspan="2" style="min-width:220px">AI 추론 근거</th>
     </tr>
     <tr>${histHdr}${dayHdr}</tr>
@@ -2978,8 +3018,6 @@ function renderPredictTable() {
       return `<td style="font-family:var(--mono);background:var(--gray1);color:var(--gray5)">${v ?? '-'}</td>`;
     }).join('');
     const predCells = p.predictions.map(pp => `<td style="font-family:var(--mono);font-weight:600">${pp.predicted}</td>`).join('');
-    const conf = p.confidence || 0;
-    const confColor = conf >= 85 ? '#198754' : conf >= 70 ? '#C05000' : '#8A8FA0';
     return `<tr>
       <td><strong>${p.name}</strong></td>
       <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
@@ -2987,12 +3025,6 @@ function renderPredictTable() {
       ${predCells}
       <td style="font-family:var(--mono);font-weight:700;color:${gradeColor(p.grade)}">${p.max_predicted}</td>
       <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
-      <td>
-        <span class="conf-bar">
-          <span class="conf-bar-bg"><span class="conf-bar-fill" style="width:${conf}%;background:${confColor}"></span></span>
-          <span class="conf-bar-val" style="color:${confColor}">${conf}%</span>
-        </span>
-      </td>
       <td style="color:var(--gray5);font-size:11px;line-height:1.5">${p.reasoning || '—'}</td>
     </tr>`;
   }).join('')}</tbody>`;
@@ -4142,9 +4174,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── 페이지 전환 ──────────────────────────────────────────
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"포집량 이상 감지",
-  trend:"7일 누적 추세", predict:"AI 예측", forecast:"AI 예보",
-  remedy:"방역 내역 및 AI 추천", complaint:"민원 가능 지역",
-  equipment:"장비 현황", admin:"행정 판단", moscom_admin:"모스콤 관리자"
+  trend:"7일 누적 추세", predict:"AI 모기 발생 예측", forecast:"AI 위험도 예보",
+  remedy:"방역 내역",
+  equipment:"장비 현황", admin:"AI 행정 판단", moscom_admin:"모스콤 관리자"
 };
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -4383,7 +4415,6 @@ buildAnomalyAll();
 buildTrend();
 // buildPredict(), buildForecast()는 해당 탭 첫 방문 시 실행
 buildRemedy();
-buildComplaint();
 buildEquipment();
 
 // ═══════════════════════════════════════════════════════════

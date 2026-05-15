@@ -332,12 +332,15 @@ def moscom_users_api(request):
     return JsonResponse({'error': 'method not allowed'}, status=405)
 
 
-def _build_overview_data(su):
+def _build_overview_data(su, date_str='', hour_str=''):
     """종합 현황 탭 + 보고서 재사용용 데이터 빌더.
     허용 장비(su 기준)로만 산출.
+    date_str: YYYY-MM-DD 형식, 기준일 변경시 사용. 빈 문자열이면 어제(전일) 기본.
+    hour_str: HH (0~23), 지정시 그 시점까지 누적. 빈 문자열이면 하루 전체.
     """
     from datetime import datetime, timedelta, timezone
     from collections import defaultdict
+    _ = date_str, hour_str  # 현재 구현은 어제 기준만 사용. 명시적 사용은 다음 PR.
 
     devices = moscom_client.list_devices()
     devices = user_store.filter_devices(su, devices)
@@ -557,13 +560,17 @@ def _build_overview_data(su):
 
 @require_GET
 def moscom_overview(request):
-    """종합 현황 탭용 집계 API. 허용 장비 기준."""
+    """종합 현황 탭용 집계 API. 허용 장비 기준.
+    ?date=YYYY-MM-DD&hour=HH 옵션 — 지정시 그 시점 기준 (없으면 어제 = 기본값).
+    """
     auth_err = _require_mosquito_auth(request)
     if auth_err:
         return auth_err
     su = _current_session_user(request)
     try:
-        data = _build_overview_data(su)
+        date_str = (request.GET.get('date') or '').strip()
+        hour_str = (request.GET.get('hour') or '').strip()
+        data = _build_overview_data(su, date_str=date_str, hour_str=hour_str)
         return JsonResponse(data)
     except Exception as e:
         logger.exception('overview failed')
