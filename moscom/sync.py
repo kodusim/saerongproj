@@ -202,17 +202,24 @@ def backfill_collections(days=30, chunk_days=7):
 # ─ 메인 진입점 ─────────────────────────────────
 
 def run_sync():
-    """Celery 가 1시간마다 호출. 장비 + 포집 incremental."""
+    """Celery 가 1시간마다 호출. 장비 + 포집 incremental + 날씨."""
     state = _get_state()
     state.last_run_at = timezone.now()
     try:
         dr = sync_devices()
         cr = sync_collections()
+        # 날씨 동기화 (실패해도 sync 전체 fail 시키지 않음)
+        try:
+            from .weather import sync_weather
+            wr = sync_weather()
+        except Exception as we:
+            logger.warning(f'weather sync failed: {we}')
+            wr = {'error': str(we)}
         state.last_status = 'ok'
         state.last_error = ''
         state.devices_synced_at = timezone.now()
         state.save(update_fields=['last_run_at', 'last_status', 'last_error', 'devices_synced_at'])
-        return {'devices': dr, 'collections': cr}
+        return {'devices': dr, 'collections': cr, 'weather': wr}
     except Exception as e:
         logger.exception('run_sync failed')
         state.last_status = 'error'

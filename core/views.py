@@ -364,18 +364,37 @@ def _build_overview_data(su, date_str='', hour_str=''):
     devices = user_store.filter_devices(su, devices)
     allowed_uuids = {d.get('device_uuid') for d in devices}
 
+    # 우리 DB(moscom.Device)에서 날씨 데이터 lookup
+    weather_map = {}
+    try:
+        from moscom.models import Device as MoscomDevice
+        for md in MoscomDevice.objects.filter(device_uuid__in=allowed_uuids):
+            weather_map[md.device_uuid] = {
+                'temperature': md.temperature,
+                'humidity': md.humidity,
+                'precipitation': md.precipitation,
+                'wind_speed': md.wind_speed,
+            }
+    except Exception:
+        pass
+
     # 이름/주소 맵
     meta = {}
     for d in devices:
         dv = d.get('device') or {}
         nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
         addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)) or ''
+        w = weather_map.get(d.get('device_uuid'), {})
         meta[d.get('device_uuid')] = {
             'name': nm, 'addr': addr,
             'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100,
             'battery': dv.get('battery') or 0,
             'fan': dv.get('fan') or 0,
             'updated_date': dv.get('updated_date'),
+            'temperature': w.get('temperature'),
+            'humidity': w.get('humidity'),
+            'precipitation': w.get('precipitation'),
+            'wind_speed': w.get('wind_speed'),
         }
 
     # 7일 통계 (허용 장비만)
@@ -393,7 +412,29 @@ def _build_overview_data(su, date_str='', hour_str=''):
     # date_str 가 주어진 경우 그 날짜를 기준일로 사용 (없으면 7일 stats 의 마지막 날짜 = 어제)
     today_d = target_iso if target_iso in dates_set else (sorted_dates[-1] if sorted_dates else target_iso)
     yday_d = yday_iso if yday_iso in dates_set else (sorted_dates[-2] if len(sorted_dates) >= 2 else yday_iso)
-    _ = cutoff_hour  # 시각별 필터는 현재 미적용 (다음 PR)
+
+    # ?hour 지정 시: 그 날짜의 0시 ~ hour시까지의 누적값으로 today_by_dev 재계산
+    if cutoff_hour is not None and 0 <= cutoff_hour <= 23:
+        try:
+            from moscom.models import Collection
+            from django.db.models import Sum
+            from datetime import datetime as dt
+            day_start = dt(target_date.year, target_date.month, target_date.day, 0, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
+            cutoff_dt = day_start + timedelta(hours=cutoff_hour)
+            cutoff_data = (
+                Collection.objects
+                .filter(device_uuid__in=allowed_uuids,
+                        created_date__gte=day_start,
+                        created_date__lte=cutoff_dt)
+                .values('device_uuid')
+                .annotate(total=Sum('mosquito_count'))
+            )
+            hour_by_dev = {row['device_uuid']: (row['total'] or 0) for row in cutoff_data}
+            # daily[today_d] 를 시각별 cutoff 값으로 override
+            for u in allowed_uuids:
+                daily[u][today_d] = hour_by_dev.get(u, 0)
+        except Exception as e:
+            logger.warning(f'hour cutoff failed: {e}')
 
     # 오늘 값
     today_by_dev = {u: daily[u].get(today_d, 0) for u in allowed_uuids} if today_d else {u: 0 for u in allowed_uuids}
@@ -549,6 +590,12 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'trust_score': trust_score, 'status': equip_status,
             'battery': battery, 'trend': trend_dir,
             'bad_min': m.get('bad_min', 100),
+            # 날씨 (Open-Meteo)
+            'temperature': m.get('temperature'),
+            'humidity': m.get('humidity'),
+            'precipitation': m.get('precipitation'),
+            'wind_speed': m.get('wind_speed'),
+            'updated_date': m.get('updated_date'),
         })
 
     # 포집량 내림차순 정렬

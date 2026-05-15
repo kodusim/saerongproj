@@ -1727,10 +1727,26 @@ body {
       </div>
     </div>
 
+    <!-- 데이터 관리 (수정/삭제) -->
+    <div class="ma-list-card" style="margin-top:14px">
+      <h4>
+        <span>🛠️ 데이터 관리</span>
+        <span style="font-size:11px;color:var(--gray4);font-weight:500" id="dm-sync-status">상태 로드 중…</span>
+      </h4>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="ma-sm-btn" onclick="dmShow('devices')">장비 메타 수정</button>
+        <button class="ma-sm-btn" onclick="dmShow('collections')">포집 데이터 수정</button>
+        <button class="ma-sm-btn" onclick="dmShow('logs')">수정 이력</button>
+      </div>
+      <div id="dm-content" style="font-size:12px">
+        <div style="color:var(--gray4);font-style:italic">위 버튼을 선택하세요.</div>
+      </div>
+    </div>
+
     <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
       <strong style="color:var(--yellow)">참고</strong> ·
-      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 포집량 이상 감지 / 추세 / AI 예측 · 예보 / 민원</strong> 전 탭에서 표시됩니다.
-      admin 계정은 모든 장비에 접근 가능합니다.
+      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 포집량 이상 감지 / 추세 / AI 예측 · 예보</strong> 전 탭에서 표시됩니다.
+      admin 계정은 모든 장비에 접근 가능합니다. 데이터 관리는 admin 만 사용 가능합니다.
     </div>
   </div>
 </div><!-- /main -->
@@ -4803,6 +4819,272 @@ async function maDelete(loginId) {
     maMsg('삭제 실패: ' + e.message, 'err');
   }
 }
+
+// ============== 데이터 관리 (관리자) ==============
+const DM = { devices: [], logs: [] };
+function _fmtNum(v){ return v == null ? '-' : Number(v).toLocaleString(); }
+function _fmtDt(s){ if(!s) return '-'; return s.replace('T',' ').slice(0,19); }
+function _esc(s){ return (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function dmLoadSyncStatus() {
+  try {
+    const r = await fetch('/mosquito-test/db/sync-status/');
+    const j = await r.json();
+    const el = document.getElementById('dm-sync-status');
+    if (!el) return;
+    if (!r.ok) { el.textContent = '상태 조회 실패'; return; }
+    const last = j.last_run_at ? _fmtDt(j.last_run_at) : '미실행';
+    el.textContent = `장비 ${j.devices_count} · 포집 ${j.collections_count.toLocaleString()}건 · 마지막 동기화 ${last}`;
+  } catch (e) {}
+}
+
+async function dmShow(kind) {
+  const host = document.getElementById('dm-content');
+  host.innerHTML = '<div style="padding:14px;color:var(--gray4)">로딩 중…</div>';
+  if (kind === 'devices') return dmRenderDevices();
+  if (kind === 'collections') return dmRenderCollectionsForm();
+  if (kind === 'logs') return dmRenderLogs();
+}
+
+async function dmRenderDevices() {
+  const host = document.getElementById('dm-content');
+  try {
+    const r = await fetch('/mosquito-test/db/devices/');
+    const j = await r.json();
+    DM.devices = j.items || [];
+    if (!DM.devices.length) { host.innerHTML = '<div style="padding:14px;color:var(--gray4)">장비 없음. 동기화를 먼저 실행하세요.</div>'; return; }
+    host.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead style="background:var(--gray1)">
+          <tr>
+            <th style="padding:6px;text-align:left">장비명</th>
+            <th style="padding:6px">시도</th>
+            <th style="padding:6px">군구</th>
+            <th style="padding:6px">동</th>
+            <th style="padding:6px;text-align:right">기온</th>
+            <th style="padding:6px;text-align:right">습도</th>
+            <th style="padding:6px;text-align:right">정상≤</th>
+            <th style="padding:6px;text-align:right">경고≤</th>
+            <th style="padding:6px;text-align:right">위험≥</th>
+            <th style="padding:6px">작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${DM.devices.map(d => `<tr data-id="${d.id}" style="border-bottom:1px solid var(--gray2)">
+            <td style="padding:6px"><strong>${_esc(d.device_name)}</strong><div style="font-size:10px;color:var(--gray4)">${_esc(d.device_uuid)}</div></td>
+            <td style="padding:6px;text-align:center"><input class="dm-cell" data-f="address_sido" value="${_esc(d.address_sido)}" style="width:70px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px;text-align:center"><input class="dm-cell" data-f="address_gungu" value="${_esc(d.address_gungu)}" style="width:90px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px;text-align:center"><input class="dm-cell" data-f="address_dong" value="${_esc(d.address_dong)}" style="width:90px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px;text-align:right;font-family:var(--mono);color:var(--gray5)">${d.temperature != null ? d.temperature+'°C' : '-'}</td>
+            <td style="padding:6px;text-align:right;font-family:var(--mono);color:var(--gray5)">${d.humidity != null ? d.humidity+'%' : '-'}</td>
+            <td style="padding:6px;text-align:right"><input class="dm-cell" data-f="normal_max" type="number" value="${d.thresholds.normal_max}" style="width:55px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;text-align:right"></td>
+            <td style="padding:6px;text-align:right"><input class="dm-cell" data-f="warning_max" type="number" value="${d.thresholds.warning_max}" style="width:55px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;text-align:right"></td>
+            <td style="padding:6px;text-align:right"><input class="dm-cell" data-f="bad_min" type="number" value="${d.thresholds.bad_min}" style="width:55px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;text-align:right"></td>
+            <td style="padding:6px;text-align:center"><button class="ma-sm-btn" onclick="dmSaveDevice(${d.id}, this)">저장</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    host.innerHTML = `<div style="padding:14px;color:var(--red)">로드 실패: ${_esc(e.message)}</div>`;
+  }
+}
+
+async function dmSaveDevice(id, btn) {
+  const tr = btn.closest('tr');
+  if (!tr) return;
+  const payload = {};
+  tr.querySelectorAll('.dm-cell').forEach(inp => {
+    const f = inp.dataset.f;
+    const v = inp.type === 'number' ? Number(inp.value) : inp.value;
+    payload[f] = v;
+  });
+  btn.disabled = true; btn.textContent = '저장 중…';
+  try {
+    const r = await fetch('/mosquito-test/db/devices/' + id + '/', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1200);
+  } catch (e) {
+    btn.textContent = '실패';
+    alert('저장 실패: ' + e.message);
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1500);
+  }
+}
+
+function dmRenderCollectionsForm() {
+  const host = document.getElementById('dm-content');
+  host.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px;background:var(--gray1);border-radius:6px;margin-bottom:10px">
+      <label style="font-size:11px;font-weight:700">기간</label>
+      <input type="datetime-local" id="dm-coll-start" style="padding:4px 8px;border:1px solid var(--gray3);border-radius:3px;font-size:11px">
+      <span>~</span>
+      <input type="datetime-local" id="dm-coll-end" style="padding:4px 8px;border:1px solid var(--gray3);border-radius:3px;font-size:11px">
+      <label style="font-size:11px;font-weight:700;margin-left:6px">장비</label>
+      <select id="dm-coll-dev" style="padding:4px 8px;border:1px solid var(--gray3);border-radius:3px;font-size:11px;max-width:200px">
+        <option value="">(전체)</option>
+        ${(DM.devices || []).map(d => `<option value="${d.device_uuid}">${_esc(d.device_name)}</option>`).join('')}
+      </select>
+      <button class="ma-sm-btn" onclick="dmLoadCollections()">조회</button>
+    </div>
+    <div id="dm-coll-table"><div style="padding:14px;color:var(--gray4)">기간/장비 선택 후 조회</div></div>
+  `;
+  // 기본값: 어제 ~ 오늘
+  const now = new Date();
+  const yest = new Date(now.getTime() - 86400000);
+  const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('dm-coll-start').value = isoLocal(yest);
+  document.getElementById('dm-coll-end').value = isoLocal(now);
+  // 장비 목록 없으면 채우기
+  if (!DM.devices.length) {
+    fetch('/mosquito-test/db/devices/').then(r => r.json()).then(j => {
+      DM.devices = j.items || [];
+      const sel = document.getElementById('dm-coll-dev');
+      if (sel) sel.innerHTML = '<option value="">(전체)</option>' + DM.devices.map(d => `<option value="${d.device_uuid}">${_esc(d.device_name)}</option>`).join('');
+    }).catch(()=>{});
+  }
+}
+
+async function dmLoadCollections() {
+  const host = document.getElementById('dm-coll-table');
+  host.innerHTML = '<div style="padding:14px;color:var(--gray4)">로딩…</div>';
+  const start = document.getElementById('dm-coll-start').value;
+  const end = document.getElementById('dm-coll-end').value;
+  const dev = document.getElementById('dm-coll-dev').value;
+  const params = new URLSearchParams();
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  if (dev) params.set('device_uuid', dev);
+  params.set('limit', '500');
+  try {
+    const r = await fetch('/mosquito-test/db/collections/?' + params.toString());
+    const j = await r.json();
+    const items = j.items || [];
+    if (!items.length) { host.innerHTML = '<div style="padding:14px;color:var(--gray4)">기록 없음</div>'; return; }
+    host.innerHTML = `
+      <div style="font-size:11px;color:var(--gray4);margin-bottom:6px">${items.length}건 (최대 500)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead style="background:var(--gray1)">
+          <tr>
+            <th style="padding:5px;text-align:left">시각</th>
+            <th style="padding:5px">장비</th>
+            <th style="padding:5px;text-align:right">포집량</th>
+            <th style="padding:5px;text-align:right">배터리</th>
+            <th style="padding:5px;text-align:right">충전</th>
+            <th style="padding:5px;text-align:right">팬</th>
+            <th style="padding:5px">수정</th>
+            <th style="padding:5px">작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(c => {
+            const devName = (DM.devices.find(d => d.device_uuid === c.device_uuid) || {}).device_name || c.device_uuid;
+            return `<tr data-cid="${c.id}" style="border-bottom:1px solid var(--gray2)">
+              <td style="padding:4px;font-family:var(--mono);font-size:10px">${_fmtDt(c.created_date)}</td>
+              <td style="padding:4px">${_esc(devName)}</td>
+              <td style="padding:4px;text-align:right"><input class="dm-c-cell" data-f="mosquito_count" type="number" value="${c.mosquito_count}" style="width:60px;padding:2px 5px;border:1px solid var(--gray3);border-radius:3px;text-align:right;font-family:var(--mono)"></td>
+              <td style="padding:4px;text-align:right"><input class="dm-c-cell" data-f="battery" type="number" value="${c.battery}" style="width:55px;padding:2px 5px;border:1px solid var(--gray3);border-radius:3px;text-align:right;font-family:var(--mono)"></td>
+              <td style="padding:4px;text-align:right"><input class="dm-c-cell" data-f="charge" type="number" value="${c.charge}" style="width:45px;padding:2px 5px;border:1px solid var(--gray3);border-radius:3px;text-align:right;font-family:var(--mono)"></td>
+              <td style="padding:4px;text-align:right"><input class="dm-c-cell" data-f="fan" type="number" value="${c.fan}" style="width:45px;padding:2px 5px;border:1px solid var(--gray3);border-radius:3px;text-align:right;font-family:var(--mono)"></td>
+              <td style="padding:4px;text-align:center">${c.edited ? '<span style="color:var(--orange);font-weight:700">수정됨</span>' : '-'}</td>
+              <td style="padding:4px;text-align:center;white-space:nowrap">
+                <button class="ma-sm-btn" onclick="dmSaveCollection(${c.id}, this)">저장</button>
+                <button class="ma-sm-btn" style="background:#fee;color:#b00;border-color:#fbb" onclick="dmDeleteCollection(${c.id}, this)">삭제</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    host.innerHTML = `<div style="padding:14px;color:var(--red)">로드 실패: ${_esc(e.message)}</div>`;
+  }
+}
+
+async function dmSaveCollection(id, btn) {
+  const tr = btn.closest('tr');
+  const payload = {};
+  tr.querySelectorAll('.dm-c-cell').forEach(inp => {
+    payload[inp.dataset.f] = Number(inp.value);
+  });
+  btn.disabled = true; btn.textContent = '저장 중';
+  try {
+    const r = await fetch('/mosquito-test/db/collections/' + id + '/', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1000);
+  } catch (e) {
+    btn.textContent = '실패';
+    alert('저장 실패: ' + e.message);
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1500);
+  }
+}
+
+async function dmDeleteCollection(id, btn) {
+  if (!confirm('이 포집 데이터 한 행을 삭제할까요? 복구 불가합니다.')) return;
+  try {
+    const r = await fetch('/mosquito-test/db/collections/' + id + '/', { method: 'DELETE', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    btn.closest('tr').remove();
+  } catch (e) {
+    alert('삭제 실패: ' + e.message);
+  }
+}
+
+async function dmRenderLogs() {
+  const host = document.getElementById('dm-content');
+  try {
+    const r = await fetch('/mosquito-test/db/edit-logs/?limit=200');
+    const j = await r.json();
+    const items = j.items || [];
+    if (!items.length) { host.innerHTML = '<div style="padding:14px;color:var(--gray4)">수정 이력 없음</div>'; return; }
+    host.innerHTML = `
+      <div style="font-size:11px;color:var(--gray4);margin-bottom:6px">최근 ${items.length}건</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead style="background:var(--gray1)">
+          <tr>
+            <th style="padding:5px;text-align:left">시각</th>
+            <th style="padding:5px">대상</th>
+            <th style="padding:5px">필드</th>
+            <th style="padding:5px">변경 전</th>
+            <th style="padding:5px">변경 후</th>
+            <th style="padding:5px">수정자</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(e => `<tr style="border-bottom:1px solid var(--gray2)">
+            <td style="padding:4px;font-family:var(--mono);font-size:10px">${_fmtDt(e.edited_at)}</td>
+            <td style="padding:4px;font-size:10px">${_esc(e.table)}<br><span style="color:var(--gray4)">#${e.row_id}</span></td>
+            <td style="padding:4px;font-weight:600">${_esc(e.field)}</td>
+            <td style="padding:4px;color:var(--gray5);font-family:var(--mono);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(e.old_value)}">${_esc(e.old_value)}</td>
+            <td style="padding:4px;font-family:var(--mono);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(e.new_value)}">${_esc(e.new_value)}</td>
+            <td style="padding:4px;font-size:10px">${_esc(e.edited_by) || '-'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    host.innerHTML = `<div style="padding:14px;color:var(--red)">로드 실패: ${_esc(e.message)}</div>`;
+  }
+}
+
+// 모스콤 관리자 탭 진입 시 sync-status 도 로드
+document.addEventListener('DOMContentLoaded', () => {
+  const observer = new MutationObserver(() => {
+    const p = document.getElementById('page-moscom_admin');
+    if (p && p.classList.contains('active')) dmLoadSyncStatus();
+  });
+  const main = document.getElementById('page-moscom_admin');
+  if (main) observer.observe(main, { attributes: true, attributeFilter: ['class'] });
+});
 </script>
 </body>
 </html>

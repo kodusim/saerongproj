@@ -54,6 +54,13 @@ class Device(models.Model):
     is_active = models.BooleanField('활성', default=True)
     synced_at = models.DateTimeField('마지막 동기화', auto_now=True)
 
+    # 날씨 (Open-Meteo 에서 가져와 캐싱, 1시간 주기 갱신)
+    temperature = models.FloatField('기온(°C)', null=True, blank=True)
+    humidity = models.FloatField('습도(%)', null=True, blank=True)
+    precipitation = models.FloatField('강수량(mm)', null=True, blank=True)
+    wind_speed = models.FloatField('풍속(m/s)', null=True, blank=True)
+    weather_synced_at = models.DateTimeField('날씨 동기화', null=True, blank=True)
+
     class Meta:
         ordering = ['address_sido', 'address_gungu', 'address_dong', 'device_name']
         verbose_name = 'MOSCOM 장비'
