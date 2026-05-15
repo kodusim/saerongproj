@@ -19,6 +19,12 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     # 기존 10분마다 크롤링 체크 방식 제거
     # 각 소스가 자신의 crawl_interval에 맞춰 자동으로 다음 크롤링을 예약함
+
+    # MOSCOM 데이터 1시간마다 동기화 — 매시 05분
+    'moscom-sync-hourly': {
+        'task': 'moscom.sync_hourly',
+        'schedule': crontab(minute='5'),
+    },
 }
 
 app.conf.timezone = 'Asia/Seoul'

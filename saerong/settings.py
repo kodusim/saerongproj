@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "analytics",
     "api",
     "animal",
+    "moscom",
 ]
 
 if DEBUG:
