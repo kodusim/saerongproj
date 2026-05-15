@@ -1042,6 +1042,10 @@ body {
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 3-5 6-5s6 2 6 5"/><circle cx="13" cy="4" r="1" fill="currentColor"/></svg>
       모스콤 관리자
     </a>
+    <a class="nav-item" onclick="showPage('data_admin')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="3" rx="1"/><rect x="2" y="7" width="12" height="3" rx="1"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+      데이터 관리
+    </a>
     {% endif %}
   </div>
 
@@ -1727,28 +1731,42 @@ body {
       </div>
     </div>
 
-    <!-- 데이터 관리 (수정/삭제) -->
-    <div class="ma-list-card" style="margin-top:14px">
-      <h4>
-        <span>🛠️ 데이터 관리</span>
-        <span style="font-size:11px;color:var(--gray4);font-weight:500" id="dm-sync-status">상태 로드 중…</span>
-      </h4>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+    <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
+      <strong style="color:var(--yellow)">참고</strong> ·
+      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 포집량 이상 감지 / 추세 / AI 예측 · 예보</strong> 전 탭에서 표시됩니다.
+      admin 계정은 모든 장비에 접근 가능합니다.
+    </div>
+  </div>
+
+  {% if is_admin %}
+  <!-- ══════════ 12. 데이터 관리 (admin 전용) ══════════ -->
+  <div class="page" id="page-data_admin">
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">데이터 관리</div>
+          <div class="sec-sub" id="dm-sync-status">상태 로드 중…</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>admin only · EditLog</div>
+    </div>
+
+    <div class="card mb16" style="padding:12px 16px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="ma-sm-btn" onclick="dmShow('devices')">장비 메타 수정</button>
         <button class="ma-sm-btn" onclick="dmShow('collections')">포집 데이터 수정</button>
         <button class="ma-sm-btn" onclick="dmShow('logs')">수정 이력</button>
       </div>
-      <div id="dm-content" style="font-size:12px">
-        <div style="color:var(--gray4);font-style:italic">위 버튼을 선택하세요.</div>
-      </div>
     </div>
 
-    <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
-      <strong style="color:var(--yellow)">참고</strong> ·
-      사용자별로 체크된 장비만 <strong>종합 현황 / 히트맵 / 포집량 이상 감지 / 추세 / AI 예측 · 예보</strong> 전 탭에서 표시됩니다.
-      admin 계정은 모든 장비에 접근 가능합니다. 데이터 관리는 admin 만 사용 가능합니다.
+    <div class="card" style="padding:14px 16px">
+      <div id="dm-content" style="font-size:12px">
+        <div style="color:var(--gray4);font-style:italic">상단 버튼을 선택하세요.</div>
+      </div>
     </div>
   </div>
+  {% endif %}
 </div><!-- /main -->
 
 <!-- 보고서 생성 모달 -->
@@ -4192,7 +4210,8 @@ const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"포집량 이상 감지",
   trend:"7일 누적 추세", predict:"AI 모기 발생 예측", forecast:"AI 위험도 예보",
   remedy:"방역 내역",
-  equipment:"장비 현황", admin:"AI 행정 판단", moscom_admin:"모스콤 관리자"
+  equipment:"장비 현황", admin:"AI 행정 판단", moscom_admin:"모스콤 관리자",
+  data_admin:"데이터 관리"
 };
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -5076,14 +5095,14 @@ async function dmRenderLogs() {
   }
 }
 
-// 모스콤 관리자 탭 진입 시 sync-status 도 로드
+// 데이터 관리 탭 진입 시 sync-status 로드
 document.addEventListener('DOMContentLoaded', () => {
+  const p = document.getElementById('page-data_admin');
+  if (!p) return;
   const observer = new MutationObserver(() => {
-    const p = document.getElementById('page-moscom_admin');
-    if (p && p.classList.contains('active')) dmLoadSyncStatus();
+    if (p.classList.contains('active')) dmLoadSyncStatus();
   });
-  const main = document.getElementById('page-moscom_admin');
-  if (main) observer.observe(main, { attributes: true, attributeFilter: ['class'] });
+  observer.observe(p, { attributes: true, attributeFilter: ['class'] });
 });
 </script>
 </body>
