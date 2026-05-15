@@ -338,9 +338,27 @@ def _build_overview_data(su, date_str='', hour_str=''):
     date_str: YYYY-MM-DD 형식, 기준일 변경시 사용. 빈 문자열이면 어제(전일) 기본.
     hour_str: HH (0~23), 지정시 그 시점까지 누적. 빈 문자열이면 하루 전체.
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta, timezone, date as date_cls
     from collections import defaultdict
-    _ = date_str, hour_str  # 현재 구현은 어제 기준만 사용. 명시적 사용은 다음 PR.
+
+    # 기준일 결정: date_str 있으면 그 날짜, 아니면 어제 (오전엔 오늘 데이터 안 봄)
+    kst_now = datetime.now(timezone.utc) + timedelta(hours=9)
+    if date_str:
+        try:
+            target_date = date_cls.fromisoformat(date_str)
+        except ValueError:
+            target_date = (kst_now - timedelta(days=1)).date()
+    else:
+        target_date = (kst_now - timedelta(days=1)).date()
+    target_iso = target_date.isoformat()
+    yday_iso = (target_date - timedelta(days=1)).isoformat()
+    # hour_str 처리: 지정시 그 시각까지 cutoff (서버 응답엔 daily 값을 그대로 사용)
+    cutoff_hour = None
+    if hour_str:
+        try:
+            cutoff_hour = int(hour_str)
+        except ValueError:
+            cutoff_hour = None
 
     devices = moscom_client.list_devices()
     devices = user_store.filter_devices(su, devices)
@@ -372,8 +390,10 @@ def _build_overview_data(su, date_str='', hour_str=''):
             daily[u][dd] += (r.get('mosquito_count') or 0)
             dates_set.add(dd)
     sorted_dates = sorted(dates_set)
-    today_d = sorted_dates[-1] if sorted_dates else ''
-    yday_d = sorted_dates[-2] if len(sorted_dates) >= 2 else ''
+    # date_str 가 주어진 경우 그 날짜를 기준일로 사용 (없으면 7일 stats 의 마지막 날짜 = 어제)
+    today_d = target_iso if target_iso in dates_set else (sorted_dates[-1] if sorted_dates else target_iso)
+    yday_d = yday_iso if yday_iso in dates_set else (sorted_dates[-2] if len(sorted_dates) >= 2 else yday_iso)
+    _ = cutoff_hour  # 시각별 필터는 현재 미적용 (다음 PR)
 
     # 오늘 값
     today_by_dev = {u: daily[u].get(today_d, 0) for u in allowed_uuids} if today_d else {u: 0 for u in allowed_uuids}
