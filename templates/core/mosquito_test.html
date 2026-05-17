@@ -980,11 +980,36 @@ body {
 @media (max-width: 768px) {
   /* 본문 좌우 여백 줄이기 */
   body { font-size: 13px; }
-  .main { padding: 56px 12px 12px !important; margin-left: 0 !important; }
+  .main { padding: 0 !important; margin-left: 0 !important; }
 
-  /* 햄버거 버튼 */
+  /* topbar: 햄버거 자리 확보 + 2줄 레이아웃 */
+  .topbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 8px 12px 8px 60px !important;  /* left 60px = 햄버거(40px) + gap */
+    height: auto !important;
+    gap: 6px;
+  }
+  .topbar-left { gap: 8px !important; }
+  .topbar-right {
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+  .page-title { font-size: 14px !important; }
+  .page-sub { font-size: 10px !important; }
+  .date-chip { font-size: 10px !important; padding: 3px 8px !important; }
+  .status-label { font-size: 10px !important; }
+  .topbar .dl-btn {
+    font-size: 11px !important; padding: 5px 9px !important;
+  }
+  .topbar .dl-btn svg { width: 12px !important; height: 12px !important; }
+  /* 페이지 본문은 topbar 아래에 약간 패딩 */
+  .main > .page { padding: 14px 12px !important; }
+
+  /* 햄버거 버튼 — topbar 좌측에 겹쳐 위치 */
   #mb-toggle {
-    display: flex; position: fixed; top: 10px; left: 10px;
+    display: flex; position: fixed; top: 8px; left: 8px;
     width: 40px; height: 40px; align-items: center; justify-content: center;
     background: var(--navy); color: #fff; border: none; border-radius: 8px;
     z-index: 1100; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,.2);
