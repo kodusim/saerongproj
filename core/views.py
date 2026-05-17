@@ -2154,7 +2154,15 @@ def moscom_predict(request):
         # 세션 사용자 허용 장비로 제한
         devices = user_store.filter_devices(_current_session_user(request), devices)
 
-        # 장비 메타
+        # 장비 메타 + moscom DB (region_code, 날씨)
+        moscom_device_map = {}
+        try:
+            from moscom.models import Device as MoscomDevice
+            for md in MoscomDevice.objects.all():
+                moscom_device_map[md.device_uuid] = md
+        except Exception:
+            pass
+
         meta = {}
         for d in devices:
             u = d.get('device_uuid')
@@ -2162,7 +2170,18 @@ def moscom_predict(request):
             name = (dv.get('device_name') or '').strip() or u
             parts = [dv.get('address_sido'), dv.get('address_gungu')]
             region = ' '.join(p for p in parts if p and len(p) < 40 and any(ord(c) < 0x3400 or 0xAC00 <= ord(c) <= 0xD7A3 for c in p)) or '기타'
-            meta[u] = {'name': name, 'region': region}
+            md = moscom_device_map.get(u)
+            meta[u] = {
+                'name': name, 'region': region,
+                'region_code': (md.region_code if md else '') or '',
+                'sido': (md.address_sido if md else (dv.get('address_sido') or '')),
+                'weather': {
+                    'temperature': md.temperature if md else None,
+                    'humidity': md.humidity if md else None,
+                    'precipitation': md.precipitation if md else None,
+                    'wind_speed': md.wind_speed if md else None,
+                } if md else {},
+            }
 
         # 장비별 history 생성
         # 오늘(기준일)은 아직 측정이 안 끝났으니 실측에 포함하지 않음 (예측 컬럼과 중복 방지)
@@ -2192,6 +2211,9 @@ def moscom_predict(request):
                 'name': m['name'],
                 'region': m['region'],
                 'history': hist_by_uuid[u],
+                'region_code': m.get('region_code') or '',
+                'sido': m.get('sido') or '',
+                'weather': m.get('weather') or {},
             })
 
         try:
