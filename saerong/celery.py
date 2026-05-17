@@ -25,6 +25,12 @@ app.conf.beat_schedule = {
         'task': 'moscom.sync_hourly',
         'schedule': crontab(minute='5'),
     },
+    # AI 예측 모델 매일 새벽 5시 10분 재학습
+    # (전날 야간 수집(18:00~05:00) 직후 — Collection sync 가 05:05에 끝났을 시점 다음)
+    'moscom-retrain-daily': {
+        'task': 'moscom.retrain_daily',
+        'schedule': crontab(hour=5, minute=10),
+    },
 }
 
 app.conf.timezone = 'Asia/Seoul'

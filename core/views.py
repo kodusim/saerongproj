@@ -341,15 +341,22 @@ def _build_overview_data(su, date_str='', hour_str=''):
     from datetime import datetime, timedelta, timezone, date as date_cls
     from collections import defaultdict
 
-    # 기준일 결정: date_str 있으면 그 날짜, 아니면 어제 (오전엔 오늘 데이터 안 봄)
-    kst_now = datetime.now(timezone.utc) + timedelta(hours=9)
+    # 기준일 결정: date_str 있으면 그 날짜
+    # 없으면 영업일 어제(어제 새벽 5시 ~ 오늘 새벽 5시 = 어제 데이터)
     if date_str:
         try:
             target_date = date_cls.fromisoformat(date_str)
         except ValueError:
-            target_date = (kst_now - timedelta(days=1)).date()
+            target_date = None
     else:
-        target_date = (kst_now - timedelta(days=1)).date()
+        target_date = None
+    if target_date is None:
+        try:
+            from moscom.timeutil import business_yesterday
+            target_date = business_yesterday()
+        except Exception:
+            kst_now = datetime.now(timezone.utc) + timedelta(hours=9)
+            target_date = (kst_now - timedelta(days=1)).date()
     target_iso = target_date.isoformat()
     yday_iso = (target_date - timedelta(days=1)).isoformat()
     # hour_str 처리: 지정시 그 시각까지 cutoff (서버 응답엔 daily 값을 그대로 사용)
@@ -2144,7 +2151,12 @@ def moscom_predict(request):
     from datetime import datetime, timedelta, timezone
     try:
         # 최근 10일 일별 통계 (lag7까지 쓰니 넉넉하게)
-        today_kst = datetime.now(timezone(timedelta(hours=9))).date()
+        # 영업일 기준 오늘 (새벽 5시 경계)
+        try:
+            from moscom.timeutil import business_today
+            today_kst = business_today()
+        except Exception:
+            today_kst = datetime.now(timezone(timedelta(hours=9))).date()
         start_d = today_kst - timedelta(days=10)
         start_iso = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0, tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
         end_iso = (datetime(today_kst.year, today_kst.month, today_kst.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S.000Z')

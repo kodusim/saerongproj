@@ -112,7 +112,12 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
     model, feature_cols, ver = _load()
     days_ahead = max(1, min(int(days_ahead or 3), 14))
 
-    today = datetime.now(timezone(timedelta(hours=9))).date()
+    # 영업일 기준 오늘 (새벽 5시가 일 경계)
+    try:
+        from moscom.timeutil import business_today
+        today = business_today()
+    except Exception:
+        today = datetime.now(timezone(timedelta(hours=9))).date()
     future_dates = [today + timedelta(days=i) for i in range(0, days_ahead)]
 
     results = []
