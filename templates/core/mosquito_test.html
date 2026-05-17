@@ -1011,7 +1011,7 @@ body {
     </a>
     <a class="nav-item" onclick="showPage('remedy')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
-      방역 내역
+      방역 실시 내역
     </a>
     <a class="nav-item" onclick="showPage('equipment')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><line x1="6" y1="14" x2="10" y2="14"/><line x1="8" y1="12" x2="8" y2="14"/></svg>
@@ -1148,7 +1148,7 @@ body {
         <table class="data-table" style="width:100%" id="ov-station-table">
           <thead id="ov-station-thead">
             <tr>
-              <th>장비</th><th>지역</th><th>형태</th><th>방역 상태</th>
+              <th>장비</th><th>지역</th><th>형태</th><th>방역 필요</th>
               <th>기준일</th><th>전일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
@@ -1496,14 +1496,14 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 7. 방역 내역 ══════════ -->
+  <!-- ══════════ 7. 방역 실시 내역 ══════════ -->
   <div class="page" id="page-remedy">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">방역 내역</div>
-          <div class="sec-sub" id="rm-sub">방역 일정 등록 · 진행 이력 관리</div>
+          <div class="sec-title">방역 실시 내역</div>
+          <div class="sec-sub" id="rm-sub">방역 실시 기록 등록 · 이력 관리</div>
         </div>
       </div>
     </div>
@@ -1511,7 +1511,7 @@ body {
     <div class="rm-layout">
       <!-- 왼쪽: 등록/수정 폼 -->
       <div class="rm-form-card">
-        <h4 id="rm-form-title">새 방역 내역 등록</h4>
+        <h4 id="rm-form-title">새 방역 실시 내역 등록</h4>
 
         <div class="rm-field">
           <label>대상 장비</label>
@@ -1529,7 +1529,7 @@ body {
         </div>
 
         <div class="rm-field">
-          <label>예정일 (KST)</label>
+          <label>실시일 (KST)</label>
           <input type="date" id="rm-date">
         </div>
 
@@ -1538,7 +1538,7 @@ body {
           <textarea id="rm-note" maxlength="200" placeholder="현장 특이사항 등 (최대 200자)"></textarea>
         </div>
 
-        <button class="ma-primary-btn" id="rm-save-btn" onclick="rmSubmit()">방역 내역 등록</button>
+        <button class="ma-primary-btn" id="rm-save-btn" onclick="rmSubmit()">방역 실시 내역 등록</button>
         <button class="ma-sm-btn" id="rm-cancel-btn" style="width:100%;margin-top:6px;display:none" onclick="rmCancelEdit()">취소</button>
         <div id="rm-msg"></div>
       </div>
@@ -1546,7 +1546,7 @@ body {
       <!-- 오른쪽: 계획 목록 -->
       <div class="rm-list-card">
         <h4>
-          <span>등록된 방역 내역</span>
+          <span>등록된 방역 실시 내역</span>
           <span style="font-size:11px;color:var(--gray4);font-weight:500" id="rm-count">0건</span>
         </h4>
         <div id="rm-list">
@@ -1565,7 +1565,7 @@ body {
     </div>
 
     <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
-      <strong style="color:var(--yellow)">효과 반영 방식</strong> · 예정일부터 <strong>onset_days</strong> 뒤 효과가 발생하여
+      <strong style="color:var(--yellow)">효과 반영 방식</strong> · 실시일부터 <strong>onset_days</strong> 뒤 효과가 발생하여
       <strong>duration_days</strong> 동안 지속됩니다. 해당 기간의 AI 예측값에 감소율이 곱해집니다.
       여러 방역이 겹치면 곱셈으로 누적. 관리자는 전 장비, 일반 사용자는 허용된 장비에 한정됩니다.
     </div>
@@ -1647,7 +1647,7 @@ body {
 
     <div class="card" style="margin-top:14px;padding:10px 14px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
       <strong style="color:var(--yellow)">안내</strong> ·
-      MOSCOM 실측 데이터와 방역 내역을 바탕으로 생성한 초안입니다.
+      MOSCOM 실측 데이터와 방역 실시 내역을 바탕으로 생성한 초안입니다.
       최종 결재 전 담당자 검토 후 사용하십시오.
     </div>
   </div>
@@ -2066,7 +2066,7 @@ function renderOvStationTable(json) {
   const thead = document.getElementById('ov-station-thead');
   if (thead) {
     thead.innerHTML = `<tr>
-      <th>장비</th><th>지역</th><th>형태</th><th>방역 상태</th>
+      <th>장비</th><th>지역</th><th>형태</th><th>방역 필요</th>
       <th>기준일</th><th>전일</th><th>7일 평균</th>
       <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
     </tr>`;
@@ -2889,11 +2889,12 @@ function renderTrendTable() {
   t.innerHTML = hdr + body;
 }
 
-// 기본 기간: 오늘 기준 지난 7일
+// 기본 기간: 전일 기준 지난 7일 (오늘은 데이터 없을 수 있어 제외)
 function defaultTrendRange() {
   const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 6);
+  end.setDate(end.getDate() - 1);  // 전일
+  const start = new Date(end);
+  start.setDate(start.getDate() - 6);  // 전일 포함 7일
   const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   return [fmt(start), fmt(end)];
 }
@@ -3612,7 +3613,7 @@ function renderRmList() {
   cnt.textContent = `${RM_STATE.plans.length}건`;
   if (RM_STATE.plans.length === 0) {
     box.innerHTML = `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:30px">
-      등록된 방역 내역이 없습니다.<br>왼쪽 폼에서 새 내역을 등록하세요.
+      등록된 방역 실시 내역이 없습니다.<br>왼쪽 폼에서 새 내역을 등록하세요.
     </div>`;
     return;
   }
@@ -3677,7 +3678,7 @@ function rmStartEdit(planId) {
   const p = RM_STATE.plans.find(x => x.id === planId);
   if (!p) return;
   RM_STATE.editingId = planId;
-  document.getElementById('rm-form-title').textContent = `방역 내역 수정`;
+  document.getElementById('rm-form-title').textContent = `방역 실시 내역 수정`;
   document.getElementById('rm-device').value = p.device_uuid;
   document.getElementById('rm-method').value = p.method_key;
   document.getElementById('rm-date').value = p.scheduled_date;
@@ -3690,13 +3691,13 @@ function rmStartEdit(planId) {
 
 function rmCancelEdit() {
   RM_STATE.editingId = null;
-  document.getElementById('rm-form-title').textContent = '새 방역 내역 등록';
+  document.getElementById('rm-form-title').textContent = '새 방역 실시 내역 등록';
   document.getElementById('rm-device').value = '';
   document.getElementById('rm-method').value = '';
   const today = new Date();
   document.getElementById('rm-date').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   document.getElementById('rm-note').value = '';
-  document.getElementById('rm-save-btn').textContent = '방역 내역 등록';
+  document.getElementById('rm-save-btn').textContent = '방역 실시 내역 등록';
   document.getElementById('rm-cancel-btn').style.display = 'none';
   renderRmMethodInfo();
 }
@@ -3746,7 +3747,7 @@ async function rmSubmit() {
 }
 
 async function rmDelete(planId) {
-  if (!confirm('이 방역 내역을 삭제하시겠습니까?')) return;
+  if (!confirm('이 방역 실시 내역을 삭제하시겠습니까?')) return;
   try {
     const res = await fetch(`/mosquito-test/api/remedy/${encodeURIComponent(planId)}/`, {
       method: 'DELETE', credentials: 'same-origin',
@@ -4209,7 +4210,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"포집량 이상 감지",
   trend:"7일 누적 추세", predict:"AI 모기 발생 예측", forecast:"AI 위험도 예보",
-  remedy:"방역 내역",
+  remedy:"방역 실시 내역",
   equipment:"장비 현황", admin:"AI 행정 판단", moscom_admin:"모스콤 관리자",
   data_admin:"데이터 관리"
 };
@@ -4343,7 +4344,7 @@ function downloadReport(type){
     <tr><td>내일 (8/16)</td><td style="background:#FDECEA;color:#B71C1C;font-weight:700;text-align:center">경고</td><td style="text-align:center">1,050~1,200마리</td><td>맑음 / 27°C / 습도 82%</td><td style="text-align:center;color:#1A5C35">없음</td><td style="color:#0F5E6E">관측소 B Bti 긴급 + 관측소 H 방제</td></tr>
     <tr><td>모레 (8/17)</td><td style="background:#FFF3E0;color:#E65100;font-weight:700;text-align:center">주의</td><td style="text-align:center">850~1,000마리</td><td>구름 / 26°C / 습도 79%</td><td style="text-align:center;color:#1A5C35">없음</td><td style="color:#0F5E6E">주요 관측소 Bti 정기 방제</td></tr>
     <tr><td>3일 후 (8/18)</td><td style="background:#FFF3E0;color:#E65100;font-weight:700;text-align:center">주의</td><td style="text-align:center">700~900마리</td><td>오전 소나기 / 25°C / 습도 88%</td><td style="text-align:center;color:#C05000;font-weight:700">8mm</td><td style="color:#C05000;font-weight:600">8/17 사전 Bti 선제 + 8/20 재살포 예정</td></tr></table>
-    <h2>6. 방역 내역</h2>
+    <h2>6. 방역 실시 내역</h2>
     <table><tr><th>실시 시간</th><th>대상 지역</th><th>방역 방법</th><th>우선순위</th><th>근거</th></tr>
     <tr><td>익일 06:00~09:00</td><td><strong>관측소 B (저수지)</strong></td><td style="color:#0F5E6E;font-weight:700">Bti 긴급 유충 방제</td><td style="color:#B71C1C;font-weight:700">긴급</td><td style="font-size:10px">Anomaly +38%. 지속성 서식처.</td></tr>
     <tr><td>익일 07:00~10:00</td><td><strong>관측소 H (하천중류)</strong></td><td style="color:#0F5E6E;font-weight:700">Bti + 배수로 정비</td><td style="color:#C05000;font-weight:700">권고</td><td style="font-size:10px">7일 상승 추세. 정체구간.</td></tr>

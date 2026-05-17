@@ -360,6 +360,9 @@ def _build_overview_data(su, date_str='', hour_str=''):
         except ValueError:
             cutoff_hour = None
 
+    # 전역 이상 감지 기준: 51마리 이상이면 이상으로 판정
+    ANOMALY_THRESHOLD = 51
+
     devices = moscom_client.list_devices()
     devices = user_store.filter_devices(su, devices)
     allowed_uuids = {d.get('device_uuid') for d in devices}
@@ -387,7 +390,8 @@ def _build_overview_data(su, date_str='', hour_str=''):
         w = weather_map.get(d.get('device_uuid'), {})
         meta[d.get('device_uuid')] = {
             'name': nm, 'addr': addr,
-            'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100,
+            # 51마리 이상 = 이상 (전역 통일)
+            'bad_min': ANOMALY_THRESHOLD,
             'battery': dv.get('battery') or 0,
             'fan': dv.get('fan') or 0,
             'updated_date': dv.get('updated_date'),
