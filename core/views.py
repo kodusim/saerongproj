@@ -2165,14 +2165,20 @@ def moscom_predict(request):
             meta[u] = {'name': name, 'region': region}
 
         # 장비별 history 생성
+        # 오늘(기준일)은 아직 측정이 안 끝났으니 실측에 포함하지 않음 (예측 컬럼과 중복 방지)
+        today_iso = today_kst.isoformat()
         hist_by_uuid = {u: [] for u in meta}
         for r in (daily or []):
             u = r.get('device_uuid')
             if u not in hist_by_uuid:
                 continue
             date = (r.get('created_date') or '')[:10]
-            if date:
-                hist_by_uuid[u].append({'date': date, 'count': r.get('mosquito_count') or 0})
+            if not date:
+                continue
+            # 오늘 이후 데이터는 실측에서 제외
+            if date >= today_iso:
+                continue
+            hist_by_uuid[u].append({'date': date, 'count': r.get('mosquito_count') or 0})
 
         # 히스토리는 오름차순(과거 → 최신)으로 정렬: 차트와 lag 계산에 필요
         for u in hist_by_uuid:
