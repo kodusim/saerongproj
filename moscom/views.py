@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Count, Q
 
-from .models import Device, Collection, SyncState, EditLog
+from .models import Device, Collection, SyncState, EditLog, Region
 from .edit_helpers import log_change
 
 
@@ -39,8 +39,13 @@ def _admin_name(request):
 def device_list(request):
     qs = Device.objects.filter(is_active=True)
     sido = request.GET.get('sido')
+    region_code = request.GET.get('region_code')
     if sido:
         qs = qs.filter(address_sido=sido)
+    if region_code is not None:
+        qs = qs.filter(region_code=region_code)
+    # 권역명 lookup
+    region_map = {r.code: r.name for r in Region.objects.all()}
     return JsonResponse({
         'count': qs.count(),
         'items': [
@@ -69,10 +74,106 @@ def device_list(request):
                 'precipitation': d.precipitation,
                 'wind_speed': d.wind_speed,
                 'weather_synced_at': d.weather_synced_at.isoformat() if d.weather_synced_at else None,
+                'region_code': d.region_code,
+                'region_name': region_map.get(d.region_code, d.region_code or '미지정'),
             }
             for d in qs
         ],
     })
+
+
+@require_GET
+def region_list(request):
+    """권역 목록. 각 권역별 장비 수 포함."""
+    from collections import Counter
+    counts = Counter(Device.objects.filter(is_active=True).values_list('region_code', flat=True))
+    regions = list(Region.objects.all())
+    # DB 에 없지만 Device 에 prefix 있는 경우 — 빈 row 도 노출
+    existing_codes = {r.code for r in regions}
+    extra_codes = sorted(set(counts.keys()) - existing_codes - {''})
+    return JsonResponse({
+        'items': [
+            {
+                'id': r.id, 'code': r.code, 'name': r.name,
+                'sort_order': r.sort_order, 'note': r.note,
+                'device_count': counts.get(r.code, 0),
+            }
+            for r in regions
+        ] + [
+            # Region 마스터에 없지만 Device 에는 prefix 있는 경우 (lazy)
+            {'id': None, 'code': c, 'name': c, 'sort_order': 100, 'note': '',
+             'device_count': counts.get(c, 0)}
+            for c in extra_codes
+        ],
+        'unassigned_device_count': counts.get('', 0),
+    })
+
+
+@csrf_exempt
+@require_http_methods(['POST', 'PUT', 'PATCH'])
+def region_upsert(request, code=None):
+    """관리자만. POST /regions/  body:{code,name,sort_order,note}.
+    PUT /regions/<code>/  표시명 등 수정."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON 파싱 실패'}, status=400)
+    actor = _admin_name(request)
+    if request.method == 'POST':
+        code_in = (body.get('code') or '').strip()[:20]
+        if not code_in:
+            return JsonResponse({'error': 'code 필수'}, status=400)
+        r, created = Region.objects.get_or_create(
+            code=code_in,
+            defaults={
+                'name': (body.get('name') or code_in)[:80],
+                'sort_order': int(body.get('sort_order') or 100),
+                'note': (body.get('note') or '')[:200],
+            },
+        )
+        if not created:
+            return JsonResponse({'error': '이미 존재하는 코드'}, status=400)
+        log_change('moscom.Region', r.id, '_created', '', f'{r.code}={r.name}', edited_by=actor)
+        return JsonResponse({'ok': True, 'id': r.id})
+
+    # PUT/PATCH — code (URL) 로 찾아서 수정
+    if not code:
+        return JsonResponse({'error': 'code 필요'}, status=400)
+    r = Region.objects.filter(code=code).first()
+    if not r:
+        # 없으면 자동 생성 (lazy code 케이스)
+        r = Region.objects.create(code=code, name=code, sort_order=100)
+    for k in ['name', 'sort_order', 'note']:
+        if k in body:
+            old = getattr(r, k)
+            new = body[k]
+            if k == 'sort_order':
+                try: new = int(new)
+                except (TypeError, ValueError): continue
+            if k in ('name', 'note'):
+                new = (new or '')[:200 if k == 'note' else 80]
+            if old != new:
+                log_change('moscom.Region', r.id, k, old, new, edited_by=actor)
+                setattr(r, k, new)
+    r.save()
+    return JsonResponse({'ok': True})
+
+
+@csrf_exempt
+@require_http_methods(['DELETE'])
+def region_delete(request, code):
+    """관리자만. 권역 마스터 삭제 (Device.region_code 는 그대로 — code 만 사라짐)."""
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    r = Region.objects.filter(code=code).first()
+    if not r:
+        return JsonResponse({'error': '존재하지 않음'}, status=404)
+    actor = _admin_name(request)
+    log_change('moscom.Region', r.id, '_deleted', f'{r.code}={r.name}', '', edited_by=actor)
+    r.delete()
+    return JsonResponse({'ok': True})
 
 
 @csrf_exempt

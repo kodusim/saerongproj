@@ -61,6 +61,9 @@ class Device(models.Model):
     wind_speed = models.FloatField('풍속(m/s)', null=True, blank=True)
     weather_synced_at = models.DateTimeField('날씨 동기화', null=True, blank=True)
 
+    # 권역 코드 (device_name prefix 에서 자동 추출 — 예: KH, GH서, BD, HY)
+    region_code = models.CharField('권역 코드', max_length=20, blank=True, default='', db_index=True)
+
     class Meta:
         ordering = ['address_sido', 'address_gungu', 'address_dong', 'device_name']
         verbose_name = 'MOSCOM 장비'
@@ -118,6 +121,26 @@ class SyncState(models.Model):
 
     def __str__(self):
         return f'last={self.last_run_at} status={self.last_status}'
+
+
+class Region(models.Model):
+    """권역 마스터. device_name prefix(code) → 사용자 친화적 이름(name) 매핑.
+    sync 시 새 prefix 발견하면 자동 생성(name=code 기본값), 관리자가 name 수정.
+    """
+    code = models.CharField('코드', max_length=20, unique=True, db_index=True)
+    name = models.CharField('표시명', max_length=80)
+    sort_order = models.IntegerField('정렬 순서', default=100)
+    note = models.CharField('비고', max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'code']
+        verbose_name = '권역'
+        verbose_name_plural = '권역'
+
+    def __str__(self):
+        return f'{self.code} ({self.name})'
 
 
 class EditLog(models.Model):

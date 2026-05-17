@@ -7,6 +7,7 @@
 - backfill_collections(days=30): 최초 30일 백필
 """
 import logging
+import re
 from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.db import transaction
@@ -14,9 +15,32 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from core import moscom_client
-from .models import Device, Collection, SyncState
+from .models import Device, Collection, SyncState, Region
 
 logger = logging.getLogger(__name__)
+
+
+# device_name 앞 prefix 추출. 알파벳 또는 한글 1글자 이상 + 선택적 후행 한글(예: "GH서").
+# 매칭 안 되면 빈 문자열 ('' = 권역 미지정 = 천안 본사처럼 prefix 없는 그룹)
+_PREFIX_RE = re.compile(r'^([A-Z]+(?:[가-힣]+)?|[가-힣]+)(?=\d|\s|$)')
+
+
+def extract_region_code(device_name):
+    """device_name 에서 권역 prefix 추출.
+    예: 'KH02함박공원0029' → 'KH'
+        'GH서01젤미공원0022' → 'GH서'
+        'HA023.1절기념체육관0015' → 'HA'
+        '260001sugwang' → ''
+        '베트남 sugwang' → '베트남'
+    """
+    if not device_name:
+        return ''
+    name = device_name.strip()
+    # 숫자로 시작하는 일련번호형은 prefix 없음
+    if re.match(r'^\d', name):
+        return ''
+    m = _PREFIX_RE.match(name)
+    return m.group(1) if m else ''
 
 
 def _get_state():
@@ -43,6 +67,7 @@ def sync_devices():
         raise RuntimeError(f'unexpected list_devices response: {type(raw).__name__}')
 
     seen_uuids = set()
+    seen_prefixes = set()
     n_create = n_update = 0
     with transaction.atomic():
         for entry in raw:
@@ -52,10 +77,14 @@ def sync_devices():
                 continue
             seen_uuids.add(uuid)
             setting = d.get('deviceSetting') or {}
+            dev_name = (d.get('device_name') or '').strip()[:200]
+            region_code = extract_region_code(dev_name)[:20]
+            if region_code:
+                seen_prefixes.add(region_code)
 
             defaults = {
                 'device_id': d.get('id'),
-                'device_name': (d.get('device_name') or '').strip()[:200],
+                'device_name': dev_name,
                 'device_usim': (d.get('device_usim') or '')[:64],
                 'address_sido': (d.get('address_sido') or '')[:50],
                 'address_gungu': (d.get('address_gungu') or '')[:50],
@@ -84,6 +113,7 @@ def sync_devices():
                 'bad_min': int(setting.get('bad_min', 100) or 100),
                 'bad_max': int(setting.get('bad_max', 10000) or 10000),
                 'is_active': True,
+                'region_code': region_code,
             }
             _, created = Device.objects.update_or_create(device_uuid=uuid, defaults=defaults)
             if created:
@@ -94,8 +124,14 @@ def sync_devices():
         # MOSCOM에서 빠진 장비는 비활성으로 표시 (삭제는 안 함 — Collection 참조 깨질 위험)
         Device.objects.exclude(device_uuid__in=seen_uuids).update(is_active=False)
 
-    logger.info(f'sync_devices: created={n_create}, updated={n_update}, total={len(seen_uuids)}')
-    return {'created': n_create, 'updated': n_update, 'total': len(seen_uuids)}
+        # 새로 발견된 prefix 는 Region 마스터에 자동 생성 (name=code 기본값, 관리자가 수정)
+        existing = set(Region.objects.values_list('code', flat=True))
+        for code in seen_prefixes:
+            if code not in existing:
+                Region.objects.create(code=code, name=code, sort_order=100)
+
+    logger.info(f'sync_devices: created={n_create}, updated={n_update}, total={len(seen_uuids)}, prefixes={len(seen_prefixes)}')
+    return {'created': n_create, 'updated': n_update, 'total': len(seen_uuids), 'prefixes': len(seen_prefixes)}
 
 
 # ─ 포집 데이터 동기화 ───────────────────────────

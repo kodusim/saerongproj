@@ -1148,12 +1148,12 @@ body {
         <table class="data-table" style="width:100%" id="ov-station-table">
           <thead id="ov-station-thead">
             <tr>
-              <th>장비</th><th>지역</th><th>형태</th><th>방역 필요</th>
+              <th>장비</th><th>권역</th><th>지역</th><th>형태</th><th>방역 필요</th>
               <th>기준일</th><th>전일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
           </thead>
-          <tbody id="ov-station-body"><tr><td colspan="11" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
+          <tbody id="ov-station-body"><tr><td colspan="12" style="text-align:center;color:var(--gray4);padding:24px">로딩 중…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1754,6 +1754,7 @@ body {
 
     <div class="card mb16" style="padding:12px 16px">
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="ma-sm-btn" onclick="dmShow('regions')">권역 관리</button>
         <button class="ma-sm-btn" onclick="dmShow('devices')">장비 메타 수정</button>
         <button class="ma-sm-btn" onclick="dmShow('collections')">포집 데이터 수정</button>
         <button class="ma-sm-btn" onclick="dmShow('logs')">수정 이력</button>
@@ -2066,14 +2067,14 @@ function renderOvStationTable(json) {
   const thead = document.getElementById('ov-station-thead');
   if (thead) {
     thead.innerHTML = `<tr>
-      <th>장비</th><th>지역</th><th>형태</th><th>방역 필요</th>
+      <th>장비</th><th>권역</th><th>지역</th><th>형태</th><th>방역 필요</th>
       <th>기준일</th><th>전일</th><th>7일 평균</th>
       <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
     </tr>`;
   }
 
   if (list.length === 0) {
-    tb.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--gray4);padding:24px">허용된 장비가 없습니다</td></tr>`;
     return;
   }
   tb.innerHTML = list.map(d => {
@@ -2093,6 +2094,7 @@ function renderOvStationTable(json) {
     const humid = (d.humidity != null) ? `${d.humidity}%` : '-';
     return `<tr>
       <td><strong>${escapeHtml(d.name)}</strong></td>
+      <td><span style="font-size:10px;font-weight:700;background:#EEF2FF;color:#3949AB;padding:2px 8px;border-radius:10px">${escapeHtml(d.region_name || '미지정')}</span></td>
       <td style="color:var(--gray5);font-size:11px">${escapeHtml(d.addr || '-')}</td>
       <td><span style="font-size:10px;font-weight:600;background:${hbColor.bg};color:${hbColor.color};padding:2px 8px;border-radius:10px">${habitat}</span></td>
       <td><span class="badge ${statusCls}">${statusLabel}</span></td>
@@ -4861,9 +4863,95 @@ async function dmLoadSyncStatus() {
 async function dmShow(kind) {
   const host = document.getElementById('dm-content');
   host.innerHTML = '<div style="padding:14px;color:var(--gray4)">로딩 중…</div>';
+  if (kind === 'regions') return dmRenderRegions();
   if (kind === 'devices') return dmRenderDevices();
   if (kind === 'collections') return dmRenderCollectionsForm();
   if (kind === 'logs') return dmRenderLogs();
+}
+
+async function dmRenderRegions() {
+  const host = document.getElementById('dm-content');
+  try {
+    const r = await fetch('/mosquito-test/db/regions/');
+    const j = await r.json();
+    const items = j.items || [];
+    if (!items.length) {
+      host.innerHTML = '<div style="padding:14px;color:var(--gray4)">권역 없음. 장비 동기화 시 자동 생성됩니다.</div>';
+      return;
+    }
+    host.innerHTML = `
+      <div style="font-size:11px;color:var(--gray4);margin-bottom:8px">
+        권역 코드는 장비명 앞부분(예: <strong>KH</strong>02함박공원)에서 자동 추출됩니다.
+        표시명은 관리자가 자유롭게 수정 가능하며, 모든 화면(종합 현황 등)에 즉시 반영됩니다.
+        ${j.unassigned_device_count ? ' · 미지정 장비 <strong>'+j.unassigned_device_count+'</strong>개' : ''}
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead style="background:var(--gray1)">
+          <tr>
+            <th style="padding:6px;text-align:left">코드</th>
+            <th style="padding:6px;text-align:left">표시명</th>
+            <th style="padding:6px;text-align:right">정렬</th>
+            <th style="padding:6px;text-align:right">장비수</th>
+            <th style="padding:6px;text-align:left">비고</th>
+            <th style="padding:6px">작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(reg => `<tr data-code="${_esc(reg.code)}" style="border-bottom:1px solid var(--gray2)">
+            <td style="padding:6px;font-family:var(--mono);font-weight:700">${_esc(reg.code)}${reg.id == null ? ' <span style="font-size:9px;color:var(--orange)">새</span>' : ''}</td>
+            <td style="padding:6px"><input class="dm-r-cell" data-f="name" value="${_esc(reg.name)}" style="width:160px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px;text-align:right"><input class="dm-r-cell" data-f="sort_order" type="number" value="${reg.sort_order}" style="width:60px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;text-align:right;font-family:var(--mono)"></td>
+            <td style="padding:6px;text-align:right;font-family:var(--mono)">${reg.device_count}</td>
+            <td style="padding:6px"><input class="dm-r-cell" data-f="note" value="${_esc(reg.note || '')}" placeholder="(선택)" style="width:200px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px;text-align:center;white-space:nowrap">
+              <button class="ma-sm-btn" onclick="dmSaveRegion('${_esc(reg.code)}', this)">저장</button>
+              ${reg.device_count === 0 ? `<button class="ma-sm-btn" style="background:#fee;color:#b00;border-color:#fbb" onclick="dmDeleteRegion('${_esc(reg.code)}', this)">삭제</button>` : ''}
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    host.innerHTML = `<div style="padding:14px;color:var(--red)">로드 실패: ${_esc(e.message)}</div>`;
+  }
+}
+
+async function dmSaveRegion(code, btn) {
+  const tr = btn.closest('tr');
+  if (!tr) return;
+  const payload = {};
+  tr.querySelectorAll('.dm-r-cell').forEach(inp => {
+    const f = inp.dataset.f;
+    payload[f] = inp.type === 'number' ? Number(inp.value) : inp.value;
+  });
+  btn.disabled = true; btn.textContent = '저장 중';
+  try {
+    const r = await fetch('/mosquito-test/db/regions/' + encodeURIComponent(code) + '/', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1200);
+  } catch (e) {
+    btn.textContent = '실패';
+    alert('저장 실패: ' + e.message);
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1500);
+  }
+}
+
+async function dmDeleteRegion(code, btn) {
+  if (!confirm(`권역 "${code}" 를 삭제할까요? (장비의 region_code 는 그대로 남고 표시명만 코드로 표시됨)`)) return;
+  try {
+    const r = await fetch('/mosquito-test/db/regions/' + encodeURIComponent(code) + '/delete/', { method: 'DELETE', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    btn.closest('tr').remove();
+  } catch (e) {
+    alert('삭제 실패: ' + e.message);
+  }
 }
 
 async function dmRenderDevices() {

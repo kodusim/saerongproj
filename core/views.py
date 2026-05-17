@@ -367,10 +367,13 @@ def _build_overview_data(su, date_str='', hour_str=''):
     devices = user_store.filter_devices(su, devices)
     allowed_uuids = {d.get('device_uuid') for d in devices}
 
-    # 우리 DB(moscom.Device)에서 날씨 데이터 lookup
+    # 우리 DB(moscom.Device)에서 날씨 데이터 + 권역 lookup
     weather_map = {}
+    region_map_per_uuid = {}  # uuid → (code, name)
+    region_name_by_code = {}
     try:
-        from moscom.models import Device as MoscomDevice
+        from moscom.models import Device as MoscomDevice, Region as MoscomRegion
+        region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
         for md in MoscomDevice.objects.filter(device_uuid__in=allowed_uuids):
             weather_map[md.device_uuid] = {
                 'temperature': md.temperature,
@@ -378,6 +381,10 @@ def _build_overview_data(su, date_str='', hour_str=''):
                 'precipitation': md.precipitation,
                 'wind_speed': md.wind_speed,
             }
+            region_map_per_uuid[md.device_uuid] = (
+                md.region_code or '',
+                region_name_by_code.get(md.region_code, md.region_code) or '미지정',
+            )
     except Exception:
         pass
 
@@ -388,10 +395,13 @@ def _build_overview_data(su, date_str='', hour_str=''):
         nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
         addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)) or ''
         w = weather_map.get(d.get('device_uuid'), {})
+        rc, rn = region_map_per_uuid.get(d.get('device_uuid'), ('', '미지정'))
         meta[d.get('device_uuid')] = {
             'name': nm, 'addr': addr,
             # 51마리 이상 = 이상 (전역 통일)
             'bad_min': ANOMALY_THRESHOLD,
+            'region_code': rc,
+            'region_name': rn,
             'battery': dv.get('battery') or 0,
             'fan': dv.get('fan') or 0,
             'updated_date': dv.get('updated_date'),
@@ -600,6 +610,9 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'precipitation': m.get('precipitation'),
             'wind_speed': m.get('wind_speed'),
             'updated_date': m.get('updated_date'),
+            # 권역
+            'region_code': m.get('region_code') or '',
+            'region_name': m.get('region_name') or '미지정',
         })
 
     # 포집량 내림차순 정렬
