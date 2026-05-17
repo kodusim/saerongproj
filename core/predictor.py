@@ -108,9 +108,10 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
 
     days_ahead = max(1, min(int(days_ahead or 3), 14))
 
-    # 내일~+days_ahead일 후 예측
+    # 오늘(데이터 아직 안 들어온 날) ~ +days_ahead-1일 후 예측
+    # 오늘 18:00부터 다음날 새벽까지 수집되므로, 오늘도 예측 대상에 포함
     today = datetime.now(timezone(timedelta(hours=9))).date()
-    future_dates = [today + timedelta(days=i) for i in range(1, days_ahead + 1)]
+    future_dates = [today + timedelta(days=i) for i in range(0, days_ahead)]
 
     results = []
     rows_to_predict = []

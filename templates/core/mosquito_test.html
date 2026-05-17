@@ -3400,59 +3400,75 @@ function renderFcGauges() {
     return;
   }
 
-  const dates = (selectedPreds[0].predictions || []).map(p => p.date);
-  const cards = dates.map((d, i) => {
-    // 해당 일자 선택된 장비 "최대값"
-    let maxV = 0, totalV = 0;
-    selectedPreds.forEach(p => {
-      const v = p.predictions[i]?.predicted || 0;
-      if (v > maxV) maxV = v;
-      totalV += v;
-    });
-    const grade = fcGradeByValue(maxV);
-    const [, mm, dd] = d.split('-');
-    const weekday = ['일','월','화','수','목','금','토'][new Date(d).getDay()];
-    // 전일 대비 (없으면 flat)
-    let deltaHtml = '<span class="g-delta flat">—</span>';
-    if (i > 0) {
-      let prevMax = 0;
-      selectedPreds.forEach(p => {
-        const v = p.predictions[i-1]?.predicted || 0;
-        if (v > prevMax) prevMax = v;
-      });
-      if (prevMax > 0) {
-        const pct = Math.round((maxV - prevMax) / prevMax * 100);
-        const cls = pct > 5 ? 'up' : pct < -5 ? 'down' : 'flat';
-        const arrow = pct > 5 ? '▲' : pct < -5 ? '▼' : '→';
-        deltaHtml = `<span class="g-delta ${cls}">${arrow} ${pct>=0?'+':''}${pct}%</span>`;
+  // 장비별로 그룹화: 각 장비마다 하나의 가로 row → 그 안에 일별 게이지 카드
+  const devSections = selectedPreds.map(p => {
+    const preds_day = p.predictions || [];
+    const cards = preds_day.map((pp, i) => {
+      const v = pp.predicted || 0;
+      const grade = fcGradeByValue(v);
+      const d = pp.date || '';
+      const parts = d.split('-');
+      const mm = parts[1] || '';
+      const dd = parts[2] || '';
+      const weekday = d ? ['일','월','화','수','목','금','토'][new Date(d).getDay()] : '';
+      // 전일 대비
+      let deltaHtml = '<span class="g-delta flat">—</span>';
+      if (i > 0) {
+        const prev = preds_day[i-1]?.predicted || 0;
+        if (prev > 0) {
+          const pct = Math.round((v - prev) / prev * 100);
+          const cls = pct > 5 ? 'up' : pct < -5 ? 'down' : 'flat';
+          const arrow = pct > 5 ? '▲' : pct < -5 ? '▼' : '→';
+          deltaHtml = `<span class="g-delta ${cls}">${arrow} ${pct>=0?'+':''}${pct}%</span>`;
+        }
       }
-    }
-    // 날씨 아이콘 (예측값 높을수록 비구름 느낌으로)
-    const wi = maxV > 100 ? 'rain' : maxV > 40 ? 'cloud' : 'sun';
-
-    return `
-      <div class="gauge-card">
-        <div class="gauge-weather">${weatherIconSvg(wi)}</div>
-        <div class="gauge-card-day">+${i+1}일 · ${weekday}요일</div>
-        <div class="gauge-card-date">${parseInt(mm,10)}/${parseInt(dd,10)}</div>
-        <div class="gauge-wrap">
-          ${gaugeSvg(maxV)}
-          <div class="gauge-value-box">
-            <div class="gauge-value" style="color:${grade.color}">${maxV}</div>
-            <div class="gauge-unit">마리 / 최대</div>
+      const wi = v > 100 ? 'rain' : v > 40 ? 'cloud' : 'sun';
+      return `
+        <div class="gauge-card">
+          <div class="gauge-weather">${weatherIconSvg(wi)}</div>
+          <div class="gauge-card-day">+${i}일 · ${weekday}요일</div>
+          <div class="gauge-card-date">${parseInt(mm,10)}/${parseInt(dd,10)}</div>
+          <div class="gauge-wrap">
+            ${gaugeSvg(v)}
+            <div class="gauge-value-box">
+              <div class="gauge-value" style="color:${grade.color}">${v}</div>
+              <div class="gauge-unit">마리</div>
+            </div>
+          </div>
+          <div class="gauge-foot">
+            <span class="g-grade"><span class="badge ${grade.cls}">${grade.name}</span></span>
+            ${deltaHtml}
           </div>
         </div>
-        <div class="gauge-card-sub">선택 ${selectedPreds.length}개 합계 ${totalV}</div>
-        <div class="gauge-foot">
-          <span class="g-grade"><span class="badge ${grade.cls}">${grade.name}</span></span>
-          ${deltaHtml}
+      `;
+    }).join('');
+    // 장비별 최대치, 합계
+    const peakV = Math.max(0, ...preds_day.map(x => x.predicted || 0));
+    const peakG = fcGradeByValue(peakV);
+    const totalV = preds_day.reduce((a,b) => a + (b.predicted || 0), 0);
+    return `
+      <div class="fc-dev-section" style="margin-bottom:14px;border:1px solid var(--gray2);border-radius:10px;padding:12px 14px;background:#fff">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(p.name || p.uuid)}</div>
+            <div style="font-size:11px;color:var(--gray4)">${escapeHtml(p.region || '-')} · 기간 합계 <strong>${totalV}</strong>마리</div>
+          </div>
+          <div>
+            <span class="badge ${peakG.cls}" style="font-size:11px">피크 ${peakG.name} · ${peakV}</span>
+          </div>
+        </div>
+        <div class="gauge-scroll" style="overflow-x:auto;white-space:nowrap">
+          ${cards}
         </div>
       </div>
     `;
   }).join('');
-  box.innerHTML = cards;
 
-  // 바늘 부팅 애니메이션 트리거 (transform 재적용)
+  // 가로 스크롤 컨테이너 → 세로로 쌓이는 컨테이너로 동작 변경
+  box.style.flexDirection = 'column';
+  box.style.overflowX = 'visible';
+  box.innerHTML = devSections;
+
   requestAnimationFrame(() => {
     box.querySelectorAll('.gauge-needle').forEach(el => {
       const t = el.style.getPropertyValue('--target');

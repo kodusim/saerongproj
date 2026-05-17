@@ -589,12 +589,14 @@ def _build_overview_data(su, date_str='', hour_str=''):
         elif trust_score < 60 or battery < 15 or (fan == 0 and ax_sig >= 55): equip_status = '점검필요'; check_count += 1
         else: equip_status = '정상'
 
-        # 추세 방향
-        if len(week_vals) >= 3:
-            tr = week_vals[-1] - (sum(week_vals[:-1]) / len(week_vals[:-1]))
-            trend_dir = '↑' if tr > 3 else '↓' if tr < -3 else '→'
+        # 추세 방향: 기준일(today_c) vs 전일(yday_c) 비교
+        diff = today_c - yday_c
+        if diff > 3:
+            trend_dir = '↑'
+        elif diff < -3:
+            trend_dir = '↓'
         else:
-            trend_dir = '·'
+            trend_dir = '→'
 
         device_rows.append({
             'uuid': u, 'name': m.get('name'), 'addr': m.get('addr'),
