@@ -970,10 +970,118 @@ body {
 .rp-period-pill.weekly  { background: #FFF3E0; color: #E65100; }
 .rp-period-pill.monthly { background: #F3E5F5; color: #4A148C; }
 .rp-history-meta { font-size: 10px; color: var(--gray4); }
+
+/* 햄버거 + 백드롭 (기본 숨김, mobile media query 에서만 보임) */
+#mb-toggle, #mb-backdrop { display: none; }
+
+/* ══════════════════════════════════════════
+   모바일 전용 (≤ 768px) — PC 화면 영향 0
+   ══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* 본문 좌우 여백 줄이기 */
+  body { font-size: 13px; }
+  .main { padding: 56px 12px 12px !important; margin-left: 0 !important; }
+
+  /* 햄버거 버튼 */
+  #mb-toggle {
+    display: flex; position: fixed; top: 10px; left: 10px;
+    width: 40px; height: 40px; align-items: center; justify-content: center;
+    background: var(--navy); color: #fff; border: none; border-radius: 8px;
+    z-index: 1100; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  }
+
+  /* 사이드바: 좌측에서 슬라이드 */
+  .sidebar {
+    position: fixed !important; top: 0; left: 0;
+    height: 100vh; width: 260px !important;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 1090; overflow-y: auto;
+    box-shadow: 4px 0 20px rgba(0,0,0,.3);
+  }
+  body.mb-open .sidebar { transform: translateX(0); }
+
+  /* 백드롭 (사이드바 열렸을 때 본문 위 어둡게) */
+  #mb-backdrop {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0,0,0,0); pointer-events: none;
+    transition: background .25s; z-index: 1080;
+  }
+  body.mb-open #mb-backdrop {
+    background: rgba(0,0,0,.45); pointer-events: auto;
+  }
+
+  /* KPI 카드: 7컬럼 → 2컬럼 그리드 */
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .kpi-card { padding: 10px !important; }
+  .kpi-card .kpi-value { font-size: 18px !important; }
+  .kpi-card .kpi-label { font-size: 11px !important; }
+  .kpi-card .kpi-sub { font-size: 10px !important; }
+  /* 종합 현황의 grid-column:span 7 같은 인라인 스타일도 풀어줌 */
+  .kpi-card[style*="grid-column:span"] { grid-column: 1 / -1 !important; }
+
+  /* 표는 모두 가로 스크롤 가능하게 */
+  .card { overflow-x: auto !important; }
+  .data-table, .heatmap-table, table.settle-table {
+    min-width: 600px;  /* 좁아도 컬럼 잘리지 말고 스크롤되게 */
+    font-size: 11px !important;
+  }
+  .data-table th, .data-table td { padding: 6px 8px !important; }
+
+  /* 종합 현황 표는 컬럼이 많아 더 넓게 */
+  #ov-station-table { min-width: 900px; }
+
+  /* 히트맵 */
+  .heatmap-table th, .heatmap-table td { padding: 4px 5px !important; font-size: 10px !important; }
+  .heatmap-table th.st-col, .heatmap-table td.st-name {
+    width: 110px !important; min-width: 110px !important; font-size: 10px !important;
+  }
+
+  /* 섹션 헤더 줄이기 */
+  .sec-title { font-size: 14px !important; }
+  .sec-sub { font-size: 11px !important; }
+
+  /* 모스콤 / 방역 관리 2단 그리드 → 1단 */
+  .ma-layout, .rm-layout { grid-template-columns: 1fr !important; }
+
+  /* AI 예측 / 예보의 좌우 2단 layout 도 1단으로 */
+  .card > div[style*="grid-template-columns:260px 1fr"],
+  .card > div[style*="grid-template-columns:240px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 예보 게이지 카드 줄이기 */
+  .gauge-card { width: 180px !important; padding: 10px !important; }
+  .gauge-wrap { width: 140px !important; height: 78px !important; }
+
+  /* 모달은 화면에 거의 꽉 차게 */
+  .rp-modal, .modal-box { width: 92vw !important; max-width: none !important; }
+
+  /* 컨트롤 바 (날짜/시간 selector 등) 줄바꿈 */
+  .fc-controls { flex-wrap: wrap; gap: 4px; }
+
+  /* 종합 현황 상단 날짜/시간 카드 — 줄바꿈 */
+  #page-overview > .card.mb16 { flex-wrap: wrap; gap: 8px !important; }
+}
+
+@media (max-width: 480px) {
+  .kpi-card .kpi-value { font-size: 16px !important; }
+  .data-table, .heatmap-table { font-size: 10px !important; }
+  .sidebar { width: 220px !important; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
+<!-- 모바일 햄버거 버튼 + 백드롭 (≤768px 에서만 보임) -->
+<button id="mb-toggle" aria-label="메뉴 열기" onclick="document.body.classList.toggle('mb-open')">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<div id="mb-backdrop" onclick="document.body.classList.remove('mb-open')"></div>
 
 <!-- 사이드바 -->
 <nav class="sidebar">
@@ -4250,6 +4358,8 @@ function showPage(name){
   if (name === 'admin' && typeof buildAdminJudgment === 'function' && !AJ_LOADED) buildAdminJudgment(false);
   // 모스콤 관리자: 탭 진입 시 데이터 로드
   if (name === 'moscom_admin' && typeof maLoad === 'function') maLoad();
+  // 모바일: 탭 클릭 시 사이드바 자동 닫기
+  document.body.classList.remove('mb-open');
 }
 
 // ── 다운로드 & 보고서 기능 ────────────────────────────────
