@@ -1682,13 +1682,33 @@ def moscom_user_detail_api(request, login_id):
 
 @require_GET
 def moscom_devices(request):
-    """MOSCOM API 장비 목록 프록시 (허용 장비만 반환)"""
+    """MOSCOM API 장비 목록 프록시 (허용 장비만 반환).
+    응답의 각 장비에 region_code / region_name 주입 (moscom.Device + moscom.Region 조회).
+    """
     auth_err = _require_mosquito_auth(request)
     if auth_err:
         return auth_err
     try:
         force = request.GET.get('refresh') == '1'
         data = moscom_client.list_devices(force_refresh=force)
+        # 권역 매핑
+        try:
+            from moscom.models import Device as MoscomDevice, Region as MoscomRegion
+            region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
+            md_by_uuid = {md.device_uuid: md for md in MoscomDevice.objects.only('device_uuid', 'region_code')}
+        except Exception:
+            region_name_by_code, md_by_uuid = {}, {}
+
+        def _inject(entry):
+            u = entry.get('device_uuid') or (entry.get('device') or {}).get('device_uuid')
+            md = md_by_uuid.get(u)
+            rc = (md.region_code if md else '') or ''
+            entry['region_code'] = rc
+            entry['region_name'] = region_name_by_code.get(rc, rc) or '미지정'
+            return entry
+
+        data = [_inject(e) for e in (data or [])]
+
         # 관리자 세션일 때 '전체' 플래그로 원본 반환 (관리자 탭 사용자 추가에서 전 장비 리스트 필요)
         if request.GET.get('all') == '1' and bool(request.session.get('mosquito_is_admin')):
             return JsonResponse({'count': len(data), 'devices': data, 'admin_all': True}, safe=False)
@@ -2168,8 +2188,10 @@ def moscom_predict(request):
 
         # 장비 메타 + moscom DB (region_code, 날씨)
         moscom_device_map = {}
+        region_name_by_code = {}
         try:
-            from moscom.models import Device as MoscomDevice
+            from moscom.models import Device as MoscomDevice, Region as MoscomRegion
+            region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
             for md in MoscomDevice.objects.all():
                 moscom_device_map[md.device_uuid] = md
         except Exception:
@@ -2180,12 +2202,17 @@ def moscom_predict(request):
             u = d.get('device_uuid')
             dv = d.get('device') or {}
             name = (dv.get('device_name') or '').strip() or u
-            parts = [dv.get('address_sido'), dv.get('address_gungu')]
-            region = ' '.join(p for p in parts if p and len(p) < 40 and any(ord(c) < 0x3400 or 0xAC00 <= ord(c) <= 0xD7A3 for c in p)) or '기타'
             md = moscom_device_map.get(u)
+            rcode = (md.region_code if md else '') or ''
+            # region 그룹 키: 권역명 (KH→김해 본시 등) 우선, 없으면 시도+군구
+            if rcode and region_name_by_code.get(rcode):
+                region = region_name_by_code[rcode]
+            else:
+                parts = [dv.get('address_sido'), dv.get('address_gungu')]
+                region = ' '.join(p for p in parts if p and len(p) < 40 and any(ord(c) < 0x3400 or 0xAC00 <= ord(c) <= 0xD7A3 for c in p)) or '기타'
             meta[u] = {
                 'name': name, 'region': region,
-                'region_code': (md.region_code if md else '') or '',
+                'region_code': rcode,
                 'sido': (md.address_sido if md else (dv.get('address_sido') or '')),
                 'weather': {
                     'temperature': md.temperature if md else None,

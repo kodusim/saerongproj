@@ -2708,7 +2708,12 @@ function isValidRegionPart(s) {
   return /[가-힣A-Za-z0-9]/.test(s) && !/[\uD800-\uDFFF\uFFFD]/.test(s) && s.length < 40;
 }
 
-function getRegionKey(dv) {
+function getRegionKey(dv, entry) {
+  // 1) 권역명 (KH/GH서/HA/... → 관리자가 지정한 표시명) 우선
+  if (entry && entry.region_name && entry.region_name !== '미지정') {
+    return entry.region_name;
+  }
+  // 2) fallback: 시도+군구
   const parts = [dv.address_sido, dv.address_gungu, dv.address_dong]
     .map(s => (s || '').trim())
     .filter(isValidRegionPart);
@@ -2740,7 +2745,7 @@ async function loadTrendData(startStr, endStr) {
     const u = d.device_uuid;
     const dv = d.device || {};
     const nm = (dv.device_name || '').trim() || u;
-    const region = getRegionKey(dv);
+    const region = getRegionKey(dv, d);
     const addr = [dv.address_gungu, dv.address_dong].filter(isValidRegionPart).join(' ').trim();
     TREND_STATE.deviceMap[u] = {
       name: nm,
