@@ -24,7 +24,6 @@ urlpatterns = [
     path("beta/", beta_view, name="beta_view"),  # 창업시장 베타 (admin/admin)
     path("beta", beta_view),  # trailing slash 없는 변형도 허용
     path("beta/logout/", beta_logout, name="beta_logout"),
-    path("animal/", include("animal.urls")),  # 길드 운영 도구
     path("category/<slug:slug>/", category_detail, name="category_detail"),  # 대분류 상세
     path("subcategory/<slug:slug>/", subcategory_detail, name="subcategory_detail"),  # 중분류 상세
     path("mosquito-test/", mosquito_test, name="mosquito_test"),  # 모기 테스트

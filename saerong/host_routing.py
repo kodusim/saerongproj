@@ -2,7 +2,7 @@
 
 moscom.ai / www.moscom.ai 로 들어온 요청은 다음과 같이 변환:
 - "/" → "/mosquito-test/"  (URL은 그대로 / 인 것처럼 보이지만 실제 view는 mosquito_test)
-- "/category/..", "/animal/.." 등 saerong 전용 경로는 404
+- "/category/.." 등 saerong 전용 경로는 404
 
 같은 서버 / 같은 코드 / 같은 DB 위에서 호스트만 다르게 보이게 하는 단순한 가상호스트 처리.
 """

@@ -72,7 +72,6 @@ INSTALLED_APPS = [
     "collector",
     "analytics",
     "api",
-    "animal",
     "moscom",
 ]
 
@@ -91,7 +90,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "animal.middleware.VisitLogMiddleware",
 ]
 
 if DEBUG:
