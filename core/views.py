@@ -1295,6 +1295,90 @@ def moscom_admin_judgment(request):
         except Exception as e:
             logger.warning(f'predict in admin_judgment failed: {e}')
 
+        # ── 추가 분석: 권역별 / 7일 트렌드 / 매개체 위험 / 방역 이력 효과 ──
+        try:
+            from moscom.models import Device as MoscomDevice, Region as MoscomRegion, Collection
+            region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
+            uuid_to_md = {md.device_uuid: md for md in MoscomDevice.objects.all()}
+        except Exception:
+            region_name_by_code, uuid_to_md = {}, {}
+
+        # 권역별 오늘 합계 + 평균
+        region_today = {}  # region_name -> {total, count, devices:[{name, count}]}
+        for u in allowed_uuids:
+            md = uuid_to_md.get(u)
+            rc = (md.region_code if md else '') or ''
+            rname = region_name_by_code.get(rc, rc) or '미지정'
+            v = daily[u].get(today, 0) if today else 0
+            if rname not in region_today:
+                region_today[rname] = {'total': 0, 'count': 0, 'devices': []}
+            region_today[rname]['total'] += v
+            region_today[rname]['count'] += 1
+            region_today[rname]['devices'].append({
+                'name': name_map.get(u, {}).get('name', u),
+                'count': v,
+            })
+        region_today_sorted = sorted(
+            ((k, v) for k, v in region_today.items()),
+            key=lambda kv: -kv[1]['total']
+        )
+
+        # 7일 시계열 (전 장비 합계)
+        last7_daily = []
+        for d in sorted_dates[-7:]:
+            day_sum = sum(daily[u].get(d, 0) for u in allowed_uuids)
+            last7_daily.append({'date': d, 'total': day_sum})
+        # 추세 텍스트
+        trend_arrow = ''
+        if len(last7_daily) >= 4:
+            half = len(last7_daily) // 2
+            first_half_avg = sum(x['total'] for x in last7_daily[:half]) / max(1, half)
+            second_half_avg = sum(x['total'] for x in last7_daily[half:]) / max(1, len(last7_daily) - half)
+            if first_half_avg > 0:
+                pct_trend = round((second_half_avg - first_half_avg) / first_half_avg * 100)
+                if pct_trend > 15: trend_arrow = f'7일 추세: 전반 일평균 {round(first_half_avg)} → 후반 {round(second_half_avg)} (+{pct_trend}%, 상승)'
+                elif pct_trend < -15: trend_arrow = f'7일 추세: 전반 일평균 {round(first_half_avg)} → 후반 {round(second_half_avg)} ({pct_trend}%, 하강)'
+                else: trend_arrow = f'7일 추세: 전반 {round(first_half_avg)} ↔ 후반 {round(second_half_avg)} (안정)'
+
+        # 매개체 위험 평가 (기상 기반)
+        vector_risks = []
+        try:
+            from moscom.health_knowledge import assess_vector_risks, thermal_zone_for, humidity_zone_for
+            recent_rainfall = sum((m.precipitation or 0) for m in uuid_to_md.values() if m.device_uuid in allowed_uuids) / max(1, len([m for m in uuid_to_md.values() if m.device_uuid in allowed_uuids]))
+            vector_risks = assess_vector_risks(avg_temp, avg_humid, recent_rainfall)
+            temp_zone = thermal_zone_for(avg_temp)
+            humid_zone = humidity_zone_for(avg_humid)
+        except Exception as e:
+            logger.warning(f'vector risk assess failed: {e}')
+            temp_zone = humid_zone = None
+
+        # 방역 효과 (최근 14일 내 실시 건수, 누적 감소 추정)
+        from datetime import timedelta as _td
+        recent_plans = []
+        plan_count_recent = 0
+        try:
+            today_kst = datetime.now(timezone(timedelta(hours=9))).date()
+            from datetime import date as _date_cls
+            for p in plans:
+                sd = p.get('scheduled_date') or ''
+                try:
+                    pd_ = _date_cls.fromisoformat(sd)
+                    days_ago = (today_kst - pd_).days
+                    if 0 <= days_ago <= 14:
+                        plan_count_recent += 1
+                        m = method_map.get(p.get('method_key'), {})
+                        recent_plans.append({
+                            'device': name_map.get(p['device_uuid'], {}).get('name') or p['device_uuid'],
+                            'method': m.get('name', p.get('method_key', '')),
+                            'date': sd,
+                            'reduction_pct': m.get('reduction_pct'),
+                            'days_ago': days_ago,
+                        })
+                except ValueError:
+                    continue
+        except Exception:
+            pass
+
         # ── GPT 프롬프트 구성 ────────────────────────
         top_devs_text = '\n'.join(
             f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): {v}마리"
@@ -1338,35 +1422,83 @@ def moscom_admin_judgment(request):
         date_label = today or datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d')
         temp_disp = f'{avg_temp}°C' if avg_temp is not None else '데이터 없음'
         humid_disp = f'{avg_humid}%' if avg_humid is not None else '데이터 없음'
-        payload_summary = f"""[모기 발생 감시 현황 · {date_label}]
 
-■ 전체 수치
-  - 전체 장비 수: {len(devices)}대
-  - 오늘 포집 합계: {today_total}마리 (전일 {yday_total}마리, 변화 {pct:+d}%)
+        # 권역별 텍스트
+        region_text = '\n'.join(
+            f"  - {rname}: {info['total']}마리 (장비 {info['count']}대, 평균 {round(info['total']/max(1,info['count']),1)}마리)"
+            for rname, info in region_today_sorted[:10]
+        ) or '  - 권역 데이터 없음'
+
+        # 7일 시계열
+        last7_text = ' / '.join(f"{d['date'][-5:]}: {d['total']}" for d in last7_daily) or '데이터 없음'
+
+        # 매개체 위험
+        vector_text = '\n'.join(
+            f"  - {v['species']}: 위험 {v['risk_score']}점 ({v['risk_level']}) "
+            f"매개질병={','.join(v['diseases'])} 활동시간={v['active_hours']} 서식지={v['breeding_site']}"
+            for v in vector_risks[:4]
+        ) or '  - 매개체 평가 데이터 없음'
+
+        # 기상-우화 영역
+        thermal_text = ''
+        if temp_zone:
+            thermal_text = f"  - 기온 영역: {temp_zone['range'][0]}~{temp_zone['range'][1]}°C → {temp_zone['effect']} (유충→성충 {temp_zone['larval_days']}일, 성충 수명 {temp_zone['adult_lifespan']})"
+        humid_text = ''
+        if humid_zone:
+            humid_text = f"  - 습도 영역: {humid_zone['range'][0]}~{humid_zone['range'][1]}% → {humid_zone['effect']}"
+
+        # 최근 방역 이력
+        recent_plans_text = '\n'.join(
+            f"  - {p['date']} ({p['days_ago']}일 전): {p['device']} / {p['method']} (감소율 {p['reduction_pct']}%)"
+            for p in recent_plans[:8]
+        ) or '  - 최근 14일 내 시행된 방역 없음'
+
+        payload_summary = f"""[모기 발생 감시 종합 보고 · {date_label}]
+
+■ 전체 수치 요약
+  - 전체 운영 장비: {len(devices)}대
+  - 오늘 포집 합계: {today_total}마리 (전일 {yday_total}마리, {pct:+d}%)
   - 평균 기온: {temp_disp}
   - 평균 습도: {humid_disp}
   - 오프라인 장비: {offline_count}대
-  - 배터리 30% 미만 장비: {low_batt_count}대
+  - 배터리 30% 미만 장비: {low_batt_count}대 (현장 점검 대상)
+
+■ 권역별 포집 현황 (Top 10)
+{region_text}
 
 ■ 오늘 상위 포집 장비 (Top 5)
 {top_devs_text}
 
-■ 방역 상태 '나쁨' 관측점 (51마리 이상, 즉시 방역 필요)
+■ 방역 상태 '나쁨' 관측점 (51마리↑, 즉시 방역 필요)
 {bad_text}
 
-■ 방역 상태 '주의' 관측점 (21~50마리, 감시 강화 필요)
+■ 방역 상태 '주의' 관측점 (21~50마리, 감시 강화)
 {warn_text}
 
-■ AI 7일 예측 요약
+■ 7일 시계열 (전 장비 합계 일별)
+  {last7_text}
+  {trend_arrow}
+
+■ 기상-모기 생리학 분석
+{thermal_text}
+{humid_text}
+
+■ 매개체 위험 평가 (현 기상 조건 기반)
+{vector_text}
+
+■ AI 7일 예측
   - 향후 7일 일평균 예측: {predicted_7d_avg}마리
   - 7일 누적 예측: {predicted_7d_total}마리
   - 전일 대비 비율: {pred_vs_yday_ratio:.1f}배
-  - 추세 판정: {pred_trend_hint}
+  - 자동 추세 판정: {pred_trend_hint}
 
 ■ AI 예측 상위 5 관측점 (7일 누적)
 {pred_top_text}
 
-■ 진행/예정 방역 실시 내역
+■ 최근 14일 시행된 방역 이력
+{recent_plans_text}
+
+■ 등록된 방역 계획
 {plans_text}
 """
 
@@ -1383,36 +1515,48 @@ def moscom_admin_judgment(request):
                     model='gpt-4o-mini',
                     messages=[
                         {'role': 'system', 'content': (
-                            '당신은 지자체 보건소 감염병관리팀의 행정 보고서 작성을 지원하는 AI입니다. '
-                            '주어진 데이터를 바탕으로 결재용 공문 형식의 "행정 판단 보고"를 한국어로 작성하십시오. '
-                            '과장 없이 데이터 근거로 기술하고, 다음 5개 섹션을 반드시 포함하십시오: '
-                            '1) 오늘 핵심 수치 요약 '
-                            '2) 즉시 조치 필요 사항 '
-                            '3) AI 예측 요약 '
-                            '4) 진행 중인 방역 현황 '
-                            '5) AI 행정 권고 (우선순위별 불릿). '
+                            '당신은 지자체 보건소·질병관리청 감염병관리팀의 행정 보고서 작성을 지원하는 보건학 전문가 AI입니다. '
+                            '모기 생리학·매개체 감시·기상학적 영향에 대한 전문성을 바탕으로, '
+                            '결재용 공문 형식의 "AI 행정 판단 보고서"를 한국어로 작성하십시오.\n'
                             '\n'
-                            '** 작성 시 반드시 지켜야 할 규칙 ** '
-                            'A) 두루뭉술한 표현 금지. 반드시 데이터에 나온 실제 관측점 이름과 마릿수를 인용할 것. '
-                            "예: '지속적 감시 강화' (X) → '○○공원(45마리·주의), △△공원(38마리·주의) 관측점 감시 강화' (O). "
-                            'B) "즉시 조치 필요 사항" 섹션에서는 "방역 상태 \'나쁨\'" 으로 분류된 관측점이 있으면 '
-                            '   해당 관측점 이름과 포집 마릿수를 명시하여 즉시 방역 지시를 작성하시오. '
-                            '   "주의" 관측점도 별도 불릿으로 감시 강화 지시를 포함하시오. '
-                            '   둘 다 없을 때만 "해당 없음" 으로 표시. '
-                            'C) "AI 예측 요약" 섹션에서는 데이터에 제공된 [추세 판정] 을 그대로 따르고, '
-                            '   향후 7일 일평균이 전일 대비 1.5배 이상이면 절대 "안정세" 라고 쓰지 말 것. '
-                            '   "급증 예상", "주의 필요" 등 정확한 표현 사용. 비율(예: 5.2배)을 본문에 명시. '
-                            'D) "AI 행정 권고" 섹션은 "구체적인 관측점 이름 + 마릿수 또는 예측치 + 조치"의 형식. '
-                            '   예: "베나투스 공원(예측 7일 누적 1,234마리) Bti 살포 우선 시행" 처럼 작성. '
+                            '== 보고서 구조 (반드시 다음 8개 섹션, 순서대로) ==\n'
+                            '1) 오늘 핵심 수치 요약 — 포집량 변화·기상·장비 상태\n'
+                            '2) 권역별 포집 현황 분석 — 각 권역 평균·편차·이상 권역 식별\n'
+                            '3) 기상-생리학 인과 분석 — 현 기온/습도가 우화기간·성충 생존율·산란에 미치는 영향을 과학적으로 설명\n'
+                            '4) 매개체 위험 평가 — 일본뇌염·말라리아·뎅기 등 매개종별 활동 위험과 추정 우점종\n'
+                            '5) 즉시 조치 필요 사항 — 나쁨/주의 관측점 이름 및 마릿수, 우선 조치 방안\n'
+                            '6) AI 예측 분석 — 향후 7일 추세, 전일 대비 비율, 학문적 해석\n'
+                            '7) 방역 효과 평가 및 권고 — 최근 방역 이력의 추정 효과 + 향후 권고 방역 (방법·시점·대상)\n'
+                            '8) 행정 권고 종합 (우선순위별 불릿) — 의사결정자가 결재할 수 있는 구체적 조치 3~5개\n'
                             '\n'
-                            '각 섹션은 "■" 기호로 시작하고, 불릿은 "- "로 시작합니다. '
-                            '문장은 공공기관 행정 어조(…함, …필요함, …권고함)로 작성하세요. '
-                            '결재란·서명란·날짜 줄은 포함하지 마세요 (화면에서 별도 렌더링됩니다).'
+                            '== 작성 시 반드시 지킬 8가지 규칙 ==\n'
+                            'A) 모든 결론에 데이터 근거 명시. "○○공원 75마리 (전일 +40%), 인접 공원 평균 22마리" 처럼 비교 수치 포함.\n'
+                            'B) 모기 생리학 용어를 자연스럽게 사용: "우화기간", "성충 수명", "산란주기", "흡혈주기", "기온의존성".\n'
+                            '   - 25~28°C 적정 → 우화기간 5~7일\n'
+                            '   - 28°C 초과 → 우화 빠르나 성충 활동 저하\n'
+                            '   - 습도 75% 이상 → 성충 수명 연장 (14일 → 21일)\n'
+                            '   - 강수 후 5~7일 1차 우화 피크, 12~14일 2차 피크\n'
+                            'C) 매개체 위험 평가는 데이터에 제공된 매개체 점수를 그대로 인용. '
+                            '   "작은빨간집모기 위험 78점 (높음) — 일본뇌염 매개" 형식.\n'
+                            'D) "안정세" 라는 표현은 전일 대비 ±10% 이내일 때만 사용. 1.5배 이상이면 반드시 "급증 예상".\n'
+                            'E) 즉시 조치 사항은 관측점 이름 + 마릿수 + 권고 방법 (예: "Bti 살포") 까지 명시.\n'
+                            'F) 방역 권고 시 방법별 과학적 근거 인용: '
+                            '   - Bti 살포: 유충 표적, 48시간 내 90% 사망\n'
+                            '   - ULV 연막: 성충 즉시 살충, 18~22시 야간 시행 효과 최대\n'
+                            '   - 잔류분무: 14~21일 지속 효과\n'
+                            '   - 용기제거: 흰줄숲모기 95% 감소\n'
+                            'G) 권역 격차가 큰 경우 ("○○ 권역만 평균 2배") 별도로 강조.\n'
+                            'H) 각 섹션 길이는 4~8문장. 너무 짧으면 안 됨. 너무 길어 결재자가 안 읽으면 안 됨.\n'
+                            '\n'
+                            '== 형식 ==\n'
+                            '각 섹션은 "■ N) 섹션명" 으로 시작. 불릿은 "  - "로 시작. '
+                            '문장은 공공기관 행정 어조(…함, …필요함, …권고함, …것으로 판단됨). '
+                            '결재란·서명란·날짜 줄은 포함하지 마세요 (별도 렌더링).'
                         )},
                         {'role': 'user', 'content': payload_summary},
                     ],
-                    temperature=0.5,
-                    max_tokens=800,
+                    temperature=0.4,
+                    max_tokens=1800,
                 )
                 report_text = resp.choices[0].message.content.strip()
                 source = 'openai:gpt-4o-mini'
@@ -1441,9 +1585,18 @@ def moscom_admin_judgment(request):
                 'avg_humidity': avg_humid,
                 'predicted_7d_total': predicted_7d_total,
                 'predicted_7d_avg': predicted_7d_avg,
+                # 신규 분석 데이터 (화면 표시용)
+                'region_breakdown': [
+                    {'region_name': rn, 'total': info['total'], 'device_count': info['count'],
+                     'avg': round(info['total']/max(1,info['count']),1)}
+                    for rn, info in region_today_sorted[:10]
+                ],
+                'last7_timeseries': last7_daily,
+                'vector_risks': vector_risks,
+                'recent_plans': recent_plans,
             },
         }
-        cache.set(cache_key, result, 300)
+        cache.set(cache_key, result, 600)
         return JsonResponse(result)
     except Exception as e:
         logger.exception('admin_judgment failed')

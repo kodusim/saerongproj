@@ -1935,6 +1935,15 @@ body {
       </div>
     </div>
 
+    <!-- 권역별 포집 카드 + 매개체 위험 카드 (요약 데이터) -->
+    <div id="aj-data-cards" class="mb16" style="display:none">
+      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (오늘)</div></div>
+      <div id="aj-regions" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
+
+      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">🦟 매개체 위험 평가</div></div>
+      <div id="aj-vectors" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px"></div>
+    </div>
+
     <!-- 보고서 본문 -->
     <div class="admin-box mb24" id="aj-box" style="display:none">
       <div class="admin-head" id="aj-head">행정 판단 — </div>
@@ -4502,6 +4511,48 @@ async function buildAdminJudgment(force) {
     if (head) head.textContent = `행정 판단 보고 — ${dateLabel}`;
     if (gen) gen.textContent = genKst;
     if (author) author.textContent = (json.author && json.author.login_id) ? json.author.login_id : '-';
+
+    // 권역/매개체 카드 렌더
+    const cards = document.getElementById('aj-data-cards');
+    const regions = s.region_breakdown || [];
+    const vectors = s.vector_risks || [];
+    if (regions.length || vectors.length) {
+      cards.style.display = 'block';
+    }
+    if (regions.length) {
+      const colorOf = (avg) => avg >= 51 ? '#dc3545' : avg >= 21 ? '#fd7e14' : avg >= 6 ? '#7A5700' : '#198754';
+      const labelOf = (avg) => avg >= 51 ? '나쁨' : avg >= 21 ? '주의' : avg >= 6 ? '관심' : '쾌적';
+      document.getElementById('aj-regions').innerHTML = regions.map(r => `
+        <div class="kpi-card" style="border-top:3px solid ${colorOf(r.avg)}">
+          <div class="kpi-label">${escapeHtml(r.region_name)}</div>
+          <div class="kpi-value" style="color:${colorOf(r.avg)};font-size:22px">${r.total.toLocaleString()}</div>
+          <div class="kpi-sub">장비 ${r.device_count}대 · 평균 ${r.avg}마리 · <strong style="color:${colorOf(r.avg)}">${labelOf(r.avg)}</strong></div>
+        </div>
+      `).join('');
+    } else {
+      document.getElementById('aj-regions').innerHTML = '';
+    }
+    if (vectors.length) {
+      const lvlColor = { '높음': '#dc3545', '보통': '#fd7e14', '낮음': '#7A5700', '매우 낮음': '#198754' };
+      document.getElementById('aj-vectors').innerHTML = vectors.map(v => {
+        const c = lvlColor[v.risk_level] || '#666';
+        return `
+          <div class="card" style="padding:12px 14px;border-left:4px solid ${c}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(v.species)}</div>
+              <span style="font-size:11px;font-weight:700;color:${c};background:${c}22;padding:2px 8px;border-radius:10px">${v.risk_level} ${v.risk_score}</span>
+            </div>
+            <div style="font-size:11px;color:var(--gray5);line-height:1.5">
+              <div>매개질병: <strong>${(v.diseases || []).join(', ')}</strong></div>
+              <div>활동: ${escapeHtml(v.active_hours)} · 서식: ${escapeHtml(v.breeding_site)}</div>
+              <div style="margin-top:4px;color:var(--gray6)">${escapeHtml(v.note || '')}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      document.getElementById('aj-vectors').innerHTML = '';
+    }
 
     // 보고서 본문 렌더 (섹션 ■ 기호 기준)
     const text = (json.report_text || '').trim();
