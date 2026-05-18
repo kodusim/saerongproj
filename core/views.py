@@ -1174,20 +1174,32 @@ def moscom_admin_judgment(request):
             key=lambda x: x[1], reverse=True
         )[:5]
 
-        # 장비 이름 매핑
+        # 장비 이름 매핑 (51마리 전역 임계값)
+        ANOMALY_THRESHOLD = 51
         name_map = {}
         for d in devices:
             dv = d.get('device') or {}
             nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
             addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40) or ''
-            name_map[d.get('device_uuid')] = {'name': nm, 'addr': addr, 'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100}
+            name_map[d.get('device_uuid')] = {'name': nm, 'addr': addr, 'bad_min': ANOMALY_THRESHOLD}
 
-        # 이상 감지 요약 (bad_min 초과)
+        # 51 이상 = '나쁨' / 21~50 = '주의' 인 관측점 (전체 장비 대상)
+        bad_stations = []   # 나쁨 (51+)
+        warn_stations = []  # 주의 (21~50)
+        for u in allowed_uuids:
+            v = daily[u].get(today, 0) if today else 0
+            if v >= ANOMALY_THRESHOLD:
+                bad_stations.append((u, v))
+            elif v >= 21:
+                warn_stations.append((u, v))
+        bad_stations.sort(key=lambda x: -x[1])
+        warn_stations.sort(key=lambda x: -x[1])
+
+        # 이상 감지 요약 (51마리 이상)
         anomalies = []
-        for u, v in today_devs:
+        for u, v in (bad_stations[:10]):
             meta = name_map.get(u, {})
-            if v >= meta.get('bad_min', 100) and meta.get('bad_min', 0) > 0:
-                anomalies.append(f"{meta.get('name')}({meta.get('addr') or '주소미상'}) — 오늘 {v}마리 / 기준 {meta.get('bad_min')} 초과")
+            anomalies.append(f"{meta.get('name')}({meta.get('addr') or '주소미상'}) — 오늘 {v}마리 (기준 {ANOMALY_THRESHOLD} 초과)")
 
         # 방역 계획 현황
         from core import remedy_store
@@ -1204,16 +1216,13 @@ def moscom_admin_judgment(request):
                 'reduction_pct': m.get('reduction_pct'),
             })
 
-        # 장비 상태 대략 (배터리 평균, 오프라인 수)
-        battery_vals = [(d.get('device') or {}).get('battery') or 0 for d in devices]
-        avg_battery = round(sum(battery_vals) / len(battery_vals)) if battery_vals else 0
-        # 수신 지연으로 오프라인 판별
+        # 장비 상태 + 온/습도 (전일 대비 증감) — moscom DB 사용
         now_utc = datetime.now(timezone.utc)
         offline_count = 0
-        low_batt_count = 0
+        low_batt_count = 0     # < 30% (강준상 요청: 30% 미만)
         for d in devices:
             dv = d.get('device') or {}
-            if (dv.get('battery') or 100) < 15:
+            if (dv.get('battery') or 100) < 30:
                 low_batt_count += 1
             ud = dv.get('updated_date') or ''
             try:
@@ -1223,34 +1232,141 @@ def moscom_admin_judgment(request):
             except Exception:
                 offline_count += 1
 
+        # 온/습도 평균 + 전일 대비 증감 (moscom DB 현재값만 있어서 전일치는 raw 에서 계산)
+        avg_temp = avg_humid = None
+        temp_delta = humid_delta = None
+        try:
+            from moscom.models import Device as MoscomDevice, Collection
+            from django.utils import timezone as dj_tz
+            from datetime import timedelta as td
+            md_qs = list(MoscomDevice.objects.filter(device_uuid__in=list(allowed_uuids)))
+            temps = [m.temperature for m in md_qs if m.temperature is not None]
+            humids = [m.humidity for m in md_qs if m.humidity is not None]
+            if temps: avg_temp = round(sum(temps) / len(temps), 1)
+            if humids: avg_humid = round(sum(humids) / len(humids), 1)
+            # 전일 대비: 24시간 전 raw 의 battery 평균 같은 건 없으나, 온/습도는 실시간 캐시라 어제 자료 없음.
+            # 임시: 변화 없음 표시 (None) — Open-Meteo 가 hourly archive 도 지원하지만 별도 호출 필요
+        except Exception:
+            pass
+
+        # 예측 — moscom_predict 와 같은 로직으로 1주일 예측 합산
+        predicted_7d_total = 0
+        predicted_7d_avg = 0
+        predicted_top = []
+        try:
+            from core import predictor
+            today_kst_d = datetime.now(timezone(timedelta(hours=9))).date()
+            try:
+                from moscom.timeutil import business_today
+                today_kst_d = business_today()
+            except Exception:
+                pass
+            # 장비별 history
+            hist_by_uuid = {u: [] for u in allowed_uuids}
+            for r in stats:
+                u = r.get('device_uuid')
+                date = (r.get('created_date') or '')[:10]
+                if u in hist_by_uuid and date and date < today_kst_d.isoformat():
+                    hist_by_uuid[u].append({'date': date, 'count': r.get('mosquito_count') or 0})
+            for u in hist_by_uuid:
+                hist_by_uuid[u].sort(key=lambda h: h['date'])
+            inputs = []
+            for u in allowed_uuids:
+                meta = name_map.get(u, {})
+                inputs.append({
+                    'uuid': u, 'name': meta.get('name', u), 'region': meta.get('addr', ''),
+                    'region_code': '', 'sido': '', 'weather': {},
+                    'history': hist_by_uuid[u],
+                })
+            preds = predictor.predict_for_devices(inputs, days_ahead=7)
+            # 일별 합계
+            day_totals = defaultdict(int)
+            dev_total7 = []
+            for p in preds:
+                total = sum(pp.get('predicted', 0) for pp in p.get('predictions', []))
+                dev_total7.append((p.get('uuid'), p.get('name', ''), total))
+                for pp in p.get('predictions', []):
+                    day_totals[pp.get('date', '')] += pp.get('predicted', 0)
+            if day_totals:
+                predicted_7d_total = sum(day_totals.values())
+                predicted_7d_avg = round(predicted_7d_total / len(day_totals))
+            dev_total7.sort(key=lambda x: -x[2])
+            predicted_top = dev_total7[:5]
+        except Exception as e:
+            logger.warning(f'predict in admin_judgment failed: {e}')
+
         # ── GPT 프롬프트 구성 ────────────────────────
         top_devs_text = '\n'.join(
             f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): {v}마리"
             for u, v in today_devs
         ) or '  - 데이터 없음'
-        anomaly_text = '\n'.join(f"  - {a}" for a in anomalies) or '  - 기준 초과 장비 없음'
+        anomaly_text = '\n'.join(f"  - {a}" for a in anomalies) or '  - 51마리 초과 장비 없음'
+        bad_text = '\n'.join(
+            f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): {v}마리 — 나쁨"
+            for u, v in bad_stations[:10]
+        ) or '  - 없음'
+        warn_text = '\n'.join(
+            f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): {v}마리 — 주의"
+            for u, v in warn_stations[:10]
+        ) or '  - 없음'
         plans_text = '\n'.join(
-            f"  - {p['device']} / {p['method']} / 예정 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
+            f"  - {p['device']} / {p['method']} / 실시 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
             for p in active_plans
-        ) or '  - 등록된 방역 내역 없음'
+        ) or '  - 등록된 방역 실시 내역 없음'
+        pred_top_text = '\n'.join(
+            f"  - {nm}: 7일 누적 {tot}마리"
+            for _, nm, tot in predicted_top
+        ) or '  - 예측 데이터 없음'
+
+        # 예측 vs 전일 변화 — '안정세' 오판 방지
+        if yday_total > 0 and predicted_7d_avg > 0:
+            pred_vs_yday_ratio = round(predicted_7d_avg / yday_total, 1)
+        else:
+            pred_vs_yday_ratio = 0
+        # 자동 판정 가이드 (GPT에 전달)
+        if pred_vs_yday_ratio >= 1.5:
+            pred_trend_hint = f'⚠ 향후 7일 일평균({predicted_7d_avg}마리)이 전일({yday_total}마리) 대비 {pred_vs_yday_ratio:.1f}배 — 급증 예상'
+        elif pred_vs_yday_ratio >= 1.1:
+            pred_trend_hint = f'△ 향후 7일 일평균({predicted_7d_avg}마리)이 전일({yday_total}마리) 대비 {pred_vs_yday_ratio:.1f}배 — 증가 예상'
+        elif pred_vs_yday_ratio <= 0.7 and pred_vs_yday_ratio > 0:
+            pred_trend_hint = f'▽ 향후 7일 일평균({predicted_7d_avg}마리)이 전일({yday_total}마리) 대비 {pred_vs_yday_ratio:.1f}배 — 감소 예상'
+        elif predicted_7d_avg > 0:
+            pred_trend_hint = f'≈ 향후 7일 일평균({predicted_7d_avg}마리)이 전일({yday_total}마리) 대비 {pred_vs_yday_ratio:.1f}배 — 안정세'
+        else:
+            pred_trend_hint = '예측 데이터 부족'
 
         date_label = today or datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d')
+        temp_disp = f'{avg_temp}°C' if avg_temp is not None else '데이터 없음'
+        humid_disp = f'{avg_humid}%' if avg_humid is not None else '데이터 없음'
         payload_summary = f"""[모기 발생 감시 현황 · {date_label}]
 
 ■ 전체 수치
   - 전체 장비 수: {len(devices)}대
   - 오늘 포집 합계: {today_total}마리 (전일 {yday_total}마리, 변화 {pct:+d}%)
+  - 평균 기온: {temp_disp}
+  - 평균 습도: {humid_disp}
   - 오프라인 장비: {offline_count}대
-  - 배터리 15% 미만 장비: {low_batt_count}대
-  - 평균 배터리: {avg_battery}%
+  - 배터리 30% 미만 장비: {low_batt_count}대
 
 ■ 오늘 상위 포집 장비 (Top 5)
 {top_devs_text}
 
-■ 포집량 이상 감지 (장비 고유 기준 초과)
-{anomaly_text}
+■ 방역 상태 '나쁨' 관측점 (51마리 이상, 즉시 방역 필요)
+{bad_text}
 
-■ 진행/예정 방역 내역
+■ 방역 상태 '주의' 관측점 (21~50마리, 감시 강화 필요)
+{warn_text}
+
+■ AI 7일 예측 요약
+  - 향후 7일 일평균 예측: {predicted_7d_avg}마리
+  - 7일 누적 예측: {predicted_7d_total}마리
+  - 전일 대비 비율: {pred_vs_yday_ratio:.1f}배
+  - 추세 판정: {pred_trend_hint}
+
+■ AI 예측 상위 5 관측점 (7일 누적)
+{pred_top_text}
+
+■ 진행/예정 방역 실시 내역
 {plans_text}
 """
 
@@ -1271,10 +1387,24 @@ def moscom_admin_judgment(request):
                             '주어진 데이터를 바탕으로 결재용 공문 형식의 "행정 판단 보고"를 한국어로 작성하십시오. '
                             '과장 없이 데이터 근거로 기술하고, 다음 5개 섹션을 반드시 포함하십시오: '
                             '1) 오늘 핵심 수치 요약 '
-                            '2) 즉시 조치 필요 사항 (없으면 "해당 없음") '
+                            '2) 즉시 조치 필요 사항 '
                             '3) AI 예측 요약 '
                             '4) 진행 중인 방역 현황 '
                             '5) AI 행정 권고 (우선순위별 불릿). '
+                            '\n'
+                            '** 작성 시 반드시 지켜야 할 규칙 ** '
+                            'A) 두루뭉술한 표현 금지. 반드시 데이터에 나온 실제 관측점 이름과 마릿수를 인용할 것. '
+                            "예: '지속적 감시 강화' (X) → '○○공원(45마리·주의), △△공원(38마리·주의) 관측점 감시 강화' (O). "
+                            'B) "즉시 조치 필요 사항" 섹션에서는 "방역 상태 \'나쁨\'" 으로 분류된 관측점이 있으면 '
+                            '   해당 관측점 이름과 포집 마릿수를 명시하여 즉시 방역 지시를 작성하시오. '
+                            '   "주의" 관측점도 별도 불릿으로 감시 강화 지시를 포함하시오. '
+                            '   둘 다 없을 때만 "해당 없음" 으로 표시. '
+                            'C) "AI 예측 요약" 섹션에서는 데이터에 제공된 [추세 판정] 을 그대로 따르고, '
+                            '   향후 7일 일평균이 전일 대비 1.5배 이상이면 절대 "안정세" 라고 쓰지 말 것. '
+                            '   "급증 예상", "주의 필요" 등 정확한 표현 사용. 비율(예: 5.2배)을 본문에 명시. '
+                            'D) "AI 행정 권고" 섹션은 "구체적인 관측점 이름 + 마릿수 또는 예측치 + 조치"의 형식. '
+                            '   예: "베나투스 공원(예측 7일 누적 1,234마리) Bti 살포 우선 시행" 처럼 작성. '
+                            '\n'
                             '각 섹션은 "■" 기호로 시작하고, 불릿은 "- "로 시작합니다. '
                             '문장은 공공기관 행정 어조(…함, …필요함, …권고함)로 작성하세요. '
                             '결재란·서명란·날짜 줄은 포함하지 마세요 (화면에서 별도 렌더링됩니다).'
@@ -1302,9 +1432,15 @@ def moscom_admin_judgment(request):
                 'yday_total': yday_total,
                 'change_pct': pct,
                 'anomaly_count': len(anomalies),
+                'bad_count': len(bad_stations),     # 51마리 이상 (나쁨)
+                'warn_count': len(warn_stations),   # 21~50 (주의)
                 'offline_count': offline_count,
-                'low_batt_count': low_batt_count,
+                'low_batt_count': low_batt_count,   # 30% 미만
                 'plan_count': len(active_plans),
+                'avg_temperature': avg_temp,
+                'avg_humidity': avg_humid,
+                'predicted_7d_total': predicted_7d_total,
+                'predicted_7d_avg': predicted_7d_avg,
             },
         }
         cache.set(cache_key, result, 300)

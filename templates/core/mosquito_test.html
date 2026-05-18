@@ -4245,8 +4245,16 @@ async function buildAdminJudgment(force) {
     if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
 
     const s = json.summary || {};
-    if (kpiEl) kpiEl.textContent =
-      `전체 ${s.total_devices}대 · 포집 ${s.today_total}(전일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) · 이상 ${s.anomaly_count}건 · 오프라인 ${s.offline_count}대 · 방역 ${s.plan_count}건`;
+    if (kpiEl) {
+      const tempStr = (s.avg_temperature != null) ? `${s.avg_temperature}°C` : '-';
+      const humidStr = (s.avg_humidity != null) ? `${s.avg_humidity}%` : '-';
+      kpiEl.textContent =
+        `전체 ${s.total_devices}대 · 포집 ${s.today_total} (전일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) ` +
+        `· 나쁨 ${s.bad_count || 0} · 주의 ${s.warn_count || 0} ` +
+        `· 온도 ${tempStr} · 습도 ${humidStr} ` +
+        `· 오프라인 ${s.offline_count}대 · 배터리<30% ${s.low_batt_count}대 ` +
+        `· 7일 예측 평균 ${s.predicted_7d_avg || 0}마리`;
+    }
 
     const genKst = (json.generated_at || '').slice(0, 16).replace('T', ' ');
     const dateLabel = (json.generated_at || '').slice(0, 10);
