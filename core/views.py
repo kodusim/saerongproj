@@ -706,15 +706,31 @@ def _build_report_body(period, base_date, su, request):
     n_days = max(1, len(dates_in_range))
     avg_per_day = round(total_in_period / n_days, 1)
 
-    # 장비 이름 매핑
+    # 51마리 전역 임계값 (행정 판단과 동일)
+    ANOMALY_THRESHOLD = 51
+
+    # moscom DB lookup (권역/기상)
+    try:
+        from moscom.models import Device as MoscomDevice, Region as MoscomRegion
+        region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
+        uuid_to_md = {md.device_uuid: md for md in MoscomDevice.objects.all()}
+    except Exception:
+        region_name_by_code, uuid_to_md = {}, {}
+
+    # 장비 이름 매핑 (권역명 포함)
     name_map = {}
     for d in devices:
         dv = d.get('device') or {}
         nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
         addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40) or ''
+        md = uuid_to_md.get(d.get('device_uuid'))
+        rc = (md.region_code if md else '') or ''
+        rname = region_name_by_code.get(rc, rc) or '미지정'
         name_map[d.get('device_uuid')] = {
             'name': nm, 'addr': addr,
-            'bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100,
+            'bad_min': ANOMALY_THRESHOLD,
+            'region_name': rname,
+            'region_code': rc,
         }
 
     # 장비별 기간 합계 Top 5
@@ -723,44 +739,65 @@ def _build_report_body(period, base_date, su, request):
         key=lambda x: x[1], reverse=True
     )[:5]
 
-    # 이상 감지 (기간 중 어느 하루라도 bad_min 초과)
+    # 권역별 기간 합계
+    region_totals = defaultdict(lambda: {'total': 0, 'devices': 0, 'top_dev': '', 'top_count': 0})
+    for u in allowed_uuids:
+        v = sum(daily[u].values())
+        meta = name_map.get(u, {})
+        rname = meta.get('region_name', '미지정')
+        region_totals[rname]['total'] += v
+        region_totals[rname]['devices'] += 1
+        if v > region_totals[rname]['top_count']:
+            region_totals[rname]['top_count'] = v
+            region_totals[rname]['top_dev'] = meta.get('name', '')
+    region_sorted = sorted(region_totals.items(), key=lambda kv: -kv[1]['total'])
+
+    # 이상 감지 (51마리 이상)
     anomalies = []
     for u in allowed_uuids:
-        bm = name_map.get(u, {}).get('bad_min', 100)
-        for d, c in daily[u].items():
-            if c >= bm and bm > 0:
+        bm = ANOMALY_THRESHOLD
+        for dd, c in daily[u].items():
+            if c >= bm:
                 anomalies.append({
-                    'name': name_map[u]['name'],
-                    'addr': name_map[u]['addr'],
-                    'date': d, 'count': c, 'bad_min': bm,
+                    'name': name_map.get(u, {}).get('name', u),
+                    'addr': name_map.get(u, {}).get('addr', ''),
+                    'region_name': name_map.get(u, {}).get('region_name', '미지정'),
+                    'date': dd, 'count': c, 'bad_min': bm,
                 })
     anomalies.sort(key=lambda a: a['count'], reverse=True)
-    anomalies = anomalies[:10]
+    anomalies = anomalies[:15]
 
     # 방역 계획 (해당 기간 겹치는 것)
     visible = allowed_set if not su.get('is_admin') else None
     all_plans = remedy_store.list_plans(visible_uuids=visible)
     method_map = {m['key']: m for m in remedy_store.list_methods()}
     plans_in_range = []
+    plans_executed_count = 0
     for p in all_plans:
         sd = p.get('scheduled_date') or ''
-        if start_s <= sd <= end_s or sd >= start_s:
-            m = method_map.get(p['method_key'], {})
+        m = method_map.get(p['method_key'], {})
+        in_range = (start_s <= sd <= end_s)
+        if in_range or sd >= start_s:
             plans_in_range.append({
                 'device': name_map.get(p['device_uuid'], {}).get('name') or p['device_uuid'],
                 'method': m.get('name', p['method_key']),
                 'scheduled_date': sd,
                 'reduction_pct': m.get('reduction_pct'),
+                'executed': in_range,
             })
+            if in_range:
+                plans_executed_count += 1
 
-    # 장비 상태
-    battery_vals = [(d.get('device') or {}).get('battery') or 0 for d in devices]
-    avg_battery = round(sum(battery_vals) / len(battery_vals)) if battery_vals else 0
+    # 장비 상태 — 30% 미만 카운트 (행정 판단과 동일)
     now_utc = datetime.now(timezone.utc)
     offline_count = 0; low_batt_count = 0
+    batt_vals = []
     for d in devices:
         dv = d.get('device') or {}
-        if (dv.get('battery') or 100) < 15:
+        b = dv.get('battery')
+        if b is not None:
+            batt_vals.append(b)
+        if (b or 100) < 30:
             low_batt_count += 1
         ud = dv.get('updated_date') or ''
         try:
@@ -769,21 +806,126 @@ def _build_report_body(period, base_date, su, request):
                 offline_count += 1
         except Exception:
             offline_count += 1
+    avg_battery = round(sum(batt_vals) / len(batt_vals)) if batt_vals else 0
+
+    # 기상 평균 + 매개체 위험 평가
+    temps = [m.temperature for m in uuid_to_md.values() if m.device_uuid in allowed_set and m.temperature is not None]
+    humids = [m.humidity for m in uuid_to_md.values() if m.device_uuid in allowed_set and m.humidity is not None]
+    precs = [m.precipitation for m in uuid_to_md.values() if m.device_uuid in allowed_set and m.precipitation is not None]
+    avg_temp = round(sum(temps)/len(temps), 1) if temps else None
+    avg_humid = round(sum(humids)/len(humids), 1) if humids else None
+    avg_precip = round(sum(precs)/len(precs), 2) if precs else 0
+
+    vector_risks = []
+    temp_zone = humid_zone = None
+    try:
+        from moscom.health_knowledge import assess_vector_risks, thermal_zone_for, humidity_zone_for
+        vector_risks = assess_vector_risks(avg_temp, avg_humid, avg_precip)
+        temp_zone = thermal_zone_for(avg_temp)
+        humid_zone = humidity_zone_for(avg_humid)
+    except Exception as e:
+        logger.warning(f'health_knowledge failed: {e}')
+
+    # 기간 추세 — 전반 vs 후반
+    sorted_dates = sorted(dates_in_range)
+    trend_text = ''
+    if len(sorted_dates) >= 4:
+        half = len(sorted_dates) // 2
+        first_half = sum(sum(daily[u].get(dd, 0) for u in allowed_uuids) for dd in sorted_dates[:half])
+        second_half = sum(sum(daily[u].get(dd, 0) for u in allowed_uuids) for dd in sorted_dates[half:])
+        fh_avg = first_half / max(1, half)
+        sh_avg = second_half / max(1, len(sorted_dates) - half)
+        if fh_avg > 0:
+            tr_pct = round((sh_avg - fh_avg) / fh_avg * 100)
+            if tr_pct > 15:
+                trend_text = f'기간 추세: 전반 일평균 {round(fh_avg)} → 후반 {round(sh_avg)} (+{tr_pct}%, 상승)'
+            elif tr_pct < -15:
+                trend_text = f'기간 추세: 전반 일평균 {round(fh_avg)} → 후반 {round(sh_avg)} ({tr_pct}%, 하강)'
+            else:
+                trend_text = f'기간 추세: 전반 {round(fh_avg)} ↔ 후반 {round(sh_avg)} (안정)'
+
+    # 7일 시계열 (전체 합)
+    last7_dates = sorted_dates[-7:] if len(sorted_dates) >= 7 else sorted_dates
+    last7_timeseries = []
+    for dd in last7_dates:
+        t = sum(daily[u].get(dd, 0) for u in allowed_uuids)
+        last7_timeseries.append({'date': dd, 'total': t})
+
+    # 최근 14일 방역 이력 (참고용)
+    try:
+        from datetime import date as _date
+        cutoff_dt = _date.today() - timedelta(days=14)
+        cutoff = cutoff_dt.strftime('%Y-%m-%d')
+    except Exception:
+        cutoff = ''
+    recent_plans = []
+    for p in all_plans:
+        sd = p.get('scheduled_date') or ''
+        if cutoff and sd < cutoff:
+            continue
+        m = method_map.get(p['method_key'], {})
+        recent_plans.append({
+            'device': name_map.get(p['device_uuid'], {}).get('name') or p['device_uuid'],
+            'method': m.get('name', p['method_key']),
+            'scheduled_date': sd,
+            'reduction_pct': m.get('reduction_pct'),
+        })
+    recent_plans.sort(key=lambda x: x['scheduled_date'], reverse=True)
+    recent_plans = recent_plans[:15]
 
     # GPT 프롬프트
     period_label = {'daily': '일간', 'weekly': '주간', 'monthly': '월간'}.get(period, '일간')
     top_devs_text = '\n'.join(
-        f"  - {name_map.get(u, {}).get('name')} ({name_map.get(u, {}).get('addr') or '주소미상'}): 기간 합계 {v}마리"
+        f"  - {name_map.get(u, {}).get('name')} [{name_map.get(u, {}).get('region_name', '미지정')}] ({name_map.get(u, {}).get('addr') or '주소미상'}): 기간 합계 {v}마리"
         for u, v in dev_totals
     ) or '  - 데이터 없음'
     anomaly_text = '\n'.join(
-        f"  - {a['date']} {a['name']}({a['addr'] or '주소미상'}) — {a['count']}마리 / 기준 {a['bad_min']}"
+        f"  - {a['date']} {a['name']} [{a.get('region_name','미지정')}] ({a['addr'] or '주소미상'}) — {a['count']}마리 / 임계 {a['bad_min']}마리"
         for a in anomalies
-    ) or '  - 기준 초과 이상 감지 없음'
+    ) or '  - 임계(51마리) 초과 이상 감지 없음'
     plans_text = '\n'.join(
-        f"  - {p['device']} / {p['method']} / 예정 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
+        f"  - {p['device']} / {p['method']} / 예정 {p['scheduled_date']} / 감소율 {p['reduction_pct']}% {'[기간내]' if p.get('executed') else ''}"
         for p in plans_in_range[:10]
     ) or '  - 해당 기간 방역 계획 없음'
+
+    # 권역별 합계 Top 10
+    region_text = '\n'.join(
+        f"  - {rname}: 합계 {rd['total']}마리 · 장비 {rd['devices']}대 · 최다 {rd['top_dev'] or '-'} ({rd['top_count']}마리)"
+        for rname, rd in region_sorted[:10]
+    ) or '  - 권역 정보 없음'
+
+    # 7일 시계열 텍스트
+    last7_text = '\n'.join(
+        f"  - {ts['date']}: {ts['total']}마리"
+        for ts in last7_timeseries
+    ) or '  - 시계열 데이터 부족'
+
+    # 기상-생리학 텍스트
+    thermal_text = (
+        f"  - 평균기온 {avg_temp}°C → {temp_zone.get('effect', '-')} "
+        f"(유충 발달 {temp_zone.get('larval_days','-')}일, 성충 수명 {temp_zone.get('adult_lifespan','-')})"
+        if (avg_temp is not None and temp_zone) else '  - 기온 데이터 없음'
+    )
+    humid_text = (
+        f"  - 평균습도 {avg_humid}% → {humid_zone.get('effect', '-')}"
+        if (avg_humid is not None and humid_zone) else '  - 습도 데이터 없음'
+    )
+    precip_text = f"  - 평균 강수 {avg_precip}mm/일 (* 강수 후 5~7일 1차 우화 피크)" if avg_precip else '  - 유의미 강수 없음'
+
+    # 매개체 위험 평가 텍스트
+    if vector_risks:
+        vector_text = '\n'.join(
+            f"  - {vr['species']} ({', '.join(vr['diseases'])}) — 위험 {vr['risk_level']} ({vr['risk_score']}) · 활동 {vr['active_hours']} · 서식 {vr['breeding_site']}"
+            for vr in vector_risks[:4]
+        )
+    else:
+        vector_text = '  - 기상 데이터 부족으로 평가 보류'
+
+    # 최근 방역 이력 텍스트
+    recent_plans_text = '\n'.join(
+        f"  - {p['scheduled_date']} {p['device']} / {p['method']} (-{p['reduction_pct']}%)"
+        for p in recent_plans[:10]
+    ) or '  - 최근 14일간 시행/예정 방역 없음'
 
     # 종합 현황 KPI (최신일 기준) — 보고서에 AI 요약 근거로 포함
     try:
@@ -803,24 +945,42 @@ def _build_report_body(period, base_date, su, request):
         overview_block = ''
         k = {}
 
-    payload_summary = f"""[{period_label} 보고 기준 요약 · {start_s} ~ {end_s}]
+    payload_summary = f"""[{period_label} 모기 발생 감시 보고 · {start_s} ~ {end_s} ({n_days}일)]
 {overview_block}
-■ 기간 전체 수치
+■ 기간 전체 수치 (이상감지 임계 51마리)
   - 전체 장비 수: {len(devices)}대
   - 기간 합계 포집량: {total_in_period}마리 (일평균 {avg_per_day}마리)
   - 측정 일수: {n_days}일
-  - 오프라인 장비: {offline_count}대
-  - 배터리 15% 미만 장비: {low_batt_count}대
-  - 평균 배터리: {avg_battery}%
+  - 오프라인 장비: {offline_count}대 (24시간 이상 미수신)
+  - 배터리 30% 미만: {low_batt_count}대 / 평균 배터리: {avg_battery}%
+  - 방역 시행/예정: {len(plans_in_range)}건 (기간 내 시행 {plans_executed_count}건)
+  - {trend_text or '기간 추세: 산출 불가'}
+
+■ 권역별 기간 합계 (Top 10)
+{region_text}
 
 ■ 기간 상위 포집 장비 (Top 5)
 {top_devs_text}
 
-■ 포집량 이상 감지 (장비 고유 기준 초과)
+■ 7일 시계열 (전체 합)
+{last7_text}
+
+■ 포집량 이상 감지 (≥51마리 일별 기준)
 {anomaly_text}
+
+■ 기상-모기 생리학 분석
+{thermal_text}
+{humid_text}
+{precip_text}
+
+■ 매개체별 위험 평가 (기상 기반 적합도)
+{vector_text}
 
 ■ 해당 기간 방역 내역
 {plans_text}
+
+■ 최근 14일 방역 이력 (참고)
+{recent_plans_text}
 """
 
     api_key = getattr(dj_settings, 'OPENAI_API_KEY', '') or ''
@@ -832,31 +992,41 @@ def _build_report_body(period, base_date, su, request):
             import openai
             client = openai.OpenAI(api_key=api_key)
             period_instruction = {
-                'daily':   '오늘 하루를 기준으로 요약하십시오.',
-                'weekly':  '최근 7일간의 추이를 중심으로 요약하십시오.',
-                'monthly': '최근 30일간의 장기 추세와 계절적 특성을 반영하여 요약하십시오.',
+                'daily':   '오늘 하루의 발생/대응 현황을 중심으로 요약하십시오.',
+                'weekly':  '최근 7일간의 추세·권역별 분포·매개체 위험을 중심으로 종합하십시오.',
+                'monthly': '최근 30일간의 장기 추세, 계절성, 권역간 격차, 매개체 활동 특성을 반영하여 종합하십시오.',
             }.get(period, '요약하십시오.')
             resp = client.chat.completions.create(
                 model='gpt-4o-mini',
                 messages=[
                     {'role': 'system', 'content': (
-                        f'당신은 지자체 보건소 감염병관리팀의 {period_label} 모기 발생 보고서 작성을 지원하는 AI입니다. '
+                        f'당신은 지자체 보건소 감염병관리팀의 {period_label} 모기 발생 감시 보고서 작성을 보조하는 '
+                        '보건학(매개체 감시·방역) 전문가 AI입니다. '
                         f'{period_instruction} '
-                        '주어진 데이터만으로 결재용 공문 형식의 보고서를 한국어로 작성하십시오. '
-                        '다음 5개 섹션을 반드시 포함하십시오: '
-                        '1) 핵심 수치 요약 '
-                        '2) 이상 발생 및 주요 관측 사항 '
-                        '3) 방역 실시 현황 '
-                        '4) 향후 대응 권고 '
-                        '5) 참고 · 특이사항. '
-                        '각 섹션은 "■" 기호로 시작, 불릿은 "- "로 시작합니다. '
-                        '공공기관 행정 어조(…함, …필요함, …권고함)를 사용하십시오. '
-                        '결재란·서명란·날짜 줄은 포함하지 마세요 (화면에서 별도 렌더링됩니다).'
+                        '주어진 실측 데이터, 기상-모기 생리학 분석, 매개체 위험 평가를 근거로 결재용 공문 형식의 한국어 보고서를 작성하십시오. '
+                        '다음 8개 섹션을 반드시 포함하십시오:\n'
+                        '1) 핵심 수치 요약 (포집량/장비/이상감지/방역 등)\n'
+                        '2) 권역별 발생 양상 (Top 권역, 격차, 우점 권역)\n'
+                        '3) 시계열·추세 분석 (전반·후반 비교, 7일 추이)\n'
+                        '4) 이상 발생 및 주요 관측 (51마리 이상 일자/장비, 패턴)\n'
+                        '5) 기상-매개체 위험 평가 (기온·습도·강수 조건과 매개종 활동, 우화 주기)\n'
+                        '6) 방역 실시 현황 및 효과 (시행 건수, 방법별 분포)\n'
+                        '7) 향후 대응 권고 (구체 방역 방법·시기·대상 장비 명시, 매개종-방역 매칭)\n'
+                        '8) 참고·특이사항 (장비 상태, 데이터 신뢰도, 후속 모니터링).\n\n'
+                        '규칙:\n'
+                        '- 각 섹션은 "■" 기호로 시작, 불릿은 "- "로 시작합니다.\n'
+                        '- 공공기관 행정 어조(…함, …필요함, …권고함, …요망)를 사용하십시오.\n'
+                        '- 모든 수치·장비명·권역명·날짜는 제공된 데이터에서만 인용하고 임의로 생성하지 마십시오.\n'
+                        '- 51마리 이상 일별 포집은 "이상감지"로 명시하고 해당 장비·권역을 구체적으로 적시하십시오.\n'
+                        '- 기상-생리학 섹션은 우화 기간/성충 수명/매개종 활동시간을 인용하여 과학적 근거를 제시하십시오.\n'
+                        '- 방역 권고는 Bti·잔류분무·ULV·용기제거 중 데이터 상황에 맞는 방법을 명시하십시오.\n'
+                        '- 결재란·서명란·작성자/날짜 줄은 포함하지 마십시오 (화면에서 별도 렌더링됩니다).\n'
+                        '- 단순 나열보다 보건학적 인과와 행정 우선순위가 드러나도록 작성하십시오.'
                     )},
                     {'role': 'user', 'content': payload_summary},
                 ],
                 temperature=0.4,
-                max_tokens=900,
+                max_tokens=1800,
             )
             report_text = resp.choices[0].message.content.strip()
             source = 'openai:gpt-4o-mini'
@@ -924,6 +1094,7 @@ def _build_report_body(period, base_date, su, request):
     anomaly_section = [
         {
             'name': a['name'], 'addr': a['addr'], 'date': a['date'],
+            'region_name': a.get('region_name', '미지정'),
             'count': a['count'], 'bad_min': a['bad_min'],
             'pct_over': round((a['count'] - a['bad_min']) / a['bad_min'] * 100) if a['bad_min'] else 0,
         }
@@ -989,6 +1160,19 @@ def _build_report_body(period, base_date, su, request):
         logger.exception('predict section failed')
         predict_section = None
 
+    # 권역별 breakdown — 보고서 표용
+    region_breakdown = [
+        {
+            'region_name': rname,
+            'total': rd['total'],
+            'devices': rd['devices'],
+            'top_dev': rd['top_dev'],
+            'top_count': rd['top_count'],
+            'avg_per_device': round(rd['total'] / rd['devices'], 1) if rd['devices'] else 0,
+        }
+        for rname, rd in region_sorted
+    ]
+
     summary = {
         'total_devices': len(devices),
         'period': period, 'period_label': period_label,
@@ -997,10 +1181,19 @@ def _build_report_body(period, base_date, su, request):
         'avg_per_day': avg_per_day,
         'n_days': n_days,
         'anomaly_count': len(anomalies),
+        'anomaly_threshold': ANOMALY_THRESHOLD,
         'offline_count': offline_count,
         'low_batt_count': low_batt_count,
         'plan_count': len(plans_in_range),
+        'plans_executed_count': plans_executed_count,
         'avg_battery': avg_battery,
+        # 기상-생리학
+        'avg_temp': avg_temp,
+        'avg_humid': avg_humid,
+        'avg_precip': avg_precip,
+        'temp_zone': temp_zone,
+        'humid_zone': humid_zone,
+        'trend_text': trend_text,
         'overview_kpi': {
             'today_total': k.get('today_total', 0) if k else 0,
             'change_pct': k.get('change_pct', 0) if k else 0,
@@ -1020,6 +1213,10 @@ def _build_report_body(period, base_date, su, request):
             'anomaly': anomaly_section,
             'predict': predict_section,
             'plans': plans_in_range,
+            'region_breakdown': region_breakdown,
+            'vector_risks': vector_risks,
+            'recent_plans': recent_plans,
+            'last7_timeseries': last7_timeseries,
         },
     }
     return report_text, summary, allowed_uuids, source, payload_summary
