@@ -143,24 +143,48 @@ def _fmt_dt(dt):
     return dt.strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def _ingest_raw_batch(records):
-    """raw 응답 리스트 → Collection 행 일괄 ingest. 중복(이미 있는 moscom_id) 자동 스킵."""
+def _ingest_raw_batch(records, overwrite_edited=False):
+    """raw 응답 리스트 → Collection 행 일괄 ingest.
+    overwrite_edited=False (기본): 이미 있는 행 자체를 스킵 — 데이터 보존.
+    overwrite_edited=True: 이미 있는 행의 값(mosquito_count 등) 을 새 응답값으로 덮어쓰기.
+        edited=True 인 행도 강제 덮어씀 (수정 이력은 EditLog 에 남아있음).
+    """
     if not records:
-        return {'created': 0, 'skipped': 0}
-    # 기존 moscom_id set
+        return {'created': 0, 'updated': 0, 'skipped': 0}
+
     incoming_ids = [r.get('id') for r in records if r.get('id') is not None]
-    existing = set(
-        Collection.objects.filter(moscom_id__in=incoming_ids).values_list('moscom_id', flat=True)
-    )
-    rows = []
+    existing_map = {
+        c.moscom_id: c for c in
+        Collection.objects.filter(moscom_id__in=incoming_ids)
+    }
+
+    new_rows = []
+    n_updated = 0
+    n_skipped = 0
     for r in records:
         mid = r.get('id')
-        if mid is None or mid in existing:
+        if mid is None:
             continue
         cd = _parse_iso(r.get('created_date'))
         if cd is None:
             continue
-        rows.append(Collection(
+        existing = existing_map.get(mid)
+        if existing is not None:
+            if not overwrite_edited:
+                n_skipped += 1
+                continue
+            # 덮어쓰기 — edited 상태도 풀고 원본으로 복원
+            existing.mosquito_count = int(r.get('mosquito_count') or 0)
+            existing.reset = bool(r.get('reset'))
+            existing.battery = int(r.get('battery') or 0)
+            existing.charge = int(r.get('charge') or 0)
+            existing.fan = int(r.get('fan') or 0)
+            existing.created_date = cd
+            existing.edited = False
+            existing.save()
+            n_updated += 1
+            continue
+        new_rows.append(Collection(
             moscom_id=mid,
             device_uuid=(r.get('device_uuid') or '')[:64],
             mosquito_count=int(r.get('mosquito_count') or 0),
@@ -171,16 +195,13 @@ def _ingest_raw_batch(records):
             created_date=cd,
             edited=False,
         ))
-    if rows:
-        Collection.objects.bulk_create(rows, batch_size=500, ignore_conflicts=True)
-    return {'created': len(rows), 'skipped': len(records) - len(rows)}
+    if new_rows:
+        Collection.objects.bulk_create(new_rows, batch_size=500, ignore_conflicts=True)
+    return {'created': len(new_rows), 'updated': n_updated, 'skipped': n_skipped}
 
 
-def sync_collections(since=None, until=None):
-    """[since, until] 기간 raw 포집 동기화.
-    since 없으면 SyncState.collections_synced_until (또는 24h 전).
-    until 없으면 now.
-    """
+def sync_collections(since=None, until=None, overwrite_edited=False):
+    """[since, until] 기간 raw 포집 동기화."""
     state = _get_state()
     now = timezone.now()
     if until is None:
@@ -188,10 +209,9 @@ def sync_collections(since=None, until=None):
     if since is None:
         since = state.collections_synced_until or (now - timedelta(hours=24))
 
-    # 안전: 최소 60초 오버랩 (시간 경계 누락 방지)
     since = since - timedelta(seconds=60)
     if since >= until:
-        return {'created': 0, 'skipped': 0, 'since': since.isoformat(), 'until': until.isoformat()}
+        return {'created': 0, 'updated': 0, 'skipped': 0, 'since': since.isoformat(), 'until': until.isoformat()}
 
     data = moscom_client.get_statistics_by_date(
         start_dt=_fmt_dt(since), end_dt=_fmt_dt(until),
@@ -199,21 +219,22 @@ def sync_collections(since=None, until=None):
     )
     if not isinstance(data, list):
         raise RuntimeError(f'unexpected raw response: {type(data).__name__}')
-    result = _ingest_raw_batch(data)
+    result = _ingest_raw_batch(data, overwrite_edited=overwrite_edited)
 
     state.collections_synced_until = until
     state.save(update_fields=['collections_synced_until'])
     result['since'] = since.isoformat()
     result['until'] = until.isoformat()
+    result['overwrite_edited'] = overwrite_edited
     logger.info(f'sync_collections: {result}')
     return result
 
 
-def backfill_collections(days=30, chunk_days=7):
-    """과거 N일 백필. MOSCOM API가 한 번에 너무 큰 범위면 부담이 되니 chunk 로 쪼갬."""
+def backfill_collections(days=30, chunk_days=7, overwrite_edited=False):
+    """과거 N일 백필."""
     now = timezone.now()
     start = now - timedelta(days=days)
-    total = {'created': 0, 'skipped': 0, 'chunks': 0}
+    total = {'created': 0, 'updated': 0, 'skipped': 0, 'chunks': 0}
     cur = start
     while cur < now:
         nxt = min(cur + timedelta(days=chunk_days), now)
@@ -222,8 +243,9 @@ def backfill_collections(days=30, chunk_days=7):
             aggregation='raw', device_uuid='0', force_refresh=True,
         )
         if isinstance(data, list):
-            r = _ingest_raw_batch(data)
+            r = _ingest_raw_batch(data, overwrite_edited=overwrite_edited)
             total['created'] += r['created']
+            total['updated'] += r.get('updated', 0)
             total['skipped'] += r['skipped']
             total['chunks'] += 1
             logger.info(f'backfill chunk {cur} ~ {nxt}: {r}')
@@ -232,6 +254,7 @@ def backfill_collections(days=30, chunk_days=7):
     state = _get_state()
     state.collections_synced_until = now
     state.save(update_fields=['collections_synced_until'])
+    total['overwrite_edited'] = overwrite_edited
     return total
 
 

@@ -1150,6 +1150,10 @@ body {
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><line x1="6" y1="14" x2="10" y2="14"/><line x1="8" y1="12" x2="8" y2="14"/></svg>
       장비 현황
     </a>
+    <a class="nav-item" onclick="showPage('period')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="6" y1="3" x2="6" y2="14"/></svg>
+      기간별 데이터
+    </a>
   </div>
 
   <div class="nav-section">
@@ -1754,6 +1758,85 @@ body {
     </div>
   </div>
 
+  <!-- ══════════ 9-2. 기간별 데이터 ══════════ -->
+  <div class="page" id="page-period">
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">기간별 데이터</div>
+          <div class="sec-sub">MOSCOM 원본 데이터 — 일/주/월/년 단위 집계 조회</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>raw 데이터 직접 조회</div>
+    </div>
+
+    <!-- 필터 영역 -->
+    <div class="card mb16" style="padding:14px 16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px">시작일</label>
+          <input type="date" id="pd-start" style="width:100%;padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px">종료일</label>
+          <input type="date" id="pd-end" style="width:100%;padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px">집계 단위</label>
+          <select id="pd-unit" style="width:100%;padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px">
+            <option value="day">일별</option>
+            <option value="week">주별</option>
+            <option value="month">월별</option>
+            <option value="year">년별</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px">권역</label>
+          <select id="pd-region" style="width:100%;padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px">
+            <option value="">(전체)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px">장비</label>
+          <select id="pd-device" style="width:100%;padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px">
+            <option value="">(전체)</option>
+          </select>
+        </div>
+        <button class="dl-btn dl-btn-html" id="pd-reload" style="padding:7px 14px;font-size:12px;height:32px">조회</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;font-size:11px;color:var(--gray5);align-items:center;flex-wrap:wrap">
+        <span style="color:var(--gray4)">빠른 선택:</span>
+        <button class="dl-btn dl-btn-csv" onclick="pdPreset(7,'day')" style="padding:3px 9px;font-size:11px">최근 7일</button>
+        <button class="dl-btn dl-btn-csv" onclick="pdPreset(30,'day')" style="padding:3px 9px;font-size:11px">최근 30일</button>
+        <button class="dl-btn dl-btn-csv" onclick="pdPreset(90,'week')" style="padding:3px 9px;font-size:11px">최근 12주</button>
+        <button class="dl-btn dl-btn-csv" onclick="pdPreset(365,'month')" style="padding:3px 9px;font-size:11px">최근 12개월</button>
+      </div>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div class="kpi-grid mb16" id="pd-summary"></div>
+
+    <!-- 차트 -->
+    <div class="card mb16" style="padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">기간별 추이</div>
+      <div style="position:relative;height:280px">
+        <canvas id="pd-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- 상세 표 -->
+    <div class="card mb16">
+      <div class="sec-header" style="padding:12px 16px 4px;margin:0">
+        <div class="sec-title" style="font-size:13px">상세 데이터</div>
+        <div class="sec-sub" id="pd-table-sub" style="margin-left:8px">기간/필터 선택 후 조회하세요</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="pd-table" style="width:100%"></table>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════ 10. AI 행정 판단 ══════════ -->
   <div class="page" id="page-admin">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
@@ -1905,11 +1988,15 @@ body {
     </div>
 
     <div class="card mb16" style="padding:12px 16px">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <button class="ma-sm-btn" onclick="dmShow('regions')">권역 관리</button>
         <button class="ma-sm-btn" onclick="dmShow('devices')">장비 메타 수정</button>
         <button class="ma-sm-btn" onclick="dmShow('collections')">포집 데이터 수정</button>
         <button class="ma-sm-btn" onclick="dmShow('logs')">수정 이력</button>
+        <span style="flex:1"></span>
+        <button class="dl-btn dl-btn-html" onclick="dmOpenResyncModal()" style="padding:6px 14px;font-size:12px;background:#1A5C35;color:#fff;border-color:#1A5C35">
+          ↻ MOSCOM 데이터 갱신
+        </button>
       </div>
     </div>
 
@@ -1923,6 +2010,49 @@ body {
 </div><!-- /main -->
 
 <!-- 보고서 생성 모달 -->
+{% if is_admin %}
+<!-- MOSCOM 데이터 갱신 모달 -->
+<div class="rp-modal-backdrop" id="dm-resync-modal" onclick="if(event.target===this)dmCloseResyncModal()" style="display:none">
+  <div class="rp-modal" style="max-width:500px">
+    <div class="rp-modal-head">
+      <h3>↻ MOSCOM 데이터 갱신</h3>
+      <button class="rp-close" onclick="dmCloseResyncModal()">×</button>
+    </div>
+    <div class="rp-modal-body" style="font-size:13px;line-height:1.6">
+      <p style="margin-bottom:14px">
+        MOSCOM API에서 최근 데이터를 다시 가져옵니다. 평소엔 1시간마다 자동 동기화되지만,
+        간헐적 실패 시 수동으로 강제 갱신할 수 있습니다.
+      </p>
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px">가져올 기간</label>
+        <select id="dm-resync-days" style="width:100%;padding:7px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:13px">
+          <option value="1">최근 1일</option>
+          <option value="3">최근 3일</option>
+          <option value="7" selected>최근 7일</option>
+          <option value="14">최근 14일</option>
+          <option value="30">최근 30일</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:12px;background:#FFF8E1;border:1px solid #F5D788;border-radius:6px;cursor:pointer">
+        <input type="checkbox" id="dm-resync-overwrite" style="margin-top:2px;flex-shrink:0">
+        <div>
+          <div style="font-weight:700;color:#7A5700;font-size:12px">moscom.ai에서 수정한 데이터도 갱신하시겠습니까?</div>
+          <div style="font-size:11px;color:var(--gray5);margin-top:4px;line-height:1.55">
+            체크 안 함 (기본): 이미 저장된 행은 그대로 두고, 새 데이터만 추가합니다.<br>
+            체크함: 수정한 행도 MOSCOM 원본값으로 덮어씁니다. (수정 이력은 EditLog 에 보존됨)
+          </div>
+        </div>
+      </label>
+      <div id="dm-resync-result" style="margin-top:14px;font-size:12px"></div>
+    </div>
+    <div class="rp-modal-foot" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--gray2)">
+      <button class="dl-btn" onclick="dmCloseResyncModal()" style="padding:7px 14px;font-size:12px">취소</button>
+      <button class="dl-btn dl-btn-html" id="dm-resync-go" onclick="dmRunResync()" style="padding:7px 18px;font-size:12px;background:#1A5C35;color:#fff;border-color:#1A5C35">갱신 시작</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="rp-modal-backdrop" id="rp-modal-backdrop" onclick="if(event.target===this)closeReportModal()">
   <div class="rp-modal">
     <div class="rp-modal-head">
@@ -4414,7 +4544,7 @@ const PAGE_TITLES = {
   trend:"7일 누적 추세", predict:"AI 모기 발생 예측", forecast:"AI 위험도 예보",
   remedy:"방역 실시 내역",
   equipment:"장비 현황", admin:"AI 행정 판단", moscom_admin:"모스콤 관리자",
-  data_admin:"데이터 관리"
+  data_admin:"데이터 관리", period:"기간별 데이터"
 };
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -4434,6 +4564,7 @@ function showPage(name){
   if (name === 'admin' && typeof buildAdminJudgment === 'function' && !AJ_LOADED) buildAdminJudgment(false);
   // 모스콤 관리자: 탭 진입 시 데이터 로드
   if (name === 'moscom_admin' && typeof maLoad === 'function') maLoad();
+  if (name === 'period' && typeof pdInit === 'function') pdInit();
   // 모바일: 탭 클릭 시 사이드바 자동 닫기
   document.body.classList.remove('mb-open');
 }
@@ -5050,6 +5181,53 @@ function _fmtNum(v){ return v == null ? '-' : Number(v).toLocaleString(); }
 function _fmtDt(s){ if(!s) return '-'; return s.replace('T',' ').slice(0,19); }
 function _esc(s){ return (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// ── 수동 갱신 모달 ──
+function dmOpenResyncModal() {
+  const m = document.getElementById('dm-resync-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  document.getElementById('dm-resync-result').innerHTML = '';
+  document.getElementById('dm-resync-overwrite').checked = false;
+}
+function dmCloseResyncModal() {
+  const m = document.getElementById('dm-resync-modal');
+  if (m) m.style.display = 'none';
+}
+async function dmRunResync() {
+  const days = parseInt(document.getElementById('dm-resync-days').value, 10) || 7;
+  const overwrite = document.getElementById('dm-resync-overwrite').checked;
+  const result = document.getElementById('dm-resync-result');
+  const btn = document.getElementById('dm-resync-go');
+  btn.disabled = true; btn.textContent = '갱신 중…';
+  result.innerHTML = '<span style="color:var(--gray4)">MOSCOM API에서 데이터를 가져오는 중… (수십 초 걸릴 수 있습니다)</span>';
+  try {
+    const r = await fetch('/mosquito-test/db/resync/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days, overwrite_edited: overwrite }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    const dr = j.devices || {};
+    const cr = j.collections || {};
+    result.innerHTML =
+      `<div style="padding:10px 12px;background:#E8F5E9;border:1px solid #66BB6A;border-radius:6px;color:#1B5E20">`
+      + `<strong>✓ 갱신 완료</strong><br>`
+      + `장비: ${dr.created || 0}개 신규 / ${dr.updated || 0}개 갱신 (총 ${dr.total || 0})<br>`
+      + `포집 데이터: ${cr.created || 0}건 신규 추가`
+      + (overwrite ? ` / ${cr.updated || 0}건 덮어씀` : '')
+      + ` / ${cr.skipped || 0}건 스킵`
+      + `<br>chunks=${cr.chunks || 0}, overwrite_edited=${overwrite}`
+      + `</div>`;
+    btn.textContent = '완료';
+    setTimeout(() => { btn.textContent = '갱신 시작'; btn.disabled = false; }, 2000);
+  } catch (e) {
+    result.innerHTML = `<div style="padding:10px 12px;background:#FFEBEE;border:1px solid #E57373;border-radius:6px;color:#B71C1C"><strong>✗ 실패</strong> ${_esc(e.message)}</div>`;
+    btn.textContent = '갱신 시작';
+    btn.disabled = false;
+  }
+}
+
 async function dmLoadSyncStatus() {
   try {
     const r = await fetch('/mosquito-test/db/sync-status/');
@@ -5395,6 +5573,156 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   observer.observe(p, { attributes: true, attributeFilter: ['class'] });
 });
+
+// ── 기간별 데이터 ──────────────────────────────
+const PD = { chart: null, devices: [], regions: [], loaded: false };
+
+function _pdFmt(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function pdInit() {
+  if (!PD.loaded) {
+    // 기본값: 최근 7일
+    pdPreset(7, 'day');
+    // 장비/권역 목록 채우기
+    try {
+      const r = await fetch('/mosquito-test/db/devices/');
+      const j = await r.json();
+      PD.devices = j.items || [];
+      const ds = document.getElementById('pd-device');
+      ds.innerHTML = '<option value="">(전체)</option>' + PD.devices.map(d =>
+        `<option value="${d.device_uuid}">${(d.device_name || d.device_uuid).replace(/</g,'&lt;')}</option>`
+      ).join('');
+    } catch (e) {}
+    try {
+      const r = await fetch('/mosquito-test/db/regions/');
+      const j = await r.json();
+      PD.regions = j.items || [];
+      const rs = document.getElementById('pd-region');
+      rs.innerHTML = '<option value="">(전체)</option>' + PD.regions.map(rg =>
+        `<option value="${rg.code}">${rg.name}</option>`
+      ).join('');
+    } catch (e) {}
+    const btn = document.getElementById('pd-reload');
+    if (btn) btn.onclick = pdLoad;
+    PD.loaded = true;
+  }
+  pdLoad();
+}
+
+function pdPreset(days, unit) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  document.getElementById('pd-start').value = _pdFmt(start);
+  document.getElementById('pd-end').value = _pdFmt(end);
+  document.getElementById('pd-unit').value = unit;
+  if (PD.loaded) pdLoad();
+}
+
+async function pdLoad() {
+  const start = document.getElementById('pd-start').value;
+  const end = document.getElementById('pd-end').value;
+  const unit = document.getElementById('pd-unit').value;
+  const dev = document.getElementById('pd-device').value;
+  const reg = document.getElementById('pd-region').value;
+  const tableSub = document.getElementById('pd-table-sub');
+  if (tableSub) tableSub.textContent = '로딩 중…';
+  const params = new URLSearchParams();
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  params.set('unit', unit);
+  if (dev) params.set('device_uuid', dev);
+  if (reg) params.set('region_code', reg);
+  try {
+    const r = await fetch('/mosquito-test/db/period/?' + params.toString());
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    pdRenderSummary(j);
+    pdRenderChart(j);
+    pdRenderTable(j);
+  } catch (e) {
+    if (tableSub) tableSub.textContent = '로드 실패: ' + e.message;
+  }
+}
+
+function pdRenderSummary(j) {
+  const items = j.items || [];
+  const summary = j.summary || [];
+  const grand = items.reduce((s, it) => s + (it.total || 0), 0);
+  const days = summary.length;
+  const peakBucket = summary.reduce((m, b) => (b.total > (m?.total || 0) ? b : m), null);
+  const devSet = new Set(items.map(it => it.device_uuid));
+  const labelUnit = ({day:'일', week:'주', month:'월', year:'년'})[j.unit] || j.unit;
+  document.getElementById('pd-summary').innerHTML = `
+    <div class="kpi-card navy" style="grid-column:span 2">
+      <div class="kpi-label">기간 총 포집량</div>
+      <div class="kpi-value val-navy">${grand.toLocaleString()}</div>
+      <div class="kpi-sub">${labelUnit} ${days}개 · 장비 ${devSet.size}대</div>
+    </div>
+    <div class="kpi-card red" style="grid-column:span 2">
+      <div class="kpi-label">피크 ${labelUnit}</div>
+      <div class="kpi-value val-red" style="font-size:18px">${peakBucket ? (peakBucket.bucket.slice(0,10)) : '-'}</div>
+      <div class="kpi-sub">${peakBucket ? (peakBucket.total.toLocaleString() + '마리') : '-'}</div>
+    </div>
+    <div class="kpi-card green" style="grid-column:span 2">
+      <div class="kpi-label">${labelUnit}별 평균</div>
+      <div class="kpi-value val-green">${days ? Math.round(grand/days).toLocaleString() : 0}</div>
+      <div class="kpi-sub">${labelUnit}당 평균 포집량</div>
+    </div>
+  `;
+}
+
+function pdRenderChart(j) {
+  const ctx = document.getElementById('pd-chart');
+  if (!ctx) return;
+  const summary = j.summary || [];
+  const labels = summary.map(b => b.bucket.slice(0, 10));
+  const data = summary.map(b => b.total);
+  if (PD.chart) { PD.chart.destroy(); PD.chart = null; }
+  if (!labels.length) return;
+  PD.chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '포집량 합계',
+        data,
+        borderColor: '#1B3A6B',
+        backgroundColor: 'rgba(27,58,107,.08)',
+        tension: 0.3, fill: true, pointRadius: 3,
+      }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}} },
+  });
+}
+
+function pdRenderTable(j) {
+  const t = document.getElementById('pd-table');
+  const sub = document.getElementById('pd-table-sub');
+  const items = j.items || [];
+  if (sub) sub.textContent = `총 ${items.length}행`;
+  if (items.length === 0) { t.innerHTML = `<thead><tr><th>데이터 없음</th></tr></thead>`; return; }
+  const labelUnit = ({day:'일별', week:'주차', month:'월', year:'년'})[j.unit] || j.unit;
+  const head = `<thead><tr>
+    <th>${labelUnit}</th><th>장비</th><th>권역</th>
+    <th style="text-align:right">합계</th>
+    <th style="text-align:right">평균</th>
+    <th style="text-align:right">최대</th>
+    <th style="text-align:right">측정수</th>
+  </tr></thead>`;
+  const body = items.map(it => `<tr>
+    <td style="font-family:var(--mono);font-size:11px">${(it.bucket || '').slice(0,10)}</td>
+    <td>${(it.device_name || '').replace(/</g,'&lt;')}</td>
+    <td><span style="font-size:10px;font-weight:700;background:#EEF2FF;color:#3949AB;padding:2px 8px;border-radius:10px">${(it.region_name || '미지정').replace(/</g,'&lt;')}</span></td>
+    <td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--navy)">${(it.total || 0).toLocaleString()}</td>
+    <td style="text-align:right;font-family:var(--mono);color:var(--gray5)">${it.avg}</td>
+    <td style="text-align:right;font-family:var(--mono);color:var(--gray5)">${it.max}</td>
+    <td style="text-align:right;font-family:var(--mono);color:var(--gray5)">${it.events}</td>
+  </tr>`).join('');
+  t.innerHTML = head + '<tbody>' + body + '</tbody>';
+}
 </script>
 </body>
 </html>

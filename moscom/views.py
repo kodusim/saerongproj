@@ -33,6 +33,139 @@ def _admin_name(request):
     return ''
 
 
+# ─ 수동 동기화 ─────────────────────────────────
+
+@csrf_exempt
+@require_POST
+def manual_resync(request):
+    """관리자: MOSCOM API에서 데이터 다시 가져오기 (수동 갱신).
+    body: {days?: int=7, overwrite_edited?: bool=False}
+    overwrite_edited=False: 이미 저장된 행은 건드리지 않음 (수정값 보존)
+    overwrite_edited=True : 모든 행을 원본으로 덮어씀 (수정 이력은 EditLog 에 남음)
+    """
+    if not _is_admin(request):
+        return JsonResponse({'error': '관리자 로그인 필요'}, status=403)
+    try:
+        body = json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except json.JSONDecodeError:
+        body = {}
+    try:
+        days = max(1, min(int(body.get('days') or 7), 90))
+    except (TypeError, ValueError):
+        days = 7
+    overwrite = bool(body.get('overwrite_edited', False))
+
+    try:
+        from .sync import sync_devices, backfill_collections
+        dev_r = sync_devices()
+        col_r = backfill_collections(days=days, overwrite_edited=overwrite)
+        return JsonResponse({
+            'ok': True,
+            'devices': dev_r,
+            'collections': col_r,
+            'overwrite_edited': overwrite,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# ─ 기간별 집계 ────────────────────────────────
+
+@require_GET
+def period_aggregate(request):
+    """기간별 집계 — 일/주/월/년 단위.
+    params: start, end (YYYY-MM-DD), unit (day|week|month|year), device_uuid?, region_code?
+    """
+    from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, TruncYear
+    from django.db.models import Sum, Count, Avg, Max as DbMax, Min as DbMin
+    from datetime import datetime as dt
+
+    unit = (request.GET.get('unit') or 'day').strip().lower()
+    if unit not in ('day', 'week', 'month', 'year'):
+        return JsonResponse({'error': 'unit must be day|week|month|year'}, status=400)
+
+    start_s = request.GET.get('start')
+    end_s = request.GET.get('end')
+    try:
+        start = dt.fromisoformat(start_s) if start_s else None
+        end = dt.fromisoformat(end_s) if end_s else None
+    except ValueError:
+        return JsonResponse({'error': 'date format YYYY-MM-DD'}, status=400)
+
+    qs = Collection.objects.all()
+    if start:
+        qs = qs.filter(created_date__gte=timezone.make_aware(dt.combine(start, dt.min.time())))
+    if end:
+        qs = qs.filter(created_date__lte=timezone.make_aware(dt.combine(end, dt.max.time())))
+    device_uuid = request.GET.get('device_uuid')
+    if device_uuid:
+        qs = qs.filter(device_uuid=device_uuid)
+
+    # 권역 필터 (Device.region_code 매칭)
+    region_code = request.GET.get('region_code')
+    if region_code is not None:
+        dev_uuids = list(
+            Device.objects.filter(region_code=region_code, is_active=True)
+            .values_list('device_uuid', flat=True)
+        )
+        qs = qs.filter(device_uuid__in=dev_uuids)
+
+    trunc = {
+        'day': TruncDate('created_date'),
+        'week': TruncWeek('created_date'),
+        'month': TruncMonth('created_date'),
+        'year': TruncYear('created_date'),
+    }[unit]
+    rows = list(
+        qs.annotate(bucket=trunc)
+          .values('bucket', 'device_uuid')
+          .annotate(
+              total=Sum('mosquito_count'),
+              events=Count('id'),
+              avg=Avg('mosquito_count'),
+              max=DbMax('mosquito_count'),
+          )
+          .order_by('bucket', 'device_uuid')
+    )
+
+    # 장비 메타
+    devices = {d.device_uuid: d for d in Device.objects.all()}
+    region_name_by_code = {r.code: r.name for r in Region.objects.all()}
+
+    items = []
+    for r in rows:
+        d = devices.get(r['device_uuid'])
+        bucket = r['bucket']
+        items.append({
+            'bucket': bucket.isoformat() if hasattr(bucket, 'isoformat') else str(bucket),
+            'device_uuid': r['device_uuid'],
+            'device_name': d.device_name if d else r['device_uuid'],
+            'region_code': (d.region_code if d else '') or '',
+            'region_name': region_name_by_code.get((d.region_code if d else ''), '미지정') if d else '미지정',
+            'total': r['total'] or 0,
+            'events': r['events'] or 0,
+            'avg': round(r['avg'] or 0, 2),
+            'max': r['max'] or 0,
+        })
+
+    # bucket 단위로 총합도 같이
+    bucket_totals = {}
+    for it in items:
+        b = it['bucket']
+        if b not in bucket_totals:
+            bucket_totals[b] = {'bucket': b, 'total': 0, 'devices': 0}
+        bucket_totals[b]['total'] += it['total']
+        bucket_totals[b]['devices'] += 1
+    bucket_summary = sorted(bucket_totals.values(), key=lambda x: x['bucket'])
+
+    return JsonResponse({
+        'unit': unit,
+        'count': len(items),
+        'items': items,
+        'summary': bucket_summary,
+    })
+
+
 # ─ 장비 ────────────────────────────────────────
 
 @require_GET
