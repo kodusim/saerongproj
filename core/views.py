@@ -2452,6 +2452,430 @@ def moscom_predict(request):
 
 
 @require_GET
+def moscom_forecast_brief(request):
+    """AI 위험도 예보 — 보건소/질병청용 종합 브리핑.
+    1) 권역별 위험 신호등 (3일 평균 모기지수 기준)
+    2) 기상 → 모기 발생 과학적 설명 (GPT 자동 생성 + 룰 fallback)
+    3) 트렌드 비교 (최근 7일 vs 직전 7일 vs 작년 동기간)
+    4) 방역 시뮬레이션은 별도 endpoint (moscom_forecast_simulate)
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    from datetime import datetime, timedelta, timezone, date as date_cls
+    from collections import defaultdict
+    from django.core.cache import cache
+    from django.conf import settings as dj_settings
+
+    su = _current_session_user(request)
+    cache_key = 'moscom:forecast_brief:' + (su.get('login_id') or 'anon')
+    force = request.GET.get('refresh') == '1'
+    if not force:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return JsonResponse(cached)
+
+    try:
+        # 영업일 today
+        try:
+            from moscom.timeutil import business_today, business_yesterday
+            today_d = business_today()
+            yday_d = business_yesterday()
+        except Exception:
+            today_d = datetime.now(timezone(timedelta(hours=9))).date()
+            yday_d = today_d - timedelta(days=1)
+
+        devices = moscom_client.list_devices()
+        devices = user_store.filter_devices(su, devices)
+        allowed_uuids = {d.get('device_uuid') for d in devices}
+
+        # moscom DB lookup (region + weather)
+        moscom_device_map = {}
+        region_name_by_code = {}
+        try:
+            from moscom.models import Device as MoscomDevice, Region as MoscomRegion, Collection
+            region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
+            for md in MoscomDevice.objects.all():
+                moscom_device_map[md.device_uuid] = md
+        except Exception:
+            Collection = None  # noqa
+
+        # 장비별 history 7일
+        stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+        stats = [r for r in (stats or []) if r.get('device_uuid') in allowed_uuids]
+        daily = defaultdict(lambda: defaultdict(int))
+        for r in stats:
+            u = r.get('device_uuid')
+            date = (r.get('created_date') or '')[:10]
+            if u and date and date < today_d.isoformat():
+                daily[u][date] += (r.get('mosquito_count') or 0)
+
+        # 예측 호출 (3일)
+        try:
+            from core import predictor
+            inputs = []
+            for u in allowed_uuids:
+                hist = [{'date': d, 'count': c} for d, c in sorted(daily[u].items())]
+                md = moscom_device_map.get(u)
+                name = (md.device_name if md else u) or u
+                inputs.append({
+                    'uuid': u, 'name': name,
+                    'region': ' '.join(p for p in [(md.address_sido if md else ''), (md.address_gungu if md else '')] if p),
+                    'region_code': (md.region_code if md else '') or '',
+                    'sido': (md.address_sido if md else '') or '',
+                    'history': hist,
+                    'weather': {
+                        'temperature': md.temperature if md else None,
+                        'humidity': md.humidity if md else None,
+                        'precipitation': md.precipitation if md else None,
+                        'wind_speed': md.wind_speed if md else None,
+                    } if md else {},
+                })
+            preds = predictor.predict_for_devices(inputs, days_ahead=3)
+        except Exception as e:
+            logger.warning(f'forecast_brief predict failed: {e}')
+            preds = []
+
+        # ── 1. 권역별 위험 신호등 ──
+        region_groups = defaultdict(list)  # region_name -> [{uuid, name, avg_index, max_predicted}]
+        for p in preds:
+            md = moscom_device_map.get(p.get('uuid'))
+            rc = (md.region_code if md else '') or ''
+            rname = region_name_by_code.get(rc, rc) or '미지정'
+            region_groups[rname].append({
+                'uuid': p.get('uuid'),
+                'name': p.get('name'),
+                'avg_index': p.get('avg_index'),
+                'max_index': p.get('max_index'),
+                'max_predicted': p.get('max_predicted'),
+                'grade': p.get('grade'),
+            })
+        signals = []
+        for rname, items in region_groups.items():
+            vals = [it.get('avg_index') for it in items if it.get('avg_index') is not None]
+            if not vals:
+                continue
+            avg_idx = sum(vals) / len(vals)
+            max_dev = max(items, key=lambda x: (x.get('avg_index') or 0))
+            grade = '쾌적' if avg_idx < 25 else '관심' if avg_idx < 50 else '주의' if avg_idx < 75 else '불쾌'
+            color = {'쾌적': 'green', '관심': 'yellow', '주의': 'orange', '불쾌': 'red'}[grade]
+            signals.append({
+                'region_name': rname,
+                'device_count': len(items),
+                'avg_index': round(avg_idx, 1),
+                'grade': grade,
+                'color': color,
+                'top_device': {
+                    'name': max_dev.get('name'),
+                    'avg_index': max_dev.get('avg_index'),
+                    'max_predicted': max_dev.get('max_predicted'),
+                },
+            })
+        signals.sort(key=lambda x: -x['avg_index'])
+
+        # ── 2. 기상 평균 (전체 장비 기준) ──
+        temps = [m.temperature for m in moscom_device_map.values() if m.device_uuid in allowed_uuids and m.temperature is not None]
+        humids = [m.humidity for m in moscom_device_map.values() if m.device_uuid in allowed_uuids and m.humidity is not None]
+        precs = [m.precipitation for m in moscom_device_map.values() if m.device_uuid in allowed_uuids and m.precipitation is not None]
+        winds = [m.wind_speed for m in moscom_device_map.values() if m.device_uuid in allowed_uuids and m.wind_speed is not None]
+        weather = {
+            'avg_temperature': round(sum(temps)/len(temps), 1) if temps else None,
+            'avg_humidity': round(sum(humids)/len(humids), 1) if humids else None,
+            'avg_precipitation': round(sum(precs)/len(precs), 2) if precs else None,
+            'avg_wind_speed': round(sum(winds)/len(winds), 1) if winds else None,
+        }
+
+        # 룰 기반 과학 설명 (모기 생리학 + 기상)
+        explanation_rule = _build_weather_explanation(weather, signals, today_d)
+
+        # GPT 자연어 생성 시도
+        explanation_ai = None
+        api_key = getattr(dj_settings, 'OPENAI_API_KEY', '') or ''
+        if api_key:
+            try:
+                import openai
+                client = openai.OpenAI(api_key=api_key)
+                prompt = _forecast_gpt_prompt(weather, signals, today_d, explanation_rule)
+                resp = client.chat.completions.create(
+                    model='gpt-4o-mini',
+                    messages=[
+                        {'role': 'system', 'content': (
+                            '당신은 보건소·질병청 감염병관리팀에 모기 발생 예보를 작성하는 보건학 전문가입니다. '
+                            '기상 조건과 모기 생리학(우화기간, 산란, 생존율) 을 결합한 과학적 설명을 한국어로 작성하세요. '
+                            '반드시 데이터에 명시된 실제 수치(기온, 습도, 강수, 모기지수, 권역명)를 인용하고, '
+                            '"적정 조건", "우화 단축", "성충 증가" 등 모기 생리학 용어를 자연스럽게 사용하세요. '
+                            '결과는 3~5개 문단(각 2~4문장)으로, 마지막에 행정 권고 1~3개를 불릿으로. '
+                            '서론/결론 인사말 없이 바로 본문부터 시작.'
+                        )},
+                        {'role': 'user', 'content': prompt},
+                    ],
+                    temperature=0.4,
+                    max_tokens=700,
+                )
+                explanation_ai = resp.choices[0].message.content.strip()
+            except Exception as e:
+                logger.warning(f'forecast_brief GPT failed: {e}')
+
+        # ── 3. 트렌드 비교 ──
+        # 최근 7일 일평균 vs 그 직전 7일 일평균
+        recent7_total = 0
+        recent7_count = 0
+        prev7_total = 0
+        prev7_count = 0
+        recent7_start = today_d - timedelta(days=7)
+        prev7_start = today_d - timedelta(days=14)
+        for u in allowed_uuids:
+            for d_str, c in daily[u].items():
+                try:
+                    dd = date_cls.fromisoformat(d_str)
+                except ValueError:
+                    continue
+                if recent7_start <= dd < today_d:
+                    recent7_total += c
+                    recent7_count += 1
+                elif prev7_start <= dd < recent7_start:
+                    prev7_total += c
+                    prev7_count += 1
+        recent7_avg = (recent7_total / 7) if recent7_total else 0
+        prev7_avg = (prev7_total / 7) if prev7_total else 0
+        wow_change_pct = round((recent7_avg - prev7_avg) / prev7_avg * 100) if prev7_avg > 0 else 0
+
+        # 작년 동기간 — 우리 Collection 에 1년치 데이터 없으면 None
+        last_year_avg = None
+        last_year_range = None
+        if Collection is not None:
+            try:
+                ly_start = today_d.replace(year=today_d.year - 1) - timedelta(days=7)
+                ly_end = today_d.replace(year=today_d.year - 1)
+                from django.utils import timezone as dj_tz
+                start_utc = dj_tz.make_aware(datetime.combine(ly_start, datetime.min.time()))
+                end_utc = dj_tz.make_aware(datetime.combine(ly_end, datetime.max.time()))
+                ly_qs = Collection.objects.filter(
+                    device_uuid__in=allowed_uuids,
+                    created_date__gte=start_utc, created_date__lte=end_utc,
+                )
+                ly_total = sum(c.mosquito_count for c in ly_qs)
+                if ly_qs.exists():
+                    last_year_avg = round(ly_total / 7, 1)
+                    last_year_range = f'{ly_start.isoformat()} ~ {ly_end.isoformat()}'
+            except (ValueError, Exception):
+                pass
+
+        # 작년 대비 비율
+        yoy_change_pct = None
+        if last_year_avg and last_year_avg > 0:
+            yoy_change_pct = round((recent7_avg - last_year_avg) / last_year_avg * 100)
+
+        trend = {
+            'recent7_avg': round(recent7_avg, 1),
+            'prev7_avg': round(prev7_avg, 1),
+            'wow_change_pct': wow_change_pct,
+            'last_year_avg': last_year_avg,
+            'last_year_range': last_year_range,
+            'yoy_change_pct': yoy_change_pct,
+        }
+
+        result = {
+            'today': today_d.isoformat(),
+            'yesterday': yday_d.isoformat(),
+            'signals': signals,
+            'weather': weather,
+            'explanation_rule': explanation_rule,
+            'explanation_ai': explanation_ai,
+            'trend': trend,
+            'generated_at': datetime.now(timezone(timedelta(hours=9))).isoformat(),
+        }
+        cache.set(cache_key, result, 300)
+        return JsonResponse(result)
+    except Exception as e:
+        logger.exception('forecast_brief failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def _build_weather_explanation(weather, signals, today_d):
+    """기상 → 모기 생리학 과학적 설명 (룰 기반 fallback).
+    GPT 호출 실패해도 동작.
+    """
+    t = weather.get('avg_temperature')
+    h = weather.get('avg_humidity')
+    p = weather.get('avg_precipitation')
+    parts = []
+
+    # 우화 조건 평가
+    if t is not None:
+        if 25 <= t <= 28:
+            parts.append(f'평균기온 {t}°C 는 모기 우화 최적 범위(25~28°C). 평소 우화기간 8~10일이 5~7일로 단축되어 향후 1주 이내 성충 발생량이 평소 대비 1.3~1.7배 증가할 수 있음.')
+        elif 20 <= t < 25:
+            parts.append(f'평균기온 {t}°C 는 우화 적정 범위 하한. 우화기간 약 8일 유지로 성충 발생은 점진적 증가 예상.')
+        elif 28 < t <= 32:
+            parts.append(f'평균기온 {t}°C 는 우화는 빠르나(4~5일) 28°C 초과 시 성충 활동성과 산란량은 감소. 단기적으로는 증가 후 안정세 예상.')
+        elif t > 32:
+            parts.append(f'평균기온 {t}°C 는 모기 활동 억제 범위. 성충 생존율 저하로 일시적 감소 가능하나, 야간 기온이 25°C 이상 유지되면 야간 활동성은 지속.')
+        else:
+            parts.append(f'평균기온 {t}°C 는 우화 저해 범위(20°C 미만). 우화 지연으로 성충 발생량 감소.')
+
+    # 습도 평가
+    if h is not None:
+        if h >= 75:
+            parts.append(f'평균 습도 {h}% 는 모기 생존·산란에 매우 유리(70% 이상). 성충 수명이 평균 14일에서 21일까지 연장될 수 있음.')
+        elif h >= 60:
+            parts.append(f'평균 습도 {h}% 는 모기 생존 적정. 통상적 산란 활동 유지.')
+        else:
+            parts.append(f'평균 습도 {h}% 는 건조 조건(60% 미만)으로 성충 수명 단축. 다만 유충 발생지에서는 영향 제한적.')
+
+    # 강수 평가
+    if p is not None and p > 0:
+        if p >= 10:
+            parts.append(f'최근 강수 {p}mm 는 신규 유충 발생지(고인 물) 형성에 유리. 강수 후 5~7일 사이 1차 우화 피크, 12~14일 사이 2차 피크 예상.')
+        elif p >= 1:
+            parts.append(f'경미한 강수({p}mm)는 기존 유충 발생지 유지 수준. 큰 변동 없을 전망.')
+
+    # 권역별 위험 권고
+    bad_regions = [s for s in signals if s['grade'] in ('주의', '불쾌')]
+    if bad_regions:
+        names = ', '.join(s['region_name'] for s in bad_regions[:3])
+        parts.append(f'위 기상 조건 하에서 {names} 권역은 향후 3일간 모기지수 50점 이상 유지 예상. 선제 유충방제(Bti, 도시·하수구 살포) 시행 권고.')
+
+    return '\n\n'.join(parts) if parts else '관측 데이터가 부족하여 과학적 설명을 생성할 수 없습니다.'
+
+
+def _forecast_gpt_prompt(weather, signals, today_d, rule_text):
+    """GPT 입력 페이로드."""
+    sig_text = '\n'.join(
+        f'  - {s["region_name"]} (장비 {s["device_count"]}대): 평균 모기지수 {s["avg_index"]} · {s["grade"]}'
+        for s in signals[:8]
+    ) or '  - 데이터 없음'
+    w = weather
+    return f"""[모기 발생 예보 · {today_d.isoformat()} 기준]
+
+[1] 현재 평균 기상
+  - 기온: {w.get('avg_temperature', '-')}°C
+  - 습도: {w.get('avg_humidity', '-')}%
+  - 강수: {w.get('avg_precipitation', 0)}mm
+  - 풍속: {w.get('avg_wind_speed', '-')}m/s
+
+[2] 향후 3일 권역별 위험도 (모기지수 0~100)
+{sig_text}
+
+[3] 룰 기반 과학적 분석 (참고용)
+{rule_text}
+
+위 데이터를 바탕으로, 모기 생리학(우화기간, 산란, 성충 생존율) 을 결합하여
+"왜 모기가 증가/감소할 것인가" 를 과학적으로 설명하고,
+보건소 실무자가 행정 결재 자료로 쓸 수 있도록 3~5개 문단으로 작성하세요.
+마지막에는 "■ 행정 권고" 로 시작하는 불릿 권고 1~3개로 마무리.
+"""
+
+
+@csrf_exempt
+@require_POST
+def moscom_forecast_simulate(request):
+    """방역 시뮬레이션 — 입력: 장비/방역방법/실시일 → 출력: 적용 전후 3일 예측 비교."""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        import json as _json
+        body = _json.loads((request.body or b'').decode('utf-8', errors='replace') or '{}')
+    except Exception:
+        body = {}
+    device_uuid = body.get('device_uuid')
+    method_key = body.get('method_key')
+    apply_date = body.get('apply_date')  # YYYY-MM-DD
+    if not device_uuid or not method_key or not apply_date:
+        return JsonResponse({'error': 'device_uuid, method_key, apply_date 필요'}, status=400)
+    try:
+        from datetime import datetime, timedelta, timezone, date as date_cls
+        apply_d = date_cls.fromisoformat(apply_date)
+    except ValueError:
+        return JsonResponse({'error': 'apply_date 형식 YYYY-MM-DD'}, status=400)
+
+    su = _current_session_user(request)
+    devices = moscom_client.list_devices()
+    devices = user_store.filter_devices(su, devices)
+    target = next((d for d in devices if d.get('device_uuid') == device_uuid), None)
+    if not target:
+        return JsonResponse({'error': '권한 없는 장비'}, status=403)
+
+    # 방역 방법
+    method = next((m for m in remedy_store.list_methods() if m['key'] == method_key), None)
+    if not method:
+        return JsonResponse({'error': '잘못된 방역 방법'}, status=400)
+    onset = int(method.get('onset_days', 1) or 1)
+    duration = int(method.get('duration_days', 7) or 7)
+    reduction_pct = float(method.get('reduction_pct', 30) or 30)
+
+    # 7일 통계
+    stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
+    stats = [r for r in (stats or []) if r.get('device_uuid') == device_uuid]
+    daily = {}
+    for r in stats:
+        d = (r.get('created_date') or '')[:10]
+        if d:
+            daily[d] = (r.get('mosquito_count') or 0)
+    hist = [{'date': d, 'count': c} for d, c in sorted(daily.items())]
+
+    # 예측 (10일치 — 방역 효과 반영 가시화 위해 길게)
+    dv = target.get('device') or {}
+    from core import predictor
+    try:
+        from moscom.models import Device as MoscomDevice
+        md = MoscomDevice.objects.filter(device_uuid=device_uuid).first()
+    except Exception:
+        md = None
+
+    inp = [{
+        'uuid': device_uuid,
+        'name': (dv.get('device_name') or device_uuid).strip(),
+        'region': ' '.join(p for p in [dv.get('address_sido'), dv.get('address_gungu')] if p),
+        'region_code': (md.region_code if md else '') or '',
+        'sido': (md.address_sido if md else '') or '',
+        'history': hist,
+        'weather': {
+            'temperature': md.temperature if md else None,
+            'humidity': md.humidity if md else None,
+            'precipitation': md.precipitation if md else None,
+            'wind_speed': md.wind_speed if md else None,
+        } if md else {},
+    }]
+    preds = predictor.predict_for_devices(inp, days_ahead=10)
+    if not preds:
+        return JsonResponse({'error': '예측 실패'}, status=500)
+    base = preds[0]
+
+    # 방역 적용 시 예측: apply_d 부터 onset 일 뒤 ~ duration 일 동안 reduction_pct 감소
+    from datetime import date as date_cls
+    effect_start = apply_d + timedelta(days=onset)
+    effect_end = effect_start + timedelta(days=duration)
+    simulated = []
+    saved_total = 0
+    for p in base.get('predictions', []):
+        try:
+            d = date_cls.fromisoformat(p['date'])
+        except ValueError:
+            simulated.append(p)
+            continue
+        orig = p.get('predicted') or 0
+        if effect_start <= d < effect_end:
+            adj = max(0, int(orig * (1 - reduction_pct / 100)))
+            saved_total += (orig - adj)
+            simulated.append({**p, 'predicted_simulated': adj, 'effect_applied': True})
+        else:
+            simulated.append({**p, 'predicted_simulated': orig, 'effect_applied': False})
+
+    return JsonResponse({
+        'device': {'uuid': device_uuid, 'name': inp[0]['name']},
+        'method': method,
+        'apply_date': apply_date,
+        'effect_start': effect_start.isoformat(),
+        'effect_end': effect_end.isoformat(),
+        'predictions': simulated,
+        'saved_total': saved_total,
+        'reduction_pct': reduction_pct,
+    })
+
+
+@require_GET
 def moscom_hourly(request):
     """MOSCOM API raw(시간별) 데이터 프록시 — 시간별 히트맵용
     쿼리스트링: start(ISO), end(ISO) (선택, 미지정 시 전날 00:00~다음날 06:00 UTC)

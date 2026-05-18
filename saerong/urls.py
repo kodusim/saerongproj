@@ -7,6 +7,7 @@ from core.views import (
     dashboard, category_detail, subcategory_detail, game_notices, mosquito_test,
     moscom_devices, moscom_raw_collection, moscom_statistics, moscom_hourly,
     moscom_daily, moscom_predict, moscom_complaint_risk,
+    moscom_forecast_brief, moscom_forecast_simulate,
     mosquito_logout, moscom_my_devices, moscom_users_api, moscom_user_detail_api,
     moscom_remedy_methods, moscom_remedy_api, moscom_remedy_detail_api,
     moscom_equipment_health, moscom_admin_judgment,
@@ -33,6 +34,8 @@ urlpatterns = [
     path("mosquito-test/api/hourly/", moscom_hourly, name="moscom_hourly"),  # MOSCOM 시간별(raw) 프록시
     path("mosquito-test/api/daily/", moscom_daily, name="moscom_daily"),  # MOSCOM 일별 집계 (임의 기간)
     path("mosquito-test/api/predict/", moscom_predict, name="moscom_predict"),  # AI 모기 발생 예측
+    path("mosquito-test/api/forecast-brief/", moscom_forecast_brief, name="moscom_forecast_brief"),
+    path("mosquito-test/api/forecast-simulate/", csrf_exempt(moscom_forecast_simulate), name="moscom_forecast_simulate"),
     path("mosquito-test/api/complaint-risk/", moscom_complaint_risk, name="moscom_complaint_risk"),  # 민원 위험 점수
     path("mosquito-test/api/anomaly-history/", moscom_anomaly_history, name="moscom_anomaly_history"),  # 이상 감지 누적 이력
     path("mosquito-test/logout/", mosquito_logout, name="mosquito_logout"),

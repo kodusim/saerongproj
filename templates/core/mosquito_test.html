@@ -1584,6 +1584,79 @@ body {
       <div id="fc-badge" class="ai-model-badge"><span class="dot"></span>예측 모델 · Random Forest</div>
     </div>
 
+    <!-- ━━━━━━━━━━━━━ 보건소·질병청 종합 브리핑 ━━━━━━━━━━━━━ -->
+    <!-- 일일 핵심 알림 -->
+    <div class="card mb16" id="fb-headline" style="padding:14px 18px;background:linear-gradient(135deg,#FFF4E1,#FFE5B4);border:1px solid #F5B341;display:none">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:24px">🚨</span>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;font-weight:700;color:var(--gray5);letter-spacing:.04em">오늘의 핵심 알림</div>
+          <div id="fb-headline-text" style="font-size:14px;font-weight:700;color:#7A4500;margin-top:3px">데이터 로드 중…</div>
+        </div>
+        <button class="dl-btn" id="fb-refresh" onclick="fbLoad(true)" style="padding:5px 12px;font-size:11px">↻ 새로고침</button>
+      </div>
+    </div>
+
+    <!-- 1. 권역별 위험 신호등 -->
+    <div class="sec-header" style="margin-top:6px;margin-bottom:8px">
+      <div class="sec-bar"></div>
+      <div class="sec-title" style="font-size:13px">🚦 권역별 위험 신호등 (3일 예측 평균 모기지수)</div>
+    </div>
+    <div id="fb-signals" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div>
+    </div>
+
+    <!-- 2. 기상 → 모기 과학적 설명 -->
+    <div class="card mb16" style="padding:16px 18px;background:#F4F8FF;border-color:#9EC9FF">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">🌡️</span>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">기상 → 모기 발생 과학적 설명</div>
+        <span id="fb-explain-source" style="margin-left:auto;font-size:10px;color:var(--gray4)"></span>
+      </div>
+      <div id="fb-weather-stats" style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--gray5);margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,.7);border-radius:6px"></div>
+      <div id="fb-explanation" style="font-size:13px;line-height:1.75;color:var(--gray6);white-space:pre-wrap">데이터 로드 중…</div>
+    </div>
+
+    <!-- 3. 트렌드 비교 -->
+    <div class="card mb16" style="padding:14px 18px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">📅</span>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">트렌드 비교 (의회/기자 브리핑용)</div>
+      </div>
+      <div id="fb-trend" class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+        <div style="grid-column:1/-1;padding:14px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div>
+      </div>
+    </div>
+
+    <!-- 4. 방역 효과 시뮬레이션 -->
+    <div class="card mb24" style="padding:14px 18px;background:#FFF8F0;border-color:#FFC080">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">💉</span>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">방역 효과 시뮬레이션</div>
+        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">방역 적용 시 향후 10일 예측 비교</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">장비 선택</label>
+          <select id="fb-sim-device" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">방역 방법</label>
+          <select id="fb-sim-method" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">실시일</label>
+          <input type="date" id="fb-sim-date" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px">
+        </div>
+        <button class="dl-btn dl-btn-html" id="fb-sim-run" onclick="fbSimRun()" style="padding:5px 14px;font-size:11px">시뮬레이션 실행</button>
+      </div>
+      <div id="fb-sim-result" style="font-size:11px;color:var(--gray5)">위 필터 선택 후 시뮬레이션 실행</div>
+      <div style="position:relative;height:240px;margin-top:8px;display:none" id="fb-sim-chart-wrap">
+        <canvas id="fb-sim-chart"></canvas>
+      </div>
+    </div>
+    <!-- ━━━━━━━━━━━━━ 기존 예보 영역 ━━━━━━━━━━━━━ -->
+
     <!-- 기간 + 프리셋 -->
     <div class="fc-controls">
       <label>예측 기간</label>
@@ -4560,6 +4633,7 @@ function showPage(name){
   if (name === 'predict' && typeof buildPredict === 'function') buildPredict();
   // AI 예보 탭: 데이터 없으면 첫 실행
   if (name === 'forecast' && typeof buildForecast === 'function' && !FC_STATE.data) buildForecast();
+  if (name === 'forecast' && typeof fbLoad === 'function') fbLoad(false);
   // 행정 판단: 첫 방문 시 한 번 실행
   if (name === 'admin' && typeof buildAdminJudgment === 'function' && !AJ_LOADED) buildAdminJudgment(false);
   // 모스콤 관리자: 탭 진입 시 데이터 로드
@@ -5573,6 +5647,207 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   observer.observe(p, { attributes: true, attributeFilter: ['class'] });
 });
+
+// ── AI 위험도 예보 — 보건소·질병청 종합 브리핑 ──
+const FB = { loaded: false, simChart: null, methods: [], devices: [] };
+
+async function fbLoad(force) {
+  try {
+    const url = '/mosquito-test/api/forecast-brief/' + (force ? '?refresh=1' : '');
+    const r = await fetch(url, { credentials: 'same-origin' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    fbRenderHeadline(j);
+    fbRenderSignals(j);
+    fbRenderExplanation(j);
+    fbRenderTrend(j);
+    if (!FB.loaded) {
+      fbInitSim();
+      FB.loaded = true;
+    }
+  } catch (e) {
+    const h = document.getElementById('fb-headline-text');
+    if (h) h.textContent = '로드 실패: ' + e.message;
+  }
+}
+
+function fbRenderHeadline(j) {
+  const box = document.getElementById('fb-headline');
+  const txt = document.getElementById('fb-headline-text');
+  const signals = j.signals || [];
+  const worst = signals[0];
+  if (!worst) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  let msg;
+  if (worst.grade === '불쾌' || worst.grade === '주의') {
+    msg = `${worst.region_name} 권역 모기지수 ${worst.avg_index}점 (${worst.grade}) — 즉시 방역 검토 권고`;
+  } else if (worst.grade === '관심') {
+    msg = `최고 위험 권역 ${worst.region_name} 평균 지수 ${worst.avg_index}점 (관심). 감시 강화 권고.`;
+  } else {
+    msg = `모든 권역 안정 상태 (최고 ${worst.region_name} ${worst.avg_index}점). 통상 운영 유지.`;
+  }
+  txt.textContent = msg;
+}
+
+function fbRenderSignals(j) {
+  const host = document.getElementById('fb-signals');
+  const signals = j.signals || [];
+  if (!signals.length) {
+    host.innerHTML = '<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--gray4);font-size:12px">데이터 없음</div>';
+    return;
+  }
+  const colorMap = {
+    green: ['#E8F5E9', '#1B5E20', '#66BB6A'],
+    yellow: ['#FFF8E1', '#7A5700', '#F5B341'],
+    orange: ['#FFE0B2', '#BF360C', '#FF9800'],
+    red: ['#FFEBEE', '#B71C1C', '#E53935'],
+  };
+  host.innerHTML = signals.map(s => {
+    const [bg, color, dot] = colorMap[s.color] || colorMap.green;
+    return `
+      <div class="kpi-card" style="background:${bg};border-top:3px solid ${dot}">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="width:10px;height:10px;border-radius:50%;background:${dot};display:inline-block"></span>
+          <div style="font-size:11px;font-weight:700;color:${color}">${s.grade}</div>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:${color};line-height:1.3;margin-bottom:3px">${s.region_name}</div>
+        <div style="font-size:24px;font-weight:700;color:${color};font-family:var(--mono);line-height:1">${s.avg_index}</div>
+        <div style="font-size:10px;color:var(--gray5);margin-top:5px">장비 ${s.device_count}대 · 최고 ${s.top_device.name}</div>
+      </div>`;
+  }).join('');
+}
+
+function fbRenderExplanation(j) {
+  const stats = document.getElementById('fb-weather-stats');
+  const w = j.weather || {};
+  stats.innerHTML = `
+    <span><strong style="color:var(--navy)">평균 기온</strong> ${w.avg_temperature ?? '-'}°C</span>
+    <span><strong style="color:var(--navy)">평균 습도</strong> ${w.avg_humidity ?? '-'}%</span>
+    <span><strong style="color:var(--navy)">평균 강수</strong> ${w.avg_precipitation ?? 0}mm</span>
+    <span><strong style="color:var(--navy)">평균 풍속</strong> ${w.avg_wind_speed ?? '-'}m/s</span>
+  `;
+  const explain = document.getElementById('fb-explanation');
+  const src = document.getElementById('fb-explain-source');
+  if (j.explanation_ai) {
+    explain.textContent = j.explanation_ai;
+    src.textContent = 'AI 생성 (GPT-4o-mini)';
+  } else if (j.explanation_rule) {
+    explain.textContent = j.explanation_rule;
+    src.textContent = '룰 기반 설명';
+  } else {
+    explain.textContent = '데이터 부족';
+    src.textContent = '';
+  }
+}
+
+function fbRenderTrend(j) {
+  const t = j.trend || {};
+  const host = document.getElementById('fb-trend');
+  const wow = t.wow_change_pct;
+  const yoy = t.yoy_change_pct;
+  const arrow = (v) => v == null ? '·' : v > 5 ? '▲' : v < -5 ? '▼' : '→';
+  const color = (v) => v == null ? 'var(--gray4)' : v > 10 ? 'var(--red)' : v < -10 ? 'var(--green)' : 'var(--gray5)';
+  host.innerHTML = `
+    <div class="kpi-card navy">
+      <div class="kpi-label">최근 7일 일평균</div>
+      <div class="kpi-value val-navy">${(t.recent7_avg ?? 0).toLocaleString()}</div>
+      <div class="kpi-sub">마리/일</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">직전 7일 일평균</div>
+      <div class="kpi-value" style="color:var(--gray5)">${(t.prev7_avg ?? 0).toLocaleString()}</div>
+      <div class="kpi-sub">마리/일</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:${color(wow)}">
+      <div class="kpi-label">전주 대비</div>
+      <div class="kpi-value" style="color:${color(wow)}">${arrow(wow)} ${wow != null ? (wow >= 0 ? '+' : '') + wow + '%' : '-'}</div>
+      <div class="kpi-sub">최근 7일 vs 직전 7일</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:${color(yoy)}">
+      <div class="kpi-label">작년 동기 대비</div>
+      <div class="kpi-value" style="color:${color(yoy)}">${yoy != null ? arrow(yoy) + ' ' + (yoy >= 0 ? '+' : '') + yoy + '%' : '데이터 부족'}</div>
+      <div class="kpi-sub" style="font-size:9px">${t.last_year_avg != null ? '작년 일평균 ' + t.last_year_avg + '마리' : '작년 데이터 없음'}</div>
+    </div>
+  `;
+}
+
+async function fbInitSim() {
+  // 장비 목록
+  try {
+    const r = await fetch('/mosquito-test/db/devices/');
+    const j = await r.json();
+    FB.devices = j.items || [];
+    const sel = document.getElementById('fb-sim-device');
+    sel.innerHTML = FB.devices.map(d => `<option value="${d.device_uuid}">${(d.device_name || '').replace(/</g,'&lt;')}</option>`).join('');
+  } catch (e) {}
+  // 방역 방법
+  try {
+    const r = await fetch('/mosquito-test/api/remedy/methods/');
+    const j = await r.json();
+    FB.methods = j.methods || [];
+    const sel = document.getElementById('fb-sim-method');
+    sel.innerHTML = FB.methods.map(m => `<option value="${m.key}">${m.name} (감소율 ${m.reduction_pct}%)</option>`).join('');
+  } catch (e) {}
+  // 기본 실시일 = 내일
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  document.getElementById('fb-sim-date').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+
+async function fbSimRun() {
+  const device_uuid = document.getElementById('fb-sim-device').value;
+  const method_key = document.getElementById('fb-sim-method').value;
+  const apply_date = document.getElementById('fb-sim-date').value;
+  const result = document.getElementById('fb-sim-result');
+  const wrap = document.getElementById('fb-sim-chart-wrap');
+  if (!device_uuid || !method_key || !apply_date) {
+    result.textContent = '모든 항목 선택 필요';
+    return;
+  }
+  result.innerHTML = '<span style="color:var(--gray4)">시뮬레이션 중…</span>';
+  wrap.style.display = 'none';
+  try {
+    const r = await fetch('/mosquito-test/api/forecast-simulate/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_uuid, method_key, apply_date }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    const labels = j.predictions.map(p => p.date.slice(5));
+    const before = j.predictions.map(p => p.predicted);
+    const after = j.predictions.map(p => p.predicted_simulated);
+    if (FB.simChart) { FB.simChart.destroy(); FB.simChart = null; }
+    wrap.style.display = 'block';
+    FB.simChart = new Chart(document.getElementById('fb-sim-chart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: '방역 미실시 (기존 예측)', data: before, borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,.08)', tension: 0.3, fill: false },
+          { label: '방역 실시 후 예측', data: after, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,.15)', tension: 0.3, fill: true },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+      },
+    });
+    const reductionPct = Math.round((j.saved_total / Math.max(1, before.reduce((a,b)=>a+b,0))) * 100);
+    result.innerHTML = `
+      <div style="padding:10px 12px;background:#E8F5E9;border:1px solid #66BB6A;border-radius:6px;color:#1B5E20">
+        <strong>✓ 시뮬레이션 결과</strong><br>
+        ${j.method.name} (감소율 ${j.reduction_pct}%, 효과 기간 ${j.effect_start} ~ ${j.effect_end})<br>
+        10일 예측 중 <strong>${j.saved_total.toLocaleString()}마리</strong> 절감 예상 (전체 대비 약 ${reductionPct}%)
+      </div>
+    `;
+  } catch (e) {
+    result.innerHTML = `<div style="padding:10px 12px;background:#FFEBEE;color:#B71C1C;border:1px solid #E57373;border-radius:6px">시뮬레이션 실패: ${e.message}</div>`;
+  }
+}
 
 // ── 기간별 데이터 ──────────────────────────────
 const PD = { chart: null, devices: [], regions: [], loaded: false };
