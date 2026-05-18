@@ -1456,7 +1456,7 @@ body {
         <div class="sec-bar"></div>
         <div>
           <div class="sec-title">AI 모기 발생 예측</div>
-          <div class="sec-sub" id="predict-sub">관측소별 향후 3일 포집량 예측</div>
+          <div class="sec-sub" id="predict-sub">관측소별 향후 3일 모기지수 + 포집량 예측</div>
         </div>
       </div>
       <div id="predict-badge" class="ai-model-badge" style="display:none">
@@ -1532,6 +1532,25 @@ body {
               <canvas id="predict-chart"></canvas>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 모기지수 산출 공식 -->
+      <div class="card mb16" style="padding:14px 18px;background:#F4F8FF;border-color:#9EC9FF">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">🧮 모기지수 산출 공식 (0~100)</div>
+        <div style="font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--gray6)">
+          <div style="font-weight:700;margin-bottom:4px">모기지수 = 0.5 × 마릿수정규화 + 0.2 × 7일추세 + 0.2 × 기상조건 + 0.1 × 권역가중치</div>
+          <div>· <strong>마릿수정규화</strong> = min(100, √(오늘마릿수 / P95) × 100)</div>
+          <div>· <strong>7일추세</strong> = 50 + clip((오늘/7일평균 − 1) × 50, ±50)</div>
+          <div>· <strong>기상조건</strong> = 0.6 × max(0, 100 − |기온−25| × 100/15) + 0.4 × 습도(%)</div>
+          <div>· <strong>권역가중치</strong> = 60 + (수변부 30 / 공원 15 / 주거지 10 / 농촌 5 / 산림 0)</div>
+        </div>
+        <div style="font-size:11px;color:var(--gray5);margin-top:8px;line-height:1.55">
+          P95 = 전체 일별 포집량의 95퍼센타일 (학습시 자동 산출, 데이터 누적 시 갱신).
+          등급: <span style="color:#198754;font-weight:700">쾌적 0~25</span> ·
+          <span style="color:#7A5700;font-weight:700">관심 25~50</span> ·
+          <span style="color:#C05000;font-weight:700">주의 50~75</span> ·
+          <span style="color:#A32D2D;font-weight:700">불쾌 75~100</span>
         </div>
       </div>
 
@@ -3081,10 +3100,18 @@ const PREDICT_STATE = {
 };
 
 function predictGradeBadgeCls(g) {
-  return ({ '안전': 'badge-safe', '관심': 'badge-watch', '주의': 'badge-caution', '경고': 'badge-warn', '위험': 'badge-danger' })[g] || 'badge-unknown';
+  return ({
+    // 4단계 (모기지수 기반)
+    '쾌적': 'badge-safe', '관심': 'badge-watch', '주의': 'badge-caution', '불쾌': 'badge-danger',
+    // 기존 5단계 (fallback)
+    '안전': 'badge-safe', '경고': 'badge-warn', '위험': 'badge-danger',
+  })[g] || 'badge-unknown';
 }
 function gradeColor(g) {
-  return ({ '안전': '#198754', '관심': '#7A5700', '주의': '#C05000', '경고': '#A32D2D', '위험': '#4A1B6B' })[g] || '#666';
+  return ({
+    '쾌적': '#198754', '관심': '#7A5700', '주의': '#C05000', '불쾌': '#A32D2D',
+    '안전': '#198754', '경고': '#A32D2D', '위험': '#4A1B6B',
+  })[g] || '#666';
 }
 
 // 단계별 애니메이션을 일정 시간 동안 밟으면서, fetch도 병행해서 끝나면 결과 표시
@@ -3178,8 +3205,9 @@ function renderPredictTable() {
       <th rowspan="2" style="min-width:170px">장비 (${selected.length}/${allPreds.length}개)</th>
       <th rowspan="2">지역</th>
       ${histDates.length ? `<th colspan="${histDates.length}" style="background:var(--gray5)">실측</th>` : ''}
-      <th colspan="${dates.length}" style="background:var(--navy)">AI 예측</th>
-      <th rowspan="2">최대</th>
+      <th colspan="${dates.length}" style="background:var(--navy)">AI 예측 (모기지수 / 마릿수)</th>
+      <th rowspan="2">평균<br>지수</th>
+      <th rowspan="2">최대<br>마릿수</th>
       <th rowspan="2">등급</th>
       <th rowspan="2" style="min-width:220px">AI 추론 근거</th>
     </tr>
@@ -3192,13 +3220,23 @@ function renderPredictTable() {
       const v = histMap[d];
       return `<td style="font-family:var(--mono);background:var(--gray1);color:var(--gray5)">${v ?? '-'}</td>`;
     }).join('');
-    const predCells = p.predictions.map(pp => `<td style="font-family:var(--mono);font-weight:600">${pp.predicted}</td>`).join('');
+    const predCells = p.predictions.map(pp => {
+      const idx = pp.predicted_index;
+      const idxStr = (idx !== null && idx !== undefined) ? Math.round(idx) : '-';
+      return `<td style="font-family:var(--mono);text-align:center;line-height:1.25">
+        <div style="font-weight:700;font-size:13px;color:var(--navy)">${idxStr}</div>
+        <div style="font-size:10px;color:var(--gray4)">${pp.predicted}마리</div>
+      </td>`;
+    }).join('');
+    const avgIdx = p.avg_index;
+    const avgIdxStr = (avgIdx !== null && avgIdx !== undefined) ? Math.round(avgIdx) : '-';
     return `<tr>
       <td><strong>${p.name}</strong></td>
       <td style="color:var(--gray5);font-size:11px">${p.region || '기타'}</td>
       ${histCells}
       ${predCells}
-      <td style="font-family:var(--mono);font-weight:700;color:${gradeColor(p.grade)}">${p.max_predicted}</td>
+      <td style="font-family:var(--mono);font-weight:700;font-size:14px;text-align:center;color:${gradeColor(p.grade)}">${avgIdxStr}</td>
+      <td style="font-family:var(--mono);color:var(--gray5);text-align:center">${p.max_predicted}</td>
       <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
       <td style="color:var(--gray5);font-size:11px;line-height:1.5">${p.reasoning || '—'}</td>
     </tr>`;

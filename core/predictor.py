@@ -45,7 +45,23 @@ def _load():
     model = joblib.load(mp)
     feature_cols = joblib.load(fp)
     logger.info('AI model loaded (%s, %d features)', ver, len(feature_cols))
-    return model, feature_cols, ver
+    # 모기지수 모델 + 메타 (선택)
+    idx_model = None
+    meta = None
+    base_dir = os.path.dirname(mp)
+    idx_path = os.path.join(base_dir, 'best_model_MosquitoIndex.joblib')
+    meta_path = os.path.join(base_dir, 'training_meta.joblib')
+    if os.path.exists(idx_path):
+        try:
+            idx_model = joblib.load(idx_path)
+        except Exception as e:
+            logger.warning('mosquito index model load failed: %s', e)
+    if os.path.exists(meta_path):
+        try:
+            meta = joblib.load(meta_path)
+        except Exception as e:
+            logger.warning('training meta load failed: %s', e)
+    return model, feature_cols, ver, idx_model, meta
 
 
 def _build_v2_row(history, target_date, region_code, sido, weather):
@@ -109,8 +125,10 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
     """장비별 예측 (recursive). devices_stats:
        [{uuid, name, region, history:[{date,count}], region_code?, sido?, weather?}]
     """
-    model, feature_cols, ver = _load()
+    model, feature_cols, ver, idx_model, meta = _load()
     days_ahead = max(1, min(int(days_ahead or 3), 14))
+    # 모기지수 메타
+    p95 = (meta or {}).get('p95', 300.0)
 
     # 영업일 기준 오늘 (새벽 5시가 일 경계)
     try:
@@ -154,7 +172,43 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
             X = X[feature_cols].astype('float64')
             yhat = float(np.maximum(model.predict(X)[0], 0))
             yhat_int = int(round(yhat))
-            preds.append({'date': td.isoformat(), 'predicted': yhat_int})
+
+            # 모기지수 예측: 학습된 모델이 있으면 그걸로, 없으면 마릿수에서 직접 산출
+            idx_val = None
+            if idx_model is not None:
+                try:
+                    idx_val = float(max(0.0, min(100.0, idx_model.predict(X)[0])))
+                except Exception:
+                    idx_val = None
+            if idx_val is None:
+                # fallback — predict 결과 마릿수 + 최근 7일 history + dev weather 로 직접 계산
+                try:
+                    from moscom.mosquito_index import compute_index as _ci
+                    recent7 = [h['count'] for h in hist[-7:]]
+                    w = dev.get('weather') or {}
+                    mi = _ci(
+                        count=yhat_int, last7_counts=recent7,
+                        temperature=w.get('temperature'), humidity=w.get('humidity'),
+                        p95=p95, name=nm, addr=dev.get('region', ''), detail='',
+                    )
+                    idx_val = mi['index']
+                except Exception:
+                    idx_val = None
+
+            # 4단계 등급 (모기지수 기준)
+            def _grade_idx(v):
+                if v is None: return None
+                if v < 25: return '쾌적'
+                if v < 50: return '관심'
+                if v < 75: return '주의'
+                return '불쾌'
+
+            preds.append({
+                'date': td.isoformat(),
+                'predicted': yhat_int,
+                'predicted_index': round(idx_val, 1) if idx_val is not None else None,
+                'grade': _grade_idx(idx_val),
+            })
             # 다음 lag 를 위해 hist 에 예측값 push
             hist.append({'date': td.isoformat(), 'count': yhat_int})
 
@@ -178,7 +232,23 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
         ps = [p['predicted'] for p in r['predictions']]
         r['max_predicted'] = max(ps) if ps else 0
         r['avg_predicted'] = round(sum(ps) / len(ps)) if ps else 0
-        r['grade'] = grade(r['max_predicted'])
+        # 모기지수 집계
+        idx_list = [p.get('predicted_index') for p in r['predictions'] if p.get('predicted_index') is not None]
+        if idx_list:
+            max_idx = max(idx_list)
+            avg_idx = sum(idx_list) / len(idx_list)
+            r['max_index'] = round(max_idx, 1)
+            r['avg_index'] = round(avg_idx, 1)
+            # 등급 = 평균 모기지수의 4단계 등급
+            if avg_idx < 25:   r['grade'] = '쾌적'
+            elif avg_idx < 50: r['grade'] = '관심'
+            elif avg_idx < 75: r['grade'] = '주의'
+            else:              r['grade'] = '불쾌'
+        else:
+            # 모기지수 없으면 fallback — 기존 마릿수 기반 5단계
+            r['max_index'] = None
+            r['avg_index'] = None
+            r['grade'] = grade(r['max_predicted'])
         # 추론 근거
         hist = r.get('history') or []
         parts = []
