@@ -1937,11 +1937,14 @@ body {
 
     <!-- 권역별 포집 카드 + 매개체 위험 카드 (요약 데이터) -->
     <div id="aj-data-cards" class="mb16" style="display:none">
-      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (오늘)</div></div>
+      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (기준일, 어제)</div></div>
       <div id="aj-regions" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
 
       <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">🦟 매개체 위험 평가</div></div>
       <div id="aj-vectors" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px"></div>
+
+      <!-- 핵심 관측점 예측 (전체 합 대신 위치 중심) -->
+      <div id="aj-key-locations" style="display:none"></div>
     </div>
 
     <!-- 보고서 본문 -->
@@ -4498,17 +4501,18 @@ async function buildAdminJudgment(force) {
     if (kpiEl) {
       const tempStr = (s.avg_temperature != null) ? `${s.avg_temperature}°C` : '-';
       const humidStr = (s.avg_humidity != null) ? `${s.avg_humidity}%` : '-';
+      const baseD = s.base_date || '';
       kpiEl.textContent =
-        `전체 ${s.total_devices}대 · 포집 ${s.today_total} (전일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) ` +
+        `기준일 ${baseD} (어제, 측정완료) · 전체 ${s.total_devices}대 · 포집 ${s.today_total} (전전일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) ` +
         `· 나쁨 ${s.bad_count || 0} · 주의 ${s.warn_count || 0} ` +
         `· 온도 ${tempStr} · 습도 ${humidStr} ` +
         `· 오프라인 ${s.offline_count}대 · 배터리<30% ${s.low_batt_count}대 ` +
-        `· 7일 예측 평균 ${s.predicted_7d_avg || 0}마리`;
+        `· 핵심 관측점 ${(s.predicted_key_locations || []).length}곳`;
     }
 
     const genKst = (json.generated_at || '').slice(0, 16).replace('T', ' ');
-    const dateLabel = (json.generated_at || '').slice(0, 10);
-    if (head) head.textContent = `행정 판단 보고 — ${dateLabel}`;
+    const baseDate = s.base_date || (json.generated_at || '').slice(0, 10);
+    if (head) head.textContent = `행정 판단 보고 — 기준일 ${baseDate} (어제, 측정완료)`;
     if (gen) gen.textContent = genKst;
     if (author) author.textContent = (json.author && json.author.login_id) ? json.author.login_id : '-';
 
@@ -4552,6 +4556,49 @@ async function buildAdminJudgment(force) {
       }).join('');
     } else {
       document.getElementById('aj-vectors').innerHTML = '';
+    }
+
+    // 핵심 관측점 예측 카드 (전체 합 대신 위치 중심)
+    const keyEl = document.getElementById('aj-key-locations');
+    const keys = s.predicted_key_locations || [];
+    if (keyEl) {
+      if (keys.length) {
+        const gradeColor = { '안전': '#198754', '관심': '#7A5700', '주의': '#fd7e14', '경고': '#dc3545', '위험': '#8B0000' };
+        keyEl.innerHTML = `
+          <div style="font-size:12px;font-weight:700;color:var(--navy);margin:14px 0 8px">🎯 AI 예측 — 핵심 관측점 7일 궤적</div>
+          <div style="font-size:10.5px;color:var(--gray5);margin-bottom:8px">전체 합계 대신, 행정 자원을 우선 투입할 ${keys.length}개 위치의 일별 예측치입니다.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">
+          ${keys.map(k => {
+            const c = gradeColor[k.grade] || '#666';
+            const days = (k.predictions || []).map(p => `<td style="text-align:right;font-family:monospace;padding:2px 4px;border-bottom:1px dashed #eee">${p.predicted}</td>`).join('');
+            const dayHeader = (k.predictions || []).map(p => `<th style="font-size:9px;color:var(--gray4);padding:2px 4px;font-weight:500">${(p.date||'').slice(5)}</th>`).join('');
+            return `
+              <div class="card" style="padding:10px 12px;border-left:4px solid ${c}">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">
+                  <div style="font-size:12px;font-weight:700;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(k.name)}</div>
+                  <span style="font-size:10px;font-weight:700;color:${c};background:${c}22;padding:2px 8px;border-radius:10px;white-space:nowrap">${k.grade} ${k.max_7d}</span>
+                </div>
+                <div style="font-size:10px;color:var(--gray5);margin-bottom:6px">
+                  <span style="color:var(--teal);font-weight:600">${escapeHtml(k.region || '미지정')}</span> · ${escapeHtml(k.addr || '주소미상')}
+                </div>
+                <div style="font-size:10px;color:var(--gray5);margin-bottom:4px">
+                  기준일 실측 <strong style="color:var(--gray6)">${k.yday_actual}</strong>마리 → 7일 누적 예측 <strong style="color:${c}">${k.total_7d}</strong>마리
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:4px">
+                  <thead><tr>${dayHeader}</tr></thead>
+                  <tbody><tr>${days}</tr></tbody>
+                </table>
+              </div>
+            `;
+          }).join('')}
+          </div>
+        `;
+        keyEl.style.display = 'block';
+        cards.style.display = 'block';
+      } else {
+        keyEl.innerHTML = '';
+        keyEl.style.display = 'none';
+      }
     }
 
     // 보고서 본문 렌더 (섹션 ■ 기호 기준)

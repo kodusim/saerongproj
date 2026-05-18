@@ -1358,10 +1358,23 @@ def moscom_admin_judgment(request):
                 daily[u][date] += (r.get('mosquito_count') or 0)
                 dates.add(date)
         sorted_dates = sorted(dates)
-        today = sorted_dates[-1] if sorted_dates else ''
-        yday = sorted_dates[-2] if len(sorted_dates) >= 2 else ''
+        # 기준일 = 어제(측정 완료된 날). 오늘은 아직 진행 중이므로 행정 판단 베이스로 부적합.
+        try:
+            from moscom.timeutil import business_today as _bt
+            today_kst_real = _bt().isoformat()
+        except Exception:
+            today_kst_real = datetime.now(timezone(timedelta(hours=9))).date().isoformat()
+        # report_date = 진행 중인 날(today_kst_real) 직전, 즉 어제. sorted_dates 에 어제가 있다면 그것을 사용.
+        completed_dates = [d for d in sorted_dates if d < today_kst_real]
+        if completed_dates:
+            today = completed_dates[-1]   # 측정 완료된 가장 최근일 = 어제
+            yday = completed_dates[-2] if len(completed_dates) >= 2 else ''
+        else:
+            # 어제 데이터가 없으면 폴백: 가장 최근 데이터 사용
+            today = sorted_dates[-1] if sorted_dates else ''
+            yday = sorted_dates[-2] if len(sorted_dates) >= 2 else ''
 
-        # 오늘 합계 + 어제 대비
+        # 기준일 합계 + 그 전일 대비 (오늘은 측정 미완이므로 제외)
         today_total = sum(daily[u].get(today, 0) for u in daily) if today else 0
         yday_total = sum(daily[u].get(yday, 0) for u in daily) if yday else 0
         pct = round((today_total - yday_total) / yday_total * 100) if yday_total else 0
@@ -1451,6 +1464,8 @@ def moscom_admin_judgment(request):
         predicted_7d_total = 0
         predicted_7d_avg = 0
         predicted_top = []
+        predicted_key_locations = []
+        preds_by_uuid = {}
         try:
             from core import predictor
             today_kst_d = datetime.now(timezone(timedelta(hours=9))).date()
@@ -1480,18 +1495,31 @@ def moscom_admin_judgment(request):
             # 일별 합계
             day_totals = defaultdict(int)
             dev_total7 = []
+            preds_by_uuid = {}
             for p in preds:
+                uuid_ = p.get('uuid')
                 total = sum(pp.get('predicted', 0) for pp in p.get('predictions', []))
-                dev_total7.append((p.get('uuid'), p.get('name', ''), total))
+                max_pred = max((pp.get('predicted', 0) for pp in p.get('predictions', [])), default=0)
+                preds_by_uuid[uuid_] = {'predictions': p.get('predictions', []), 'total': total, 'max': max_pred, 'name': p.get('name', '')}
+                dev_total7.append((uuid_, p.get('name', ''), total, max_pred))
                 for pp in p.get('predictions', []):
                     day_totals[pp.get('date', '')] += pp.get('predicted', 0)
             if day_totals:
                 predicted_7d_total = sum(day_totals.values())
                 predicted_7d_avg = round(predicted_7d_total / len(day_totals))
-            dev_total7.sort(key=lambda x: -x[2])
-            predicted_top = dev_total7[:5]
+            # 주요 위치 = 7일 누적 상위 5 + 어제 실측 상위 3 의 합집합
+            top_by_pred = sorted(dev_total7, key=lambda x: -x[2])[:5]
+            top_uuids_set = {x[0] for x in top_by_pred}
+            for u, _v in today_devs[:3]:
+                if u not in top_uuids_set:
+                    pb = preds_by_uuid.get(u)
+                    if pb:
+                        top_by_pred.append((u, pb['name'], pb['total'], pb['max']))
+                        top_uuids_set.add(u)
+            predicted_top = top_by_pred
         except Exception as e:
             logger.warning(f'predict in admin_judgment failed: {e}')
+            preds_by_uuid = {}
 
         # ── 추가 분석: 권역별 / 7일 트렌드 / 매개체 위험 / 방역 이력 효과 ──
         try:
@@ -1521,9 +1549,10 @@ def moscom_admin_judgment(request):
             key=lambda kv: -kv[1]['total']
         )
 
-        # 7일 시계열 (전 장비 합계)
+        # 7일 시계열 (전 장비 합계) — 측정 완료된 날만 포함
         last7_daily = []
-        for d in sorted_dates[-7:]:
+        ref_dates = completed_dates if completed_dates else sorted_dates
+        for d in ref_dates[-7:]:
             day_sum = sum(daily[u].get(d, 0) for u in allowed_uuids)
             last7_daily.append({'date': d, 'total': day_sum})
         # 추세 텍스트
@@ -1595,10 +1624,40 @@ def moscom_admin_judgment(request):
             f"  - {p['device']} / {p['method']} / 실시 {p['scheduled_date']} / 감소율 {p['reduction_pct']}%"
             for p in active_plans
         ) or '  - 등록된 방역 실시 내역 없음'
-        pred_top_text = '\n'.join(
-            f"  - {nm}: 7일 누적 {tot}마리"
-            for _, nm, tot in predicted_top
-        ) or '  - 예측 데이터 없음'
+        # 주요 위치 예측 상세 — 권역/주소/일별 예측/등급 포함 (전체 합 대신 핵심)
+        def _grade_pred(n):
+            if n <= 10: return '안전'
+            if n <= 50: return '관심'
+            if n <= 100: return '주의'
+            if n <= 200: return '경고'
+            return '위험'
+        pred_top_lines = []
+        predicted_key_locations = []   # 화면/요약용
+        for uuid_, nm, tot, mx in predicted_top[:8]:
+            # 권역명
+            md = uuid_to_md.get(uuid_)
+            rc = (md.region_code if md else '') or ''
+            rname = region_name_by_code.get(rc, rc) or '미지정'
+            addr = name_map.get(uuid_, {}).get('addr', '') or '주소미상'
+            pb = preds_by_uuid.get(uuid_, {})
+            daily_preds = pb.get('predictions', [])
+            yday_actual = daily[uuid_].get(today, 0) if today else 0
+            # 7일 일별 표시 (최대 7개)
+            day_str = ' / '.join(f"{pp.get('date','')[-5:]}:{pp.get('predicted',0)}" for pp in daily_preds[:7])
+            grade = _grade_pred(mx)
+            pred_top_lines.append(
+                f"  - {nm} [{rname}] ({addr}) — 어제 실측 {yday_actual}마리 → 7일 누적 예측 {tot}마리 (최대 {mx}, 등급 {grade}) | {day_str}"
+            )
+            predicted_key_locations.append({
+                'name': nm, 'region': rname, 'addr': addr,
+                'yday_actual': yday_actual,
+                'total_7d': tot, 'max_7d': mx, 'grade': grade,
+                'predictions': [
+                    {'date': pp.get('date', ''), 'predicted': pp.get('predicted', 0)}
+                    for pp in daily_preds[:7]
+                ],
+            })
+        pred_top_text = '\n'.join(pred_top_lines) or '  - 예측 데이터 없음'
 
         # 예측 vs 전일 변화 — '안정세' 오판 방지
         if yday_total > 0 and predicted_7d_avg > 0:
@@ -1651,20 +1710,21 @@ def moscom_admin_judgment(request):
             for p in recent_plans[:8]
         ) or '  - 최근 14일 내 시행된 방역 없음'
 
-        payload_summary = f"""[모기 발생 감시 종합 보고 · {date_label}]
+        payload_summary = f"""[모기 발생 감시 종합 보고 · 기준일 {date_label} (어제, 측정 완료)]
+※ 오늘은 아직 측정 진행 중이므로 행정 판단은 측정 완료된 어제({date_label}) 데이터를 기준으로 함.
 
 ■ 전체 수치 요약
   - 전체 운영 장비: {len(devices)}대
-  - 오늘 포집 합계: {today_total}마리 (전일 {yday_total}마리, {pct:+d}%)
+  - 기준일({date_label}) 포집 합계: {today_total}마리 (그 전일 {yday_total}마리, {pct:+d}%)
   - 평균 기온: {temp_disp}
   - 평균 습도: {humid_disp}
   - 오프라인 장비: {offline_count}대
   - 배터리 30% 미만 장비: {low_batt_count}대 (현장 점검 대상)
 
-■ 권역별 포집 현황 (Top 10)
+■ 권역별 포집 현황 (기준일 · Top 10)
 {region_text}
 
-■ 오늘 상위 포집 장비 (Top 5)
+■ 기준일 상위 포집 장비 (Top 5)
 {top_devs_text}
 
 ■ 방역 상태 '나쁨' 관측점 (51마리↑, 즉시 방역 필요)
@@ -1673,7 +1733,7 @@ def moscom_admin_judgment(request):
 ■ 방역 상태 '주의' 관측점 (21~50마리, 감시 강화)
 {warn_text}
 
-■ 7일 시계열 (전 장비 합계 일별)
+■ 7일 시계열 (측정 완료된 날만 · 전 장비 합계)
   {last7_text}
   {trend_arrow}
 
@@ -1684,13 +1744,12 @@ def moscom_admin_judgment(request):
 ■ 매개체 위험 평가 (현 기상 조건 기반)
 {vector_text}
 
-■ AI 7일 예측
-  - 향후 7일 일평균 예측: {predicted_7d_avg}마리
-  - 7일 누적 예측: {predicted_7d_total}마리
-  - 전일 대비 비율: {pred_vs_yday_ratio:.1f}배
-  - 자동 추세 판정: {pred_trend_hint}
+■ AI 예측 — 주요 위치 중심 분석
+※ 전체 합계보다 '핵심 관측점별' 향후 7일 궤적이 행정 판단에 더 유용함.
+  - 핵심 관측점 정의: 7일 누적 예측 상위 5 + 기준일 실측 상위 3 (합집합)
+  - (참고) 전체 합 일평균 {predicted_7d_avg}마리 / 누적 {predicted_7d_total}마리 / 전일대비 {pred_vs_yday_ratio:.1f}배 ({pred_trend_hint})
 
-■ AI 예측 상위 5 관측점 (7일 누적)
+■ 핵심 관측점별 7일 예측 (위치·등급·일별 궤적)
 {pred_top_text}
 
 ■ 최근 14일 시행된 방역 이력
@@ -1717,14 +1776,20 @@ def moscom_admin_judgment(request):
                             '모기 생리학·매개체 감시·기상학적 영향에 대한 전문성을 바탕으로, '
                             '결재용 공문 형식의 "AI 행정 판단 보고서"를 한국어로 작성하십시오.\n'
                             '\n'
+                            '== 기준일 원칙 ==\n'
+                            '* "기준일" 은 측정이 완료된 어제이며, 모든 "오늘/금일" 표현은 "기준일(어제)" 로 표기하십시오. '
+                            '오늘은 아직 측정 진행 중이므로 행정 판단의 베이스가 될 수 없습니다.\n'
+                            '\n'
                             '== 보고서 구조 (반드시 다음 8개 섹션, 순서대로) ==\n'
-                            '1) 오늘 핵심 수치 요약 — 포집량 변화·기상·장비 상태\n'
+                            '1) 기준일 핵심 수치 요약 — 포집량 변화·기상·장비 상태 (※ "기준일(YYYY-MM-DD)" 명시)\n'
                             '2) 권역별 포집 현황 분석 — 각 권역 평균·편차·이상 권역 식별\n'
                             '3) 기상-생리학 인과 분석 — 현 기온/습도가 우화기간·성충 생존율·산란에 미치는 영향을 과학적으로 설명\n'
                             '4) 매개체 위험 평가 — 일본뇌염·말라리아·뎅기 등 매개종별 활동 위험과 추정 우점종\n'
                             '5) 즉시 조치 필요 사항 — 나쁨/주의 관측점 이름 및 마릿수, 우선 조치 방안\n'
-                            '6) AI 예측 분석 — 향후 7일 추세, 전일 대비 비율, 학문적 해석\n'
-                            '7) 방역 효과 평가 및 권고 — 최근 방역 이력의 추정 효과 + 향후 권고 방역 (방법·시점·대상)\n'
+                            '6) AI 예측 분석 (주요 위치 중심) — 전체 합계가 아니라 "핵심 관측점별" 7일 궤적을 분석.\n'
+                            '   각 핵심 관측점에 대해: 위치명·권역·기준일 실측 → 7일 예측 추이(상승/하강/유지)·최대 예측일·등급(안전/관심/주의/경고/위험) 명시. '
+                            '   전체 합 일평균은 보조 지표로만 짧게 언급. 결재자가 "어느 위치에 자원을 집중할지" 판단할 수 있도록 구체적 위치명과 수치로 서술.\n'
+                            '7) 방역 효과 평가 및 권고 — 최근 방역 이력의 추정 효과 + 향후 권고 방역 (방법·시점·대상 위치 명시)\n'
                             '8) 행정 권고 종합 (우선순위별 불릿) — 의사결정자가 결재할 수 있는 구체적 조치 3~5개\n'
                             '\n'
                             '== 작성 시 반드시 지킬 8가지 규칙 ==\n'
@@ -1784,6 +1849,8 @@ def moscom_admin_judgment(request):
                 'predicted_7d_total': predicted_7d_total,
                 'predicted_7d_avg': predicted_7d_avg,
                 # 신규 분석 데이터 (화면 표시용)
+                'base_date': today,           # 기준일 (어제, 측정 완료)
+                'base_date_label': '기준일(어제, 측정 완료)',
                 'region_breakdown': [
                     {'region_name': rn, 'total': info['total'], 'device_count': info['count'],
                      'avg': round(info['total']/max(1,info['count']),1)}
@@ -1792,6 +1859,7 @@ def moscom_admin_judgment(request):
                 'last7_timeseries': last7_daily,
                 'vector_risks': vector_risks,
                 'recent_plans': recent_plans,
+                'predicted_key_locations': predicted_key_locations,
             },
         }
         cache.set(cache_key, result, 600)
