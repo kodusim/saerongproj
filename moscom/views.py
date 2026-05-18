@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Count, Q
 
