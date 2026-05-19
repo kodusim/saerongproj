@@ -1116,28 +1116,48 @@ def _build_report_body(period, base_date, su, request):
                 'history': hist,
             })
         raw_preds = predictor.predict_for_devices(p_inputs, days_ahead=p_days)
-        # 방역 효과 적용
-        def _grade(n):
+        # 방역 효과 적용 — 모기지수 보존
+        def _grade_count(n):
             if n <= 10: return '안전'
             if n <= 50: return '관심'
             if n <= 100: return '주의'
             if n <= 200: return '경고'
             return '위험'
+        def _grade_idx(v):
+            if v is None: return None
+            if v < 25: return '쾌적'
+            if v < 50: return '관심'
+            if v < 75: return '주의'
+            return '불쾌'
         for p in raw_preds:
             new_preds = []
             for pp in p['predictions']:
                 factor, _ = remedy_store.adjustment_factor(p['uuid'], pp.get('date'))
                 orig = pp.get('predicted') or 0
+                orig_idx = pp.get('predicted_index')
+                adj_idx = round(max(0.0, min(100.0, orig_idx * factor)), 1) if orig_idx is not None else None
                 new_preds.append({
                     'date': pp['date'],
                     'predicted': int(round(orig * factor)),
                     'predicted_raw': orig,
+                    'predicted_index': adj_idx,
+                    'predicted_index_raw': round(orig_idx, 1) if orig_idx is not None else None,
+                    'grade': _grade_idx(adj_idx),
                     'remedy_factor': round(factor, 3),
                 })
             p['predictions'] = new_preds
             ps = [x['predicted'] for x in new_preds]
+            idxs = [x['predicted_index'] for x in new_preds if x['predicted_index'] is not None]
             p['max_predicted'] = max(ps) if ps else 0
-            p['grade'] = _grade(p['max_predicted'])
+            if idxs:
+                avg_idx = sum(idxs) / len(idxs)
+                p['max_index'] = round(max(idxs), 1)
+                p['avg_index'] = round(avg_idx, 1)
+                p['grade'] = _grade_idx(avg_idx)
+            else:
+                p['max_index'] = None
+                p['avg_index'] = None
+                p['grade'] = _grade_count(p['max_predicted'])
         raw_preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
         # 위험 점수 상위 10대 + 날짜별 합계
         predict_section = {
@@ -1145,6 +1165,8 @@ def _build_report_body(period, base_date, su, request):
                 {
                     'name': p['name'], 'grade': p['grade'],
                     'max_predicted': p['max_predicted'],
+                    'max_index': p.get('max_index'),
+                    'avg_index': p.get('avg_index'),
                     'predictions': p['predictions'],
                 }
                 for p in raw_preds[:10]
@@ -2816,13 +2838,19 @@ def moscom_predict(request):
             days_ahead = 3
         preds = predictor.predict_for_devices(inputs, days_ahead=days_ahead)
 
-        # 방역 계획 효과 반영 (post-processing)
-        def _grade(n):
+        # 방역 계획 효과 반영 (post-processing) — predicted_index/grade 보존
+        def _grade_count(n):
             if n <= 10: return '안전'
             if n <= 50: return '관심'
             if n <= 100: return '주의'
             if n <= 200: return '경고'
             return '위험'
+        def _grade_idx(v):
+            if v is None: return None
+            if v < 25: return '쾌적'
+            if v < 50: return '관심'
+            if v < 75: return '주의'
+            return '불쾌'
         remedy_summary_by_uuid = {}
         for p in preds:
             uid = p['uuid']
@@ -2832,19 +2860,37 @@ def moscom_predict(request):
                 factor, applied = remedy_store.adjustment_factor(uid, pp.get('date'))
                 orig = pp.get('predicted') or 0
                 adj = int(round(orig * factor))
+                # 모기지수도 방역 계수만큼 비례 감소 (마릿수가 줄면 지수도 줄어듦)
+                orig_idx = pp.get('predicted_index')
+                if orig_idx is not None:
+                    adj_idx = round(max(0.0, min(100.0, orig_idx * factor)), 1)
+                else:
+                    adj_idx = None
                 new_preds.append({
                     'date': pp['date'],
                     'predicted': adj,
                     'predicted_raw': orig,
+                    'predicted_index': adj_idx,
+                    'predicted_index_raw': round(orig_idx, 1) if orig_idx is not None else None,
+                    'grade': _grade_idx(adj_idx),
                     'remedy_factor': round(factor, 3),
                 })
                 if applied:
                     applied_by_date[pp['date']] = applied
             p['predictions'] = new_preds
             ps = [x['predicted'] for x in new_preds]
+            idxs = [x['predicted_index'] for x in new_preds if x['predicted_index'] is not None]
             p['max_predicted'] = max(ps) if ps else 0
             p['avg_predicted'] = round(sum(ps) / len(ps)) if ps else 0
-            p['grade'] = _grade(p['max_predicted'])
+            if idxs:
+                avg_idx = sum(idxs) / len(idxs)
+                p['max_index'] = round(max(idxs), 1)
+                p['avg_index'] = round(avg_idx, 1)
+                p['grade'] = _grade_idx(avg_idx)
+            else:
+                p['max_index'] = None
+                p['avg_index'] = None
+                p['grade'] = _grade_count(p['max_predicted'])
             if applied_by_date:
                 p['remedy_applied'] = applied_by_date
                 remedy_summary_by_uuid[uid] = applied_by_date

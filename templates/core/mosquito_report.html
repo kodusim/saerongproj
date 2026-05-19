@@ -508,7 +508,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <table class="data">
       <thead>
         <tr>
-          <th>장비</th><th>등급</th><th>최대 예측</th>
+          <th>장비</th><th>등급</th><th>평균 지수</th><th>최대 마릿수</th>
           {% for pp in report.summary.sections.predict.devices.0.predictions|slice:":7" %}
           <th>{{ pp.date|slice:"5:" }}</th>
           {% endfor %}
@@ -518,10 +518,11 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       {% for d in report.summary.sections.predict.devices %}
         <tr>
           <td><strong>{{ d.name|truncatechars:24 }}</strong></td>
-          <td class="grade-cell g-{% if d.grade == '안전' %}safe{% elif d.grade == '관심' %}watch{% elif d.grade == '주의' %}caution{% elif d.grade == '경고' %}warn{% elif d.grade == '위험' %}danger{% else %}unknown{% endif %}">{{ d.grade }}</td>
-          <td style="text-align:right;font-weight:700">{{ d.max_predicted }}</td>
+          <td class="grade-cell g-{% if d.grade == '쾌적' or d.grade == '안전' %}safe{% elif d.grade == '관심' %}watch{% elif d.grade == '주의' %}caution{% elif d.grade == '불쾌' or d.grade == '경고' %}warn{% elif d.grade == '위험' %}danger{% else %}unknown{% endif %}">{{ d.grade|default:"-" }}</td>
+          <td style="text-align:right;font-weight:700;color:var(--navy)">{{ d.avg_index|default:"-" }}</td>
+          <td style="text-align:right;color:var(--gray5)">{{ d.max_predicted }}</td>
           {% for pp in d.predictions|slice:":7" %}
-          <td style="text-align:right;font-family:monospace">{{ pp.predicted }}</td>
+          <td style="text-align:right;font-family:monospace">{% if pp.predicted_index != None %}<strong style="color:var(--navy)">{{ pp.predicted_index }}</strong><span style="font-size:9px;color:var(--gray4)"> / {{ pp.predicted }}</span>{% else %}{{ pp.predicted }}{% endif %}</td>
           {% endfor %}
         </tr>
       {% endfor %}
