@@ -1072,10 +1072,34 @@ body {
   /* 모스콤 / 방역 관리 2단 그리드 → 1단 */
   .ma-layout, .rm-layout { grid-template-columns: 1fr !important; }
 
-  /* AI 예측 / 예보의 좌우 2단 layout 도 1단으로 */
+  /* AI 예측 / 예보 / 일별 추세의 좌우 2단 layout 도 1단으로 */
   .card > div[style*="grid-template-columns:260px 1fr"],
-  .card > div[style*="grid-template-columns:240px 1fr"] {
+  .card > div[style*="grid-template-columns:240px 1fr"],
+  .card > div[style*="grid-template-columns:280px 1fr"] {
     grid-template-columns: 1fr !important;
+  }
+
+  /* 일별 추세 — 장비/지역 필터 박스: 모바일에서 너무 키 크지 않게 + 한 줄 그리드 */
+  #trend-filter {
+    max-height: 220px !important;
+    font-size: 11px !important;
+  }
+  /* 차트 컨테이너 — 모바일에서 살짝 낮추고, 우측 잘림 방지 */
+  #trend-chart-wrap {
+    height: 280px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  /* 차트 카드 자체는 overflow 막아 canvas 가 카드 폭 넘지 않게 */
+  #page-trend .card { overflow-x: hidden !important; }
+  /* 단, 표는 가로 스크롤 유지 */
+  #page-trend .card > div[style*="overflow-x:auto"] { overflow-x: auto !important; }
+  /* 차트 제목/서브 줄바꿈 허용 */
+  #trend-chart-title { font-size: 12px !important; }
+  #trend-chart-sub { font-size: 10px !important; }
+  #trend-chart-title + #trend-chart-sub,
+  #page-trend .card > div > div > div[style*="justify-content:space-between"] {
+    flex-wrap: wrap !important;
   }
 
   /* 예보 게이지 카드 줄이기 */
