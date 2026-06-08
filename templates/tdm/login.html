@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDM 예측 — 로그인</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --navy:#1B3A6B; --navy-l:#D6E0F0; --gray1:#F7F8FA; --gray2:#ECEEF2; --gray4:#8A8FA0; --red:#A32D2D; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans KR', sans-serif; background:#f0f2f7;
+  display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px;
+}
+.box {
+  background:#fff; padding:36px 32px; border-radius:10px;
+  box-shadow:0 8px 30px rgba(0,0,0,.08); width:100%; max-width:380px;
+}
+h1 { color:var(--navy); font-size:20px; margin-bottom:6px; text-align:center; letter-spacing:1px; }
+.sub { color:var(--gray4); font-size:11px; text-align:center; margin-bottom:24px; }
+label { display:block; font-size:11px; font-weight:600; color:var(--navy); margin:14px 0 4px; }
+input[type=text], input[type=password] {
+  width:100%; padding:9px 12px; border:1px solid #D0D3DC; border-radius:5px; font-size:13px;
+}
+input:focus { outline:none; border-color:var(--navy); }
+button {
+  margin-top:22px; width:100%; padding:11px;
+  background:var(--navy); color:#fff; border:none; border-radius:5px;
+  font-size:13px; font-weight:600; cursor:pointer;
+}
+button:hover { background:#2a5298; }
+.err { color:var(--red); font-size:11px; margin-top:14px; padding:8px 12px; background:#fde9e9; border-radius:4px; }
+.foot { margin-top:18px; font-size:10px; color:var(--gray4); text-align:center; line-height:1.5; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>Vancomycin TDM</h1>
+    <div class="sub">하이브리드 ML+DL 농도 예측 · 특허 출원 알고리즘</div>
+    <form method="post">
+      {% csrf_token %}
+      <label for="username">아이디</label>
+      <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+      <button type="submit">로그인</button>
+      {% if err %}<div class="err">{{ err }}</div>{% endif %}
+    </form>
+    <div class="foot">
+      Two-stage Hybrid Model (ML + Sequence DL)<br>
+      Patent pending · saerong.com
+    </div>
+  </div>
+</body>
+</html>

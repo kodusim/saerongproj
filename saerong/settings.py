@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "analytics",
     "api",
     "moscom",
+    "tdm",
 ]
 
 if DEBUG:
@@ -271,6 +272,10 @@ INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
 # Toss Disconnect Callback Authentication
 TOSS_DISCONNECT_CALLBACK_USERNAME = env.str('TOSS_DISCONNECT_CALLBACK_USERNAME', default='gamehoney')
 TOSS_DISCONNECT_CALLBACK_PASSWORD = env.str('TOSS_DISCONNECT_CALLBACK_PASSWORD', default='')
+
+# TDM 예측 페이지 (saerong.com/tdmprediction) 단일 ID/PW
+TDM_AUTH_USER = env.str('TDM_AUTH_USER', default='tdm')
+TDM_AUTH_PASSWORD = env.str('TDM_AUTH_PASSWORD', default='tdm1234')
 
 # Toss Login API
 TOSS_LOGIN_BASE_URL = env.str('TOSS_LOGIN_BASE_URL', default='https://apps-in-toss-api.toss.im')

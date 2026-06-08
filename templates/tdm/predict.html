@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vancomycin TDM — 하이브리드 예측</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#1B3A6B; --navy-l:#D6E0F0; --gray1:#F7F8FA; --gray2:#ECEEF2;
+  --gray3:#D0D3DC; --gray4:#8A8FA0; --gray5:#4A4E5C; --gray6:#1E2130;
+  --red:#A32D2D; --green:#1A5C35; --orange:#C05000; --teal:#0F5E6E;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Noto Sans KR',sans-serif; background:#f0f2f7; color:#111; font-size:13px; }
+
+.topbar {
+  background:var(--navy); color:#fff; padding:12px 24px;
+  display:flex; justify-content:space-between; align-items:center;
+  position:sticky; top:0; z-index:50; box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+.topbar h1 { font-size:16px; font-weight:700; letter-spacing:1px; }
+.topbar h1 .sub { font-size:10px; font-weight:400; opacity:.8; margin-left:6px; }
+.topbar .right { font-size:11px; opacity:.85; }
+.topbar a { color:#fff; text-decoration:underline; margin-left:10px; }
+
+.layout { max-width:1280px; margin:0 auto; padding:18px; display:grid; grid-template-columns:380px 1fr; gap:16px; }
+@media (max-width:900px) { .layout { grid-template-columns:1fr; } }
+
+.card { background:#fff; border-radius:8px; padding:16px 18px; box-shadow:0 2px 8px rgba(0,0,0,.05); margin-bottom:14px; }
+.card h2 { font-size:13px; color:var(--navy); border-left:4px solid var(--navy); padding:2px 8px; margin-bottom:10px; background:linear-gradient(90deg,var(--navy-l) 0%,transparent 100%); }
+.card h3 { font-size:12px; color:var(--navy); margin:14px 0 6px; font-weight:600; }
+
+.row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+label { font-size:11px; color:var(--gray5); font-weight:600; margin-bottom:3px; display:block; }
+input[type=number], input[type=text], select {
+  width:100%; padding:6px 8px; border:1px solid var(--gray3); border-radius:4px; font-size:12px; font-family:inherit;
+}
+input:focus, select:focus { outline:none; border-color:var(--navy); }
+
+.btn-row { display:flex; gap:8px; margin-top:14px; }
+button.primary {
+  flex:1; padding:10px; background:var(--navy); color:#fff;
+  border:none; border-radius:5px; font-size:13px; font-weight:600; cursor:pointer;
+}
+button.primary:hover { background:#2a5298; }
+button.primary:disabled { background:var(--gray4); cursor:wait; }
+button.secondary {
+  padding:10px 14px; background:#fff; color:var(--gray5);
+  border:1px solid var(--gray3); border-radius:5px; font-size:12px; cursor:pointer;
+}
+
+/* KPI */
+.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px; }
+@media (max-width:600px) { .kpi-row { grid-template-columns:repeat(2,1fr); } }
+.kpi {
+  border:1px solid #ddd; border-radius:6px; padding:10px 8px;
+  text-align:center; border-top:3px solid var(--navy); background:#fff;
+}
+.kpi-l { font-size:10px; color:var(--gray4); margin-bottom:3px; font-weight:500; }
+.kpi-n { font-size:20px; font-weight:700; color:var(--navy); font-family:'JetBrains Mono',monospace; line-height:1.1; }
+.kpi-u { font-size:10px; color:var(--gray5); margin-top:2px; }
+.kpi.red    { border-top-color:var(--red); }   .kpi.red .kpi-n    { color:var(--red); }
+.kpi.green  { border-top-color:var(--green); } .kpi.green .kpi-n  { color:var(--green); }
+.kpi.orange { border-top-color:var(--orange); }.kpi.orange .kpi-n { color:var(--orange); }
+.kpi.teal   { border-top-color:var(--teal); }  .kpi.teal .kpi-n   { color:var(--teal); }
+
+/* Tables */
+table.data { width:100%; border-collapse:collapse; font-size:11.5px; margin-bottom:8px; }
+table.data th { background:var(--navy); color:#fff; padding:6px 8px; text-align:center; font-weight:600; }
+table.data td { padding:5px 8px; border-bottom:1px solid var(--gray2); text-align:center; font-family:'JetBrains Mono',monospace; }
+table.data tr:hover { background:var(--gray1); }
+
+.status {
+  display:inline-block; padding:3px 10px; border-radius:10px; font-size:10px; font-weight:700;
+}
+.status-ok    { color:var(--green); background:#1A5C3522; }
+.status-low   { color:var(--orange); background:#C0500022; }
+.status-high  { color:var(--red); background:#A32D2D22; }
+
+.note { background:var(--gray1); border-left:3px solid var(--gray4); padding:8px 12px; font-size:11px; color:var(--gray5); margin-top:8px; }
+.empty { padding:30px 0; text-align:center; color:var(--gray4); font-size:11px; }
+
+#chart-wrap { position:relative; height:340px; }
+@media (max-width:600px) { #chart-wrap { height:280px; } }
+
+.spinner { display:inline-block; width:12px; height:12px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:6px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.disclaimer {
+  background:#fffbea; border:1px solid #f0d57a; color:#7a5d00;
+  border-radius:4px; padding:8px 12px; font-size:10.5px; margin-bottom:14px; line-height:1.5;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Vancomycin TDM <span class="sub">하이브리드 ML+DL 예측</span></h1>
+  <div class="right">{{ login_id }} · <a href="{% url 'tdm_logout' %}">로그아웃</a></div>
+</div>
+
+<div class="layout">
+
+  <!-- 좌: 입력 폼 -->
+  <div>
+    <div class="card">
+      <h2>환자 정보</h2>
+      <div class="row">
+        <div><label>나이 (세)</label><input type="number" id="f-age" value="55" min="0" max="120"></div>
+        <div><label>성별</label><select id="f-sex"><option value="1">남성</option><option value="0">여성</option></select></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>키 (cm)</label><input type="number" id="f-height" value="170" min="100" max="220" step="0.1"></div>
+        <div><label>몸무게 (kg)</label><input type="number" id="f-weight" value="65" min="20" max="200" step="0.1"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>진단 ID</label><input type="number" id="f-dx" value="0" min="0"></div>
+        <div><label>혈청 Cr (mg/dL)</label><input type="number" id="f-scr" value="1.0" min="0.1" max="15" step="0.01"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>CrCL (mL/min) <span style="color:var(--gray4);font-weight:400">— 빈칸이면 자동</span></label><input type="number" id="f-crcl" placeholder="자동 산출" step="0.1"></div>
+        <div><label>Albumin (g/dL)</label><input type="number" id="f-alb" value="3.5" min="1" max="6" step="0.01"></div>
+      </div>
+
+      <h3>혈액 검사</h3>
+      <div class="row">
+        <div><label>AST (U/L)</label><input type="number" id="f-ast" value="25" min="0" step="1"></div>
+        <div><label>ALT (U/L)</label><input type="number" id="f-alt" value="25" min="0" step="1"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>WBC (×10³/μL)</label><input type="number" id="f-wbc" value="7.0" min="0" step="0.1"></div>
+        <div><label>Platelet (×10³/μL)</label><input type="number" id="f-plt" value="200" min="0" step="1"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>hs-CRP (mg/L)</label><input type="number" id="f-crp" value="1.0" min="0" step="0.1"></div>
+        <div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>투여 계획</h2>
+      <div class="row">
+        <div><label>1회 용량 (mg)</label><input type="number" id="f-dose" value="1000" min="50" max="3000" step="50"></div>
+        <div><label>투여 간격 (시간)</label><select id="f-q"><option value="6">q6h</option><option value="8">q8h</option><option value="12" selected>q12h</option><option value="24">q24h</option></select></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>사이클 수 (회)</label><select id="f-n"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+        <div></div>
+      </div>
+      <div class="btn-row">
+        <button class="primary" id="run-btn" onclick="runPredict()">하이브리드 예측 실행</button>
+      </div>
+    </div>
+
+    <div class="card" style="font-size:10.5px;color:var(--gray5);line-height:1.6">
+      <h2>모델 정보</h2>
+      <div><strong>1단계 (ML)</strong> — 17개 covariate → 사이클 1~5 peak/trough 10개 (Extra Trees / RF)</div>
+      <div style="margin-top:6px"><strong>2단계 (DL)</strong> — Event sequence + ML 예측 → 시간별 농도 곡선 + 정상상태 endpoint (LSTM)</div>
+      <div style="margin-top:6px"><strong>특허</strong> — Hybrid ML+DL TDM 예측 (출원 진행)</div>
+    </div>
+  </div>
+
+  <!-- 우: 결과 -->
+  <div>
+    <div class="disclaimer">
+      ⚠️ <strong>본 예측은 연구·참고용이며 임상 판단은 반드시 처방의의 의학적 검토와 함께 이루어져야 합니다.</strong>
+      벤코마이신 목표 trough 15~20 mg/L, AUC24 400~600 mg·hr/L 기준 (MRSA, 성인 일반).
+    </div>
+
+    <div id="empty-state" class="card empty">
+      좌측에서 환자 정보 입력 후 <strong>예측 실행</strong> 버튼을 눌러주세요.
+    </div>
+
+    <div id="result-area" style="display:none">
+      <!-- KPI -->
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-l">정상상태 Peak</div><div class="kpi-n" id="k-peak">-</div><div class="kpi-u">mg/L</div></div>
+        <div class="kpi"><div class="kpi-l">정상상태 Trough</div><div class="kpi-n" id="k-trough">-</div><div class="kpi-u" id="k-trough-status">mg/L</div></div>
+        <div class="kpi"><div class="kpi-l">AUC₂₄</div><div class="kpi-n" id="k-auc">-</div><div class="kpi-u" id="k-auc-status">mg·hr/L</div></div>
+        <div class="kpi"><div class="kpi-l">일일 용량</div><div class="kpi-n" id="k-dd">-</div><div class="kpi-u">mg/day</div></div>
+      </div>
+
+      <!-- 곡선 -->
+      <div class="card">
+        <h2>예측 농도 곡선 (DL · Hybrid)</h2>
+        <div id="chart-wrap"><canvas id="conc-chart"></canvas></div>
+        <div class="note" id="chart-note">DL 곡선 + 목표 trough 15~20 mg/L 음영 표시</div>
+      </div>
+
+      <!-- ML 표 -->
+      <div class="card">
+        <h2>ML 예측 — 사이클별 Peak / Trough (1~5회차)</h2>
+        <table class="data">
+          <thead>
+            <tr><th>사이클</th><th>Peak (mg/L)</th><th>Trough (mg/L)</th></tr>
+          </thead>
+          <tbody id="ml-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- 요약 -->
+      <div class="card">
+        <h2>요약 · 권고</h2>
+        <table class="data">
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let CHART = null;
+
+function val(id) {
+  const v = document.getElementById(id).value.trim();
+  if (v === '') return null;
+  return parseFloat(v);
+}
+
+async function runPredict() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>예측 중…';
+
+  const body = {
+    patient: {
+      age: val('f-age'), sex: parseInt(document.getElementById('f-sex').value, 10),
+      height: val('f-height'), weight: val('f-weight'),
+      diagnosis_id: val('f-dx'), Serum_Cr: val('f-scr'),
+      CrCL_mL_per_min: val('f-crcl'),
+      Albumin: val('f-alb'), AST: val('f-ast'), ALT: val('f-alt'),
+      WBC: val('f-wbc'), Platelet: val('f-plt'), hs_CRP: val('f-crp'),
+    },
+    dose_mg: val('f-dose'), q_hr: parseFloat(document.getElementById('f-q').value),
+    n_doses: parseInt(document.getElementById('f-n').value, 10),
+  };
+
+  try {
+    const res = await fetch('{% url "tdm_predict_api" %}', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    render(json);
+  } catch (err) {
+    alert('예측 실패: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '하이브리드 예측 실행';
+  }
+}
+
+function statusClass(label) {
+  if (!label) return '';
+  if (label.includes('치료')) return 'status-ok';
+  if (label.includes('저')) return 'status-low';
+  return 'status-high';
+}
+
+function render(j) {
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('result-area').style.display = 'block';
+
+  // KPI
+  const ep = j.dl_endpoint;
+  if (ep) {
+    document.getElementById('k-peak').textContent = ep.steady_peak;
+    document.getElementById('k-trough').textContent = ep.steady_trough;
+    document.getElementById('k-auc').textContent = ep.steady_auc24;
+  } else {
+    document.getElementById('k-peak').textContent = j.ml_predictions.ns_peak_5 || '-';
+    document.getElementById('k-trough').textContent = j.ml_predictions.ns_trough_5 || '-';
+    document.getElementById('k-auc').textContent = '-';
+  }
+  document.getElementById('k-dd').textContent = j.summary.daily_dose_mg;
+  const ts = j.summary.trough_status || '';
+  const as_ = j.summary.auc_status || '';
+  document.getElementById('k-trough-status').innerHTML = 'mg/L <span class="status ' + statusClass(ts) + '">' + ts + '</span>';
+  document.getElementById('k-auc-status').innerHTML = 'mg·hr/L <span class="status ' + statusClass(as_) + '">' + as_ + '</span>';
+
+  // 곡선
+  const curve = j.dl_curve || [];
+  drawChart(curve, j.summary);
+
+  // ML 표
+  const ml = j.ml_predictions || {};
+  let mlHtml = '';
+  for (let i = 1; i <= 5; i++) {
+    const peak = ml['ns_peak_' + i];
+    const trough = ml['ns_trough_' + i];
+    if (peak === undefined && trough === undefined) continue;
+    mlHtml += '<tr><td>' + i + '회차</td><td>' + (peak ?? '-') + '</td><td>' + (trough ?? '-') + '</td></tr>';
+  }
+  document.getElementById('ml-tbody').innerHTML = mlHtml;
+
+  // 요약
+  const s = j.summary || {};
+  const meta = j.model_meta || {};
+  const rows = [
+    ['산출 CrCL', (s.derived_crcl ?? '-') + ' mL/min'],
+    ['산출 BMI', s.derived_bmi ?? '-'],
+    ['일일 총 용량', s.daily_dose_mg + ' mg/day'],
+    ['목표 Trough', s.target_trough_range_mg_L.join(' ~ ') + ' mg/L'],
+    ['목표 AUC₂₄', s.target_auc24_range.join(' ~ ') + ' mg·hr/L'],
+    ['Trough 상태', s.trough_status || '-'],
+    ['AUC 상태', s.auc_status || '-'],
+    ['ML 모델', meta.ml_model || '-'],
+    ['DL 모델', meta.dl_model || '(미적용)'],
+  ];
+  document.getElementById('summary-tbody').innerHTML = rows.map(r =>
+    '<tr><td style="text-align:left;font-weight:600;color:var(--navy)">' + r[0] + '</td><td style="text-align:right">' + r[1] + '</td></tr>'
+  ).join('');
+}
+
+function drawChart(curve, summary) {
+  const ctx = document.getElementById('conc-chart');
+  if (CHART) CHART.destroy();
+  const labels = curve.map(p => p.t_hr + 'h');
+  const data = curve.map(p => p.conc);
+  const tdmPts = curve.map(p => p.is_tdm ? p.conc : null);
+  const dosePts = curve.map(p => p.is_dose ? p.conc : null);
+
+  // 목표 영역 표시용 어노테이션 (Chart.js 라인 위에 fill 영역)
+  const lo = summary.target_trough_range_mg_L[0];
+  const hi = summary.target_trough_range_mg_L[1];
+
+  CHART = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '목표 상한 (' + hi + ')', data: labels.map(_ => hi),
+          borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:'-1',
+          backgroundColor: 'rgba(26,92,53,.08)',
+        },
+        {
+          label: '목표 하한 (' + lo + ')', data: labels.map(_ => lo),
+          borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:false,
+        },
+        {
+          label: '예측 농도', data, borderColor:'#1B3A6B', backgroundColor:'#1B3A6B22',
+          borderWidth:2.5, tension:0.3, pointRadius:3, fill:false,
+        },
+        {
+          label: 'TDM 측정시점', data: tdmPts, borderColor:'transparent',
+          backgroundColor:'#A32D2D', pointRadius:5, pointStyle:'rect', showLine:false,
+        },
+        {
+          label: 'Dose 시점', data: dosePts, borderColor:'transparent',
+          backgroundColor:'#0F5E6E', pointRadius:5, pointStyle:'triangle', showLine:false,
+        },
+      ],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { position:'bottom', labels:{ font:{size:10}, boxWidth:10, usePointStyle:true } },
+        tooltip: { mode:'index', intersect:false },
+      },
+      scales: {
+        y: { beginAtZero:true, title:{display:true,text:'혈중 농도 (mg/L)'}, grid:{color:'rgba(0,0,0,.05)'} },
+        x: { title:{display:true,text:'시간 (시간)'}, grid:{display:false} },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>

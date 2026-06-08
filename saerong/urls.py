@@ -60,6 +60,7 @@ urlpatterns = [
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터
     path("api/", include("api.urls")),  # API 엔드포인트
     path("mosquito-test/db/", include("moscom.urls")),  # MOSCOM 로컬 DB 조회/수정
+    path("tdmprediction/", include("tdm.urls")),  # 반코마이신 TDM 하이브리드 예측
 ]
 
 # 개발 환경에서 미디어 파일 서빙 설정
