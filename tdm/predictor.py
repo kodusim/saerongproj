@@ -159,7 +159,9 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
     height = float(patient.get('height', 170))
     weight = float(patient.get('weight', 65))
     bmi = _calc_bmi(weight, height)
-    diagnosis_id = int(patient.get('diagnosis_id', 0))
+    # diagnosis_id는 학습 시 51개 카테고리로 인코딩됨 (31 = 매핑되지 않은 진단의 '기타' 버킷).
+    # 사용자가 진단 코드를 알 수 없으므로 기본 31 사용 — 학습 데이터의 가장 일반적 값.
+    diagnosis_id = int(patient.get('diagnosis_id', 31))
     scr = float(patient.get('Serum_Cr', 1.0))
     crcl = patient.get('CrCL_mL_per_min')
     if crcl is None or crcl <= 0:

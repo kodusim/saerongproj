@@ -116,8 +116,8 @@ table.data tr:hover { background:var(--gray1); }
         <div><label>몸무게 (kg)</label><input type="number" id="f-weight" value="65" min="20" max="200" step="0.1"></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div><label>진단 ID</label><input type="number" id="f-dx" value="0" min="0"></div>
         <div><label>혈청 Cr (mg/dL)</label><input type="number" id="f-scr" value="1.0" min="0.1" max="15" step="0.01"></div>
+        <div></div>
       </div>
       <div class="row" style="margin-top:8px">
         <div><label>CrCL (mL/min) <span style="color:var(--gray4);font-weight:400">— 빈칸이면 자동</span></label><input type="number" id="f-crcl" placeholder="자동 산출" step="0.1"></div>
@@ -229,7 +229,7 @@ async function runPredict() {
     patient: {
       age: val('f-age'), sex: parseInt(document.getElementById('f-sex').value, 10),
       height: val('f-height'), weight: val('f-weight'),
-      diagnosis_id: val('f-dx'), Serum_Cr: val('f-scr'),
+      Serum_Cr: val('f-scr'),
       CrCL_mL_per_min: val('f-crcl'),
       Albumin: val('f-alb'), AST: val('f-ast'), ALT: val('f-alt'),
       WBC: val('f-wbc'), Platelet: val('f-plt'), hs_CRP: val('f-crp'),
