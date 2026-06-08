@@ -45,15 +45,21 @@ DL_FEATURES = DL_BASE_FEATURES + DL_NS_PRED_COLS + DL_LAST_NS_COLS  # 34개
 
 @lru_cache(maxsize=1)
 def _load_ml():
-    """sklearn ExtraTrees joblib 로드. extra_trees → random_forest 폴백."""
+    """sklearn ExtraTrees joblib 로드. extra_trees → random_forest 폴백.
+
+    joblib 파일 구조: {'model': Pipeline, 'feature_cols': list, 'target_cols': list, 'args': dict}
+    """
     import joblib
     candidates = ['extra_trees.joblib', 'random_forest.joblib']
     for fname in candidates:
         path = os.path.join(ART_DIR, fname)
         if os.path.exists(path):
             logger.info('TDM ML 모델 로드: %s', fname)
-            model = joblib.load(path)
-            return model, fname.replace('.joblib', '')
+            bundle = joblib.load(path)
+            if isinstance(bundle, dict) and 'model' in bundle:
+                return bundle['model'], bundle.get('feature_cols') or ML_FEATURES, bundle.get('target_cols') or ML_TARGETS, fname.replace('.joblib', '')
+            # 구조가 다르면 raw sklearn 모델로 간주
+            return bundle, ML_FEATURES, ML_TARGETS, fname.replace('.joblib', '')
     raise FileNotFoundError('TDM ML 모델 파일이 없습니다 (tdm/ml_artifacts/*.joblib)')
 
 
@@ -63,14 +69,14 @@ def _load_dl():
     pt_path = os.path.join(ART_DIR, 'best_lstm_ml-extra_trees.pt')
     if not os.path.exists(pt_path):
         logger.warning('TDM DL 모델 파일이 없습니다 (LSTM 단계 비활성)')
-        return None, None
+        return None, None, None
     try:
         import torch
         import torch.nn as nn
         import torch.nn.functional as F
     except ImportError:
         logger.warning('PyTorch 미설치 — DL 단계 비활성')
-        return None, None
+        return None, None, None
 
     class HybridDLModel(nn.Module):
         def __init__(self, input_dim, hidden_size=64):
@@ -98,13 +104,15 @@ def _load_dl():
             return conc, endpoint
 
     state = torch.load(pt_path, map_location='cpu', weights_only=False)
-    sd = state['model_state_dict'] if isinstance(state, dict) and 'model_state_dict' in state else state
-    stats = state.get('feature_stats') if isinstance(state, dict) else None
-    model = HybridDLModel(input_dim=len(DL_FEATURES), hidden_size=64)
+    sd = state.get('state_dict') if isinstance(state, dict) else state
+    stats = state.get('stats') if isinstance(state, dict) else None
+    feature_cols = state.get('feature_cols') if isinstance(state, dict) else None
+    input_dim = state.get('input_dim') if isinstance(state, dict) else len(DL_FEATURES)
+    model = HybridDLModel(input_dim=input_dim, hidden_size=64)
     model.load_state_dict(sd, strict=False)
     model.eval()
-    logger.info('TDM DL 모델(LSTM) 로드 완료')
-    return model, stats
+    logger.info('TDM DL 모델(LSTM) 로드 완료 (input_dim=%d)', input_dim)
+    return model, stats, feature_cols or DL_FEATURES
 
 
 def _calc_bmi(weight_kg, height_cm):
@@ -175,10 +183,10 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
     }
 
     # 2) ML 1단계 — 17 covariate → 10 NS targets
-    ml_model, ml_name = _load_ml()
-    X_ml = np.array([[ml_row[k] for k in ML_FEATURES]], dtype=np.float64)
+    ml_model, ml_feat_cols, ml_targ_cols, ml_name = _load_ml()
+    X_ml = np.array([[ml_row.get(k, 0.0) for k in ml_feat_cols]], dtype=np.float64)
     ml_out = ml_model.predict(X_ml)[0]
-    ml_predictions = {t: float(round(v, 2)) for t, v in zip(ML_TARGETS, ml_out)}
+    ml_predictions = {t: float(round(v, 2)) for t, v in zip(ml_targ_cols, ml_out)}
 
     # 3) Event sequence 구성 (1회당 dose + 24시간 후 trough 측정 가정)
     #    cycle = n_doses 회 투여 + 마지막 trough 측정 1점
@@ -216,7 +224,7 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
         ev['hours_since_cycle_start'] = ev['time']
 
     # 4) DL 2단계 (있으면)
-    dl_model, dl_stats = _load_dl()
+    dl_model, dl_stats, dl_feat_cols = _load_dl()
     dl_curve = []
     dl_endpoint = None
 
@@ -251,14 +259,15 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
                 base['pred_last_ns_peak'] = last_peak
                 base['pred_last_ns_trough'] = last_trough
                 base['pred_last_ns_gap'] = last_gap
-                x_rows.append([base[k] for k in DL_FEATURES])
+                x_rows.append([float(base.get(k, 0.0)) for k in dl_feat_cols])
 
             X = np.array([x_rows], dtype=np.float32)   # (1, L, F)
 
             # 정규화 (학습 시 stats가 .pt에 있으면 사용)
-            if dl_stats:
-                mean = np.array([dl_stats['mean'].get(k, 0.0) for k in DL_FEATURES], dtype=np.float32)
-                std = np.array([dl_stats['std'].get(k, 1.0) or 1.0 for k in DL_FEATURES], dtype=np.float32)
+            if dl_stats and isinstance(dl_stats, dict) and 'mean' in dl_stats and 'std' in dl_stats:
+                mean = np.array([float(dl_stats['mean'].get(k, 0.0)) for k in dl_feat_cols], dtype=np.float32)
+                std_raw = [dl_stats['std'].get(k, 1.0) for k in dl_feat_cols]
+                std = np.array([float(s if s else 1.0) for s in std_raw], dtype=np.float32)
                 X = (X - mean) / std
 
             pad_mask = torch.ones((1, len(events)), dtype=torch.float32)
