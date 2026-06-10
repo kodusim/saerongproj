@@ -246,6 +246,28 @@ def mosquito_logout(request):
     return redirect('/mosquito-test/')
 
 
+def _station_name(raw):
+    """관측소 표시명 정제: 코드(SY03서울식물원0043) → 한글 이름(서울식물원).
+    앞쪽 영문+숫자 접두 + 뒤쪽 숫자 제거. 정제 결과가 비면 원본 유지.
+    """
+    s = (raw or '').strip()
+    if not s:
+        return ''
+    # 앞쪽 영문(대소문자) + 뒤따르는 숫자 접두 제거 (예: SY03, BD01)
+    i = 0
+    while i < len(s) and (s[i].isascii() and s[i].isalpha()):
+        i += 1
+    while i < len(s) and s[i].isdigit():
+        i += 1
+    s2 = s[i:]
+    # 뒤쪽 숫자 제거 (예: 0043)
+    j = len(s2)
+    while j > 0 and s2[j-1].isdigit():
+        j -= 1
+    s2 = s2[:j].strip()
+    return s2 or (raw or '').strip()
+
+
 def _current_session_user(request):
     """세션에서 복원한 사용자. 없으면 None."""
     if not request.session.get('mosquito_auth'):
@@ -400,7 +422,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
     meta = {}
     for d in devices:
         dv = d.get('device') or {}
-        nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
+        nm = _station_name(dv.get('device_name') or '') or d.get('device_uuid')
         addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)) or ''
         w = weather_map.get(d.get('device_uuid'), {})
         rc, rn = region_map_per_uuid.get(d.get('device_uuid'), ('', '미지정'))
@@ -737,7 +759,7 @@ def _build_report_body(period, base_date, su, request):
     name_map = {}
     for d in devices:
         dv = d.get('device') or {}
-        nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
+        nm = _station_name(dv.get('device_name') or '') or d.get('device_uuid')
         addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40) or ''
         md = uuid_to_md.get(d.get('device_uuid'))
         rc = (md.region_code if md else '') or ''
@@ -1433,7 +1455,7 @@ def moscom_admin_judgment(request):
         name_map = {}
         for d in devices:
             dv = d.get('device') or {}
-            nm = (dv.get('device_name') or '').strip() or d.get('device_uuid')
+            nm = _station_name(dv.get('device_name') or '') or d.get('device_uuid')
             addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40) or ''
             name_map[d.get('device_uuid')] = {'name': nm, 'addr': addr, 'bad_min': ANOMALY_THRESHOLD}
 
@@ -3013,7 +3035,7 @@ def moscom_forecast_brief(request):
             for u in allowed_uuids:
                 hist = [{'date': d, 'count': c} for d, c in sorted(daily[u].items())]
                 md = moscom_device_map.get(u)
-                name = (md.device_name if md else u) or u
+                name = _station_name(md.device_name if md else '') or u
                 inputs.append({
                     'uuid': u, 'name': name,
                     'region': ' '.join(p for p in [(md.address_sido if md else ''), (md.address_gungu if md else '')] if p),
@@ -3350,7 +3372,7 @@ def moscom_forecast_simulate(request):
 
     inp = [{
         'uuid': device_uuid,
-        'name': (dv.get('device_name') or device_uuid).strip(),
+        'name': _station_name(dv.get('device_name') or '') or device_uuid,
         'region': ' '.join(p for p in [dv.get('address_sido'), dv.get('address_gungu')] if p),
         'region_code': (md.region_code if md else '') or '',
         'sido': (md.address_sido if md else '') or '',

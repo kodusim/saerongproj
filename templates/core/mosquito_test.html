@@ -2431,7 +2431,7 @@ function renderOvKpis(json) {
   const kpi = json.kpi || {};
   const box = document.getElementById('ov-kpis');
   const top = kpi.top_dev || {};
-  const topName = top.name ? `${top.name}` : '-';
+  const topName = top.name ? stationName(top.name) : '-';
   const topCount = top.count || 0;
   const change = kpi.change_pct || 0;
   const changeArrow = change > 0 ? '▲' : change < 0 ? '▼' : '·';
@@ -2589,7 +2589,7 @@ function renderOvStationTable(json) {
     const temp = (d.temperature != null) ? `${d.temperature}°C` : '-';
     const humid = (d.humidity != null) ? `${d.humidity}%` : '-';
     return `<tr>
-      <td><strong>${escapeHtml(d.name)}</strong></td>
+      <td><strong>${escapeHtml(stationName(d.name))}</strong></td>
       <td><span style="font-size:10px;font-weight:700;background:#EEF2FF;color:#3949AB;padding:2px 8px;border-radius:10px">${escapeHtml(d.region_name || '미지정')}</span></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.region}</span></td>
       <td><span style="font-size:10px;font-weight:600;background:${hbColor.bg};color:${hbColor.color};padding:2px 8px;border-radius:10px">${h2.form}</span></td>
@@ -2783,7 +2783,7 @@ async function buildHeatmap(){
       const arr = buckets[u];
       const total = arr.reduce((a, b) => a + b, 0);
       const m = meta[u] || {};
-      const label = m.name ? `${m.name}${m.addr ? '<div style="font-size:10px;color:var(--gray4);font-weight:400">'+m.addr+'</div>' : ''}` : u;
+      const label = m.name ? `${stationName(m.name)}${m.addr ? '<div style="font-size:10px;color:var(--gray4);font-weight:400">'+m.addr+'</div>' : ''}` : u;
       return { uuid: u, label, arr, total };
     }).sort((a, b) => b.total - a.total);
 
@@ -2923,7 +2923,7 @@ async function buildAnomalyAll(){
         <div class="anomaly-alert">
           <div class="anomaly-icon">⚠</div>
           <div>
-            <div class="anomaly-title">포집량 이상 감지 — ${top.name}${top.addr ? ' ('+top.addr+')' : ''}</div>
+            <div class="anomaly-title">포집량 이상 감지 — ${stationName(top.name)}${top.addr ? ' ('+top.addr+')' : ''}</div>
             <div class="anomaly-body">
               금일 <strong>${top.today}마리</strong> 포집으로 장비 경보 기준 <strong>${top.badMin}마리</strong> 초과.
               전일 <strong>${top.yday}마리</strong> ${top.pct !== null ? '· 변화율 <strong>'+(top.pct>=0?'+':'')+top.pct+'%</strong>' : ''} ·
@@ -2956,7 +2956,7 @@ async function buildAnomalyAll(){
         const pctHtml = r.pct === null ? '<span style="color:var(--gray4)">—</span>'
           : `<span style="color:${r.pct >= 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;font-family:var(--mono)">${r.pct >= 0 ? '+' : ''}${r.pct}%</span>`;
         return `<tr>
-          <td><strong>${r.name}</strong>${labelAddr}</td>
+          <td><strong>${stationName(r.name)}</strong>${labelAddr}</td>
           <td style="color:var(--red);font-weight:700;font-family:var(--mono)">${r.today}마리</td>
           <td style="font-family:var(--mono)">${r.yday}마리</td>
           <td>${pctHtml}</td>
@@ -2975,7 +2975,7 @@ async function buildAnomalyAll(){
           : `<span style="color:${r.pct >= 0 ? 'var(--red)' : 'var(--green)'};font-family:var(--mono);font-weight:600">${r.pct >= 0 ? '+' : ''}${r.pct}%</span>`;
         const badge = r.isAnomaly ? `<span class="badge badge-warn">기준 초과</span>` : `<span class="badge badge-safe">정상</span>`;
         return `<tr>
-          <td><strong>${r.name}</strong>${labelAddr}</td>
+          <td><strong>${stationName(r.name)}</strong>${labelAddr}</td>
           <td style="font-family:var(--mono)">${r.today > 0 ? r.today : '-'}</td>
           <td style="font-family:var(--mono)">${r.yday > 0 ? r.yday : '-'}</td>
           <td>${pctHtml}</td>
@@ -3507,7 +3507,7 @@ function renderPredictFilter() {
     const checked = PREDICT_STATE.selected.has(p.uuid) ? 'checked' : '';
     html.push(`<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:11px">
       <input type="checkbox" data-uuid="${p.uuid}" ${checked}>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${p.name}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${stationName(p.name)}</span>
       <span class="badge ${predictGradeBadgeCls(p.grade)}" style="font-size:9px;padding:1px 6px">${p.grade}</span>
     </label>`);
   });
@@ -3582,7 +3582,7 @@ function renderPredictTable() {
     const h2 = classifyHabitat2(p);
     const hb = habitat2BadgeColor(h2.form);
     return `<tr>
-      <td><strong>${p.name}</strong></td>
+      <td><strong>${stationName(p.name)}</strong></td>
       <td><span style="font-size:10px;font-weight:600;background:${hb.bg};color:${hb.color};padding:2px 8px;border-radius:10px">${h2.label}</span></td>
       ${histCells}
       ${predCells}
@@ -3642,7 +3642,7 @@ function drawPredictChart() {
 
     return [
       {
-        label: `${p.name} · 실측`,
+        label: `${stationName(p.name)} · 실측`,
         data: histLine,
         borderColor: color,
         backgroundColor: color + '22',
@@ -3653,7 +3653,7 @@ function drawPredictChart() {
         fill: false,
       },
       {
-        label: `${p.name} · 예측`,
+        label: `${stationName(p.name)} · 예측`,
         data: predLine,
         borderColor: color,
         backgroundColor: color + '22',
@@ -3836,7 +3836,7 @@ function renderFcFilter() {
       const checked = FC_STATE.selected.has(p.uuid) ? 'checked' : '';
       return `<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:11px">
         <input type="checkbox" data-uuid="${p.uuid}" ${checked}>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${p.name}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${stationName(p.name)}</span>
         <span style="font-family:var(--mono);color:var(--gray4);font-size:10px">${p.max_predicted}</span>
       </label>`;
     }).join('');
@@ -3976,7 +3976,7 @@ function renderFcGauges() {
       <div class="fc-dev-section" style="margin-bottom:14px;border:1px solid var(--gray2);border-radius:10px;padding:12px 14px;background:#fff">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(p.name || p.uuid)}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(stationName(p.name || p.uuid))}</div>
             <div style="font-size:11px;color:var(--gray4)">${escapeHtml(p.region || '-')} · 기간 합계 <strong>${totalV}</strong>마리</div>
           </div>
           <div>
@@ -4633,7 +4633,7 @@ async function ajRenderRemedyCheck() {
     const methods = (typeof fbRecommendMethod === 'function') ? fbRecommendMethod(s.grade, h2.form) : [];
     return `<tr>
       <td><input type="checkbox" class="aj-rc-chk" checked></td>
-      <td><strong>${escapeHtml(s.name || '-')}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
+      <td><strong>${escapeHtml(stationName(s.name || '-'))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.label}</span></td>
       <td style="font-weight:700;color:${gColor[s.grade] || 'var(--gray5)'}">${s.grade}</td>
       <td>${methods.map(m => `<span style="display:inline-block;font-size:10px;font-weight:600;background:#FFF3E0;color:#BF360C;padding:2px 8px;border-radius:10px;margin:1px">${m}</span>`).join('')}</td>
@@ -4826,6 +4826,18 @@ async function buildAdminJudgment(force) {
 
 function escapeHtml(s) {
   return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 관측소 표시명 정제: 코드(SY03서울식물원0043, BD03정자공원0049) → 한글 이름만(서울식물원, 정자공원)
+function stationName(raw) {
+  let s = (raw || '').trim();
+  if (!s) return '-';
+  // 앞쪽 영문+숫자 접두(예: SY03, BD03, BD01) 제거
+  s = s.replace(/^[A-Za-z]+\d*/, '');
+  // 뒤쪽 숫자(예: 0043) 제거
+  s = s.replace(/\d+$/, '');
+  s = s.trim();
+  return s || (raw || '').trim();  // 정제 결과가 비면 원본 유지
 }
 
 // ── 보고서 생성 모달 ──────────────────────────────────────
@@ -6024,7 +6036,7 @@ function fbRenderSignals(j) {
           <span style="width:10px;height:10px;border-radius:50%;background:${dot};display:inline-block"></span>
           <div style="font-size:11px;font-weight:700;color:${color}">${s.grade}</div>
         </div>
-        <div style="font-size:13px;font-weight:700;color:${color};line-height:1.3;margin-bottom:1px">${escapeHtml(s.name || '-')}</div>
+        <div style="font-size:13px;font-weight:700;color:${color};line-height:1.3;margin-bottom:1px">${escapeHtml(stationName(s.name || '-'))}</div>
         <div style="font-size:10px;color:var(--gray5);margin-bottom:3px">${escapeHtml(s.region_name || '')}</div>
         <div style="font-size:24px;font-weight:700;color:${color};font-family:var(--mono);line-height:1">${s.avg_index}</div>
         <div style="font-size:10px;color:var(--gray5);margin-top:5px">최대 예상 ${s.max_predicted ?? '-'}마리</div>
@@ -6060,7 +6072,7 @@ function fbRenderRemedyOrders(j) {
     const h2 = classifyHabitat2(s);
     const methods = fbRecommendMethod(s.grade, h2.form);
     return `<tr>
-      <td><strong>${escapeHtml(s.name || '-')}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
+      <td><strong>${escapeHtml(stationName(s.name || '-'))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.label}</span></td>
       <td style="font-weight:700;color:${gColor[s.grade] || 'var(--gray5)'}">${s.grade} <span style="font-family:var(--mono);font-weight:400;color:var(--gray4)">(${s.avg_index ?? '-'})</span></td>
       <td>${methods.map(m => `<span style="display:inline-block;font-size:10px;font-weight:600;background:#FFF3E0;color:#BF360C;padding:2px 8px;border-radius:10px;margin:1px">${m}</span>`).join('')}</td>
@@ -6134,7 +6146,7 @@ async function fbInitSim() {
     const j = await r.json();
     FB.devices = j.items || [];
     const sel = document.getElementById('fb-sim-device');
-    sel.innerHTML = FB.devices.map(d => `<option value="${d.device_uuid}">${(d.device_name || '').replace(/</g,'&lt;')}</option>`).join('');
+    sel.innerHTML = FB.devices.map(d => `<option value="${d.device_uuid}">${escapeHtml(stationName(d.device_name || ''))}</option>`).join('');
   } catch (e) {}
   // 방역 방법
   try {
@@ -6256,7 +6268,7 @@ function pdFillDeviceOptions(regionCode) {
   const ds = document.getElementById('pd-device');
   if (!ds) return;
   const all = PD.devices || [];
-  const opt = d => `<option value="${d.device_uuid}">${(d.device_name || d.device_uuid).replace(/</g,'&lt;')}</option>`;
+  const opt = d => `<option value="${d.device_uuid}">${escapeHtml(stationName(d.device_name || d.device_uuid))}</option>`;
   if (regionCode) {
     const list = all.filter(d => (d.region_code || '') === regionCode);
     // 해당 권역만 — (전체) 없이 그 지역 장비만 노출
@@ -6374,7 +6386,7 @@ function pdRenderTable(j) {
   </tr></thead>`;
   const body = items.map(it => `<tr>
     <td style="font-family:var(--mono);font-size:11px">${(it.bucket || '').slice(0,10)}</td>
-    <td>${(it.device_name || '').replace(/</g,'&lt;')}</td>
+    <td>${escapeHtml(stationName(it.device_name || ''))}</td>
     <td><span style="font-size:10px;font-weight:700;background:#EEF2FF;color:#3949AB;padding:2px 8px;border-radius:10px">${(it.region_name || '미지정').replace(/</g,'&lt;')}</span></td>
     <td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--navy)">${(it.total || 0).toLocaleString()}</td>
     <td style="text-align:right;font-family:var(--mono);color:var(--gray5)">${it.avg}</td>
