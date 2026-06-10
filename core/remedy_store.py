@@ -49,12 +49,21 @@ METHODS = {
     },
     'ulv_fog': {
         'key': 'ulv_fog',
-        'name': 'ULV 초미립자 연막 (피레스로이드)',
+        'name': '연무 (ULV 초미립자, 피레스로이드)',
         'target': '성충',
         'onset_days': 0,
         'duration_days': 3,
         'reduction_pct': 78,
-        'note': '즉시 효과, 단기. 야간 실시 권장.',
+        'note': '초미립자 약제 분사. 즉시 효과·단기. 야간 실시 권장.',
+    },
+    'thermal_fog': {
+        'key': 'thermal_fog',
+        'name': '연막 (열연막, 피레스로이드)',
+        'target': '성충',
+        'onset_days': 0,
+        'duration_days': 2,
+        'reduction_pct': 70,
+        'note': '열연막으로 광범위 확산. 즉시 효과·단기. 가시성 높아 시민 인지 효과.',
     },
     'residual_spray': {
         'key': 'residual_spray',

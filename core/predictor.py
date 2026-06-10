@@ -267,6 +267,17 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
             if ps[-1] > ps[0] * 1.1: parts.append('향후 증가 예상')
             elif ps[-1] < ps[0] * 0.9: parts.append('향후 감소 예상')
             else: parts.append('향후 유지 예상')
+        # 기상 근거 (기온·습도)
+        wx = dev.get('weather') or {}
+        wt = wx.get('temperature')
+        wh = wx.get('humidity')
+        if wt is not None:
+            if 25 <= wt <= 28: parts.append(f'기온 {wt}°C 우화 최적')
+            elif 20 <= wt < 25: parts.append(f'기온 {wt}°C 발생 적정')
+            elif wt > 28: parts.append(f'기온 {wt}°C 활동 다소 둔화')
+            else: parts.append(f'기온 {wt}°C 발생 억제')
+        if wh is not None and wh >= 70:
+            parts.append(f'습도 {wh}% 생존 유리')
         if ver == 'v2':
             parts.append(f'모델 v2 · 자체 데이터 학습')
         r['reasoning'] = ' · '.join(parts) if parts else '데이터 부족'

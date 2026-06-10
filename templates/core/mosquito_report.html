@@ -282,6 +282,14 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       </tr>
     </table>
 
+    <!-- 0. AI 행정 판단 (메인 참조 — 보고서 본문보다 우선 제시) -->
+    <div class="admin" style="margin-bottom:18px">
+      <div class="admin-h">AI 행정 판단 · 종합 의견 (메인)</div>
+      <div class="admin-b" id="admin-body-lead">
+        <p style="color:var(--gray4)">본문 로드 중…</p>
+      </div>
+    </div>
+
     <!-- 1. 핵심 요약 KPI -->
     <h2 class="sec">1. 핵심 요약</h2>
     <div class="kpi-row">
@@ -316,8 +324,8 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       {% endif %}
       <div class="kpi teal">
         <div class="kpi-l">장비 이상</div>
-        <div class="kpi-n">{{ report.summary.overview_kpi.equip_bad|default:report.summary.offline_count }}</div>
-        <div class="kpi-u">오프라인 {{ report.summary.offline_count }}</div>
+        <div class="kpi-n">{{ report.summary.overview_kpi.equip_bad|default:0 }}</div>
+        <div class="kpi-u">배터리20%↓ {{ report.summary.overview_kpi.equip_lowbatt|default:0 }} · 수신지연1h↑ {{ report.summary.overview_kpi.equip_delay|default:0 }}</div>
       </div>
       <div class="kpi green">
         <div class="kpi-l">평균 신뢰도</div>
@@ -334,7 +342,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <table class="data">
       <thead>
         <tr>
-          <th>장비</th><th>지역</th><th>위험 등급</th>
+          <th>관측소</th><th>지역</th><th>위험 등급</th>
           <th>오늘</th><th>어제</th><th>7일 평균</th>
           <th>민원 위험</th><th>장비 상태</th><th>신뢰도</th>
         </tr>
@@ -361,16 +369,13 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
 
     <!-- 3. 시간별 포집 히트맵 (일간 only) -->
     {% if report.summary.sections.heatmap %}
-    <h2 class="sec">3. 시간별 포집 히트맵 (24시간)</h2>
+    <h2 class="sec">3. 시간별 포집 히트맵 (수집창 18:00~익일 05:00)</h2>
     <table class="heat">
       <thead>
         <tr>
-          <th style="width:150px">장비</th>
-          {% for h in "000102030405060708091011121314151617181920212223"|slice:":48"|make_list %}{% endfor %}
-          <th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th>
-          <th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th>
-          <th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th>
+          <th style="width:150px">관측소</th>
           <th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th>
+          <th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th>
           <th>합계</th>
         </tr>
       </thead>
@@ -384,7 +389,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     {% if report.summary.sections.anomaly %}
     <table class="data">
       <thead>
-        <tr><th>일자</th><th>장비</th><th>권역</th><th>주소</th><th>포집량</th><th>임계</th><th>초과율</th></tr>
+        <tr><th>일자</th><th>관측소</th><th>권역</th><th>주소</th><th>포집량</th><th>임계</th><th>초과율</th></tr>
       </thead>
       <tbody>
       {% for a in report.summary.sections.anomaly %}
@@ -508,7 +513,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <table class="data">
       <thead>
         <tr>
-          <th>장비</th><th>등급</th><th>평균 지수</th><th>최대 마릿수</th>
+          <th>관측소</th><th>등급</th><th>평균 지수</th><th>최대 마리수</th>
           {% for pp in report.summary.sections.predict.devices.0.predictions|slice:":7" %}
           <th>{{ pp.date|slice:"5:" }}</th>
           {% endfor %}
@@ -620,9 +625,11 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
   // 행정 판단 본문 렌더 (섹션/불릿)
   const raw = document.getElementById('admin-body-raw');
   const target = document.getElementById('admin-body');
+  const lead = document.getElementById('admin-body-lead');
   if (raw && target) {
     const text = (raw.textContent || '').trim();
-    if (!text) { target.innerHTML = '<p style="color:var(--gray4)">AI 분석 결과 없음</p>'; }
+    let out;
+    if (!text) { out = '<p style="color:var(--gray4)">AI 분석 결과 없음</p>'; }
     else {
       const html = [];
       text.split('\n').forEach(line => {
@@ -632,8 +639,10 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
         else if (t.startsWith('-') || t.startsWith('·') || t.startsWith('*')) html.push(`<p class="bullet">${t.replace(/^[-·*]\s*/, '')}</p>`);
         else html.push(`<p>${t}</p>`);
       });
-      target.innerHTML = html.join('');
+      out = html.join('');
     }
+    target.innerHTML = out;
+    if (lead) lead.innerHTML = out;  // 상단 메인 행정판단에도 동일 본문 미러링
   }
 
   // 히트맵 렌더
@@ -643,7 +652,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     let rows = [];
     try { rows = JSON.parse(hmRaw.textContent || '[]'); } catch (e) { rows = []; }
     if (rows.length === 0) {
-      hmBody.innerHTML = '<tr><td colspan="26" style="text-align:center;color:#aaa;padding:10px">데이터 없음</td></tr>';
+      hmBody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#aaa;padding:10px">데이터 없음</td></tr>';
     } else {
       const heatCls = v => v === 0 ? 'h0' : v <= 10 ? 'h1' : v <= 50 ? 'h2' : v <= 100 ? 'h3' : v <= 200 ? 'h4' : 'h5';
       hmBody.innerHTML = rows.map(r => {

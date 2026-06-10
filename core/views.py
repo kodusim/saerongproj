@@ -484,6 +484,10 @@ def _build_overview_data(su, date_str='', hour_str=''):
     check_count = 0
     trust_scores = []
     low_batt_count = 0
+    # 장비 이상 판정(요청 기준): 배터리 20% 이하 OR 수신지연 60분 이상
+    equip_bad_count = 0      # 위 기준 충족 장비 수
+    equip_lowbatt_count = 0  # 그 중 배터리 20% 이하
+    equip_delay_count = 0    # 그 중 수신지연 60분 이상
 
     # 장비별 위험·민원 축약 계산
     # 야간 피크 계산 위해 raw 가져옴 (48h)
@@ -597,6 +601,16 @@ def _build_overview_data(su, date_str='', hour_str=''):
         elif trust_score < 60 or battery < 15 or (fan == 0 and ax_sig >= 55): equip_status = '점검필요'; check_count += 1
         else: equip_status = '정상'
 
+        # 장비 이상 판정(요청 기준): 배터리 20% 이하 OR 수신지연 60분 이상
+        is_lowbatt = battery <= 20
+        is_delayed = delay_min >= 60
+        if is_lowbatt:
+            equip_lowbatt_count += 1
+        if is_delayed:
+            equip_delay_count += 1
+        if is_lowbatt or is_delayed:
+            equip_bad_count += 1
+
         # 추세 방향: 기준일(today_c) vs 전일(yday_c) 비교
         diff = today_c - yday_c
         if diff > 3:
@@ -641,7 +655,9 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'warn_count': warn_count,
             'anomaly_today': anomaly_today,
             'complaint_high': complaint_high,
-            'equip_bad': offline_count + check_count,
+            'equip_bad': equip_bad_count,
+            'equip_lowbatt': equip_lowbatt_count,
+            'equip_delay': equip_delay_count,
             'offline_count': offline_count,
             'check_count': check_count,
             'low_batt_count': low_batt_count,
@@ -938,7 +954,7 @@ def _build_report_body(period, base_date, su, request):
             f"  - 경고 이상 장비: {k.get('warn_count', 0)}개\n"
             f"  - 오늘 기준 초과 감지: {k.get('anomaly_today', 0)}건\n"
             f"  - 민원 가능 '높음': {k.get('complaint_high', 0)}개\n"
-            f"  - 장비 점검 필요: {k.get('equip_bad', 0)}대 (오프라인 {k.get('offline_count', 0)}/점검 {k.get('check_count', 0)})\n"
+            f"  - 장비 이상: {k.get('equip_bad', 0)}대 (배터리 20%↓ {k.get('equip_lowbatt', 0)}/수신지연 1h↑ {k.get('equip_delay', 0)})\n"
             f"  - 평균 데이터 신뢰도: {k.get('avg_trust', 0)}%\n"
         )
     except Exception as _e:
@@ -1072,14 +1088,17 @@ def _build_report_body(period, base_date, su, request):
                 cur = per_dev_hour[u][kst_h]
                 if cur is None or cnt > cur:
                     per_dev_hour[u][kst_h] = cnt
+            # 시간별 히트맵 — 시간별 히트맵 탭(2p)과 동일하게 수집창 18:00~익일 05:00 (12칸)만
+            HM_HOURS = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
             rows = []
             for u in allowed_uuids:
                 hr = per_dev_hour.get(u, [None]*24)
-                deltas = [0]*24; prev = 0
+                deltas24 = [0]*24; prev = 0
                 for h in range(24):
                     v = hr[h]
                     if v is None: continue
-                    d_ = v - prev; deltas[h] = d_ if d_ > 0 else 0; prev = v
+                    d_ = v - prev; deltas24[h] = d_ if d_ > 0 else 0; prev = v
+                deltas = [deltas24[h] for h in HM_HOURS]  # 수집창 순서로 재배열
                 total = sum(deltas)
                 rows.append({
                     'name': name_map.get(u, {}).get('name') or u,
@@ -1223,6 +1242,8 @@ def _build_report_body(period, base_date, su, request):
             'anomaly_today': k.get('anomaly_today', 0) if k else 0,
             'complaint_high': k.get('complaint_high', 0) if k else 0,
             'equip_bad': k.get('equip_bad', 0) if k else 0,
+            'equip_lowbatt': k.get('equip_lowbatt', 0) if k else 0,
+            'equip_delay': k.get('equip_delay', 0) if k else 0,
             'offline_count': k.get('offline_count', 0) if k else 0,
             'check_count': k.get('check_count', 0) if k else 0,
             'avg_trust': k.get('avg_trust', 0) if k else 0,
@@ -2894,6 +2915,16 @@ def moscom_predict(request):
             if applied_by_date:
                 p['remedy_applied'] = applied_by_date
                 remedy_summary_by_uuid[uid] = applied_by_date
+                # 추론 근거에 방역 반영 요약 덧붙임
+                _names = []
+                for _alist in applied_by_date.values():
+                    for _a in (_alist or []):
+                        _nm = (_a.get('method_name') or _a.get('name')) if isinstance(_a, dict) else str(_a)
+                        if _nm and _nm not in _names:
+                            _names.append(_nm)
+                if _names:
+                    _msg = f"방역 {len(applied_by_date)}일 반영(예: {_names[0]})"
+                    p['reasoning'] = (p.get('reasoning') or '') + ' · ' + _msg if p.get('reasoning') else _msg
 
         # max_predicted 내림차순 정렬
         preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
@@ -3038,6 +3069,30 @@ def moscom_forecast_brief(request):
             })
         signals.sort(key=lambda x: -x['avg_index'])
 
+        # ── 1-2. 관측소별 위험 신호등 (9p: 권역이 아닌 관측소 단위) ──
+        stations = []
+        _grade_color = {'쾌적': 'green', '관심': 'yellow', '주의': 'orange', '불쾌': 'red'}
+        for p in preds:
+            md = moscom_device_map.get(p.get('uuid'))
+            rc = (md.region_code if md else '') or ''
+            rname = region_name_by_code.get(rc, rc) or '미지정'
+            ai = p.get('avg_index')
+            grade = p.get('grade') or (
+                '쾌적' if (ai or 0) < 25 else '관심' if ai < 50 else '주의' if ai < 75 else '불쾌'
+            )
+            stations.append({
+                'uuid': p.get('uuid'),
+                'name': p.get('name'),
+                'region_name': rname,
+                'avg_index': round(ai, 1) if ai is not None else None,
+                'max_index': p.get('max_index'),
+                'max_predicted': p.get('max_predicted'),
+                'grade': grade,
+                'color': _grade_color.get(grade, 'green'),
+                'reasoning': p.get('reasoning') or '',
+            })
+        stations.sort(key=lambda x: -(x.get('avg_index') or 0))
+
         # ── 2. 기상 평균 (전체 장비 기준) ──
         temps = [m.temperature for m in moscom_device_map.values() if m.device_uuid in allowed_uuids and m.temperature is not None]
         humids = [m.humidity for m in moscom_device_map.values() if m.device_uuid in allowed_uuids and m.humidity is not None]
@@ -3144,6 +3199,7 @@ def moscom_forecast_brief(request):
             'today': today_d.isoformat(),
             'yesterday': yday_d.isoformat(),
             'signals': signals,
+            'stations': stations,
             'weather': weather,
             'explanation_rule': explanation_rule,
             'explanation_ai': explanation_ai,
@@ -3245,10 +3301,15 @@ def moscom_forecast_simulate(request):
     except Exception:
         body = {}
     device_uuid = body.get('device_uuid')
-    method_key = body.get('method_key')
+    # 다중 방역 지원: method_keys 배열 우선, 레거시 method_key fallback
+    method_keys = body.get('method_keys')
+    if not method_keys:
+        _mk = body.get('method_key')
+        method_keys = [_mk] if _mk else []
+    method_keys = [m for m in (method_keys or []) if m][:2]  # 최대 2개
     apply_date = body.get('apply_date')  # YYYY-MM-DD
-    if not device_uuid or not method_key or not apply_date:
-        return JsonResponse({'error': 'device_uuid, method_key, apply_date 필요'}, status=400)
+    if not device_uuid or not method_keys or not apply_date:
+        return JsonResponse({'error': 'device_uuid, method_keys, apply_date 필요'}, status=400)
     try:
         from datetime import datetime, timedelta, timezone, date as date_cls
         apply_d = date_cls.fromisoformat(apply_date)
@@ -3262,13 +3323,11 @@ def moscom_forecast_simulate(request):
     if not target:
         return JsonResponse({'error': '권한 없는 장비'}, status=403)
 
-    # 방역 방법
-    method = next((m for m in remedy_store.list_methods() if m['key'] == method_key), None)
-    if not method:
+    # 방역 방법(들) — 각각 효과창(onset~duration) 보유
+    all_methods = {m['key']: m for m in remedy_store.list_methods()}
+    methods = [all_methods[k] for k in method_keys if k in all_methods]
+    if not methods:
         return JsonResponse({'error': '잘못된 방역 방법'}, status=400)
-    onset = int(method.get('onset_days', 1) or 1)
-    duration = int(method.get('duration_days', 7) or 7)
-    reduction_pct = float(method.get('reduction_pct', 30) or 30)
 
     # 7일 통계
     stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
@@ -3308,10 +3367,21 @@ def moscom_forecast_simulate(request):
         return JsonResponse({'error': '예측 실패'}, status=500)
     base = preds[0]
 
-    # 방역 적용 시 예측: apply_d 부터 onset 일 뒤 ~ duration 일 동안 reduction_pct 감소
+    # 방역 적용 시 예측: 방법별 효과창(apply_d + onset ~ + duration) 동안
+    # 일자별로 해당 방법들의 감소율을 곱셈 누적 (adjustment_factor 와 동일 방식)
     from datetime import date as date_cls
-    effect_start = apply_d + timedelta(days=onset)
-    effect_end = effect_start + timedelta(days=duration)
+    method_windows = []
+    for m in methods:
+        onset = int(m.get('onset_days', 1) or 1)
+        duration = int(m.get('duration_days', 7) or 7)
+        red = float(m.get('reduction_pct', 30) or 30)
+        es = apply_d + timedelta(days=onset)
+        ee = es + timedelta(days=duration)
+        method_windows.append({
+            'name': m['name'], 'key': m['key'], 'reduction_pct': red,
+            'effect_start': es, 'effect_end': ee,
+        })
+
     simulated = []
     saved_total = 0
     for p in base.get('predictions', []):
@@ -3321,22 +3391,28 @@ def moscom_forecast_simulate(request):
             simulated.append(p)
             continue
         orig = p.get('predicted') or 0
-        if effect_start <= d < effect_end:
-            adj = max(0, int(orig * (1 - reduction_pct / 100)))
-            saved_total += (orig - adj)
-            simulated.append({**p, 'predicted_simulated': adj, 'effect_applied': True})
-        else:
-            simulated.append({**p, 'predicted_simulated': orig, 'effect_applied': False})
+        factor = 1.0
+        applied_any = False
+        for mw in method_windows:
+            if mw['effect_start'] <= d < mw['effect_end']:
+                factor *= (1 - mw['reduction_pct'] / 100.0)
+                applied_any = True
+        adj = max(0, int(orig * factor))
+        saved_total += (orig - adj)
+        simulated.append({**p, 'predicted_simulated': adj, 'effect_applied': applied_any})
 
     return JsonResponse({
         'device': {'uuid': device_uuid, 'name': inp[0]['name']},
-        'method': method,
+        'methods': [
+            {'name': mw['name'], 'key': mw['key'], 'reduction_pct': mw['reduction_pct'],
+             'effect_start': mw['effect_start'].isoformat(), 'effect_end': mw['effect_end'].isoformat()}
+            for mw in method_windows
+        ],
+        # 레거시 호환: 단일 method 필드도 첫 방법으로 유지
+        'method': methods[0],
         'apply_date': apply_date,
-        'effect_start': effect_start.isoformat(),
-        'effect_end': effect_end.isoformat(),
         'predictions': simulated,
         'saved_total': saved_total,
-        'reduction_pct': reduction_pct,
     })
 
 
