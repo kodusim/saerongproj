@@ -1313,7 +1313,7 @@ body {
         <table class="data-table" style="width:100%" id="ov-station-table">
           <thead id="ov-station-thead">
             <tr>
-              <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>방역 필요</th>
+              <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>위험 등급</th>
               <th>기준일</th><th>전일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
@@ -2563,7 +2563,7 @@ function renderOvStationTable(json) {
   const thead = document.getElementById('ov-station-thead');
   if (thead) {
     thead.innerHTML = `<tr>
-      <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>방역 필요</th>
+      <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>위험 등급</th>
       <th>기준일</th><th>전일</th><th>7일 평균</th>
       <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
     </tr>`;
