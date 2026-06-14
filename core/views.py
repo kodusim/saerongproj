@@ -623,14 +623,14 @@ def _build_overview_data(su, date_str='', hour_str=''):
         elif trust_score < 60 or battery < 15 or (fan == 0 and ax_sig >= 55): equip_status = '점검필요'; check_count += 1
         else: equip_status = '정상'
 
-        # 장비 이상 판정(요청 기준): 배터리 20% 이하 OR 수신지연 60분 이상
+        # 장비 이상 판정(요청 기준): 배터리 20% 이하만
         is_lowbatt = battery <= 20
         is_delayed = delay_min >= 60
         if is_lowbatt:
             equip_lowbatt_count += 1
         if is_delayed:
             equip_delay_count += 1
-        if is_lowbatt or is_delayed:
+        if is_lowbatt:
             equip_bad_count += 1
 
         # 추세 방향: 기준일(today_c) vs 전일(yday_c) 비교

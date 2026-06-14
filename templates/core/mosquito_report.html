@@ -325,7 +325,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       <div class="kpi teal">
         <div class="kpi-l">장비 이상</div>
         <div class="kpi-n">{{ report.summary.overview_kpi.equip_bad|default:0 }}</div>
-        <div class="kpi-u">배터리20%↓ {{ report.summary.overview_kpi.equip_lowbatt|default:0 }} · 수신지연1h↑ {{ report.summary.overview_kpi.equip_delay|default:0 }}</div>
+        <div class="kpi-u">배터리20%↓ 기준 · 수신지연1h↑ {{ report.summary.overview_kpi.equip_delay|default:0 }}(참고)</div>
       </div>
       <div class="kpi green">
         <div class="kpi-l">평균 신뢰도</div>
