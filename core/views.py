@@ -732,9 +732,13 @@ def _build_overview_data(su, date_str='', hour_str=''):
                         )
                     except Exception:
                         pass
-                    rvals = [nat_today[u] for u in region_uuids_nat if u in nat_today]
+                    rvals = {u: nat_today[u] for u in region_uuids_nat if u in nat_today}
                     if rvals:
-                        region_avg = round(sum(rvals) / len(rvals), 1)
+                        region_avg = round(sum(rvals.values()) / len(rvals), 1)
+                        # 지역 최고 관측소 + 마리수
+                        rtop_uuid = max(rvals, key=lambda x: rvals[x])
+                        national['region_top_count'] = rvals[rtop_uuid]
+                        national['region_top_name'] = meta.get(rtop_uuid, {}).get('name') or rtop_uuid
                 national['region_avg'] = region_avg
                 # 종합현황 전용 표시명(overview_name) 우선, 없으면 일반 표시명/코드
                 reg_labels = set()

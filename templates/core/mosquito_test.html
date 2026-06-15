@@ -2375,9 +2375,9 @@ function heatClass(v){
 // 0~2 안전1 / 3~10 안전2 / 11~20 안전3 / 21~50 관심 / 51~100 주의 / 100+ 나쁨
 function mosqGrade(v){
   v = v || 0;
-  if(v<=2)   return { label:'안전1', bg:'#F1F8E9', color:'#33691E' };
-  if(v<=10)  return { label:'안전2', bg:'#DCEDC8', color:'#33691E' };
-  if(v<=20)  return { label:'안전3', bg:'#C5E1A5', color:'#1B5E20' };
+  if(v<=2)   return { label:'안전', bg:'#F1F8E9', color:'#33691E' };
+  if(v<=10)  return { label:'안전', bg:'#DCEDC8', color:'#33691E' };
+  if(v<=20)  return { label:'안전', bg:'#C5E1A5', color:'#1B5E20' };
   if(v<=50)  return { label:'관심',  bg:'#FFE0B2', color:'#E65100' };
   if(v<=100) return { label:'주의',  bg:'#FFAB91', color:'#BF360C' };
   return            { label:'나쁨',  bg:'#F48FB1', color:'#880E4F' };
@@ -2506,19 +2506,31 @@ function renderOvNational(nat) {
     bar.innerHTML = `<span class="nb-label" style="color:var(--gray5)">[ 참조 데이터 ]</span><span class="nb-item" style="color:var(--gray4)">전국 비교 데이터 없음</span>`;
     return;
   }
-  let parts = [
-    `<span class="nb-item"><strong>전국 평균</strong> ${nat.avg}마리</span>`,
-  ];
+  // 1줄: 전국 참조
+  const natParts = [`<span class="nb-item"><strong>전국 평균</strong> ${nat.avg}마리</span>`];
   if (nat.is_admin) {
-    parts.push(`<span class="nb-item"><strong>전국 최고</strong> ${escapeHtml(stationName(nat.top_name || '-'))} ${nat.top_count}마리</span>`);
+    natParts.push(`<span class="nb-item"><strong>전국 최고</strong> ${escapeHtml(stationName(nat.top_name || '-'))} ${nat.top_count}마리</span>`);
   } else {
-    parts.push(`<span class="nb-item"><strong>전국 최고</strong> ${nat.top_count}마리</span>`);
-    if (nat.region_avg != null) {
-      const rn = (nat.region_names && nat.region_names.length) ? nat.region_names.join('·') : '우리 지역';
-      parts.push(`<span class="nb-item"><strong>${escapeHtml(rn)} 평균</strong> ${nat.region_avg}마리</span>`);
-    }
+    natParts.push(`<span class="nb-item"><strong>전국 최고</strong> ${nat.top_count}마리</span>`);
   }
-  bar.innerHTML = `<span class="nb-label" style="color:var(--navy);font-weight:700">[ 전국 참조 ]</span>` + parts.join('');
+  let html = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="nb-label" style="color:var(--navy);font-weight:700">[ 전국 참조 ]</span>${natParts.join('')}
+  </div>`;
+
+  // 2줄: 지역 참조 (보건소 사용자만 — 자기 권역 평균/최고 관측소)
+  if (!nat.is_admin && nat.region_avg != null) {
+    const rn = (nat.region_names && nat.region_names.length) ? nat.region_names.join('·') : '우리 지역';
+    const regParts = [`<span class="nb-item"><strong>${escapeHtml(rn)} 평균</strong> ${nat.region_avg}마리</span>`];
+    if (nat.region_top_count != null) {
+      regParts.push(`<span class="nb-item"><strong>${escapeHtml(rn)} 최고</strong> ${escapeHtml(stationName(nat.region_top_name || '-'))} ${nat.region_top_count}마리</span>`);
+    }
+    html += `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px dashed var(--gray3)">
+      <span class="nb-label" style="color:var(--teal);font-weight:700">[ 지역 참조 ]</span>${regParts.join('')}
+    </div>`;
+  }
+  bar.style.flexDirection = 'column';
+  bar.style.alignItems = 'stretch';
+  bar.innerHTML = html;
 }
 // 장비 상태 3단계: Online / Offline / Low batt
 function ovDeviceStatusLabel(d) {
