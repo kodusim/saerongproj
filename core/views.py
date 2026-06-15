@@ -2733,9 +2733,17 @@ def moscom_complaint_risk(request):
             prev_dates = [d for d in all_dates if d < today]
             yday = prev_dates[-1] if prev_dates else ''
         else:
-            today = all_dates[-1] if all_dates else ''
-            yday = all_dates[-2] if len(all_dates) >= 2 else ''
-        week_dates = all_dates[-7:]
+            # 종합현황과 동일: 측정 완료된 전일(업무일 어제) 기준. 오늘은 수집 진행 중이라 제외
+            try:
+                from moscom.timeutil import business_yesterday
+                by = business_yesterday().isoformat()
+            except Exception:
+                by = ''
+            completed = [d for d in all_dates if not by or d <= by]
+            today = (completed[-1] if completed else (all_dates[-1] if all_dates else ''))
+            prev_dates = [d for d in all_dates if d < today]
+            yday = prev_dates[-1] if prev_dates else ''
+        week_dates = [d for d in all_dates if d <= today][-7:]
 
         # 3) 최근 48h raw 데이터 → 장비별 야간 피크 비율
         now = datetime.now(timezone.utc)
