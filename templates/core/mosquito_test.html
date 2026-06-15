@@ -848,6 +848,14 @@ body {
 .rm-status.active  { background: var(--red-l); color: var(--red); }
 .rm-status.expired { background: var(--gray2); color: var(--gray4); }
 
+/* 방역 내역 관측소 필터 탭 */
+.rm-tab {
+  padding: 4px 10px; border: 1px solid var(--gray3); background: #fff;
+  border-radius: 14px; font-size: 11px; color: var(--gray5); cursor: pointer;
+}
+.rm-tab:hover { background: var(--gray1); }
+.rm-tab.active { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 700; }
+
 /* 측정중 인디케이터 (7일 추세 차트 오늘 컬럼) */
 .measuring-badge {
   position: absolute;
@@ -4296,29 +4304,40 @@ function renderRmList() {
   const box = document.getElementById('rm-list');
   const cnt = document.getElementById('rm-count');
   if (!box) return;
-  cnt.textContent = `${RM_STATE.plans.length}건`;
+
+  const nameMap = {};
+  RM_STATE.devices.forEach(d => {
+    const dv = d.device || {};
+    nameMap[d.device_uuid] = stationName(dv.device_name || '') || d.device_uuid;
+  });
+
+  // 관측소 필터 탭 (전체 + 내역 있는 관측소별)
+  const filt = RM_STATE.listFilter || 'all';
+  const planUuids = Array.from(new Set(RM_STATE.plans.map(p => p.device_uuid)));
+  const tabs = [`<button class="rm-tab ${filt==='all'?'active':''}" onclick="rmSetFilter('all')">전체 (${RM_STATE.plans.length})</button>`]
+    .concat(planUuids.map(u => {
+      const c = RM_STATE.plans.filter(p => p.device_uuid === u).length;
+      return `<button class="rm-tab ${filt===u?'active':''}" onclick="rmSetFilter('${u}')">${escapeHtml(nameMap[u] || u)} (${c})</button>`;
+    }));
+  const tabsHtml = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${tabs.join('')}</div>`;
+
+  const plans = filt === 'all' ? RM_STATE.plans : RM_STATE.plans.filter(p => p.device_uuid === filt);
+  cnt.textContent = `${plans.length}건`;
   if (RM_STATE.plans.length === 0) {
     box.innerHTML = `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:30px">
       등록된 방역 실시 내역이 없습니다.<br>왼쪽 폼에서 새 내역을 등록하세요.
     </div>`;
     return;
   }
-  const nameMap = {};
-  RM_STATE.devices.forEach(d => {
-    const dv = d.device || {};
-    nameMap[d.device_uuid] = stationName(dv.device_name || '') || d.device_uuid;
-  });
-  box.innerHTML = RM_STATE.plans.map(p => {
+  const rows = plans.map(p => {
     const m = RM_STATE.methods.find(x => x.key === p.method_key) || {};
     const cls = rmTargetClass(m.target);
-    const st = rmStatus(p, m);
     const devName = nameMap[p.device_uuid] || p.device_uuid;
-    // 다중 방역 방법명 (method_keys 전부)
     const mks = p.method_keys && p.method_keys.length ? p.method_keys : [p.method_key];
     const methodNames = mks.map(k => (RM_STATE.methods.find(x => x.key === k) || {}).name || k).join(' + ');
     return `<div class="rm-plan-row ${cls}">
       <div>
-        <div class="rm-plan-head">${methodNames} <span class="rm-status ${st.cls}">${st.label}</span></div>
+        <div class="rm-plan-head">${methodNames}</div>
         <div class="rm-plan-meta">
           <span>🦟 ${devName}</span>
           <span>📅 ${p.scheduled_date}</span>
@@ -4336,6 +4355,12 @@ function renderRmList() {
       </div>
     </div>`;
   }).join('');
+  box.innerHTML = tabsHtml + (plans.length ? rows : `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:20px">해당 관측소 내역 없음</div>`);
+}
+
+function rmSetFilter(f) {
+  RM_STATE.listFilter = f;
+  renderRmList();
 }
 
 // 엑셀 드래그&드롭 일괄 등록 (한 번만 바인딩)
