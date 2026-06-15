@@ -61,9 +61,9 @@ METHODS = {
         'name': '연막',
         'target': '성충',
         'onset_days': 0,
-        'duration_days': 2,
+        'duration_days': 1,
         'reduction_pct': 70,
-        'note': '열연막으로 광범위 확산. 즉시 효과·단기. 가시성 높아 시민 인지 효과.',
+        'note': '열연막으로 광범위 확산. 즉시 효과·당일. 가시성 높아 시민 인지 효과.',
     },
     'residual_spray': {
         'key': 'residual_spray',
