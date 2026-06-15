@@ -455,9 +455,9 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'wind_speed': w.get('wind_speed'),
         }
 
-    # 7일 통계 (허용 장비만)
-    stats = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0)
-    stats = [r for r in (stats or []) if r.get('device_uuid') in allowed_uuids]
+    # 7일 통계 — 전국 전체(필터 전) 보존 후 허용 장비만 필터
+    stats_all = moscom_client.get_statistics(device_uuid='', period_type='2', offset=0) or []
+    stats = [r for r in stats_all if r.get('device_uuid') in allowed_uuids]
 
     daily = defaultdict(lambda: defaultdict(int))
     dates_set = set()
@@ -683,6 +683,65 @@ def _build_overview_data(su, date_str='', hour_str=''):
 
     avg_trust = round(sum(trust_scores) / len(trust_scores), 1) if trust_scores else 0
 
+    # ── 전국 비교 지표 (필터 전 전체 stats 기준, today_d 하루) ──
+    # admin: 전국 평균 + 전국 최고 관측소명/마리수
+    # 비admin: 전국 평균 + 전국 최고 마리수(관측소명 숨김) + 해당 지역(권역) 전체 평균
+    national = None
+    try:
+        nat_today = defaultdict(int)  # uuid → today_d 포집 합
+        for r in stats_all:
+            if (r.get('created_date') or '')[:10] == today_d:
+                u = r.get('device_uuid')
+                if u:
+                    nat_today[u] += (r.get('mosquito_count') or 0)
+        if nat_today:
+            nat_vals = list(nat_today.values())
+            nat_avg = round(sum(nat_vals) / len(nat_vals), 1)
+            top_uuid_nat = max(nat_today, key=lambda x: nat_today[x])
+            top_cnt_nat = nat_today[top_uuid_nat]
+            is_admin = bool(su.get('is_admin')) if su else False
+            # 전국 device명 매핑 (admin 최고 관측소명 표시용)
+            top_name_nat = top_uuid_nat
+            try:
+                from moscom.models import Device as MD
+                md = MD.objects.filter(device_uuid=top_uuid_nat).first()
+                if md:
+                    top_name_nat = _station_name(md.device_name) or top_uuid_nat
+            except Exception:
+                pass
+            national = {
+                'count': len(nat_vals),
+                'avg': nat_avg,
+                'top_count': top_cnt_nat,
+                'is_admin': is_admin,
+            }
+            if is_admin:
+                national['top_name'] = top_name_nat
+            else:
+                # 사용자 권역(허용 장비들의 region_code) 전체 평균
+                my_codes = {meta.get(u, {}).get('region_code') for u in allowed_uuids}
+                my_codes.discard('')
+                region_avg = None
+                if my_codes:
+                    region_uuids_nat = set()
+                    try:
+                        from moscom.models import Device as MD2
+                        region_uuids_nat = set(
+                            MD2.objects.filter(region_code__in=my_codes, is_active=True)
+                            .values_list('device_uuid', flat=True)
+                        )
+                    except Exception:
+                        pass
+                    rvals = [nat_today[u] for u in region_uuids_nat if u in nat_today]
+                    if rvals:
+                        region_avg = round(sum(rvals) / len(rvals), 1)
+                national['region_avg'] = region_avg
+                national['region_names'] = sorted(
+                    {meta.get(u, {}).get('region_name') for u in allowed_uuids} - {'', None, '미지정'}
+                )
+    except Exception as e:
+        logger.warning(f'national compare failed: {e}')
+
     return {
         'today': today_d,
         'yday': yday_d,
@@ -703,6 +762,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'avg_trust': avg_trust,
             'total_devices': len(allowed_uuids),
         },
+        'national': national,
         'devices': device_rows,
     }
 

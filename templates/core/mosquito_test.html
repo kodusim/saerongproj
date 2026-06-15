@@ -2489,7 +2489,36 @@ function renderOvKpis(json) {
       <div class="kpi-value val-green">${(kpi.total_devices || 0) - (kpi.equip_bad || 0)}</div>
       <div class="kpi-sub">${kpi.total_devices || 0}대 중</div>
     </div>
+    <div class="kpi-card" style="border-top-color:#4A1B6B">
+      <div class="kpi-label">민원 위험 지역</div>
+      <div class="kpi-value" style="color:#4A1B6B">${kpi.complaint_high || 0}<span style="font-size:14px">곳</span></div>
+      <div class="kpi-sub">민원 '높음' · 사전 대응 권장</div>
+    </div>
   `;
+  renderOvNational(json.national);
+}
+
+// 전국 비교 지표 바 — admin: 최고 관측소명 표시 / 보건소: 관측소명 숨김 + 우리 지역 평균
+function renderOvNational(nat) {
+  const bar = document.querySelector('#page-overview .national-bar');
+  if (!bar) return;
+  if (!nat) {
+    bar.innerHTML = `<span class="nb-label" style="color:var(--gray5)">[ 참조 데이터 ]</span><span class="nb-item" style="color:var(--gray4)">전국 비교 데이터 없음</span>`;
+    return;
+  }
+  let parts = [
+    `<span class="nb-item"><strong>전국 평균</strong> ${nat.avg}마리 <span style="color:var(--gray4)">(${nat.count}개소)</span></span>`,
+  ];
+  if (nat.is_admin) {
+    parts.push(`<span class="nb-item"><strong>전국 최고</strong> ${escapeHtml(stationName(nat.top_name || '-'))} ${nat.top_count}마리</span>`);
+  } else {
+    parts.push(`<span class="nb-item"><strong>전국 최고</strong> ${nat.top_count}마리</span>`);
+    if (nat.region_avg != null) {
+      const rn = (nat.region_names && nat.region_names.length) ? nat.region_names.join('·') : '우리 지역';
+      parts.push(`<span class="nb-item"><strong>${escapeHtml(rn)} 평균</strong> ${nat.region_avg}마리</span>`);
+    }
+  }
+  bar.innerHTML = `<span class="nb-label" style="color:var(--navy);font-weight:700">[ 전국 참조 ]</span>` + parts.join('');
 }
 // 장비 상태 3단계: Online / Offline / Low batt
 function ovDeviceStatusLabel(d) {
