@@ -613,7 +613,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
         if complaint_score <= 30: cp_lv = '낮음'
         elif complaint_score <= 60: cp_lv = '보통'
         else: cp_lv = '높음'
-        if complaint_score >= 61: complaint_high += 1
+        if cp_lv == '높음': complaint_high += 1  # 테이블 등급과 동일 기준
 
         # 장비 신뢰도 (equipment-health 축약)
         battery = m.get('battery', 0)
