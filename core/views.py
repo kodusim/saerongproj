@@ -988,7 +988,7 @@ def _build_report_body(period, base_date, su, request):
         k = ov.get('kpi') or {}
         overview_block = (
             "\n■ 종합 현황 KPI (보고일 기준)\n"
-            f"  - 금일 포집 합계: {k.get('today_total', 0)}마리 (작일 대비 {k.get('change_pct', 0):+d}%)\n"
+            f"  - 금일 포집 합계: {k.get('today_total', 0)}마리 (전일 대비 {k.get('change_pct', 0):+d}%)\n"
             f"  - 최다 포집 관측소: {((k.get('top_dev') or {}).get('name') or '-')} · {(k.get('top_dev') or {}).get('count', 0)}마리\n"
             f"  - 경고 이상 관측소: {k.get('warn_count', 0)}개\n"
             f"  - 금일 기준 초과 감지: {k.get('anomaly_today', 0)}건\n"
@@ -1872,7 +1872,7 @@ def moscom_admin_judgment(request):
                             '결재용 공문 형식의 "AI 행정 판단 보고서"를 한국어로 작성하십시오.\n'
                             '\n'
                             '== 기준일 원칙 ==\n'
-                            '* "기준일" 은 측정이 완료된 작일(어제)이며, 모든 시점 표현은 "어제→작일", "오늘→금일" 로 통일하여 표기하십시오. '
+                            '* "기준일" 은 측정이 완료된 전일(어제)이며, 모든 시점 표현은 "어제→전일", "오늘→금일" 로 통일하여 표기하십시오. '
                             '금일은 아직 측정 진행 중이므로 행정 판단의 베이스가 될 수 없습니다.\n'
                             '\n'
                             '== 보고서 구조 (반드시 다음 8개 섹션, 순서대로) ==\n'
@@ -1945,7 +1945,7 @@ def moscom_admin_judgment(request):
                 'predicted_7d_avg': predicted_7d_avg,
                 # 신규 분석 데이터 (화면 표시용)
                 'base_date': today,           # 기준일 (어제, 측정 완료)
-                'base_date_label': '기준일(작일, 측정 완료)',
+                'base_date_label': '기준일(전일, 측정 완료)',
                 'region_breakdown': [
                     {'region_name': rn, 'total': info['total'], 'device_count': info['count'],
                      'avg': round(info['total']/max(1,info['count']),1)}
