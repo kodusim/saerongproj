@@ -266,6 +266,8 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
         <th style="width:70px">기관명</th><td>{{ report.org|default:"—" }}</td>
         <th style="width:60px">부서</th><td>{{ report.department|default:"—" }}</td>
         <th style="width:70px">문서번호</th><td>#{{ report.id|slice:"4:" }}</td>
+        <th style="width:60px">종합 등급</th>
+        <td style="text-align:center;font-weight:700;color:{% if report.summary.overall_grade == '심각' %}#A32D2D{% elif report.summary.overall_grade == '주의' %}#C05000{% elif report.summary.overall_grade == '관심' %}#7A5700{% else %}#1A5C35{% endif %}">{{ report.summary.overall_grade|default:"—" }}</td>
       </tr>
       <tr>
         <th>보고 기간</th><td>{{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일)</td>
@@ -409,90 +411,39 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <div class="empty">기간 내 포집량 이상 감지 없음 (≥{{ report.summary.anomaly_threshold|default:51 }}마리/일)</div>
     {% endif %}
 
-    <!-- 4-1. 권역별 분포 -->
+    <!-- 4-1. 권역·추세 요약 -->
     {% if report.summary.sections.region_breakdown %}
     <h2 class="sec">4-1. 권역별 발생 분포</h2>
     <table class="data">
       <thead>
-        <tr><th>권역</th><th>장비 수</th><th>기간 합계</th><th>장비당 평균</th><th>최다 포집 장비</th></tr>
+        <tr><th>권역</th><th>관측소 수</th><th>기간 합계</th><th>관측소당 평균</th><th>최다 포집 관측소</th></tr>
       </thead>
       <tbody>
-      {% for r in report.summary.sections.region_breakdown|slice:":15" %}
+      {% for r in report.summary.sections.region_breakdown|slice:":8" %}
         <tr>
           <td><strong style="color:var(--teal)">{{ r.region_name }}</strong></td>
           <td style="text-align:center">{{ r.devices }}</td>
           <td style="text-align:right;font-weight:700;color:var(--navy)">{{ r.total }}마리</td>
           <td style="text-align:right;color:var(--gray5)">{{ r.avg_per_device }}</td>
-          <td style="font-size:10px">{{ r.top_dev|default:"-"|truncatechars:24 }} <span style="color:var(--red)">({{ r.top_count }})</span></td>
+          <td style="font-size:10px">{{ r.top_dev|default:"-"|truncatechars:20 }} <span style="color:var(--red)">({{ r.top_count }})</span></td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
-    {% endif %}
-
-    <!-- 4-2. 7일 시계열 -->
     {% if report.summary.sections.last7_timeseries %}
-    <h2 class="sec">4-2. 최근 7일 시계열 (전체 합)</h2>
-    <table class="data">
+    <table class="data" style="margin-top:4px">
       <thead>
-        <tr>
-          {% for ts in report.summary.sections.last7_timeseries %}<th>{{ ts.date|slice:"5:" }}</th>{% endfor %}
-        </tr>
+        <tr><th style="background:var(--teal)">최근 7일</th>{% for ts in report.summary.sections.last7_timeseries %}<th>{{ ts.date|slice:"5:" }}</th>{% endfor %}</tr>
       </thead>
       <tbody>
-        <tr>
-          {% for ts in report.summary.sections.last7_timeseries %}<td style="text-align:right;font-weight:700;color:var(--navy);font-family:monospace">{{ ts.total }}</td>{% endfor %}
-        </tr>
+        <tr><td style="font-weight:600;color:var(--teal)">전체 합(마리)</td>{% for ts in report.summary.sections.last7_timeseries %}<td style="text-align:right;font-weight:700;color:var(--navy);font-family:monospace">{{ ts.total }}</td>{% endfor %}</tr>
       </tbody>
     </table>
-    {% if report.summary.trend_text %}<div class="natbar" style="font-style:normal">{{ report.summary.trend_text }}</div>{% endif %}
     {% endif %}
-
-    <!-- 4-3. 기상-매개체 분석 -->
-    {% if report.summary.avg_temp or report.summary.avg_humid %}
-    <h2 class="sec">4-3. 기상-모기 생리학 분석</h2>
-    <div class="kpi-row">
-      <div class="kpi teal">
-        <div class="kpi-l">평균 기온</div>
-        <div class="kpi-n">{{ report.summary.avg_temp|default:"-" }}<span style="font-size:13px">°C</span></div>
-        <div class="kpi-u">{% if report.summary.temp_zone %}{{ report.summary.temp_zone.effect }}{% endif %}</div>
-      </div>
-      <div class="kpi teal">
-        <div class="kpi-l">평균 습도</div>
-        <div class="kpi-n">{{ report.summary.avg_humid|default:"-" }}<span style="font-size:13px">%</span></div>
-        <div class="kpi-u">{% if report.summary.humid_zone %}{{ report.summary.humid_zone.effect }}{% endif %}</div>
-      </div>
-      <div class="kpi teal">
-        <div class="kpi-l">평균 강수</div>
-        <div class="kpi-n">{{ report.summary.avg_precip|default:0 }}<span style="font-size:13px">mm</span></div>
-        <div class="kpi-u">강수 후 5~7일 1차 우화</div>
-      </div>
-      {% if report.summary.temp_zone %}
-      <div class="kpi">
-        <div class="kpi-l">유충 발달</div>
-        <div class="kpi-n" style="font-size:15px">{{ report.summary.temp_zone.larval_days }}<span style="font-size:11px">일</span></div>
-        <div class="kpi-u">성충 수명 {{ report.summary.temp_zone.adult_lifespan }}</div>
-      </div>
-      {% endif %}
+    {% if report.summary.trend_text or report.summary.avg_temp %}
+    <div class="natbar" style="font-style:normal">
+      {% if report.summary.avg_temp %}기온 {{ report.summary.avg_temp }}°C · 습도 {{ report.summary.avg_humid|default:"-" }}% · 강수 {{ report.summary.avg_precip|default:0 }}mm{% if report.summary.trend_text %} · {% endif %}{% endif %}{{ report.summary.trend_text }}
     </div>
-
-    {% if report.summary.sections.vector_risks %}
-    <table class="data">
-      <thead>
-        <tr><th>매개종</th><th>전파 질병</th><th>위험도</th><th>활동시간</th><th>서식지</th></tr>
-      </thead>
-      <tbody>
-      {% for v in report.summary.sections.vector_risks %}
-        <tr>
-          <td><strong>{{ v.species }}</strong></td>
-          <td style="font-size:10px;color:var(--red)">{{ v.diseases|join:", " }}</td>
-          <td class="grade-cell g-{% if v.risk_level == '높음' %}danger{% elif v.risk_level == '보통' %}caution{% elif v.risk_level == '낮음' %}watch{% else %}safe{% endif %}">{{ v.risk_level }} <span style="font-size:9px">({{ v.risk_score }})</span></td>
-          <td style="font-size:10px">{{ v.active_hours }}</td>
-          <td style="font-size:10px;color:var(--gray5)">{{ v.breeding_site }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
     {% endif %}
     {% endif %}
 
@@ -541,7 +492,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     <table class="data">
       <thead>
         <tr>
-          <th>실시 예정일</th><th>대상 장비</th><th>방역 방법</th><th>감소율</th><th>구분</th>
+          <th>실시 예정일</th><th>대상 관측소</th><th>방역 방법</th><th>감소율</th><th>구분</th>
         </tr>
       </thead>
       <tbody>
@@ -558,25 +509,6 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     </table>
     {% else %}
     <div class="empty">등록된 방역 내역 없음</div>
-    {% endif %}
-
-    {% if report.summary.sections.recent_plans %}
-    <h2 class="sec">6-1. 최근 14일 방역 이력 (참고)</h2>
-    <table class="data">
-      <thead>
-        <tr><th>실시일</th><th>대상 장비</th><th>방역 방법</th><th>감소율</th></tr>
-      </thead>
-      <tbody>
-      {% for p in report.summary.sections.recent_plans %}
-        <tr>
-          <td style="text-align:center">{{ p.scheduled_date }}</td>
-          <td><strong>{{ p.device|truncatechars:28 }}</strong></td>
-          <td style="color:var(--teal);font-weight:700">{{ p.method }}</td>
-          <td style="text-align:right;color:var(--red);font-weight:700">-{{ p.reduction_pct }}%</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
     {% endif %}
 
     <!-- 7. 행정 판단 -->

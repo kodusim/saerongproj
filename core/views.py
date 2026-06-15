@@ -1245,6 +1245,18 @@ def _build_report_body(period, base_date, su, request):
         for rname, rd in region_sorted
     ]
 
+    # 종합 등급 — 이상감지/경고장비/민원높음 기반 (보고서 메타 표기용)
+    _warn = (k.get('warn_count', 0) if k else 0)
+    _comp_high = (k.get('complaint_high', 0) if k else 0)
+    if len(anomalies) > 0:
+        overall_grade = '심각'
+    elif _warn > 0:
+        overall_grade = '주의'
+    elif _comp_high > 0:
+        overall_grade = '관심'
+    else:
+        overall_grade = '안전'
+
     summary = {
         'total_devices': len(devices),
         'period': period, 'period_label': period_label,
@@ -1252,6 +1264,7 @@ def _build_report_body(period, base_date, su, request):
         'total_in_period': total_in_period,
         'avg_per_day': avg_per_day,
         'n_days': n_days,
+        'overall_grade': overall_grade,
         'anomaly_count': len(anomalies),
         'anomaly_threshold': ANOMALY_THRESHOLD,
         'offline_count': offline_count,
