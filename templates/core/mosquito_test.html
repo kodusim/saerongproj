@@ -1752,7 +1752,7 @@ body {
         </div>
       </div>
       <div style="font-size:10px;color:var(--gray4);margin-top:4px;padding:0 4px">
-        ※ 게이지: 선택된 장비별 <strong>해당 일자 최대 예상 포집량</strong>을 0~200+ 스케일로 시각화.
+        ※ 게이지: 선택된 관측소별 <strong>해당 일자 모기지수(0~100)</strong>를 시각화. 등급: 쾌적 0~25 / 관심 25~50 / 주의 50~75 / 불쾌 75~100.
       </div>
     </div>
 
@@ -3811,6 +3811,15 @@ function fcGradeByValue(v) {
   if (v <= 200) return { name: '경고', cls: 'badge-warn', color: '#A32D2D' };
   return { name: '위험', cls: 'badge-danger', color: '#4A1B6B' };
 }
+// 모기지수(0~100) 등급 — AI 위험도 예보(9p)는 지수 기준
+function fcGradeByIndex(v) {
+  if (v < 25) return { name: '쾌적', cls: 'badge-safe', color: '#198754' };
+  if (v < 50) return { name: '관심', cls: 'badge-watch', color: '#7A5700' };
+  if (v < 75) return { name: '주의', cls: 'badge-caution', color: '#C05000' };
+  return { name: '불쾌', cls: 'badge-danger', color: '#A32D2D' };
+}
+// 예보 일별 표시값 = 모기지수 (없으면 0)
+function fcDayIndex(pp) { const x = (pp && pp.predicted_index); return (x === null || x === undefined) ? 0 : Math.round(x); }
 
 function fcSelect(n) {
   const preds = FC_STATE.data?.predictions || [];
@@ -3864,38 +3873,40 @@ function renderFcHero() {
     return;
   }
 
-  // 장비별 피크 계산
+  // 장비별 피크 계산 (모기지수 기준)
   const devPeaks = selectedPreds.map(p => {
-    const peakDay = (p.predictions || []).slice().sort((a,b) => (b.predicted||0)-(a.predicted||0))[0];
-    const devTotal = (p.predictions || []).reduce((s,x) => s + (x.predicted||0), 0);
-    return { dev: p, day: peakDay || { date: '', predicted: 0 }, total: devTotal };
-  }).sort((a,b) => (b.day.predicted||0) - (a.day.predicted||0));
+    const peakDay = (p.predictions || []).slice().sort((a,b) => fcDayIndex(b)-fcDayIndex(a))[0];
+    return { dev: p, day: peakDay || { date: '', predicted_index: 0 } };
+  }).sort((a,b) => fcDayIndex(b.day) - fcDayIndex(a.day));
 
-  // 일자별 총합(전체 합계 카드용)
-  const totalByDay = {};
+  // 일자별 평균 모기지수
+  const idxByDay = {};
   selectedPreds.forEach(p => (p.predictions || []).forEach(pp => {
-    totalByDay[pp.date] = (totalByDay[pp.date] || 0) + (pp.predicted || 0);
+    (idxByDay[pp.date] = idxByDay[pp.date] || []).push(fcDayIndex(pp));
   }));
-  const days = Object.keys(totalByDay).sort();
-  const grandTotal = days.reduce((s, d) => s + totalByDay[d], 0);
-  const avgPerDay = Math.round(grandTotal / (days.length || 1));
+  const days = Object.keys(idxByDay).sort();
+  const dayAvgs = days.map(d => idxByDay[d].reduce((a,b)=>a+b,0) / idxByDay[d].length);
+  const avgIndex = Math.round(dayAvgs.reduce((a,b)=>a+b,0) / (dayAvgs.length || 1));
+  const maxIndex = Math.round(Math.max(0, ...dayAvgs));
 
-  // 상단 전체 합계 요약 + 장비별 피크 리스트 (스크롤)
-  const topCount = devPeaks[0] ? (devPeaks[0].day.predicted || 0) : 0;
-  const overallCls = topCount > 100 ? '' : topCount > 50 ? '' : 'safe';
-  const overallIcon = topCount > 100 ? '⚠' : topCount > 50 ? '!' : '✓';
+  // 상단 요약 + 장비별 피크 리스트 (스크롤)
+  const topIdx = devPeaks[0] ? fcDayIndex(devPeaks[0].day) : 0;
+  const og = fcGradeByIndex(topIdx);
+  const overallCls = topIdx >= 50 ? '' : 'safe';
+  const overallIcon = topIdx >= 75 ? '⚠' : topIdx >= 50 ? '!' : '✓';
 
   // 최대 표시 개수 (공간 고려 — 많으면 스크롤)
   const listItems = devPeaks.map(x => {
-    const grade = fcGradeByValue(x.day.predicted || 0);
+    const xi = fcDayIndex(x.day);
+    const grade = fcGradeByIndex(xi);
     const [, mm, dd] = (x.day.date || '').split('-');
     const peakDate = mm ? `${parseInt(mm,10)}/${parseInt(dd,10)}` : '-';
-    const color = x.day.predicted > 100 ? 'var(--red)' : x.day.predicted > 50 ? 'var(--orange)' : x.day.predicted > 10 ? 'var(--yellow)' : 'var(--green)';
+    const color = grade.color;
     return `<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;background:var(--gray1);margin-bottom:4px">
-      <span style="flex:1;font-size:12px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(x.dev.name)}</span>
+      <span style="flex:1;font-size:12px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(stationName(x.dev.name))}</span>
       <span style="font-size:10px;color:var(--gray4)">피크 ${peakDate}</span>
-      <span style="font-family:var(--mono);font-weight:700;color:${color};min-width:42px;text-align:right">${x.day.predicted || 0}</span>
-      <span class="badge ${predictGradeBadgeCls(grade.name)}" style="font-size:9px;padding:1px 6px">${grade.name}</span>
+      <span style="font-family:var(--mono);font-weight:700;color:${color};min-width:42px;text-align:right">${xi}</span>
+      <span class="badge ${grade.cls}" style="font-size:9px;padding:1px 6px">${grade.name}</span>
     </div>`;
   }).join('');
 
@@ -3903,13 +3914,13 @@ function renderFcHero() {
     <div class="ai-hero ${overallCls}" style="margin-bottom:10px">
       <div class="ai-hero-icon">${overallIcon}</div>
       <div>
-        <div class="ai-hero-label">${FC_STATE.days}일 예보 · 선택 ${selectedPreds.length}대 기준</div>
-        <div class="ai-hero-name">기간 총합 ${grandTotal}마리</div>
-        <div class="ai-hero-desc">일평균 ${avgPerDay}마리 · 장비별 피크는 아래 목록 참조</div>
+        <div class="ai-hero-label">${FC_STATE.days}일 예보 · 선택 ${selectedPreds.length}개 관측소 기준</div>
+        <div class="ai-hero-name">평균 모기지수 ${avgIndex}</div>
+        <div class="ai-hero-desc">최대 모기지수 ${maxIndex} · 관측소별 피크는 아래 목록 참조</div>
       </div>
       <div class="ai-hero-value">
-        <div class="ai-hero-num">${topCount}</div>
-        <div class="ai-hero-unit">최대 피크 1건</div>
+        <div class="ai-hero-num">${topIdx}</div>
+        <div class="ai-hero-unit">최고 모기지수</div>
       </div>
     </div>
     <div style="max-height:170px;overflow-y:auto">${listItems}</div>
@@ -3930,8 +3941,8 @@ function renderFcGauges() {
   const devSections = selectedPreds.map(p => {
     const preds_day = p.predictions || [];
     const cards = preds_day.map((pp, i) => {
-      const v = pp.predicted || 0;
-      const grade = fcGradeByValue(v);
+      const v = fcDayIndex(pp);
+      const grade = fcGradeByIndex(v);
       const d = pp.date || '';
       const parts = d.split('-');
       const mm = parts[1] || '';
@@ -3940,7 +3951,7 @@ function renderFcGauges() {
       // 전일 대비
       let deltaHtml = '<span class="g-delta flat">—</span>';
       if (i > 0) {
-        const prev = preds_day[i-1]?.predicted || 0;
+        const prev = fcDayIndex(preds_day[i-1]);
         if (prev > 0) {
           const pct = Math.round((v - prev) / prev * 100);
           const cls = pct > 5 ? 'up' : pct < -5 ? 'down' : 'flat';
@@ -3958,7 +3969,7 @@ function renderFcGauges() {
             ${gaugeSvg(v)}
             <div class="gauge-value-box">
               <div class="gauge-value" style="color:${grade.color}">${v}</div>
-              <div class="gauge-unit">마리</div>
+              <div class="gauge-unit">지수</div>
             </div>
           </div>
           <div class="gauge-foot">
@@ -3968,16 +3979,17 @@ function renderFcGauges() {
         </div>
       `;
     }).join('');
-    // 장비별 최대치, 합계
-    const peakV = Math.max(0, ...preds_day.map(x => x.predicted || 0));
-    const peakG = fcGradeByValue(peakV);
-    const totalV = preds_day.reduce((a,b) => a + (b.predicted || 0), 0);
+    // 장비별 최대/평균 모기지수
+    const idxVals = preds_day.map(x => fcDayIndex(x));
+    const peakV = Math.max(0, ...idxVals);
+    const peakG = fcGradeByIndex(peakV);
+    const avgV = idxVals.length ? Math.round(idxVals.reduce((a,b)=>a+b,0)/idxVals.length) : 0;
     return `
       <div class="fc-dev-section" style="margin-bottom:14px;border:1px solid var(--gray2);border-radius:10px;padding:12px 14px;background:#fff">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(stationName(p.name || p.uuid))}</div>
-            <div style="font-size:11px;color:var(--gray4)">${escapeHtml(p.region || '-')} · 기간 합계 <strong>${totalV}</strong>마리</div>
+            <div style="font-size:11px;color:var(--gray4)">${escapeHtml(p.region || '-')} · 평균 모기지수 <strong>${avgV}</strong></div>
           </div>
           <div>
             <span class="badge ${peakG.cls}" style="font-size:11px">피크 ${peakG.name} · ${peakV}</span>
@@ -6039,8 +6051,8 @@ function fbRenderSignals(j) {
         </div>
         <div style="font-size:13px;font-weight:700;color:${color};line-height:1.3;margin-bottom:1px">${escapeHtml(stationName(s.name || '-'))}</div>
         <div style="font-size:10px;color:var(--gray5);margin-bottom:3px">${escapeHtml(s.region_name || '')}</div>
-        <div style="font-size:24px;font-weight:700;color:${color};font-family:var(--mono);line-height:1">${s.avg_index}</div>
-        <div style="font-size:10px;color:var(--gray5);margin-top:5px">최대 예상 ${s.max_predicted ?? '-'}마리</div>
+        <div style="font-size:24px;font-weight:700;color:${color};font-family:var(--mono);line-height:1">${s.avg_index}<span style="font-size:11px;font-weight:600;color:var(--gray5)"> 지수</span></div>
+        <div style="font-size:10px;color:var(--gray5);margin-top:5px">최대 모기지수 ${s.max_index ?? '-'}</div>
         ${reason ? `<div style="font-size:10px;color:var(--gray6);margin-top:6px;line-height:1.45;border-top:1px dashed rgba(0,0,0,.08);padding-top:5px">${escapeHtml(reason)}</div>` : ''}
       </div>`;
   }).join('');
