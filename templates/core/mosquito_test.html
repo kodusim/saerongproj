@@ -4811,14 +4811,14 @@ async function buildEquipment() {
     if (measuring) {
       document.getElementById('eq-summary').innerHTML = `
         <div class="kpi-card navy"><div class="kpi-label">전체 관측소 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
-        <div class="kpi-card green"><div class="kpi-label">현재 상태</div><div class="kpi-value val-green" style="font-size:20px">측정중</div><div class="kpi-sub">야간 수집창 18~05시</div></div>
+        <div class="kpi-card green"><div class="kpi-label">현재 상태</div><div class="kpi-value val-green" style="font-size:20px">측정중</div><div class="kpi-sub"></div></div>
         <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 관측소 평균</div></div>
         <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${lowBattCount}</div><div class="kpi-sub">대 (20% 미만)</div></div>
       `;
     } else {
       document.getElementById('eq-summary').innerHTML = `
         <div class="kpi-card navy"><div class="kpi-label">전체 관측소 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
-        <div class="kpi-card"><div class="kpi-label">현재 상태</div><div class="kpi-value" style="color:var(--gray5);font-size:20px">측정 전</div><div class="kpi-sub">야간 수집창(18~05시) 대기</div></div>
+        <div class="kpi-card"><div class="kpi-label">현재 상태</div><div class="kpi-value" style="color:var(--gray5);font-size:20px">측정 전</div><div class="kpi-sub"></div></div>
         <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 관측소 평균</div></div>
         <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${lowBattCount}</div><div class="kpi-sub">대 (20% 미만)</div></div>
       `;
@@ -4831,7 +4831,7 @@ async function buildEquipment() {
       if (lowBatt.length === 0) {
         alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--gray2);border-color:var(--gray3)">
           <div class="anomaly-icon" style="color:var(--gray5)">⏸</div>
-          <div><div class="anomaly-title" style="color:var(--gray5)">현재 측정 전 (야간 수집창 대기)</div>
+          <div><div class="anomaly-title" style="color:var(--gray5)">현재 측정 전</div>
           <div class="anomaly-body" style="color:var(--gray5)">관측소 장비는 KST 18:00 ~ 05:59 시간에만 모기 포집을 측정합니다. 현재 시간대에는 운영 상태 판정이 의미가 없습니다.</div></div>
         </div>`;
       } else {
