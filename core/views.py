@@ -442,6 +442,8 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'name': nm, 'addr': addr,
             # 51마리 이상 = 이상 (전역 통일)
             'bad_min': ANOMALY_THRESHOLD,
+            # 관측소별 실제 임계 (민원 점수 ax1 — 민원가능지역 페이지와 일치시키기 위함)
+            'dev_bad_min': ((dv.get('deviceSetting') or {}).get('bad_min')) or 100,
             'region_code': rc,
             'region_name': rn,
             'region_type': rt,
@@ -601,11 +603,13 @@ def _build_overview_data(su, date_str='', hour_str=''):
         if risk_score >= 61: warn_count += 1
         if today_c >= m.get('bad_min', 100) and m.get('bad_min', 0) > 0: anomaly_today += 1
 
-        # 민원 점수
+        # 민원 점수 — 민원가능지역 페이지와 동일하게 관측소별 실제 bad_min 기준
+        dev_bm = m.get('dev_bad_min', 100)
+        ax_felt = min(100, (today_c / dev_bm) * 100) if dev_bm > 0 else 0
         night_ratio = dev_night_ratio.get(u, 0.0)
         ax_night = min(100, (night_ratio / 0.6) * 100) if night_ratio else 0
         ax_resi = 80 if is_resi(m) else 20
-        complaint_score = round(ax1 * 0.35 + ax2 * 0.25 + ax_night * 0.25 + ax_resi * 0.15, 1)
+        complaint_score = round(ax_felt * 0.35 + ax2 * 0.25 + ax_night * 0.25 + ax_resi * 0.15, 1)
         if complaint_score <= 30: cp_lv = '낮음'
         elif complaint_score <= 60: cp_lv = '보통'
         else: cp_lv = '높음'

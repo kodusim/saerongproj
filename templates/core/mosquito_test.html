@@ -1306,7 +1306,7 @@ body {
     <div class="sec-header">
       <div class="sec-bar"></div>
       <div class="sec-title">관측소별 현황</div>
-      <div class="sec-sub" id="ov-station-sub">허용된 장비 전체</div>
+      <div class="sec-sub" id="ov-station-sub"></div>
     </div>
     <div style="font-size:10px;color:var(--gray4);margin:-6px 0 8px 14px">
       위험 등급 = 기준일 포집 마릿수 기준 (시간별 히트맵과 동일): 안전1 0~2 · 안전2 3~10 · 안전3 11~20 · 관심 21~50 · 주의 51~100 · 나쁨 100+
@@ -2613,7 +2613,7 @@ function renderOvStationTable(json) {
   const tb = document.getElementById('ov-station-body');
   const sub = document.getElementById('ov-station-sub');
   const list = json.devices || [];
-  if (sub) sub.textContent = `허용된 장비 ${list.length}대 전체`;
+  if (sub) sub.textContent = '';
 
   const thead = document.getElementById('ov-station-thead');
   if (thead) {
