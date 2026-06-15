@@ -74,11 +74,14 @@ def manual_resync(request):
 @require_GET
 def period_aggregate(request):
     """기간별 집계 — 일/주/월/년 단위.
+    데이터 소스: MOSCOM API 일별 집계(get_statistics_by_date aggregation='day').
+    로컬 Collection 의 누적 카운터를 Sum 하면 폭증하므로, 종합현황·추세와 동일하게
+    MOSCOM 의 일별 정확값을 받아 unit 단위로 버킷팅한다.
     params: start, end (YYYY-MM-DD), unit (day|week|month|year), device_uuid?, region_code?
     """
-    from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, TruncYear
-    from django.db.models import Sum, Count, Avg, Max as DbMax, Min as DbMin
-    from datetime import datetime as dt
+    from datetime import datetime as dt, timedelta, timezone as _tz
+    from collections import defaultdict
+    from core import moscom_client
 
     unit = (request.GET.get('unit') or 'day').strip().lower()
     if unit not in ('day', 'week', 'month', 'year'):
@@ -87,68 +90,98 @@ def period_aggregate(request):
     start_s = request.GET.get('start')
     end_s = request.GET.get('end')
     try:
-        start = dt.fromisoformat(start_s) if start_s else None
-        end = dt.fromisoformat(end_s) if end_s else None
+        start_d = dt.fromisoformat(start_s).date() if start_s else None
+        end_d = dt.fromisoformat(end_s).date() if end_s else None
     except ValueError:
         return JsonResponse({'error': 'date format YYYY-MM-DD'}, status=400)
+    if not start_d or not end_d:
+        return JsonResponse({'error': 'start, end 필요 (YYYY-MM-DD)'}, status=400)
+    if end_d < start_d:
+        start_d, end_d = end_d, start_d
 
-    qs = Collection.objects.all()
-    if start:
-        qs = qs.filter(created_date__gte=timezone.make_aware(dt.combine(start, dt.min.time())))
-    if end:
-        qs = qs.filter(created_date__lte=timezone.make_aware(dt.combine(end, dt.max.time())))
-    device_uuid = request.GET.get('device_uuid')
-    if device_uuid:
-        qs = qs.filter(device_uuid=device_uuid)
-
-    # 권역 필터 (Device.region_code 매칭)
+    device_uuid = request.GET.get('device_uuid') or ''
     region_code = request.GET.get('region_code')
-    if region_code is not None:
-        dev_uuids = list(
+
+    # 권역 필터 → 해당 권역 device_uuid 집합
+    region_uuids = None
+    if region_code:
+        region_uuids = set(
             Device.objects.filter(region_code=region_code, is_active=True)
             .values_list('device_uuid', flat=True)
         )
-        qs = qs.filter(device_uuid__in=dev_uuids)
 
-    trunc = {
-        'day': TruncDate('created_date'),
-        'week': TruncWeek('created_date'),
-        'month': TruncMonth('created_date'),
-        'year': TruncYear('created_date'),
-    }[unit]
-    rows = list(
-        qs.annotate(bucket=trunc)
-          .values('bucket', 'device_uuid')
-          .annotate(
-              total=Sum('mosquito_count'),
-              events=Count('id'),
-              avg=Avg('mosquito_count'),
-              max=DbMax('mosquito_count'),
-          )
-          .order_by('bucket', 'device_uuid')
-    )
+    # MOSCOM 일별 집계 — 업무일 경계(KST 10:00) 적용해 start~end 커버
+    start_utc = dt(start_d.year, start_d.month, start_d.day, 10, 0, 0, tzinfo=_tz.utc) - timedelta(hours=9)
+    end_utc = dt(end_d.year, end_d.month, end_d.day, 10, 0, 0, tzinfo=_tz.utc) + timedelta(days=1) - timedelta(hours=9)
+    start_iso = start_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    end_iso = end_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    try:
+        raw = moscom_client.get_statistics_by_date(
+            start_dt=start_iso, end_dt=end_iso, aggregation='day',
+            device_uuid=device_uuid or '0',
+        ) or []
+    except Exception as e:
+        return JsonResponse({'error': f'MOSCOM 조회 실패: {e}'}, status=502)
 
-    # 장비 메타
     devices = {d.device_uuid: d for d in Device.objects.all()}
     region_name_by_code = {r.code: r.name for r in Region.objects.all()}
 
+    def bucket_key(date_str):
+        # date_str: 'YYYY-MM-DD' → unit 버킷 키
+        try:
+            d = dt.strptime(date_str[:10], '%Y-%m-%d').date()
+        except ValueError:
+            return None
+        if unit == 'day':
+            return d.isoformat()
+        if unit == 'week':
+            monday = d - timedelta(days=d.weekday())
+            return monday.isoformat()
+        if unit == 'month':
+            return f'{d.year}-{d.month:02d}-01'
+        return f'{d.year}-01-01'  # year
+
+    # (bucket, uuid) → {total, days, max}
+    agg = defaultdict(lambda: {'total': 0, 'days': 0, 'max': 0})
+    for r in raw:
+        u = r.get('device_uuid')
+        if not u:
+            continue
+        if device_uuid and u != device_uuid:
+            continue
+        if region_uuids is not None and u not in region_uuids:
+            continue
+        ds = (r.get('created_date') or '')[:10]
+        # start~end 범위 밖(경계 보정으로 들어온 날짜) 제외
+        if not ds or ds < start_d.isoformat() or ds > end_d.isoformat():
+            continue
+        bk = bucket_key(ds)
+        if not bk:
+            continue
+        cnt = r.get('mosquito_count') or 0
+        a = agg[(bk, u)]
+        a['total'] += cnt      # 서로 다른 날의 일별값 합 (누적 아님 — 정상)
+        a['days'] += 1
+        if cnt > a['max']:
+            a['max'] = cnt
+
     items = []
-    for r in rows:
-        d = devices.get(r['device_uuid'])
-        bucket = r['bucket']
+    for (bk, u), a in agg.items():
+        d = devices.get(u)
         items.append({
-            'bucket': bucket.isoformat() if hasattr(bucket, 'isoformat') else str(bucket),
-            'device_uuid': r['device_uuid'],
-            'device_name': d.device_name if d else r['device_uuid'],
+            'bucket': bk,
+            'device_uuid': u,
+            'device_name': d.device_name if d else u,
             'region_code': (d.region_code if d else '') or '',
             'region_name': region_name_by_code.get((d.region_code if d else ''), '미지정') if d else '미지정',
-            'total': r['total'] or 0,
-            'events': r['events'] or 0,
-            'avg': round(r['avg'] or 0, 2),
-            'max': r['max'] or 0,
+            'total': a['total'],
+            'events': a['days'],  # 버킷 내 데이터 보유 일수
+            'avg': round(a['total'] / a['days'], 2) if a['days'] else 0,
+            'max': a['max'],
         })
+    items.sort(key=lambda x: (x['bucket'], x['device_uuid']))
 
-    # bucket 단위로 총합도 같이
+    # bucket 단위 총합
     bucket_totals = {}
     for it in items:
         b = it['bucket']
