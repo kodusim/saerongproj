@@ -27,7 +27,7 @@ STORE_PATH = os.path.join(os.path.dirname(__file__), 'remedy_plans.json')
 _LOCK = threading.RLock()
 
 
-# 방역 방법 5종 (사용자 지시 + 문헌 기반)
+# 방역 방법 (사용자 지시 + 문헌 기반)
 METHODS = {
     'bti_larvicide': {
         'key': 'bti_larvicide',
@@ -49,12 +49,21 @@ METHODS = {
     },
     'ulv_fog': {
         'key': 'ulv_fog',
-        'name': 'ULV 초미립자 연무 (피레스로이드)',
+        'name': 'ULV 초미립자 연무',
         'target': '성충',
         'onset_days': 0,
         'duration_days': 3,
         'reduction_pct': 78,
         'note': '초미립자 약제 분사. 즉시 효과·단기. 야간 실시 권장.',
+    },
+    'thermal_fog': {
+        'key': 'thermal_fog',
+        'name': '연막',
+        'target': '성충',
+        'onset_days': 0,
+        'duration_days': 2,
+        'reduction_pct': 70,
+        'note': '열연막으로 광범위 확산. 즉시 효과·단기. 가시성 높아 시민 인지 효과.',
     },
     'residual_spray': {
         'key': 'residual_spray',
