@@ -4444,38 +4444,41 @@ function renderComplaintTop() {
       <div class="kpi-card navy"><div class="kpi-label">주거지 인접 관측소</div><div class="kpi-value val-navy">${resi.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">민원 우선 대응 대상</div></div>`;
   }
 
-  // 지도 마커 — 위험점수 순으로 그리드 자동 배치
+  // 지도 마커 — 민원 위험(보통/높음) 관측소만, 위험점수 순. 겹침 방지 위해 간격 넉넉히.
   const svg = document.getElementById('cp-map-svg');
   const cntEl = document.getElementById('cp-map-count');
-  if (cntEl) cntEl.textContent = `총 ${items.length}개 관측소`;
+  const risky = items.filter(it => it.complaint.level !== '낮음')
+                     .sort((a,b) => (b.complaint.score||0)-(a.complaint.score||0))
+                     .slice(0, 12);  // 상위 12개까지만 지도에 표시
+  if (cntEl) cntEl.textContent = `위험 관측소 ${risky.length}곳 / 전체 ${items.length}곳`;
   if (svg) {
-    const sorted = items.slice().sort((a,b) => (b.complaint.score||0)-(a.complaint.score||0));
-    const W = 800, H = 460, cols = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(sorted.length))));
-    const rows = Math.ceil(sorted.length / cols);
-    const cw = W / (cols + 0.5), ch = H / (rows + 0.6);
-    let bg = `<rect width="${W}" height="${H}" fill="none"/>`;
-    // 옅은 그리드
-    for (let gx=0; gx<=cols; gx++) bg += `<line x1="${(gx+0.5)*cw - cw*0.25}" y1="20" x2="${(gx+0.5)*cw - cw*0.25}" y2="${H-20}" stroke="rgba(148,163,184,0.10)" stroke-width="1"/>`;
-    const markers = sorted.map((it, i) => {
-      const r = Math.floor(i / cols), c = i % cols;
-      const x = (c + 0.75) * cw, y = (r + 0.8) * ch;
-      const key = cpLevelKey(it.complaint.level);
-      const col = CP_MARKER[key];
-      const nm = stationName(it.name);
-      const pulse = key !== 'low'
-        ? `<circle cx="${x}" cy="${y}" r="20" fill="${col}" opacity="0.25"><animate attributeName="r" values="18;30;18" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.3;0.05;0.3" dur="2.2s" repeatCount="indefinite"/></circle>`
-        : '';
-      const icon = key === 'low' ? '✓' : '!';
-      return `<g>
-        ${pulse}
-        <circle cx="${x}" cy="${y}" r="13" fill="${col}" stroke="#fff" stroke-width="3"/>
-        <text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${icon}</text>
-        <rect x="${x-56}" y="${y+20}" width="112" height="30" rx="4" fill="rgba(255,255,255,0.94)" stroke="var(--gray3)" stroke-width="0.5"/>
-        <text x="${x}" y="${y+33}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--ink)">${escapeHtml(nm).slice(0,9)}</text>
-        <text x="${x}" y="${y+46}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${col}">민원 ${it.complaint.level} · ${it.complaint.score}</text>
-      </g>`;
-    }).join('');
-    svg.innerHTML = bg + markers;
+    if (!risky.length) {
+      svg.setAttribute('viewBox', '0 0 800 200');
+      svg.innerHTML = `<text x="400" y="100" text-anchor="middle" fill="#1e8449" font-size="15" font-weight="700">✓ 현재 민원 위험(보통 이상) 관측소가 없습니다</text>
+        <text x="400" y="126" text-anchor="middle" fill="#94a3b8" font-size="12">전 관측소 안정 — 통상 모니터링 유지</text>`;
+    } else {
+      const cols = risky.length <= 3 ? risky.length : risky.length <= 8 ? Math.ceil(risky.length/2) : 4;
+      const rows = Math.ceil(risky.length / cols);
+      const cellW = 180, cellH = 120, padX = 40, padY = 30;
+      const W = padX*2 + cols*cellW, H = padY*2 + rows*cellH;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const markers = risky.map((it, i) => {
+        const r = Math.floor(i / cols), c = i % cols;
+        const x = padX + c*cellW + cellW/2, y = padY + r*cellH + 40;
+        const key = cpLevelKey(it.complaint.level);
+        const col = CP_MARKER[key];
+        const nm = escapeHtml(stationName(it.name));
+        const pulse = `<circle cx="${x}" cy="${y}" r="18" fill="${col}" opacity="0.25"><animate attributeName="r" values="16;26;16" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.3;0.05;0.3" dur="2.2s" repeatCount="indefinite"/></circle>`;
+        return `<g>
+          ${pulse}
+          <circle cx="${x}" cy="${y}" r="14" fill="${col}" stroke="#fff" stroke-width="3"/>
+          <text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text>
+          <text x="${x}" y="${y+34}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${nm}</text>
+          <text x="${x}" y="${y+50}" text-anchor="middle" font-size="11" font-weight="700" fill="${col}">민원 ${it.complaint.level} · ${it.complaint.score}</text>
+        </g>`;
+      }).join('');
+      svg.innerHTML = markers;
+    }
   }
 
   // 범례
