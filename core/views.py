@@ -253,10 +253,19 @@ def _station_name(raw):
     s = (raw or '').strip()
     if not s:
         return ''
-    # 앞쪽 영문(대소문자) + 뒤따르는 숫자 접두 제거 (예: SY03, BD01)
+    # 앞쪽 영문(대소문자) 접두 제거 (예: SY, BD, KH, GH)
     i = 0
     while i < len(s) and (s[i].isascii() and s[i].isalpha()):
         i += 1
+    # 권역 약어가 한글로 붙는 경우(GH'서'05...): 한글 1~2자 뒤에 숫자가 오면 그 약어+숫자도 접두로 간주
+    if i > 0:
+        k = i
+        kor = 0
+        while k < len(s) and ('가' <= s[k] <= '힣') and kor < 2:
+            k += 1; kor += 1
+        if kor > 0 and k < len(s) and s[k].isdigit():
+            i = k  # 한글 약어까지 접두에 포함
+    # 접두의 숫자 제거 (예: SY03, 서05)
     while i < len(s) and s[i].isdigit():
         i += 1
     s2 = s[i:]

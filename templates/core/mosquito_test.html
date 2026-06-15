@@ -3117,7 +3117,7 @@ async function loadTrendData(startStr, endStr) {
   devices.forEach(d => {
     const u = d.device_uuid;
     const dv = d.device || {};
-    const nm = (dv.device_name || '').trim() || u;
+    const nm = stationName(dv.device_name || '') || u;
     const region = getRegionKey(dv, d);
     const addr = [dv.address_gungu, dv.address_dong].filter(isValidRegionPart).join(' ').trim();
     TREND_STATE.deviceMap[u] = {
@@ -4830,14 +4830,15 @@ function escapeHtml(s) {
 
 // 관측소 표시명 정제: 코드(SY03서울식물원0043, BD03정자공원0049) → 한글 이름만(서울식물원, 정자공원)
 function stationName(raw) {
-  let s = (raw || '').trim();
+  const orig = (raw || '').trim();
+  let s = orig;
   if (!s) return '-';
-  // 앞쪽 영문+숫자 접두(예: SY03, BD03, BD01) 제거
-  s = s.replace(/^[A-Za-z]+\d*/, '');
+  // 앞쪽 접두 제거: 영문(SY,BD,KH,GH) + 선택적 한글약어1~2자 + 숫자 (예: SY03, GH서05)
+  s = s.replace(/^[A-Za-z]+(?:[가-힣]{1,2}(?=\d))?\d*/, '');
   // 뒤쪽 숫자(예: 0043) 제거
   s = s.replace(/\d+$/, '');
   s = s.trim();
-  return s || (raw || '').trim();  // 정제 결과가 비면 원본 유지
+  return s || orig;  // 정제 결과가 비면 원본 유지
 }
 
 // ── 보고서 생성 모달 ──────────────────────────────────────
