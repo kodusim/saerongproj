@@ -5358,7 +5358,14 @@ window.addEventListener('message', (e) => {
   }
 });
 
+// 허용 장비 그룹핑: device_name 앞 알파벳 2글자(권역 코드) 기준. 없으면 '기타'.
 function maRegionKey(d) {
+  const dv = d.device || {};
+  const nm = (dv.device_name || d.device_uuid || '').trim();
+  const m = nm.match(/^([A-Za-z]{2})/);
+  return m ? m[1].toUpperCase() : '기타';
+}
+function _maRegionKeyOld(d) {
   const dv = d.device || {};
   const sido = (dv.address_sido || '').trim();
   const gungu = (dv.address_gungu || '').trim();
