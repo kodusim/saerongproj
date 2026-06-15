@@ -1172,7 +1172,7 @@ body {
     </a>
     <a class="nav-item" onclick="showPage('equipment')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><line x1="6" y1="14" x2="10" y2="14"/><line x1="8" y1="12" x2="8" y2="14"/></svg>
-      장비 현황
+      관측소 장비 현황
     </a>
     <a class="nav-item" onclick="showPage('period')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="6" y1="3" x2="6" y2="14"/></svg>
@@ -1849,8 +1849,8 @@ body {
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sec-bar"></div>
         <div>
-          <div class="sec-title">장비 현황</div>
-          <div class="sec-sub" id="eq-sub">배터리 · 팬 · 통신 상태 · MOSCOM 실측</div>
+          <div class="sec-title">관측소 장비 현황</div>
+          <div class="sec-sub" id="eq-sub">관측소 장비 배터리 · 팬 · 통신 상태 · MOSCOM 실측</div>
         </div>
       </div>
       <div class="ai-model-badge"><span class="dot"></span>실시간 장비 진단</div>
@@ -4510,8 +4510,8 @@ async function buildEquipment() {
     const measuring = isNightCollectingNowKST();
     if (sub) {
       sub.textContent = measuring
-        ? `${json.count}개 장비 · 야간 수집창 18~05시 측정중`
-        : `${json.count}개 장비 · 야간 수집창(18~05시) 외 시간 — 측정 전`;
+        ? `관측소 ${json.count}개 · 야간 수집창 18~05시 측정중`
+        : `관측소 ${json.count}개 · 야간 수집창(18~05시) 외 시간 — 측정 전`;
     }
 
     // 요약 KPI (측정 전이면 정상/점검/오프라인 대신 단순 표시)
@@ -4520,16 +4520,16 @@ async function buildEquipment() {
     const lowBattCount = json.items.filter(i => (i.battery||0) < 20).length;
     if (measuring) {
       document.getElementById('eq-summary').innerHTML = `
-        <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
+        <div class="kpi-card navy"><div class="kpi-label">전체 관측소 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
         <div class="kpi-card green"><div class="kpi-label">현재 상태</div><div class="kpi-value val-green" style="font-size:20px">측정중</div><div class="kpi-sub">야간 수집창 18~05시</div></div>
-        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 장비 평균</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 관측소 평균</div></div>
         <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${lowBattCount}</div><div class="kpi-sub">20% 미만</div></div>
       `;
     } else {
       document.getElementById('eq-summary').innerHTML = `
-        <div class="kpi-card navy"><div class="kpi-label">전체 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
+        <div class="kpi-card navy"><div class="kpi-label">전체 관측소 장비</div><div class="kpi-value val-navy">${s.total}</div><div class="kpi-sub">대</div></div>
         <div class="kpi-card"><div class="kpi-label">현재 상태</div><div class="kpi-value" style="color:var(--gray5);font-size:20px">측정 전</div><div class="kpi-sub">야간 수집창(18~05시) 대기</div></div>
-        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 장비 평균</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">평균 배터리</div><div class="kpi-value val-teal">${avgBatt}%</div><div class="kpi-sub">전 관측소 평균</div></div>
         <div class="kpi-card red"><div class="kpi-label">배터리 부족</div><div class="kpi-value val-red">${lowBattCount}</div><div class="kpi-sub">20% 미만</div></div>
       `;
     }
@@ -4542,7 +4542,7 @@ async function buildEquipment() {
         alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--gray2);border-color:var(--gray3)">
           <div class="anomaly-icon" style="color:var(--gray5)">⏸</div>
           <div><div class="anomaly-title" style="color:var(--gray5)">현재 측정 전 (야간 수집창 대기)</div>
-          <div class="anomaly-body" style="color:var(--gray5)">장비는 KST 18:00 ~ 05:59 시간에만 모기 포집을 측정합니다. 현재 시간대에는 운영 상태 판정이 의미가 없습니다.</div></div>
+          <div class="anomaly-body" style="color:var(--gray5)">관측소 장비는 KST 18:00 ~ 05:59 시간에만 모기 포집을 측정합니다. 현재 시간대에는 운영 상태 판정이 의미가 없습니다.</div></div>
         </div>`;
       } else {
         alertBox.innerHTML = `<div class="anomaly-alert">
@@ -4557,7 +4557,7 @@ async function buildEquipment() {
         alertBox.innerHTML = `<div class="anomaly-alert" style="background:var(--green-l);border-color:#8fcfa6">
           <div class="anomaly-icon" style="color:var(--green)">✓</div>
           <div><div class="anomaly-title" style="color:var(--green)">즉시 조치 대상 없음</div>
-          <div class="anomaly-body" style="color:var(--gray5)">오프라인 장비 및 배터리 10% 미만 장비가 없습니다.</div></div>
+          <div class="anomaly-body" style="color:var(--gray5)">오프라인 관측소 장비 및 배터리 10% 미만 장비가 없습니다.</div></div>
         </div>`;
       } else {
         alertBox.innerHTML = urgent.slice(0, 3).map(it => `
@@ -4921,7 +4921,7 @@ const PAGE_TITLES = {
   overview:"종합 현황", heatmap:"시간별 히트맵", anomaly:"포집량 이상 감지",
   trend:"7일 누적 추세", predict:"AI 모기 발생 예측", forecast:"AI 위험도 예보",
   remedy:"방역 실시 내역",
-  equipment:"장비 현황", admin:"AI 추천방역", complaint:"민원가능지역",
+  equipment:"관측소 장비 현황", admin:"AI 추천방역", complaint:"민원가능지역",
   moscom_admin:"모스콤 관리자",
   data_admin:"데이터 관리", period:"기간별 데이터"
 };

@@ -1983,7 +1983,7 @@ def moscom_equipment_health(request):
         for d in devices:
             u = d.get('device_uuid')
             dv = d.get('device') or {}
-            name = (dv.get('device_name') or '').strip() or u
+            name = _station_name(dv.get('device_name') or '') or u
             battery = dv.get('battery') or 0
             fan = dv.get('fan') or 0
             charge = dv.get('charge') or 0
@@ -2483,7 +2483,7 @@ def moscom_anomaly_history(request):
         for d in devices:
             u = d.get('device_uuid')
             dv = d.get('device') or {}
-            name = (dv.get('device_name') or '').strip() or u
+            name = _station_name(dv.get('device_name') or '') or u
             addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)).strip()
             bad_min = ((dv.get('deviceSetting') or {}).get('bad_min')) or 100
             meta[u] = {'name': name, 'addr': addr, 'bad_min': bad_min}
@@ -2560,7 +2560,7 @@ def moscom_complaint_risk(request):
         for d in devices:
             u = d.get('device_uuid')
             dv = d.get('device') or {}
-            name = (dv.get('device_name') or '').strip() or u
+            name = _station_name(dv.get('device_name') or '') or u
             sido = (dv.get('address_sido') or '').strip()
             gungu = (dv.get('address_gungu') or '').strip()
             dong = (dv.get('address_dong') or '').strip()
@@ -2830,7 +2830,7 @@ def moscom_predict(request):
         for d in devices:
             u = d.get('device_uuid')
             dv = d.get('device') or {}
-            name = (dv.get('device_name') or '').strip() or u
+            name = _station_name(dv.get('device_name') or '') or u
             md = moscom_device_map.get(u)
             rcode = (md.region_code if md else '') or ''
             # region 그룹 키: 권역명 (KH→김해 본시 등) 우선, 없으면 시도+군구
