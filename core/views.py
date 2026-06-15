@@ -2597,7 +2597,7 @@ def moscom_anomaly_history(request):
             dv = d.get('device') or {}
             name = _station_name(dv.get('device_name') or '') or u
             addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)).strip()
-            bad_min = ((dv.get('deviceSetting') or {}).get('bad_min')) or 100
+            bad_min = 50  # 경보 기준 50마리 고정 (이상감지 탭과 통일)
             meta[u] = {'name': name, 'addr': addr, 'bad_min': bad_min}
 
         # 최근 N일 일별 통계

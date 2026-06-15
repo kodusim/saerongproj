@@ -1389,8 +1389,6 @@ body {
       </div>
     </div>
 
-    <div id="anomaly-alert-box"></div>
-
     <div class="card mb16">
       <div class="sec-header" style="margin-bottom:10px">
         <div class="sec-bar"></div>
@@ -1418,14 +1416,6 @@ body {
         <thead><tr><th>일자</th><th>관측소</th><th>지역</th><th>포집량</th><th>경보 기준</th><th>초과율</th><th></th></tr></thead>
         <tbody><tr><td colspan="7" style="text-align:center;color:var(--gray4);padding:18px">로딩 중…</td></tr></tbody>
       </table>
-    </div>
-
-    <div class="card">
-      <div class="sec-header" style="margin-bottom:10px">
-        <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">관측소별 포집량</div>
-      </div>
-      <table class="data-table" id="anomaly-all-table"></table>
     </div>
 
     <!-- 등급 범례 -->
@@ -2909,9 +2899,9 @@ async function buildAnomalyAll(){
   const allT = document.getElementById('anomaly-all-table');
   const dateInfo = document.getElementById('anomaly-date-info');
 
-  allT.innerHTML = `<thead><tr><th colspan="8" style="text-align:center">데이터 불러오는 중…</th></tr></thead>`;
-  flaggedT.innerHTML = '';
-  alertBox.innerHTML = '';
+  if (allT) allT.innerHTML = `<thead><tr><th colspan="8" style="text-align:center">데이터 불러오는 중…</th></tr></thead>`;
+  if (flaggedT) flaggedT.innerHTML = '';
+  if (alertBox) alertBox.innerHTML = '';
 
   try {
     // 통계 (7일 전체) + 장비 메타 동시 요청
@@ -2997,35 +2987,7 @@ async function buildAnomalyAll(){
 
     const flagged = rows.filter(r => r.isAnomaly);
 
-    // 1) 상단 알림 박스
-    if (flagged.length > 0) {
-      const top = flagged[0];
-      alertBox.innerHTML = `
-        <div class="anomaly-alert">
-          <div class="anomaly-icon">⚠</div>
-          <div>
-            <div class="anomaly-title">포집량 이상 감지 — ${stationName(top.name)}${top.addr ? ' ('+top.addr+')' : ''}</div>
-            <div class="anomaly-body">
-              금일 <strong>${top.today}마리</strong> 포집으로 장비 경보 기준 <strong>${top.badMin}마리</strong> 초과.
-              전일 <strong>${top.yday}마리</strong> ${top.pct !== null ? '· 변화율 <strong>'+(top.pct>=0?'+':'')+top.pct+'%</strong>' : ''} ·
-              7일 평균 <strong>${top.weekAvg.toFixed(1)}마리</strong>.
-              ${flagged.length > 1 ? `추가로 <strong>${flagged.length - 1}개 장비</strong>에서 기준 초과 감지됨.` : ''}
-            </div>
-          </div>
-        </div>`;
-    } else {
-      alertBox.innerHTML = `
-        <div class="anomaly-alert" style="background:var(--green-l);border-color:#8fcfa6">
-          <div class="anomaly-icon" style="color:var(--green)">✓</div>
-          <div>
-            <div class="anomaly-title" style="color:var(--green)">전 장비 정상 범위</div>
-            <div class="anomaly-body" style="color:var(--gray5)">
-              ${rows.length}개 장비 중 경보 기준(bad_min) 초과 장비가 없습니다.
-              최근 수집 기간: ${weekDates[0] || '-'} ~ ${today || '-'}
-            </div>
-          </div>
-        </div>`;
-    }
+    // (상단 알림 박스 제거됨)
 
     // 등급 배지 헬퍼 (히트맵 범례 기준)
     const gradeBadge = v => { const g = controlGrade(v||0); return `<span style="font-size:10px;font-weight:700;background:${g.bg};color:${g.color};padding:2px 8px;border-radius:10px">${g.label}</span>`; };
@@ -3052,24 +3014,7 @@ async function buildAnomalyAll(){
       }).join('')}</tbody>`;
     }
 
-    // 3) 전 장비 테이블
-    allT.innerHTML = `<thead><tr><th>관측소 (${rows.length}개)</th><th>등급</th><th>금일</th><th>전일</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>
-      <tbody>${rows.map(r => {
-        const labelAddr = r.addr ? `<div style="font-size:10px;color:var(--gray4);font-weight:400">${r.addr}</div>` : '';
-        const pctHtml = r.pct === null ? '<span style="color:var(--gray4)">—</span>'
-          : `<span style="color:${r.pct >= 0 ? 'var(--red)' : 'var(--green)'};font-family:var(--mono);font-weight:600">${r.pct >= 0 ? '+' : ''}${r.pct}%</span>`;
-        const badge = r.isAnomaly ? `<span class="badge badge-warn">기준 초과</span>` : `<span class="badge badge-safe">정상</span>`;
-        return `<tr>
-          <td><strong>${stationName(r.name)}</strong>${labelAddr}</td>
-          <td>${gradeBadge(r.today)}</td>
-          <td style="font-family:var(--mono)">${r.today > 0 ? r.today : '-'}</td>
-          <td style="font-family:var(--mono)">${r.yday > 0 ? r.yday : '-'}</td>
-          <td>${pctHtml}</td>
-          <td style="font-family:var(--mono)">${r.weekAvg.toFixed(1)}</td>
-          <td style="font-family:var(--mono);color:var(--gray5)">${r.badMin}</td>
-          <td>${badge}</td>
-        </tr>`;
-      }).join('')}</tbody>`;
+    // (관측소별 포집량 전 장비 테이블 제거됨)
 
     // 누적 이력도 같이 로드 (한번만)
     if (typeof loadAnomalyHistory === 'function' && !window.__AH_LOADED) {
@@ -3077,7 +3022,7 @@ async function buildAnomalyAll(){
       loadAnomalyHistory(30);
     }
   } catch (err) {
-    allT.innerHTML = `<thead><tr><th colspan="8" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
+    if (flaggedT) flaggedT.innerHTML = `<thead><tr><th colspan="8" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
   }
 }
 
