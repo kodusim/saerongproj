@@ -1517,7 +1517,7 @@ body {
         <div class="sec-bar"></div>
         <div>
           <div class="sec-title">AI 모기 발생 예측</div>
-          <div class="sec-sub" id="predict-sub">관측소별 향후 3일 모기 발생량(마리수) 예측 · 등급은 모기지수 기준</div>
+          <div class="sec-sub" id="predict-sub">관측소별 향후 3일 모기 발생량(마리수) 예측</div>
         </div>
       </div>
       <div id="predict-badge" class="ai-model-badge" style="display:none">
@@ -1593,26 +1593,6 @@ body {
               <canvas id="predict-chart"></canvas>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 모기지수 산출 공식 (참고: 9p AI 위험도 예보에서 사용. 본 페이지 등급 산정 기준) -->
-      <div class="card mb16" style="padding:14px 18px;background:#F4F8FF;border-color:#9EC9FF">
-        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">🧮 모기지수 산출 공식 (0~100) — 참고 · 등급 산정 기준</div>
-        <div style="font-size:11px;color:var(--gray5);margin-bottom:8px;line-height:1.5">본 페이지(AI 모기 발생 예측)는 <strong>마리수</strong>로 예측합니다. 모기지수는 <strong>AI 위험도 예보(9p)</strong>에서 사용하며, 아래 식은 본 페이지의 <strong>등급</strong> 산정에만 쓰입니다.</div>
-        <div style="font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--gray6)">
-          <div style="font-weight:700;margin-bottom:4px">모기지수 = 0.5 × 마릿수정규화 + 0.2 × 7일추세 + 0.2 × 기상조건 + 0.1 × 권역가중치</div>
-          <div>· <strong>마릿수정규화</strong> = min(100, √(오늘마릿수 / P95) × 100)</div>
-          <div>· <strong>7일추세</strong> = 50 + clip((오늘/7일평균 − 1) × 50, ±50)</div>
-          <div>· <strong>기상조건</strong> = 0.6 × max(0, 100 − |기온−25| × 100/15) + 0.4 × 습도(%)</div>
-          <div>· <strong>권역가중치</strong> = 60 + (수변부 30 / 공원 15 / 주거지 10 / 농촌 5 / 산림 0)</div>
-        </div>
-        <div style="font-size:11px;color:var(--gray5);margin-top:8px;line-height:1.55">
-          P95 = 전체 일별 포집량의 95퍼센타일 (학습시 자동 산출, 데이터 누적 시 갱신).
-          등급: <span style="color:#198754;font-weight:700">쾌적 0~25</span> ·
-          <span style="color:#7A5700;font-weight:700">관심 25~50</span> ·
-          <span style="color:#C05000;font-weight:700">주의 50~75</span> ·
-          <span style="color:#A32D2D;font-weight:700">불쾌 75~100</span>
         </div>
       </div>
 
@@ -3646,18 +3626,16 @@ function renderPredictFilter() {
   const preds = PREDICT_STATE.data.predictions || [];
   const html = [
     `<div style="display:flex;gap:6px;margin-bottom:8px">
-      <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="predictSelect(5)">TOP 5</button>
-      <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="predictSelect(10)">TOP 10</button>
+      <button type="button" class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="predictSelect(-1)">전체</button>
       <button type="button" class="dl-btn dl-btn-print" style="padding:3px 8px;font-size:10px" onclick="predictSelect(0)">해제</button>
     </div>`,
-    `<div style="font-size:10px;color:var(--gray4);font-weight:600;letter-spacing:.04em;margin-bottom:6px">장비 선택 (${PREDICT_STATE.selected.size}/${preds.length})</div>`,
+    `<div style="font-size:10px;color:var(--gray4);font-weight:600;letter-spacing:.04em;margin-bottom:6px">관측소 선택 (${PREDICT_STATE.selected.size}/${preds.length})</div>`,
   ];
   preds.forEach(p => {
     const checked = PREDICT_STATE.selected.has(p.uuid) ? 'checked' : '';
     html.push(`<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:11px">
       <input type="checkbox" data-uuid="${p.uuid}" ${checked}>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${stationName(p.name)}</span>
-      <span class="badge ${predictGradeBadgeCls(p.grade)}" style="font-size:9px;padding:1px 6px">${p.grade}</span>
     </label>`);
   });
   box.innerHTML = html.join('');
@@ -3675,7 +3653,8 @@ function renderPredictFilter() {
 function predictSelect(n) {
   const preds = PREDICT_STATE.data?.predictions || [];
   PREDICT_STATE.selected.clear();
-  if (n > 0) preds.slice(0, n).forEach(p => PREDICT_STATE.selected.add(p.uuid));
+  if (n < 0) preds.forEach(p => PREDICT_STATE.selected.add(p.uuid));       // 전체
+  else if (n > 0) preds.slice(0, n).forEach(p => PREDICT_STATE.selected.add(p.uuid));
   renderPredictFilter();
   drawPredictChart();
   renderPredictTable();
@@ -3710,7 +3689,6 @@ function renderPredictTable() {
       ${histDates.length ? `<th colspan="${histDates.length}" style="background:var(--gray5)">실측 (마리수)</th>` : ''}
       <th colspan="${dates.length}" style="background:var(--navy)">AI 예측 (마리수)</th>
       <th rowspan="2">최대<br>마리수</th>
-      <th rowspan="2">등급</th>
       <th rowspan="2" style="min-width:220px">AI 추론 근거</th>
     </tr>
     <tr>${histHdr}${dayHdr}</tr>
@@ -3736,7 +3714,6 @@ function renderPredictTable() {
       ${histCells}
       ${predCells}
       <td style="font-family:var(--mono);font-weight:700;font-size:14px;text-align:center;color:var(--navy)">${p.max_predicted}</td>
-      <td><span class="badge ${predictGradeBadgeCls(p.grade)}">${p.grade}</span></td>
       <td style="color:var(--gray5);font-size:11px;line-height:1.5">${p.reasoning || '—'}</td>
     </tr>`;
   }).join('')}</tbody>`;
@@ -3876,8 +3853,8 @@ async function buildPredict() {
 
     const dates = preds[0].predictions.map(p => p.date);
 
-    // 장비 선택 기본: TOP 5 (표는 renderPredictTable이 그림)
-    predictSelect(5);
+    // 관측소 선택 기본: 전체
+    predictSelect(-1);
     renderPredictTable();
 
     PREDICT_LOADED = true;
