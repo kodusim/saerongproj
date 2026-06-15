@@ -134,6 +134,8 @@ class Region(models.Model):
     """
     code = models.CharField('코드', max_length=20, unique=True, db_index=True)
     name = models.CharField('표시명', max_length=80)
+    # 종합현황 전국 참조 바 전용 표시명 (비면 name/code 사용)
+    overview_name = models.CharField('종합현황 표시명', max_length=80, blank=True, default='')
     sort_order = models.IntegerField('정렬 순서', default=100)
     note = models.CharField('비고', max_length=200, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)

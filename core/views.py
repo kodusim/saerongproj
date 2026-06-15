@@ -736,9 +736,16 @@ def _build_overview_data(su, date_str='', hour_str=''):
                     if rvals:
                         region_avg = round(sum(rvals) / len(rvals), 1)
                 national['region_avg'] = region_avg
-                national['region_names'] = sorted(
-                    {meta.get(u, {}).get('region_name') for u in allowed_uuids} - {'', None, '미지정'}
-                )
+                # 종합현황 전용 표시명(overview_name) 우선, 없으면 일반 표시명/코드
+                reg_labels = set()
+                try:
+                    from moscom.models import Region as RG
+                    rmap = {r.code: (r.overview_name or r.name or r.code) for r in RG.objects.all()}
+                except Exception:
+                    rmap = {}
+                for c in my_codes:
+                    reg_labels.add(rmap.get(c, c))
+                national['region_names'] = sorted(reg_labels - {'', None})
     except Exception as e:
         logger.warning(f'national compare failed: {e}')
 

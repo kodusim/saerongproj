@@ -289,13 +289,14 @@ def region_list(request):
     items = [
         {
             'id': r.id, 'code': r.code, 'name': r.name,
+            'overview_name': r.overview_name,
             'sort_order': r.sort_order, 'note': r.note,
             'device_count': counts.get(r.code, 0),
         }
         for r in regions
     ] + [
         # Region 마스터에 없지만 Device 에는 prefix 있는 경우 (lazy)
-        {'id': None, 'code': c, 'name': c, 'sort_order': 100, 'note': '',
+        {'id': None, 'code': c, 'name': c, 'overview_name': '', 'sort_order': 100, 'note': '',
          'device_count': counts.get(c, 0)}
         for c in extra_codes
     ]
@@ -345,14 +346,14 @@ def region_upsert(request, code=None):
     if not r:
         # 없으면 자동 생성 (lazy code 케이스)
         r = Region.objects.create(code=code, name=code, sort_order=100)
-    for k in ['name', 'sort_order', 'note']:
+    for k in ['name', 'overview_name', 'sort_order', 'note']:
         if k in body:
             old = getattr(r, k)
             new = body[k]
             if k == 'sort_order':
                 try: new = int(new)
                 except (TypeError, ValueError): continue
-            if k in ('name', 'note'):
+            if k in ('name', 'note', 'overview_name'):
                 new = (new or '')[:200 if k == 'note' else 80]
             if old != new:
                 log_change('moscom.Region', r.id, k, old, new, edited_by=actor)

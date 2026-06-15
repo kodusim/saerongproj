@@ -5706,6 +5706,7 @@ async function dmRenderRegions() {
           <tr>
             <th style="padding:6px;text-align:left">코드</th>
             <th style="padding:6px;text-align:left">표시명</th>
+            <th style="padding:6px;text-align:left">종합현황 표시명</th>
             <th style="padding:6px;text-align:right">정렬</th>
             <th style="padding:6px;text-align:right">장비수</th>
             <th style="padding:6px;text-align:left">비고</th>
@@ -5716,6 +5717,7 @@ async function dmRenderRegions() {
           ${items.map(reg => `<tr data-code="${_esc(reg.code)}" style="border-bottom:1px solid var(--gray2)">
             <td style="padding:6px;font-family:var(--mono);font-weight:700">${_esc(reg.code)}${reg.id == null ? ' <span style="font-size:9px;color:var(--orange)">새</span>' : ''}</td>
             <td style="padding:6px"><input class="dm-r-cell" data-f="name" value="${_esc(reg.name)}" style="width:160px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px"><input class="dm-r-cell" data-f="overview_name" value="${_esc(reg.overview_name || '')}" placeholder="(비우면 표시명 사용)" style="width:160px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
             <td style="padding:6px;text-align:right"><input class="dm-r-cell" data-f="sort_order" type="number" value="${reg.sort_order}" style="width:60px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;text-align:right;font-family:var(--mono)"></td>
             <td style="padding:6px;text-align:right;font-family:var(--mono)">${reg.device_count}</td>
             <td style="padding:6px"><input class="dm-r-cell" data-f="note" value="${_esc(reg.note || '')}" placeholder="(선택)" style="width:200px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
