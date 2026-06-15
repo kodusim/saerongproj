@@ -2026,33 +2026,58 @@ body {
       <div class="ai-model-badge"><span class="dot"></span>민원 위험 엔진</div>
     </div>
 
-    <!-- 필터 칩 -->
-    <div class="card mb16" style="padding:10px 16px">
-      <div class="rp-period-chips" style="margin:0">
-        <div class="cp-chip active" data-filter="all">전체</div>
-        <div class="cp-chip" data-filter="높음">민원 높음</div>
-        <div class="cp-chip" data-filter="보통">민원 보통</div>
-        <div class="cp-chip" data-filter="낮음">민원 낮음</div>
-        <div class="cp-chip" data-filter="residential">주거지 인접</div>
-        <span id="cp-count" style="margin-left:auto;font-size:11px;color:var(--gray5);align-self:center"></span>
+    <!-- KPI 4개 -->
+    <div class="kpi-grid mb16" id="cp-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+
+    <!-- ① 민원 가능성 지도 -->
+    <div class="card mb16">
+      <div class="sec-header" style="padding:12px 16px 10px;margin:0;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="sec-bar"></div>
+          <div class="sec-title" style="font-size:13px">민원 가능성 지도 <span style="font-weight:400;color:var(--gray4);font-size:11px">관측소 위치 + 위험도 시각화 (추상 지도)</span></div>
+        </div>
+        <span id="cp-map-count" style="font-size:11px;color:var(--gray4)"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 220px;min-height:380px">
+        <div style="position:relative;background:linear-gradient(180deg,#f0f4f8,#e7ecf2);overflow:hidden">
+          <svg id="cp-map-svg" viewBox="0 0 800 460" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block"></svg>
+        </div>
+        <div style="background:var(--gray1);border-left:1px solid var(--gray2);padding:14px 16px;overflow-y:auto">
+          <div style="font-size:11px;font-weight:700;color:var(--gray6);letter-spacing:.04em;margin-bottom:10px">위험도 등급</div>
+          <div id="cp-map-legend" style="font-size:11.5px"></div>
+          <div style="margin-top:16px;background:var(--navy-l);border-left:3px solid var(--navy);border-radius:4px;padding:10px 12px;font-size:10.5px;color:var(--navy);line-height:1.5">
+            마커 색상은 위험 등급을 나타냅니다. 실측 GIS 좌표는 추후 지도 API 연동 예정이며, 현재는 위험도 순 추상 배치입니다.
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 카드 리스트 -->
-    <div id="cp-list" class="mb16">
-      <div style="padding:40px;text-align:center;color:var(--gray4);font-size:12px">탭 진입 시 자동 로드됩니다…</div>
-    </div>
-
-    <!-- 상세 표 -->
-    <div class="card mb24">
-      <div class="sec-header" style="padding:12px 16px 4px;margin:0">
-        <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">민원 위험 상세 (전 관측소)</div>
+    <!-- ② 관측소별 민원 가능성 테이블 -->
+    <div class="card mb16">
+      <div class="sec-header" style="padding:12px 16px 4px;margin:0;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="sec-bar"></div>
+          <div class="sec-title" style="font-size:13px">관측소별 민원 가능성 <span style="font-weight:400;color:var(--gray4);font-size:11px">민원 발생 가능성 점수 + 권장 조치 · 가능성 순</span></div>
+        </div>
+        <div class="rp-period-chips" style="margin:0">
+          <div class="cp-chip active" data-filter="all">전체</div>
+          <div class="cp-chip" data-filter="높음">높음</div>
+          <div class="cp-chip" data-filter="보통">보통</div>
+          <div class="cp-chip" data-filter="낮음">낮음</div>
+          <div class="cp-chip" data-filter="residential">주거지</div>
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table class="data-table" id="complaint-table" style="width:100%"></table>
       </div>
+      <div style="font-size:10px;color:var(--gray4);padding:8px 16px">
+        ※ 민원 가능성 = 체감 포집량(35%) + 급증 신호(25%) + 야간 피크(25%) + 주거지 인접(15%) 종합.
+      </div>
     </div>
+
+    <!-- (숨김) 기존 카드 리스트 — 미사용 -->
+    <div id="cp-list" style="display:none"></div>
+    <span id="cp-count" style="display:none"></span>
   </div>
 
   <!-- ══════════ 11. 모스콤 관리자 (admin 전용) ══════════ -->
@@ -4394,79 +4419,148 @@ function buildCpItemCard(item, criteria) {
   `;
 }
 
-function renderComplaintList() {
-  const { data, filter } = CP_STATE;
-  const listEl = document.getElementById('cp-list');
-  const countEl = document.getElementById('cp-count');
+// 민원 위험 등급(높음/보통/낮음) → 색상 키(high/mid/low)
+function cpLevelKey(lv) { return lv === '높음' ? 'high' : lv === '보통' ? 'mid' : 'low'; }
+const CP_MARKER = { high: '#e74c3c', mid: '#f39c12', low: '#27ae60' };
+
+// KPI 4개 + 지도 렌더
+function renderComplaintTop() {
+  const { data } = CP_STATE;
   if (!data) return;
-  const items = data.items.filter(it => {
-    if (filter === 'all') return true;
-    if (filter === 'residential') return it.residential;
-    return it.complaint.level === filter;
-  });
-  countEl.textContent = `${items.length}개 장비 표시 / 전체 ${data.items.length}개`;
-  if (items.length === 0) {
-    listEl.innerHTML = `<div style="padding:30px;text-align:center;color:var(--gray4);font-size:12px">해당 조건에 맞는 장비가 없습니다</div>`;
-    return;
+  const items = data.items || [];
+  const high = items.filter(it => it.complaint.level === '높음');
+  const mid  = items.filter(it => it.complaint.level === '보통');
+  const low  = items.filter(it => it.complaint.level === '낮음');
+  const resi = items.filter(it => it.residential);
+
+  // KPI
+  const kpiEl = document.getElementById('cp-kpis');
+  if (kpiEl) {
+    const names = arr => arr.slice(0,2).map(it => stationName(it.name)).join(' / ') || '-';
+    kpiEl.innerHTML = `
+      <div class="kpi-card red"><div class="kpi-label">고위험 (민원 높음)</div><div class="kpi-value val-red">${high.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">${escapeHtml(names(high))}</div></div>
+      <div class="kpi-card teal"><div class="kpi-label">중위험 (민원 보통)</div><div class="kpi-value" style="color:#C05000">${mid.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">${escapeHtml(names(mid))}</div></div>
+      <div class="kpi-card green"><div class="kpi-label">저위험 (민원 낮음)</div><div class="kpi-value val-green">${low.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">${escapeHtml(names(low))}</div></div>
+      <div class="kpi-card navy"><div class="kpi-label">주거지 인접 관측소</div><div class="kpi-value val-navy">${resi.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">민원 우선 대응 대상</div></div>`;
   }
-  listEl.innerHTML = items.map(it => buildCpItemCard(it, data.criteria)).join('');
+
+  // 지도 마커 — 위험점수 순으로 그리드 자동 배치
+  const svg = document.getElementById('cp-map-svg');
+  const cntEl = document.getElementById('cp-map-count');
+  if (cntEl) cntEl.textContent = `총 ${items.length}개 관측소`;
+  if (svg) {
+    const sorted = items.slice().sort((a,b) => (b.complaint.score||0)-(a.complaint.score||0));
+    const W = 800, H = 460, cols = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(sorted.length))));
+    const rows = Math.ceil(sorted.length / cols);
+    const cw = W / (cols + 0.5), ch = H / (rows + 0.6);
+    let bg = `<rect width="${W}" height="${H}" fill="none"/>`;
+    // 옅은 그리드
+    for (let gx=0; gx<=cols; gx++) bg += `<line x1="${(gx+0.5)*cw - cw*0.25}" y1="20" x2="${(gx+0.5)*cw - cw*0.25}" y2="${H-20}" stroke="rgba(148,163,184,0.10)" stroke-width="1"/>`;
+    const markers = sorted.map((it, i) => {
+      const r = Math.floor(i / cols), c = i % cols;
+      const x = (c + 0.75) * cw, y = (r + 0.8) * ch;
+      const key = cpLevelKey(it.complaint.level);
+      const col = CP_MARKER[key];
+      const nm = stationName(it.name);
+      const pulse = key !== 'low'
+        ? `<circle cx="${x}" cy="${y}" r="20" fill="${col}" opacity="0.25"><animate attributeName="r" values="18;30;18" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.3;0.05;0.3" dur="2.2s" repeatCount="indefinite"/></circle>`
+        : '';
+      const icon = key === 'low' ? '✓' : '!';
+      return `<g>
+        ${pulse}
+        <circle cx="${x}" cy="${y}" r="13" fill="${col}" stroke="#fff" stroke-width="3"/>
+        <text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${icon}</text>
+        <rect x="${x-56}" y="${y+20}" width="112" height="30" rx="4" fill="rgba(255,255,255,0.94)" stroke="var(--gray3)" stroke-width="0.5"/>
+        <text x="${x}" y="${y+33}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--ink)">${escapeHtml(nm).slice(0,9)}</text>
+        <text x="${x}" y="${y+46}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${col}">민원 ${it.complaint.level} · ${it.complaint.score}</text>
+      </g>`;
+    }).join('');
+    svg.innerHTML = bg + markers;
+  }
+
+  // 범례
+  const lg = document.getElementById('cp-map-legend');
+  if (lg) {
+    lg.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.high};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">고위험 (민원↑)</span><strong>${high.length}</strong></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.mid};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">중위험 (관심)</span><strong>${mid.length}</strong></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.low};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">저위험 (안정)</span><strong>${low.length}</strong></div>`;
+  }
 }
 
 function renderComplaintTable() {
-  const { data } = CP_STATE;
+  const { data, filter } = CP_STATE;
   const t = document.getElementById('complaint-table');
   if (!data) return;
-  t.innerHTML = `<thead><tr>
-      <th>관측소</th><th>지역</th><th>금일</th><th>작일</th><th>7일 평균</th>
-      <th>위험 점수</th><th>위험 등급</th>
-      <th>민원 점수</th><th>민원 위험</th>
-      <th>주거지</th>
-      <th style="min-width:180px">주요 원인</th>
-    </tr></thead>
-    <tbody>${data.items.map(it => {
-      const causes = (it.causes || []).map(c => c.name).join(' · ');
-      const bg = cpLevelBg(it.complaint.level);
-      return `<tr>
-        <td><strong>${it.name}</strong><div style="font-size:10px;color:var(--gray4)">${it.address || '-'}</div></td>
-        <td style="font-size:11px">${it.region}</td>
-        <td style="font-family:var(--mono)">${it.today_count}</td>
-        <td style="font-family:var(--mono)">${it.yday_count}</td>
-        <td style="font-family:var(--mono)">${it.week_avg}</td>
-        <td style="font-family:var(--mono);font-weight:700">${it.risk.score}</td>
-        <td><span class="badge ${cpRiskBadgeCls(it.risk.level)}">${it.risk.level}</span></td>
-        <td style="font-family:var(--mono);font-weight:700">${it.complaint.score}</td>
-        <td><span style="padding:2px 8px;border-radius:10px;background:${bg.bg};color:${bg.color};font-size:10px;font-weight:700">${it.complaint.level}</span></td>
-        <td style="text-align:center">${it.residential ? '✓' : '·'}</td>
-        <td style="color:var(--gray5);font-size:11px">${causes || '-'}</td>
-      </tr>`;
-    }).join('')}</tbody>`;
+  let items = (data.items || []).filter(it => {
+    if (filter === 'all' || !filter) return true;
+    if (filter === 'residential') return it.residential;
+    return it.complaint.level === filter;
+  }).sort((a,b) => (b.complaint.score||0)-(a.complaint.score||0));
+
+  const head = `<thead><tr>
+      <th>관측소</th><th>특성</th>
+      <th style="text-align:center">위험도</th>
+      <th style="text-align:center">인구밀집도</th>
+      <th style="text-align:center;min-width:150px">민원 가능성</th>
+      <th>권장 조치</th>
+    </tr></thead>`;
+  if (!items.length) {
+    t.innerHTML = `${head}<tbody><tr><td colspan="6" style="text-align:center;color:var(--gray4);padding:24px">해당 조건의 관측소가 없습니다</td></tr></tbody>`;
+    return;
+  }
+  const bg = lv => cpLevelBg(lv);
+  const body = items.map(it => {
+    const h2 = (typeof classifyHabitat2 === 'function') ? classifyHabitat2(it) : { form:'', label:'' };
+    const hb = (typeof habitat2BadgeColor === 'function') ? habitat2BadgeColor(h2.form) : { bg:'#eee', color:'#666' };
+    const key = cpLevelKey(it.complaint.level);
+    const score = it.complaint.score || 0;
+    const dens = it.residential ? '높음 (주거지 인접)' : '낮음 (분산)';
+    const action = (it.actions || []).join(', ') || '모니터링 유지';
+    const gradeCls = cpRiskBadgeCls(it.risk.level);
+    return `<tr>
+      <td><strong>${escapeHtml(stationName(it.name))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(it.address || it.region || '-')}</div></td>
+      <td><span style="font-size:10px;font-weight:600;background:${hb.bg};color:${hb.color};padding:2px 8px;border-radius:10px;white-space:nowrap">${h2.label}</span></td>
+      <td style="text-align:center"><span class="badge ${gradeCls}">${it.risk.level}</span></td>
+      <td style="text-align:center;font-size:11px;color:var(--gray6)">${dens}</td>
+      <td style="text-align:center">
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+          <div style="width:90px;height:8px;background:var(--gray2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${score}%;background:${CP_MARKER[key]};border-radius:4px"></div></div>
+          <span style="font-family:var(--mono);font-weight:700;min-width:34px;text-align:right">${score}%</span>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--gray6)">${escapeHtml(action)}</td>
+    </tr>`;
+  }).join('');
+  t.innerHTML = head + '<tbody>' + body + '</tbody>';
 }
 
 async function buildComplaint() {
-  const listEl = document.getElementById('cp-list');
+  const svg = document.getElementById('cp-map-svg');
   try {
-    listEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--gray4);font-size:12px">AI 위험도 엔진 실행 중…</div>`;
+    if (svg) svg.innerHTML = `<text x="400" y="230" text-anchor="middle" fill="#94a3b8" font-size="13">민원 위험 분석 중…</text>`;
     const res = await fetch('/mosquito-test/api/complaint-risk/', { credentials: 'same-origin' });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
     CP_STATE.data = json;
     const sub = document.getElementById('cp-sub');
-    if (sub) sub.textContent = `${json.count}개 장비 · ${json.today || '-'} 기준`;
-    renderComplaintList();
+    if (sub) sub.textContent = `${json.count}개 관측소 · ${json.today || '-'} 기준`;
+    renderComplaintTop();
     renderComplaintTable();
   } catch (err) {
-    listEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--red);font-size:12px">로드 실패: ${err.message}</div>`;
+    const map = document.getElementById('cp-map-svg');
+    if (map) map.innerHTML = `<text x="400" y="230" text-anchor="middle" fill="#c0392b" font-size="14">로드 실패: ${escapeHtml(err.message)}</text>`;
   }
 }
 
-// 필터 칩 이벤트
+// 필터 칩 이벤트 (테이블만 필터링)
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.cp-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.cp-chip').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       CP_STATE.filter = btn.dataset.filter;
-      renderComplaintList();
+      renderComplaintTable();
     });
   });
 });
