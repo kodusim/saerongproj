@@ -147,13 +147,21 @@ def _validate(plan, require_all=True):
         raise ValueError(' / '.join(errs))
 
 
-def create_plan(owner_id, device_uuid, method_key, scheduled_date, note=''):
+def create_plan(owner_id, device_uuid, method_key, scheduled_date, note='', method_keys=None):
+    """방역 방법 최대 3개(method_keys). method_key(단수)는 하위호환 — method_keys[0]."""
     now = datetime.utcnow().isoformat() + 'Z'
+    # method_keys 정규화: 유효한 METHODS 키만, '없음'/'' 제거, 최대 3개
+    if method_keys is None:
+        method_keys = [method_key] if method_key else []
+    mks = [m for m in method_keys if m and m in METHODS][:3]
+    if not mks:
+        raise ValueError('방역 방법1은 필수입니다')
     plan = {
         'id': 'r_' + uuid.uuid4().hex[:10],
         'owner_id': owner_id,
         'device_uuid': device_uuid,
-        'method_key': method_key,
+        'method_key': mks[0],          # 하위호환
+        'method_keys': mks,            # 다중 방역
         'scheduled_date': scheduled_date,
         'note': (note or '').strip()[:200],
         'created_at': now,
@@ -170,7 +178,12 @@ def update_plan(plan_id, patch):
     data = _load()
     for p in data:
         if p.get('id') == plan_id:
-            merged = {**p, **{k: v for k, v in patch.items() if k in ('device_uuid','method_key','scheduled_date','note')}}
+            merged = {**p, **{k: v for k, v in patch.items() if k in ('device_uuid','method_key','method_keys','scheduled_date','note')}}
+            if 'method_keys' in patch:
+                mks = [m for m in (patch.get('method_keys') or []) if m and m in METHODS][:3]
+                if mks:
+                    merged['method_keys'] = mks
+                    merged['method_key'] = mks[0]
             _validate(merged, require_all=False)
             merged['note'] = (merged.get('note') or '').strip()[:200]
             merged['updated_at'] = datetime.utcnow().isoformat() + 'Z'
@@ -219,20 +232,23 @@ def adjustment_factor(device_uuid, target_date):
         sched = _parse_date(p.get('scheduled_date'))
         if not sched:
             continue
-        method = METHODS.get(p.get('method_key'))
-        if not method:
-            continue
-        start = sched + timedelta(days=method['onset_days'])
-        end = start + timedelta(days=method['duration_days'])
-        if start <= td <= end:
-            factor *= (1 - method['reduction_pct'] / 100.0)
-            applied.append({
-                'plan_id': p['id'],
-                'method_key': method['key'],
-                'method_name': method['name'],
-                'scheduled_date': p['scheduled_date'],
-                'reduction_pct': method['reduction_pct'],
-            })
+        # plan의 모든 방역 방법(최대 3개) 각각 효과창에서 곱셈 누적
+        mks = p.get('method_keys') or ([p.get('method_key')] if p.get('method_key') else [])
+        for mk in mks:
+            method = METHODS.get(mk)
+            if not method:
+                continue
+            start = sched + timedelta(days=method['onset_days'])
+            end = start + timedelta(days=method['duration_days'])
+            if start <= td <= end:
+                factor *= (1 - method['reduction_pct'] / 100.0)
+                applied.append({
+                    'plan_id': p['id'],
+                    'method_key': method['key'],
+                    'method_name': method['name'],
+                    'scheduled_date': p['scheduled_date'],
+                    'reduction_pct': method['reduction_pct'],
+                })
     return factor, applied
 
 

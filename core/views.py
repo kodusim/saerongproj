@@ -2267,6 +2267,7 @@ def moscom_remedy_api(request):
                 owner_id=su.get('login_id', ''),
                 device_uuid=dev_uuid,
                 method_key=body.get('method_key'),
+                method_keys=body.get('method_keys'),
                 scheduled_date=body.get('scheduled_date'),
                 note=body.get('note', ''),
             )
@@ -2305,6 +2306,126 @@ def moscom_remedy_detail_api(request, plan_id):
     except ValueError as e:
         return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+@require_GET
+def moscom_remedy_template(request):
+    """방역 실시 내역 일괄등록용 엑셀 템플릿(.xlsx) 다운로드."""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    wb = Workbook()
+    ws = wb.active
+    ws.title = '방역실시내역'
+    headers = ['대상 관측소', '방역 방법1(필수)', '방역 방법2', '방역 방법3', '실시일(YYYY-MM-DD)', '비고']
+    ws.append(headers)
+    for c in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=c)
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill('solid', fgColor='1B3A6B')
+    # 예시 행
+    method_names = [m['name'] for m in remedy_store.list_methods()]
+    ws.append(['관측소명 예: 정자공원', method_names[0] if method_names else '', '없음', '없음', '2026-06-14', '예시 — 삭제 후 입력'])
+    # 안내 시트(유효 방역명 목록)
+    ws2 = wb.create_sheet('방역방법 목록')
+    ws2.append(['사용 가능한 방역 방법명 (그대로 복사해 입력)'])
+    for n in method_names:
+        ws2.append([n])
+    ws2.append(['없음 (방법2·3 비울 때)'])
+    ws.column_dimensions['A'].width = 22
+    for col in ['B', 'C', 'D']:
+        ws.column_dimensions[col].width = 24
+    ws.column_dimensions['E'].width = 18
+    ws.column_dimensions['F'].width = 24
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    resp = HttpResponse(buf.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = 'attachment; filename="remedy_template.xlsx"'
+    return resp
+
+
+@csrf_exempt
+@require_POST
+def moscom_remedy_import(request):
+    """엑셀(.xlsx) 업로드 → 방역 실시 내역 일괄 등록.
+    컬럼: 대상 관측소 / 방역 방법1(필수) / 방역 방법2 / 방역 방법3 / 실시일 / 비고
+    관측소명·한글 방역명으로 매칭. 행별 결과 반환.
+    """
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    f = request.FILES.get('file')
+    if not f:
+        return JsonResponse({'error': '파일이 없습니다'}, status=400)
+    su = _current_session_user(request)
+    visible = _visible_uuids_for(request)
+
+    # 관측소명 → uuid 맵 (정제명/원본명 모두 키로)
+    devices = moscom_client.list_devices()
+    devices = user_store.filter_devices(su, devices)
+    name_to_uuid = {}
+    for d in devices:
+        dv = d.get('device') or {}
+        u = d.get('device_uuid')
+        for nm in {(dv.get('device_name') or '').strip(), _station_name(dv.get('device_name') or '')}:
+            if nm:
+                name_to_uuid[nm] = u
+    # 한글 방역명 → key 맵
+    name_to_method = {m['name']: m['key'] for m in remedy_store.list_methods()}
+
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(f, read_only=True, data_only=True)
+        ws = wb.active
+    except Exception as e:
+        return JsonResponse({'error': f'엑셀 읽기 실패: {e}'}, status=400)
+
+    def norm_method(v):
+        s = (v or '').strip()
+        if not s or s in ('없음', '-', 'N/A', 'na'):
+            return None
+        return name_to_method.get(s, '__INVALID__' if s else None)
+
+    results = {'ok': 0, 'fail': 0, 'errors': []}
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    for i, row in enumerate(rows, start=2):
+        if not row or all(c is None or str(c).strip() == '' for c in row):
+            continue
+        cells = list(row) + [None] * (6 - len(row))
+        station = (str(cells[0]).strip() if cells[0] is not None else '')
+        m1, m2, m3 = norm_method(cells[1]), norm_method(cells[2]), norm_method(cells[3])
+        sched = cells[4]
+        note = (str(cells[5]).strip() if cells[5] is not None else '')
+        # 예시 행 스킵
+        if station.startswith('관측소명 예'):
+            continue
+        # 실시일 정규화
+        if hasattr(sched, 'strftime'):
+            sched = sched.strftime('%Y-%m-%d')
+        else:
+            sched = (str(sched).strip()[:10] if sched is not None else '')
+        # 검증
+        uuid_ = name_to_uuid.get(station)
+        if not uuid_:
+            results['fail'] += 1; results['errors'].append(f'{i}행: 관측소 "{station}" 매칭 실패'); continue
+        if visible is not None and uuid_ not in visible:
+            results['fail'] += 1; results['errors'].append(f'{i}행: 권한 없는 관측소 "{station}"'); continue
+        if m1 is None or m1 == '__INVALID__':
+            results['fail'] += 1; results['errors'].append(f'{i}행: 방역 방법1이 비었거나 잘못됨'); continue
+        mks = [m1] + [m for m in (m2, m3) if m and m != '__INVALID__']
+        try:
+            remedy_store.create_plan(
+                owner_id=su.get('login_id', ''), device_uuid=uuid_,
+                method_key=mks[0], method_keys=mks, scheduled_date=sched, note=note,
+            )
+            results['ok'] += 1
+        except ValueError as e:
+            results['fail'] += 1; results['errors'].append(f'{i}행: {e}')
+    return JsonResponse(results)
 
 
 @require_GET

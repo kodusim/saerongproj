@@ -1782,11 +1782,17 @@ body {
         </div>
 
         <div class="rm-field">
-          <label>방역 방법</label>
-          <select id="rm-method">
-            <option value="">— 선택 —</option>
-          </select>
+          <label>방역 방법1 <span style="color:var(--red)">*필수</span></label>
+          <select id="rm-method"><option value="">— 선택 —</option></select>
           <div id="rm-method-info" class="rm-method-info" style="display:none"></div>
+        </div>
+        <div class="rm-field">
+          <label>방역 방법2 (선택)</label>
+          <select id="rm-method2"><option value="">없음</option></select>
+        </div>
+        <div class="rm-field">
+          <label>방역 방법3 (선택)</label>
+          <select id="rm-method3"><option value="">없음</option></select>
         </div>
 
         <div class="rm-field">
@@ -1802,6 +1808,20 @@ body {
         <button class="ma-primary-btn" id="rm-save-btn" onclick="rmSubmit()">방역 실시 내역 등록</button>
         <button class="ma-sm-btn" id="rm-cancel-btn" style="width:100%;margin-top:6px;display:none" onclick="rmCancelEdit()">취소</button>
         <div id="rm-msg"></div>
+
+        <!-- 엑셀 일괄 등록 -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--gray3)">
+          <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">엑셀 일괄 등록</div>
+          <div id="rm-drop" style="border:2px dashed var(--gray3);border-radius:8px;padding:18px 12px;text-align:center;font-size:11px;color:var(--gray4);cursor:pointer;background:var(--gray1)">
+            엑셀(.xlsx) 파일을 여기로 드래그하거나 클릭해서 선택<br>
+            <span style="font-size:10px">관측소명·방역방법명 기준 · 형식은 템플릿 참고</span>
+          </div>
+          <input type="file" id="rm-file" accept=".xlsx" style="display:none">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <a href="/mosquito-test/api/remedy/template/" class="ma-sm-btn" style="flex:1;text-align:center;text-decoration:none">📄 템플릿 다운로드</a>
+          </div>
+          <div id="rm-import-msg" style="font-size:11px;margin-top:8px"></div>
+        </div>
       </div>
 
       <!-- 오른쪽: 계획 목록 -->
@@ -4284,11 +4304,15 @@ function renderRmDeviceSelect() {
 }
 
 function renderRmMethodSelect() {
-  const sel = document.getElementById('rm-method');
-  if (!sel) return;
-  sel.innerHTML = `<option value="">— 선택 —</option>` + RM_STATE.methods.map(m =>
+  const opts = RM_STATE.methods.map(m =>
     `<option value="${m.key}">${m.name} · -${m.reduction_pct}% / ${m.duration_days}일</option>`
   ).join('');
+  const s1 = document.getElementById('rm-method');
+  if (s1) s1.innerHTML = `<option value="">— 선택 —</option>` + opts;
+  const s2 = document.getElementById('rm-method2');
+  if (s2) s2.innerHTML = `<option value="">없음</option>` + opts;
+  const s3 = document.getElementById('rm-method3');
+  if (s3) s3.innerHTML = `<option value="">없음</option>` + opts;
 }
 
 function renderRmList() {
@@ -4312,9 +4336,12 @@ function renderRmList() {
     const cls = rmTargetClass(m.target);
     const st = rmStatus(p, m);
     const devName = nameMap[p.device_uuid] || p.device_uuid;
+    // 다중 방역 방법명 (method_keys 전부)
+    const mks = p.method_keys && p.method_keys.length ? p.method_keys : [p.method_key];
+    const methodNames = mks.map(k => (RM_STATE.methods.find(x => x.key === k) || {}).name || k).join(' + ');
     return `<div class="rm-plan-row ${cls}">
       <div>
-        <div class="rm-plan-head">${m.name || p.method_key} <span class="rm-status ${st.cls}">${st.label}</span></div>
+        <div class="rm-plan-head">${methodNames} <span class="rm-status ${st.cls}">${st.label}</span></div>
         <div class="rm-plan-meta">
           <span>🦟 ${devName}</span>
           <span>📅 ${p.scheduled_date}</span>
@@ -4334,6 +4361,45 @@ function renderRmList() {
   }).join('');
 }
 
+// 엑셀 드래그&드롭 일괄 등록 (한 번만 바인딩)
+let RM_IMPORT_BOUND = false;
+function rmInitImport() {
+  if (RM_IMPORT_BOUND) return;
+  const drop = document.getElementById('rm-drop');
+  const file = document.getElementById('rm-file');
+  if (!drop || !file) return;
+  RM_IMPORT_BOUND = true;
+  drop.addEventListener('click', () => file.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.background = 'var(--navy-l)'; });
+  drop.addEventListener('dragleave', () => { drop.style.background = 'var(--gray1)'; });
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.style.background = 'var(--gray1)';
+    if (e.dataTransfer.files.length) rmUploadExcel(e.dataTransfer.files[0]);
+  });
+  file.addEventListener('change', e => { if (e.target.files.length) rmUploadExcel(e.target.files[0]); });
+}
+
+async function rmUploadExcel(f) {
+  const msg = document.getElementById('rm-import-msg');
+  if (!f.name.toLowerCase().endsWith('.xlsx')) { msg.innerHTML = '<span style="color:var(--red)">.xlsx 파일만 가능합니다 (템플릿 사용 권장)</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--gray4)">업로드·등록 중…</span>';
+  const fd = new FormData(); fd.append('file', f);
+  try {
+    const r = await fetch('/mosquito-test/api/remedy/import/', { method: 'POST', credentials: 'same-origin', body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    let html = `<div style="color:#1B5E20;font-weight:700">✓ ${j.ok}건 등록${j.fail ? `, <span style="color:var(--red)">${j.fail}건 실패</span>` : ''}</div>`;
+    if (j.errors && j.errors.length) html += `<div style="color:var(--red);font-size:10px;margin-top:4px;max-height:120px;overflow-y:auto">${j.errors.map(escapeHtml).join('<br>')}</div>`;
+    msg.innerHTML = html;
+    document.getElementById('rm-file').value = '';
+    // 목록 새로고침
+    const rm = await fetch('/mosquito-test/api/remedy/', { credentials: 'same-origin' }).then(r => r.json());
+    RM_STATE.plans = rm.plans || []; renderRmList();
+  } catch (e) {
+    msg.innerHTML = `<span style="color:var(--red)">등록 실패: ${escapeHtml(e.message)}</span>`;
+  }
+}
+
 async function buildRemedy() {
   try {
     // 장비 + 방역 방법 + 계획 병렬 로드
@@ -4344,9 +4410,9 @@ async function buildRemedy() {
     RM_STATE.devices = dv.devices || [];
     RM_STATE.plans = rm.plans || [];
     RM_STATE.methods = rm.methods || [];
-    // 오늘 날짜 기본값
-    const today = new Date();
-    const iso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    // 실시일 기본값: 전일
+    const yday = new Date(); yday.setDate(yday.getDate() - 1);
+    const iso = `${yday.getFullYear()}-${String(yday.getMonth()+1).padStart(2,'0')}-${String(yday.getDate()).padStart(2,'0')}`;
     const dateInp = document.getElementById('rm-date');
     if (dateInp && !dateInp.value) dateInp.value = iso;
     renderRmDeviceSelect();
@@ -4354,6 +4420,7 @@ async function buildRemedy() {
     renderRmList();
     renderRmMethodTable();
     renderRmMethodInfo();
+    rmInitImport();
   } catch (e) {
     rmMsg('로드 실패: ' + e.message, 'err');
   }
@@ -4379,8 +4446,11 @@ function rmCancelEdit() {
   document.getElementById('rm-form-title').textContent = '새 방역 실시 내역 등록';
   document.getElementById('rm-device').value = '';
   document.getElementById('rm-method').value = '';
-  const today = new Date();
-  document.getElementById('rm-date').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const m2 = document.getElementById('rm-method2'); if (m2) m2.value = '';
+  const m3 = document.getElementById('rm-method3'); if (m3) m3.value = '';
+  // 실시일 디폴트: 전일 (종합현황과 동일)
+  const yday = new Date(); yday.setDate(yday.getDate() - 1);
+  document.getElementById('rm-date').value = `${yday.getFullYear()}-${String(yday.getMonth()+1).padStart(2,'0')}-${String(yday.getDate()).padStart(2,'0')}`;
   document.getElementById('rm-note').value = '';
   document.getElementById('rm-save-btn').textContent = '방역 실시 내역 등록';
   document.getElementById('rm-cancel-btn').style.display = 'none';
@@ -4390,12 +4460,17 @@ function rmCancelEdit() {
 async function rmSubmit() {
   const devUuid = document.getElementById('rm-device').value;
   const methodKey = document.getElementById('rm-method').value;
+  const m2 = (document.getElementById('rm-method2') || {}).value || '';
+  const m3 = (document.getElementById('rm-method3') || {}).value || '';
   const sched = document.getElementById('rm-date').value;
   const note = document.getElementById('rm-note').value;
   if (!devUuid || !methodKey || !sched) {
-    rmMsg('장비·방법·날짜를 모두 선택하세요', 'err');
+    rmMsg('관측소·방역 방법1·실시일은 필수입니다', 'err');
     return;
   }
+  // 방법1/2/3 (중복 제거, 빈값 제외)
+  const methodKeys = [methodKey, m2, m3].filter((v, i, a) => v && a.indexOf(v) === i);
+  const payload = { device_uuid: devUuid, method_key: methodKey, method_keys: methodKeys, scheduled_date: sched, note };
   const btn = document.getElementById('rm-save-btn');
   btn.disabled = true;
   try {
@@ -4404,13 +4479,13 @@ async function rmSubmit() {
       res = await fetch(`/mosquito-test/api/remedy/${encodeURIComponent(RM_STATE.editingId)}/`, {
         method: 'PUT', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_uuid: devUuid, method_key: methodKey, scheduled_date: sched, note }),
+        body: JSON.stringify(payload),
       });
     } else {
       res = await fetch('/mosquito-test/api/remedy/', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_uuid: devUuid, method_key: methodKey, scheduled_date: sched, note }),
+        body: JSON.stringify(payload),
       });
     }
     const json = await res.json();
