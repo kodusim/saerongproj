@@ -209,6 +209,8 @@ def device_list(request):
                 'weather_synced_at': d.weather_synced_at.isoformat() if d.weather_synced_at else None,
                 'region_code': d.region_code,
                 'region_name': region_map.get(d.region_code, d.region_code or '미지정'),
+                'region_type': d.region_type,
+                'form_type': d.form_type,
             }
             for d in qs
         ],
@@ -324,7 +326,8 @@ def device_update(request, device_id):
         return JsonResponse({'error': 'JSON 파싱 실패'}, status=400)
     EDITABLE = ['device_name', 'address_sido', 'address_gungu', 'address_dong',
                 'address_detail', 'latitude', 'longitude', 'on_time', 'co2_on_time',
-                'normal_max', 'warning_max', 'bad_min']
+                'normal_max', 'warning_max', 'bad_min',
+                'region_type', 'form_type']
     actor = _admin_name(request)
     for k in EDITABLE:
         if k in body:

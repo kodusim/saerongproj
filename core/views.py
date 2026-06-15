@@ -410,6 +410,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
     weather_map = {}
     region_map_per_uuid = {}  # uuid → (code, name)
     region_name_by_code = {}
+    habitat_map = {}  # uuid → (region_type, form_type) 수동 지정값
     try:
         from moscom.models import Device as MoscomDevice, Region as MoscomRegion
         region_name_by_code = {r.code: r.name for r in MoscomRegion.objects.all()}
@@ -424,6 +425,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
                 md.region_code or '',
                 region_name_by_code.get(md.region_code, md.region_code) or '미지정',
             )
+            habitat_map[md.device_uuid] = (md.region_type or '', md.form_type or '')
     except Exception:
         pass
 
@@ -435,12 +437,15 @@ def _build_overview_data(su, date_str='', hour_str=''):
         addr = ' '.join(p for p in [dv.get('address_gungu'), dv.get('address_dong')] if p and len(p) < 40 and _valid_kor(p)) or ''
         w = weather_map.get(d.get('device_uuid'), {})
         rc, rn = region_map_per_uuid.get(d.get('device_uuid'), ('', '미지정'))
+        rt, ft = habitat_map.get(d.get('device_uuid'), ('', ''))
         meta[d.get('device_uuid')] = {
             'name': nm, 'addr': addr,
             # 51마리 이상 = 이상 (전역 통일)
             'bad_min': ANOMALY_THRESHOLD,
             'region_code': rc,
             'region_name': rn,
+            'region_type': rt,
+            'form_type': ft,
             'battery': dv.get('battery') or 0,
             'fan': dv.get('fan') or 0,
             'updated_date': dv.get('updated_date'),
@@ -668,6 +673,9 @@ def _build_overview_data(su, date_str='', hour_str=''):
             # 권역
             'region_code': m.get('region_code') or '',
             'region_name': m.get('region_name') or '미지정',
+            # 2축 분류 (수동 지정값 — 비면 JS에서 자동추정)
+            'region_type': m.get('region_type') or '',
+            'form_type': m.get('form_type') or '',
         })
 
     # 포집량 내림차순 정렬
@@ -2569,6 +2577,14 @@ def moscom_complaint_risk(request):
         # 1) 장비 메타
         devices = moscom_client.list_devices()
         devices = user_store.filter_devices(_current_session_user(request), devices)
+        # 수동 지정 2축 분류 lookup (uuid → (region_type, form_type))
+        habitat_map = {}
+        try:
+            from moscom.models import Device as MoscomDevice
+            for md in MoscomDevice.objects.all():
+                habitat_map[md.device_uuid] = (md.region_type or '', md.form_type or '')
+        except Exception:
+            pass
         meta = {}
         for d in devices:
             u = d.get('device_uuid')
@@ -2579,6 +2595,7 @@ def moscom_complaint_risk(request):
             dong = (dv.get('address_dong') or '').strip()
             detail = (dv.get('address_detail') or '').strip()
             bad_min = ((dv.get('deviceSetting') or {}).get('bad_min')) or 100
+            rt, ft = habitat_map.get(u, ('', ''))
             meta[u] = {
                 'name': name,
                 'sido': sido if _valid_kor(sido) else '',
@@ -2586,6 +2603,8 @@ def moscom_complaint_risk(request):
                 'dong': dong if _valid_kor(dong) else '',
                 'detail': detail if _valid_kor(detail) else '',
                 'bad_min': bad_min,
+                'region_type': rt,
+                'form_type': ft,
             }
 
         # 2) 7일 통계 (장비별 일별 포집량)
@@ -2751,6 +2770,8 @@ def moscom_complaint_risk(request):
                 'name': m['name'],
                 'region': region,
                 'address': ' '.join(p for p in [m['gungu'], m['dong'], m['detail']] if p),
+                'region_type': m.get('region_type') or '',
+                'form_type': m.get('form_type') or '',
                 'bad_min': m['bad_min'],
                 'today_count': today_cnt,
                 'yday_count': yday_cnt,

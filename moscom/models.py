@@ -64,6 +64,11 @@ class Device(models.Model):
     # 권역 코드 (device_name prefix 에서 자동 추출 — 예: KH, GH서, BD, HY)
     region_code = models.CharField('권역 코드', max_length=20, blank=True, default='', db_index=True)
 
+    # 2축 분류 (관리자 수동 지정 — 비어있으면 이름·주소 키워드로 자동 추정)
+    # 지역: 농촌/구도심/도심/신도심 · 형태: 공원/주택가/수변부
+    region_type = models.CharField('지역 분류', max_length=20, blank=True, default='')
+    form_type = models.CharField('형태 분류', max_length=20, blank=True, default='')
+
     class Meta:
         ordering = ['address_sido', 'address_gungu', 'address_dong', 'device_name']
         verbose_name = 'MOSCOM 장비'

@@ -2551,8 +2551,9 @@ function classifyFormAxis(d) {
   return '주택가';  // 기본값
 }
 function classifyHabitat2(d) {
-  const region = classifyRegionAxis(d);
-  const form = classifyFormAxis(d);
+  // 관리자가 수동 지정한 값(region_type/form_type) 우선, 없으면 이름·주소로 자동 추정
+  const region = (d && d.region_type) ? d.region_type : classifyRegionAxis(d);
+  const form = (d && d.form_type) ? d.form_type : classifyFormAxis(d);
   return { region, form, label: `${region}${form}` };  // 예: 도심공원
 }
 // 형태축 기준 색상(수변부/공원/주택가)
@@ -5722,6 +5723,14 @@ async function dmDeleteRegion(code, btn) {
   }
 }
 
+// 지역/형태 드롭다운 셀 — 빈 값은 '(자동)' = 이름·주소로 자동 추정
+function dmSelectCell(field, current, opts) {
+  const cur = current || '';
+  const o = [`<option value=""${cur===''?' selected':''}>(자동)</option>`]
+    .concat(opts.map(v => `<option value="${v}"${cur===v?' selected':''}>${v}</option>`));
+  return `<select class="dm-cell" data-f="${field}" style="padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;font-size:11px">${o.join('')}</select>`;
+}
+
 async function dmRenderDevices() {
   const host = document.getElementById('dm-content');
   try {
@@ -5737,6 +5746,8 @@ async function dmRenderDevices() {
             <th style="padding:6px">시도</th>
             <th style="padding:6px">군구</th>
             <th style="padding:6px">동</th>
+            <th style="padding:6px">지역</th>
+            <th style="padding:6px">형태</th>
             <th style="padding:6px;text-align:right">기온</th>
             <th style="padding:6px;text-align:right">습도</th>
             <th style="padding:6px;text-align:right">정상≤</th>
@@ -5751,6 +5762,8 @@ async function dmRenderDevices() {
             <td style="padding:6px;text-align:center"><input class="dm-cell" data-f="address_sido" value="${_esc(d.address_sido)}" style="width:70px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
             <td style="padding:6px;text-align:center"><input class="dm-cell" data-f="address_gungu" value="${_esc(d.address_gungu)}" style="width:90px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
             <td style="padding:6px;text-align:center"><input class="dm-cell" data-f="address_dong" value="${_esc(d.address_dong)}" style="width:90px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px"></td>
+            <td style="padding:6px;text-align:center">${dmSelectCell('region_type', d.region_type, ['농촌','구도심','도심','신도심'])}</td>
+            <td style="padding:6px;text-align:center">${dmSelectCell('form_type', d.form_type, ['공원','주택가','수변부'])}</td>
             <td style="padding:6px;text-align:right;font-family:var(--mono);color:var(--gray5)">${d.temperature != null ? d.temperature+'°C' : '-'}</td>
             <td style="padding:6px;text-align:right;font-family:var(--mono);color:var(--gray5)">${d.humidity != null ? d.humidity+'%' : '-'}</td>
             <td style="padding:6px;text-align:right"><input class="dm-cell" data-f="normal_max" type="number" value="${d.thresholds.normal_max}" style="width:55px;padding:3px 6px;border:1px solid var(--gray3);border-radius:3px;text-align:right"></td>
