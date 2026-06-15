@@ -1991,6 +1991,21 @@ def moscom_equipment_health(request):
             if u and date:
                 daily[u][date] += (r.get('mosquito_count') or 0)
 
+        # 최근 1시간 수신 횟수 — raw 통계 레코드 수로 집계 (관측소별)
+        recv_1h = defaultdict(int)
+        try:
+            h1_start = (now - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            h1_end = now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            raw1h = moscom_client.get_statistics_by_date(
+                start_dt=h1_start, end_dt=h1_end, aggregation='raw', device_uuid='0',
+            ) or []
+            for r in raw1h:
+                u = r.get('device_uuid')
+                if u:
+                    recv_1h[u] += 1
+        except Exception as e:
+            logger.warning(f'equipment recv_1h failed: {e}')
+
         def parse_iso(s):
             if not s:
                 return None
@@ -2093,6 +2108,7 @@ def moscom_equipment_health(request):
                 'charge': charge,
                 'updated_date': dv.get('updated_date'),
                 'delay_minutes': round(delay_min, 1) if delay_min < 99999 else None,
+                'recv_1h': recv_1h.get(u, 0),
                 'status': status,
                 'trust': trust,
                 'trust_score': trust_score,

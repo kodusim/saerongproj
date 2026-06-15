@@ -4681,7 +4681,7 @@ async function buildEquipment() {
     const t = document.getElementById('equipment-table');
     t.innerHTML = `<thead><tr>
         <th>관측소</th><th>상태</th>
-        <th>배터리</th><th>팬</th><th>수신 지연</th>
+        <th>배터리</th><th>팬</th><th>최근 1h 수신</th>
         <th>최종 수신</th><th>이상 / 조치</th>
       </tr></thead>
       <tbody>${json.items.map(it => {
@@ -4699,7 +4699,7 @@ async function buildEquipment() {
           <td><span class="badge ${statusBadgeCls}">${statusLabel}</span></td>
           <td style="font-family:var(--mono);color:${(it.battery || 0) < 20 ? 'var(--red);font-weight:700' : 'var(--gray6)'}">${it.battery || 0}%</td>
           <td>${it.fan === 1 ? '<span style="color:var(--green)">▶ ON</span>' : '<span style="color:var(--gray4)">■ OFF</span>'}</td>
-          <td style="font-family:var(--mono);font-size:11px;color:${measuring && (it.delay_minutes || 0) > 720 ? 'var(--red)' : 'var(--gray5)'}">${eqFormatDelay(it.delay_minutes)}</td>
+          <td style="font-family:var(--mono);font-size:12px;font-weight:600;color:${(it.recv_1h || 0) === 0 ? 'var(--red)' : 'var(--gray6)'}">${it.recv_1h || 0}회</td>
           <td style="font-family:var(--mono);font-size:10px;color:${showAsOk ? 'var(--gray5)' : 'var(--red)'}">${(it.updated_date || '-').slice(0, 16).replace('T', ' ')}</td>
           <td style="font-size:11px;color:${showAsOk ? 'var(--gray5)' : 'var(--red)'};${showAsOk ? '' : 'font-weight:600'}">
             ${measuring ? `<div>${issues}</div><div style="color:var(--teal);margin-top:2px">→ ${it.action}</div>` : `<div style="color:var(--gray4);font-style:italic">측정 전 — 18시 이후 판정</div>`}
