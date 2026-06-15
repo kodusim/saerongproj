@@ -1290,7 +1290,7 @@ body {
           <option value="">하루 집계</option>
         </select>
       </div>
-      <button id="ov-today-btn" onclick="ovApplyDefault()" style="padding:5px 12px;border:1px solid var(--gray3);background:var(--gray1);border-radius:6px;font-size:12px;cursor:pointer">기본값(전일)</button>
+      <button id="ov-today-btn" onclick="ovApplyDefault()" style="padding:5px 12px;border:1px solid var(--gray3);background:var(--gray1);border-radius:6px;font-size:12px;cursor:pointer">기본값(작일)</button>
       <span id="ov-applied" style="margin-left:auto;font-size:11px;color:var(--gray4)"></span>
     </div>
 
@@ -1314,7 +1314,7 @@ body {
           <thead id="ov-station-thead">
             <tr>
               <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>위험 등급</th>
-              <th>기준일</th><th>전일</th><th>7일 평균</th>
+              <th>기준일</th><th>작일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
           </thead>
@@ -1335,8 +1335,8 @@ body {
     <div class="card mb16" style="padding:12px 16px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:8px">
-          <button id="heatmap-prev" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">&lt; 어제</button>
-          <button id="heatmap-next" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">오늘 &gt;</button>
+          <button id="heatmap-prev" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">&lt; 작일</button>
+          <button id="heatmap-next" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">금일 &gt;</button>
           <span id="heatmap-range" style="font-size:12px;font-weight:600;color:var(--navy);margin-left:8px"></span>
         </div>
         <div style="font-size:12px;color:var(--gray4)">요약 분석: 준비중</div>
@@ -1622,7 +1622,7 @@ body {
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:24px">🚨</span>
         <div style="flex:1;min-width:200px">
-          <div style="font-size:11px;font-weight:700;color:var(--gray5);letter-spacing:.04em">오늘의 핵심 알림</div>
+          <div style="font-size:11px;font-weight:700;color:var(--gray5);letter-spacing:.04em">금일의 핵심 알림</div>
           <div id="fb-headline-text" style="font-size:14px;font-weight:700;color:#7A4500;margin-top:3px">데이터 로드 중…</div>
         </div>
         <button class="dl-btn" id="fb-refresh" onclick="fbLoad(true)" style="padding:5px 12px;font-size:11px">↻ 새로고침</button>
@@ -1993,7 +1993,7 @@ body {
 
     <!-- 권역별 포집 카드 + 매개체 위험 카드 (요약 데이터) -->
     <div id="aj-data-cards" class="mb16" style="display:none">
-      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (기준일, 어제)</div></div>
+      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (기준일, 작일)</div></div>
       <div id="aj-regions" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
 
       <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">🦟 매개체 위험 평가</div></div>
@@ -2442,7 +2442,7 @@ function renderOvKpis(json) {
     <div class="kpi-card navy">
       <div class="kpi-label">기준일 포집 합계</div>
       <div class="kpi-value val-navy">${(kpi.today_total || 0).toLocaleString()}</div>
-      <div class="kpi-sub" style="color:${changeColor}"><strong>${changeArrow} ${change >= 0 ? '+' : ''}${change}%</strong> 전일 대비</div>
+      <div class="kpi-sub" style="color:${changeColor}"><strong>${changeArrow} ${change >= 0 ? '+' : ''}${change}%</strong> 작일 대비</div>
     </div>
     <div class="kpi-card red">
       <div class="kpi-label">최다 포집 관측소</div>
@@ -2564,7 +2564,7 @@ function renderOvStationTable(json) {
   if (thead) {
     thead.innerHTML = `<tr>
       <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>위험 등급</th>
-      <th>기준일</th><th>전일</th><th>7일 평균</th>
+      <th>기준일</th><th>작일</th><th>7일 평균</th>
       <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
     </tr>`;
   }
@@ -2926,7 +2926,7 @@ async function buildAnomalyAll(){
             <div class="anomaly-title">포집량 이상 감지 — ${stationName(top.name)}${top.addr ? ' ('+top.addr+')' : ''}</div>
             <div class="anomaly-body">
               금일 <strong>${top.today}마리</strong> 포집으로 장비 경보 기준 <strong>${top.badMin}마리</strong> 초과.
-              전일 <strong>${top.yday}마리</strong> ${top.pct !== null ? '· 변화율 <strong>'+(top.pct>=0?'+':'')+top.pct+'%</strong>' : ''} ·
+              작일 <strong>${top.yday}마리</strong> ${top.pct !== null ? '· 변화율 <strong>'+(top.pct>=0?'+':'')+top.pct+'%</strong>' : ''} ·
               7일 평균 <strong>${top.weekAvg.toFixed(1)}마리</strong>.
               ${flagged.length > 1 ? `추가로 <strong>${flagged.length - 1}개 장비</strong>에서 기준 초과 감지됨.` : ''}
             </div>
@@ -2947,7 +2947,7 @@ async function buildAnomalyAll(){
     }
 
     // 2) 이상 감지 장비 테이블
-    const flaggedHdr = `<thead><tr><th>관측소</th><th>금일 포집</th><th>전일 포집</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>`;
+    const flaggedHdr = `<thead><tr><th>관측소</th><th>금일 포집</th><th>작일 포집</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>`;
     if (flagged.length === 0) {
       flaggedT.innerHTML = `${flaggedHdr}<tbody><tr><td colspan="7" style="text-align:center;color:var(--gray4);padding:18px">기준 초과 장비 없음</td></tr></tbody>`;
     } else {
@@ -2968,7 +2968,7 @@ async function buildAnomalyAll(){
     }
 
     // 3) 전 장비 테이블
-    allT.innerHTML = `<thead><tr><th>관측소 (${rows.length}개)</th><th>금일</th><th>전일</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>
+    allT.innerHTML = `<thead><tr><th>관측소 (${rows.length}개)</th><th>금일</th><th>작일</th><th>증감률</th><th>7일 평균</th><th>경보 기준</th><th>판정</th></tr></thead>
       <tbody>${rows.map(r => {
         const labelAddr = r.addr ? `<div style="font-size:10px;color:var(--gray4);font-weight:400">${r.addr}</div>` : '';
         const pctHtml = r.pct === null ? '<span style="color:var(--gray4)">—</span>'
@@ -4373,8 +4373,8 @@ function buildCpItemCard(item, criteria) {
         <div class="cp-dev-name">${item.name}</div>
         <div class="cp-dev-addr">${item.address || '주소 미등록'} · bad_min ${item.bad_min}</div>
         <div class="cp-dev-stats">
-          <span>오늘 <strong>${item.today_count}</strong>마리</span>
-          <span>어제 <strong>${item.yday_count}</strong>마리</span>
+          <span>금일 <strong>${item.today_count}</strong>마리</span>
+          <span>작일 <strong>${item.yday_count}</strong>마리</span>
           <span>7일 평균 <strong>${item.week_avg}</strong></span>
           <span>야간 비중 <strong>${Math.round(item.night_ratio * 100)}%</strong></span>
         </div>
@@ -4420,7 +4420,7 @@ function renderComplaintTable() {
   const t = document.getElementById('complaint-table');
   if (!data) return;
   t.innerHTML = `<thead><tr>
-      <th>관측소</th><th>지역</th><th>오늘</th><th>어제</th><th>7일 평균</th>
+      <th>관측소</th><th>지역</th><th>금일</th><th>작일</th><th>7일 평균</th>
       <th>위험 점수</th><th>위험 등급</th>
       <th>민원 점수</th><th>민원 위험</th>
       <th>주거지</th>
@@ -4695,7 +4695,7 @@ async function buildAdminJudgment(force) {
       const humidStr = (s.avg_humidity != null) ? `${s.avg_humidity}%` : '-';
       const baseD = s.base_date || '';
       kpiEl.textContent =
-        `기준일 ${baseD} (어제, 측정완료) · 전체 ${s.total_devices}대 · 포집 ${s.today_total} (전전일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) ` +
+        `기준일 ${baseD} (작일, 측정완료) · 전체 ${s.total_devices}대 · 포집 ${s.today_total} (재작일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) ` +
         `· 나쁨 ${s.bad_count || 0} · 주의 ${s.warn_count || 0} ` +
         `· 온도 ${tempStr} · 습도 ${humidStr} ` +
         `· 오프라인 ${s.offline_count}대 · 배터리<30% ${s.low_batt_count}대 ` +
@@ -4704,7 +4704,7 @@ async function buildAdminJudgment(force) {
 
     const genKst = (json.generated_at || '').slice(0, 16).replace('T', ' ');
     const baseDate = s.base_date || (json.generated_at || '').slice(0, 10);
-    if (head) head.textContent = `AI 판단 근거 — 기준일 ${baseDate} (어제, 측정완료)`;
+    if (head) head.textContent = `AI 판단 근거 — 기준일 ${baseDate} (작일, 측정완료)`;
     // 권역별 추천 방역 체크 렌더 (forecast-brief stations 기반)
     ajRenderRemedyCheck();
     if (gen) gen.textContent = genKst;
@@ -5043,15 +5043,15 @@ function downloadReport(type){
     </div>
     <div class="natbar"><strong>[전국 참조]</strong> 전국 247개소 일평균 142마리 &nbsp;|&nbsp; 우리 지역 평균 287마리 (전국 대비 2.0배) &nbsp;|&nbsp; 전국 순위 28위 &nbsp;|&nbsp; ○○도 내 3위 / 18개소</div>
     <h2>2. 관측소별 현황</h2>
-    <table><thead><tr><th>관측소</th><th>위험등급</th><th>일일 합계</th><th>피크</th><th>전일 대비</th><th>방역 방법</th></tr></thead><tbody>${stRows}</tbody></table>
+    <table><thead><tr><th>관측소</th><th>위험등급</th><th>일일 합계</th><th>피크</th><th>작일 대비</th><th>방역 방법</th></tr></thead><tbody>${stRows}</tbody></table>
     <h2>3. 시간별 포집 히트맵</h2>
     <table style="font-size:9.5px"><thead>${hmRows.split('</tr>')[0]}</tr></thead><tbody>${hmRows.split('</tr>').slice(1).join('</tr>')}</tbody></table>
     <h2>4. 이상 발생 감지 (Anomaly)</h2>
-    <table><tr><th>관측소</th><th>금일</th><th>전일</th><th>증감률</th><th>서식처</th><th>즉시 조치</th></tr>
+    <table><tr><th>관측소</th><th>금일</th><th>작일</th><th>증감률</th><th>서식처</th><th>즉시 조치</th></tr>
     <tr><td><strong>관측소 B (저수지)</strong></td><td style="color:#B71C1C;font-weight:700">1,142마리</td><td>826마리</td><td style="color:#B71C1C;font-weight:700">+38%</td><td>방죽 수면 + 고인물 (지속성)</td><td style="color:#B71C1C;font-weight:600">익일 오전 Bti 긴급</td></tr></table>
     <h2>5. AI 예측 — 기상·모기 위험지수</h2>
     <div class="kpi-row">
-      <div class="kpi" style="border-top-color:#A32D2D"><div class="kpi-l">오늘</div><div class="kpi-n" style="color:#A32D2D">78</div><div class="kpi-l">/ 100</div></div>
+      <div class="kpi" style="border-top-color:#A32D2D"><div class="kpi-l">금일</div><div class="kpi-n" style="color:#A32D2D">78</div><div class="kpi-l">/ 100</div></div>
       <div class="kpi" style="border-top-color:#A32D2D"><div class="kpi-l">내일</div><div class="kpi-n" style="color:#A32D2D">75</div><div class="kpi-l">/ 100</div></div>
       <div class="kpi" style="border-top-color:#C05000"><div class="kpi-l">모레</div><div class="kpi-n" style="color:#C05000">71</div><div class="kpi-l">/ 100</div></div>
       <div class="kpi" style="border-top-color:#7A5700"><div class="kpi-l">3일 후</div><div class="kpi-n" style="color:#7A5700">68</div><div class="kpi-l">/ 100 (강수 예보)</div></div>
@@ -5071,7 +5071,7 @@ function downloadReport(type){
       <div class="admin-h">행정 판단 — 결재용</div>
       <div class="admin-b">
         최근 지속된 고온다습 환경(평균 기온 26.7°C, 습도 83%)으로 모기 발생량이 <strong>증가 추세</strong>에 있으며, 특히 <strong style="color:#A32D2D">관측소 B(저수지) 및 관측소 H(하천중류)</strong> 지역은 7일 연속 상승 국면으로 집중 방역이 필요한 상황임.<br><br>
-        이상 발생 감지(Anomaly) 결과 관측소 B(저수지)에서 전일 대비 <strong style="color:#A32D2D">38% 급증</strong>이 탐지되었으며, 해당 서식처는 지속성으로 즉각 방제가 요구됨.<br><br>
+        이상 발생 감지(Anomaly) 결과 관측소 B(저수지)에서 작일 대비 <strong style="color:#A32D2D">38% 급증</strong>이 탐지되었으며, 해당 서식처는 지속성으로 즉각 방제가 요구됨.<br><br>
         야간 연무 미실시 방침에 따라 <strong style="color:#0F5E6E">익일 오전 06:00~10:00 Bti 유충 방제</strong>를 관측소 B·H·E 순으로 실시하고, <strong style="color:#C05000">관측소 I 장비 현장 점검</strong>을 병행하기 바람.<br><br>
         <em style="color:#888;font-size:10.5px">※ 14일 이내 소멸 가능 웅덩이는 현장 담당자 확인 후 방제 여부 결정.</em>
       </div>

@@ -300,9 +300,9 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       </div>
       {% if report.summary.overview_kpi %}
       <div class="kpi red">
-        <div class="kpi-l">최다 포집 장비</div>
+        <div class="kpi-l">최다 포집 관측소</div>
         <div class="kpi-n" style="font-size:13px">{{ report.summary.overview_kpi.top_dev.name|default:"-"|truncatechars:14 }}</div>
-        <div class="kpi-u">{{ report.summary.overview_kpi.top_dev.count|default:0 }}마리 (오늘)</div>
+        <div class="kpi-u">{{ report.summary.overview_kpi.top_dev.count|default:0 }}마리 (금일)</div>
       </div>
       <div class="kpi red">
         <div class="kpi-l">경고 이상 장비</div>
@@ -343,7 +343,7 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       <thead>
         <tr>
           <th>관측소</th><th>지역</th><th>위험 등급</th>
-          <th>오늘</th><th>어제</th><th>7일 평균</th>
+          <th>금일</th><th>작일</th><th>7일 평균</th>
           <th>민원 위험</th><th>장비 상태</th><th>신뢰도</th>
         </tr>
       </thead>
