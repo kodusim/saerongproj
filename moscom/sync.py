@@ -20,27 +20,24 @@ from .models import Device, Collection, SyncState, Region
 logger = logging.getLogger(__name__)
 
 
-# device_name 앞 prefix 추출. 알파벳 또는 한글 1글자 이상 + 선택적 후행 한글(예: "GH서").
-# 매칭 안 되면 빈 문자열 ('' = 권역 미지정 = 천안 본사처럼 prefix 없는 그룹)
-_PREFIX_RE = re.compile(r'^([A-Z]+(?:[가-힣]+)?|[가-힣]+)(?=\d|\s|$)')
+# device_name 앞 알파벳 2글자만 권역 코드로 사용 (예: 'BD03정자공원' → 'BD', 'YS01...' → 'YS').
+# 앞 2글자가 알파벳이 아니면 빈 문자열 → 권역 '기타' 로 묶임.
+_PREFIX_RE = re.compile(r'^([A-Za-z]{2})')
 
 
 def extract_region_code(device_name):
-    """device_name 에서 권역 prefix 추출.
-    예: 'KH02함박공원0029' → 'KH'
-        'GH서01젤미공원0022' → 'GH서'
-        'HA023.1절기념체육관0015' → 'HA'
-        '260001sugwang' → ''
-        '베트남 sugwang' → '베트남'
+    """device_name 앞 알파벳 2글자를 권역 코드로 추출 (대문자 정규화).
+    예: 'BD03정자공원0049' → 'BD'
+        'YS01...'         → 'YS'
+        'GH서01젤미공원'    → 'GH'
+        '260001sugwang'   → ''  (앞이 숫자 → 기타)
+        '베트남 sugwang'    → ''  (앞이 한글 → 기타)
+    빈 문자열은 권역 '기타' 로 묶인다.
     """
     if not device_name:
         return ''
-    name = device_name.strip()
-    # 숫자로 시작하는 일련번호형은 prefix 없음
-    if re.match(r'^\d', name):
-        return ''
-    m = _PREFIX_RE.match(name)
-    return m.group(1) if m else ''
+    m = _PREFIX_RE.match(device_name.strip())
+    return m.group(1).upper() if m else ''
 
 
 def _get_state():

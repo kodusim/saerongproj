@@ -241,7 +241,7 @@ def device_list(request):
                 'wind_speed': d.wind_speed,
                 'weather_synced_at': d.weather_synced_at.isoformat() if d.weather_synced_at else None,
                 'region_code': d.region_code,
-                'region_name': region_map.get(d.region_code, d.region_code or '미지정'),
+                'region_name': region_map.get(d.region_code, d.region_code) or '기타',
                 'region_type': d.region_type,
                 'form_type': d.form_type,
             }
@@ -259,21 +259,27 @@ def region_list(request):
     # DB 에 없지만 Device 에 prefix 있는 경우 — 빈 row 도 노출
     existing_codes = {r.code for r in regions}
     extra_codes = sorted(set(counts.keys()) - existing_codes - {''})
+    etc_count = counts.get('', 0)
+    items = [
+        {
+            'id': r.id, 'code': r.code, 'name': r.name,
+            'sort_order': r.sort_order, 'note': r.note,
+            'device_count': counts.get(r.code, 0),
+        }
+        for r in regions
+    ] + [
+        # Region 마스터에 없지만 Device 에는 prefix 있는 경우 (lazy)
+        {'id': None, 'code': c, 'name': c, 'sort_order': 100, 'note': '',
+         'device_count': counts.get(c, 0)}
+        for c in extra_codes
+    ]
+    # 앞 알파벳 2글자 없는 관측소 → '기타' 권역으로 묶어 노출
+    if etc_count:
+        items.append({'id': None, 'code': '', 'name': '기타', 'sort_order': 999,
+                      'note': '권역 코드(앞 알파벳 2글자) 없음', 'device_count': etc_count})
     return JsonResponse({
-        'items': [
-            {
-                'id': r.id, 'code': r.code, 'name': r.name,
-                'sort_order': r.sort_order, 'note': r.note,
-                'device_count': counts.get(r.code, 0),
-            }
-            for r in regions
-        ] + [
-            # Region 마스터에 없지만 Device 에는 prefix 있는 경우 (lazy)
-            {'id': None, 'code': c, 'name': c, 'sort_order': 100, 'note': '',
-             'device_count': counts.get(c, 0)}
-            for c in extra_codes
-        ],
-        'unassigned_device_count': counts.get('', 0),
+        'items': items,
+        'unassigned_device_count': etc_count,
     })
 
 
