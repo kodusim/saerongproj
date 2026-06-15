@@ -1760,7 +1760,7 @@ body {
     <div class="rm-layout">
       <!-- 왼쪽: 등록/수정 폼 -->
       <div class="rm-form-card">
-        <h4 id="rm-form-title">새 방역 실시 내역 등록</h4>
+        <h4 id="rm-form-title">방역 실시 내역 등록</h4>
 
         <div class="rm-field">
           <label>대상 관측소</label>
@@ -4445,7 +4445,7 @@ function rmStartEdit(planId) {
 
 function rmCancelEdit() {
   RM_STATE.editingId = null;
-  document.getElementById('rm-form-title').textContent = '새 방역 실시 내역 등록';
+  document.getElementById('rm-form-title').textContent = '방역 실시 내역 등록';
   document.getElementById('rm-device').value = '';
   document.getElementById('rm-method').value = '';
   const m2 = document.getElementById('rm-method2'); if (m2) m2.value = '';
