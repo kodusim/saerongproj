@@ -25,6 +25,18 @@ def _is_admin(request):
     return False
 
 
+def _allowed_uuids(request):
+    """로그인 사용자의 허용 장비 UUID 집합. admin/미인증세션은 None(=전체).
+    /db/ 엔드포인트도 mosquito-test 세션 권한(allowed_devices)을 따르도록.
+    """
+    try:
+        from core import views as core_views, user_store
+        su = core_views._current_session_user(request)
+        return user_store.allowed_uuid_set(su)  # admin → None
+    except Exception:
+        return None
+
+
 def _admin_name(request):
     if request.session.get('mosquito_admin'):
         return 'mosquito_admin'
@@ -102,6 +114,9 @@ def period_aggregate(request):
     device_uuid = request.GET.get('device_uuid') or ''
     region_code = request.GET.get('region_code')
 
+    # 사용자 권한 필터 (여수보건소=YS만 허용 시 다른 권역 차단). admin=None=전체
+    allowed_uuids = _allowed_uuids(request)
+
     # 권역 필터 → 해당 권역 device_uuid 집합
     region_uuids = None
     if region_code:
@@ -147,6 +162,8 @@ def period_aggregate(request):
         u = r.get('device_uuid')
         if not u:
             continue
+        if allowed_uuids is not None and u not in allowed_uuids:
+            continue  # 권한 없는 관측소 차단
         if device_uuid and u != device_uuid:
             continue
         if region_uuids is not None and u not in region_uuids:
@@ -204,6 +221,10 @@ def period_aggregate(request):
 @require_GET
 def device_list(request):
     qs = Device.objects.filter(is_active=True)
+    # 사용자 권한 필터 (허용 장비 외 차단). admin=None=전체
+    allowed_uuids = _allowed_uuids(request)
+    if allowed_uuids is not None:
+        qs = qs.filter(device_uuid__in=allowed_uuids)
     sido = request.GET.get('sido')
     region_code = request.GET.get('region_code')
     if sido:
@@ -254,7 +275,12 @@ def device_list(request):
 def region_list(request):
     """권역 목록. 각 권역별 장비 수 포함."""
     from collections import Counter
-    counts = Counter(Device.objects.filter(is_active=True).values_list('region_code', flat=True))
+    dev_qs = Device.objects.filter(is_active=True)
+    # 사용자 권한 필터 (허용 장비 권역만 노출). admin=None=전체
+    allowed_uuids = _allowed_uuids(request)
+    if allowed_uuids is not None:
+        dev_qs = dev_qs.filter(device_uuid__in=allowed_uuids)
+    counts = Counter(dev_qs.values_list('region_code', flat=True))
     regions = list(Region.objects.all())
     # DB 에 없지만 Device 에 prefix 있는 경우 — 빈 row 도 노출
     existing_codes = {r.code for r in regions}
