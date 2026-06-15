@@ -1879,7 +1879,7 @@ def moscom_admin_judgment(request):
                             'E) 즉시 조치 사항은 관측점 이름 + 마릿수 + 권고 방법 (예: "Bti 살포") 까지 명시.\n'
                             'F) 방역 권고 시 방법별 과학적 근거 인용: '
                             '   - Bti 살포: 유충 표적, 48시간 내 90% 사망\n'
-                            '   - ULV 연막: 성충 즉시 살충, 18~22시 야간 시행 효과 최대\n'
+                            '   - ULV 초미립자 연무: 성충 즉시 살충, 18~22시 야간 시행 효과 최대\n'
                             '   - 잔류분무: 14~21일 지속 효과\n'
                             '   - 용기제거: 흰줄숲모기 95% 감소\n'
                             'G) 권역 격차가 큰 경우 ("○○ 권역만 평균 2배") 별도로 강조.\n'
@@ -2122,7 +2122,7 @@ def _visible_uuids_for(request):
 
 @require_GET
 def moscom_remedy_methods(request):
-    """방역 방법 6종 반환"""
+    """방역 방법 목록 반환"""
     auth_err = _require_mosquito_auth(request)
     if auth_err:
         return auth_err

@@ -1786,7 +1786,7 @@ body {
         <h4 id="rm-form-title">새 방역 실시 내역 등록</h4>
 
         <div class="rm-field">
-          <label>대상 장비</label>
+          <label>대상 관측소</label>
           <select id="rm-device">
             <option value="">— 선택 —</option>
           </select>
@@ -4064,7 +4064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── 방역 계획 및 AI 추천 (CRUD + 효과 연동) ────────────
 const RM_STATE = {
-  methods: [],       // 6종 방역 방법
+  methods: [],       // 방역 방법 목록
   plans: [],         // 저장된 계획
   devices: [],       // 허용된 장비 목록
   editingId: null,
@@ -4136,9 +4136,9 @@ function renderRmDeviceSelect() {
   if (!sel) return;
   sel.innerHTML = `<option value="">— 선택 —</option>` + RM_STATE.devices.map(d => {
     const dv = d.device || {};
-    const nm = (dv.device_name || '').trim() || d.device_uuid;
+    const nm = stationName(dv.device_name || '') || d.device_uuid;
     const addr = [dv.address_gungu, dv.address_dong].filter(Boolean).join(' ').trim();
-    return `<option value="${d.device_uuid}">${nm}${addr ? ' ('+addr+')' : ''}</option>`;
+    return `<option value="${d.device_uuid}">${escapeHtml(nm)}${addr ? ' ('+addr+')' : ''}</option>`;
   }).join('');
 }
 
@@ -4164,7 +4164,7 @@ function renderRmList() {
   const nameMap = {};
   RM_STATE.devices.forEach(d => {
     const dv = d.device || {};
-    nameMap[d.device_uuid] = (dv.device_name || '').trim() || d.device_uuid;
+    nameMap[d.device_uuid] = stationName(dv.device_name || '') || d.device_uuid;
   });
   box.innerHTML = RM_STATE.plans.map(p => {
     const m = RM_STATE.methods.find(x => x.key === p.method_key) || {};
@@ -6048,10 +6048,9 @@ function fbRenderSignals(j) {
 
 // 관측소별 방역지시 — 등급+형태 기반 권장 방역 산출 (10p: 시뮬레이션 위에 배치)
 function fbRecommendMethod(grade, form) {
-  // 위험(불쾌/주의) → 즉시 살충(연무/연막). 수변부는 유충 방제 병행 권장.
+  // 위험(불쾌/주의) → 즉시 살충(ULV 초미립자 연무). 수변부는 유충 방제 병행 권장.
   if (grade === '불쾌' || grade === '주의') {
     if (form === '수변부') return ['연무', 'BTi 유충 방제'];
-    if (form === '공원') return ['연막'];
     return ['연무'];
   }
   if (grade === '관심') {
