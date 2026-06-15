@@ -1661,43 +1661,6 @@ body {
       </div>
     </div>
 
-    <!-- 4. 관측소별 방역 지시 (시뮬레이션 위) -->
-    <div class="card mb16" style="padding:14px 18px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:18px">📋</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">관측소별 방역 지시</div>
-        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">위험등급·서식 형태 기반 AI 권장</span>
-      </div>
-      <div id="fc-remedy-orders"><div style="padding:14px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div></div>
-    </div>
-
-    <!-- 5. 방역 효과 시뮬레이션 -->
-    <div class="card mb24" style="padding:14px 18px;background:#FFF8F0;border-color:#FFC080">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:18px">💉</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">방역 효과 시뮬레이션</div>
-        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">방역 적용 시 향후 10일 예측 비교</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px">
-        <div>
-          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">장비 선택</label>
-          <select id="fb-sim-device" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
-        </div>
-        <div>
-          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">방역 방법 (최대 2개 · Ctrl/⌘+클릭)</label>
-          <select id="fb-sim-method" multiple size="3" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
-        </div>
-        <div>
-          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">실시일</label>
-          <input type="date" id="fb-sim-date" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px">
-        </div>
-        <button class="dl-btn dl-btn-html" id="fb-sim-run" onclick="fbSimRun()" style="padding:5px 14px;font-size:11px">시뮬레이션 실행</button>
-      </div>
-      <div id="fb-sim-result" style="font-size:11px;color:var(--gray5)">위 필터 선택 후 시뮬레이션 실행</div>
-      <div style="position:relative;height:240px;margin-top:8px" id="fb-sim-chart-wrap">
-        <canvas id="fb-sim-chart"></canvas>
-      </div>
-    </div>
     <!-- ━━━━━━━━━━━━━ 기존 예보 영역 ━━━━━━━━━━━━━ -->
 
     <!-- 기간 + 프리셋 -->
@@ -1981,26 +1944,48 @@ body {
       </div>
     </div>
 
-    <!-- AI 추천방역 — 권역별 방역 체크 -->
+    <!-- AI 추천방역 — 권역별 방역 사항 -->
     <div class="card mb16" style="padding:14px 16px">
       <div class="sec-header" style="margin-bottom:8px">
         <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">🛡️ 권역별 추천 방역 체크</div>
-        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">위험도 예보 기반 · 효과 미리보기로 절감량 확인</span>
+        <div class="sec-title" style="font-size:13px">🛡️ 권역별 방역 사항</div>
+        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">위험도 예보 기반 권장 방역</span>
       </div>
-      <div id="aj-remedy-check"><div style="padding:14px;text-align:center;color:var(--gray4);font-size:12px">위 AI 분석 실행 시 권역별 방역 권장사항이 표시됩니다.</div></div>
+      <div id="aj-remedy-check"><div style="padding:14px;text-align:center;color:var(--gray4);font-size:12px">위 AI 분석 실행 시 권역별 방역 사항이 표시됩니다.</div></div>
     </div>
 
-    <!-- 권역별 포집 카드 + 매개체 위험 카드 (요약 데이터) -->
+    <!-- 방역 효과 시뮬레이션 (9p에서 이동) -->
+    <div class="card mb16" style="padding:14px 18px;background:#FFF8F0;border-color:#FFC080">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">💉</span>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">방역 효과 시뮬레이션</div>
+        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">방역 적용 시 향후 10일 예측 비교</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">관측소 선택</label>
+          <select id="fb-sim-device" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">방역 방법 (최대 2개 · Ctrl/⌘+클릭)</label>
+          <select id="fb-sim-method" multiple size="3" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">실시일</label>
+          <input type="date" id="fb-sim-date" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px">
+        </div>
+        <button class="dl-btn dl-btn-html" id="fb-sim-run" onclick="fbSimRun()" style="padding:5px 14px;font-size:11px">시뮬레이션 실행</button>
+      </div>
+      <div id="fb-sim-result" style="font-size:11px;color:var(--gray5)">위 필터 선택 후 시뮬레이션 실행</div>
+      <div style="position:relative;height:240px;margin-top:8px" id="fb-sim-chart-wrap">
+        <canvas id="fb-sim-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- 권역별 포집 현황 (요약 데이터) -->
     <div id="aj-data-cards" class="mb16" style="display:none">
       <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (기준일, 작일)</div></div>
       <div id="aj-regions" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
-
-      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">🦟 매개체 위험 평가</div></div>
-      <div id="aj-vectors" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px"></div>
-
-      <!-- 핵심 관측점 예측 (전체 합 대신 위치 중심) -->
-      <div id="aj-key-locations" style="display:none"></div>
     </div>
 
     <!-- 보고서 본문 (AI 판단 근거) -->
@@ -4624,11 +4609,11 @@ async function buildEquipment() {
 // ── 행정 판단 (OpenAI GPT 연동) ──────────────────────────
 let AJ_LOADED = false;
 
-// 권역별 추천 방역 체크 — forecast-brief stations 기반 (효과 미리보기 포함)
+// 권역별 방역 사항 — forecast-brief stations 기반 권장 방역 표
 async function ajRenderRemedyCheck() {
   const host = document.getElementById('aj-remedy-check');
   if (!host) return;
-  host.innerHTML = '<div style="padding:10px;color:var(--gray4);font-size:12px">방역 권장사항 로드 중…</div>';
+  host.innerHTML = '<div style="padding:10px;color:var(--gray4);font-size:12px">권역별 방역 사항 로드 중…</div>';
   let stations = [];
   try {
     const r = await fetch('/mosquito-test/api/forecast-brief/', { credentials: 'same-origin' });
@@ -4640,45 +4625,22 @@ async function ajRenderRemedyCheck() {
     return;
   }
   const gColor = { '불쾌': 'var(--red)', '주의': '#C05000', '관심': '#7A5700' };
-  const rows = stations.map((s, i) => {
+  const rows = stations.map(s => {
     const h2 = (typeof classifyHabitat2 === 'function') ? classifyHabitat2(s) : { form: '', label: '' };
     const methods = (typeof fbRecommendMethod === 'function') ? fbRecommendMethod(s.grade, h2.form) : [];
     return `<tr>
-      <td><input type="checkbox" class="aj-rc-chk" checked></td>
       <td><strong>${escapeHtml(stationName(s.name || '-'))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.label}</span></td>
-      <td style="font-weight:700;color:${gColor[s.grade] || 'var(--gray5)'}">${s.grade}</td>
+      <td style="font-weight:700;color:${gColor[s.grade] || 'var(--gray5)'}">${s.grade} <span style="font-family:var(--mono);font-weight:400;color:var(--gray4)">(${s.avg_index ?? '-'})</span></td>
       <td>${methods.map(m => `<span style="display:inline-block;font-size:10px;font-weight:600;background:#FFF3E0;color:#BF360C;padding:2px 8px;border-radius:10px;margin:1px">${m}</span>`).join('')}</td>
-      <td><button class="dl-btn dl-btn-csv" style="padding:3px 8px;font-size:10px" onclick="ajPreviewEffect('${s.uuid}', this)">효과 미리보기</button><div class="aj-rc-effect" style="font-size:10px;color:var(--gray5);margin-top:3px"></div></td>
     </tr>`;
   }).join('');
   host.innerHTML = `
     <table class="data-table" style="width:100%">
-      <thead><tr><th style="width:30px">적용</th><th>관측소</th><th>특성</th><th>등급</th><th>권장 방역</th><th>예상 효과</th></tr></thead>
+      <thead><tr><th>관측소</th><th>특성</th><th>위험등급(지수)</th><th>권장 방역</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <div style="font-size:10px;color:var(--gray4);margin-top:6px">※ 권장 방역은 위험등급·서식 형태 기반 자동 산출. 효과 미리보기는 연무 기준 10일 시뮬레이션입니다.</div>`;
-}
-
-// 효과 미리보기 — 추천 방역(연무 기본)으로 시뮬레이션 호출, 절감량 표시
-async function ajPreviewEffect(uuid, btn) {
-  const cell = btn.parentElement.querySelector('.aj-rc-effect');
-  if (cell) cell.textContent = '계산 중…';
-  // 실시일 = 내일
-  const t = new Date(); t.setDate(t.getDate() + 1);
-  const apply_date = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-  try {
-    const r = await fetch('/mosquito-test/api/forecast-simulate/', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ device_uuid: uuid, method_keys: ['ulv_fog'], apply_date }),
-    });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
-    if (cell) cell.innerHTML = `<strong style="color:#1B5E20">${(j.saved_total||0).toLocaleString()}마리 절감</strong> (연무, 10일)`;
-  } catch (e) {
-    if (cell) cell.textContent = '실패: ' + e.message;
-  }
+    <div style="font-size:10px;color:var(--gray4);margin-top:6px">※ 권장 방역은 위험등급·서식 형태 기반 자동 산출. 적용 효과는 아래 방역 효과 시뮬레이션에서 확인하세요.</div>`;
 }
 
 async function buildAdminJudgment(force) {
@@ -4710,8 +4672,7 @@ async function buildAdminJudgment(force) {
         `기준일 ${baseD} (작일, 측정완료) · 전체 ${s.total_devices}대 · 포집 ${s.today_total} (재작일 대비 ${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%) ` +
         `· 나쁨 ${s.bad_count || 0} · 주의 ${s.warn_count || 0} ` +
         `· 온도 ${tempStr} · 습도 ${humidStr} ` +
-        `· 오프라인 ${s.offline_count}대 · 배터리<30% ${s.low_batt_count}대 ` +
-        `· 핵심 관측점 ${(s.predicted_key_locations || []).length}곳`;
+        `· 오프라인 ${s.offline_count}대 · 배터리<30% ${s.low_batt_count}대`;
     }
 
     const genKst = (json.generated_at || '').slice(0, 16).replace('T', ' ');
@@ -4722,11 +4683,10 @@ async function buildAdminJudgment(force) {
     if (gen) gen.textContent = genKst;
     if (author) author.textContent = (json.author && json.author.login_id) ? json.author.login_id : '-';
 
-    // 권역/매개체 카드 렌더
+    // 권역별 포집 현황 카드 렌더
     const cards = document.getElementById('aj-data-cards');
     const regions = s.region_breakdown || [];
-    const vectors = s.vector_risks || [];
-    if (regions.length || vectors.length) {
+    if (regions.length) {
       cards.style.display = 'block';
     }
     if (regions.length) {
@@ -4741,70 +4701,6 @@ async function buildAdminJudgment(force) {
       `).join('');
     } else {
       document.getElementById('aj-regions').innerHTML = '';
-    }
-    if (vectors.length) {
-      const lvlColor = { '높음': '#dc3545', '보통': '#fd7e14', '낮음': '#7A5700', '매우 낮음': '#198754' };
-      document.getElementById('aj-vectors').innerHTML = vectors.map(v => {
-        const c = lvlColor[v.risk_level] || '#666';
-        return `
-          <div class="card" style="padding:12px 14px;border-left:4px solid ${c}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(v.species)}</div>
-              <span style="font-size:11px;font-weight:700;color:${c};background:${c}22;padding:2px 8px;border-radius:10px">${v.risk_level} ${v.risk_score}</span>
-            </div>
-            <div style="font-size:11px;color:var(--gray5);line-height:1.5">
-              <div>매개질병: <strong>${(v.diseases || []).join(', ')}</strong></div>
-              <div>활동: ${escapeHtml(v.active_hours)} · 서식: ${escapeHtml(v.breeding_site)}</div>
-              <div style="margin-top:4px;color:var(--gray6)">${escapeHtml(v.note || '')}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    } else {
-      document.getElementById('aj-vectors').innerHTML = '';
-    }
-
-    // 핵심 관측점 예측 카드 (전체 합 대신 위치 중심)
-    const keyEl = document.getElementById('aj-key-locations');
-    const keys = s.predicted_key_locations || [];
-    if (keyEl) {
-      if (keys.length) {
-        const gradeColor = { '안전': '#198754', '관심': '#7A5700', '주의': '#fd7e14', '경고': '#dc3545', '위험': '#8B0000' };
-        keyEl.innerHTML = `
-          <div style="font-size:12px;font-weight:700;color:var(--navy);margin:14px 0 8px">🎯 AI 예측 — 핵심 관측점 7일 궤적</div>
-          <div style="font-size:10.5px;color:var(--gray5);margin-bottom:8px">전체 합계 대신, 행정 자원을 우선 투입할 ${keys.length}개 위치의 일별 예측치입니다.</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">
-          ${keys.map(k => {
-            const c = gradeColor[k.grade] || '#666';
-            const days = (k.predictions || []).map(p => `<td style="text-align:right;font-family:monospace;padding:2px 4px;border-bottom:1px dashed #eee">${p.predicted}</td>`).join('');
-            const dayHeader = (k.predictions || []).map(p => `<th style="font-size:9px;color:var(--gray4);padding:2px 4px;font-weight:500">${(p.date||'').slice(5)}</th>`).join('');
-            return `
-              <div class="card" style="padding:10px 12px;border-left:4px solid ${c}">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">
-                  <div style="font-size:12px;font-weight:700;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(k.name)}</div>
-                  <span style="font-size:10px;font-weight:700;color:${c};background:${c}22;padding:2px 8px;border-radius:10px;white-space:nowrap">${k.grade} ${k.max_7d}</span>
-                </div>
-                <div style="font-size:10px;color:var(--gray5);margin-bottom:6px">
-                  <span style="color:var(--teal);font-weight:600">${escapeHtml(k.region || '미지정')}</span> · ${escapeHtml(k.addr || '주소미상')}
-                </div>
-                <div style="font-size:10px;color:var(--gray5);margin-bottom:4px">
-                  기준일 실측 <strong style="color:var(--gray6)">${k.yday_actual}</strong>마리 → 7일 누적 예측 <strong style="color:${c}">${k.total_7d}</strong>마리
-                </div>
-                <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:4px">
-                  <thead><tr>${dayHeader}</tr></thead>
-                  <tbody><tr>${days}</tr></tbody>
-                </table>
-              </div>
-            `;
-          }).join('')}
-          </div>
-        `;
-        keyEl.style.display = 'block';
-        cards.style.display = 'block';
-      } else {
-        keyEl.innerHTML = '';
-        keyEl.style.display = 'none';
-      }
     }
 
     // 보고서 본문 렌더 (섹션 ■ 기호 기준)
@@ -4952,8 +4848,9 @@ function showPage(name){
   // AI 예보 탭: 데이터 없으면 첫 실행
   if (name === 'forecast' && typeof buildForecast === 'function' && !FC_STATE.data) buildForecast();
   if (name === 'forecast' && typeof fbLoad === 'function') fbLoad(false);
-  // 행정 판단(추천방역): 첫 방문 시 한 번 실행
+  // 행정 판단(추천방역): 첫 방문 시 한 번 실행 + 시뮬레이션 초기화
   if (name === 'admin' && typeof buildAdminJudgment === 'function' && !AJ_LOADED) buildAdminJudgment(false);
+  if (name === 'admin' && typeof fbInitSim === 'function' && !FB.loaded) { fbInitSim(); FB.loaded = true; }
   // 민원가능지역: 탭 진입 시 로드
   if (name === 'complaint' && typeof buildComplaint === 'function') buildComplaint();
   // 모스콤 관리자: 탭 진입 시 데이터 로드
@@ -5979,13 +5876,8 @@ async function fbLoad(force) {
     if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
     fbRenderHeadline(j);
     fbRenderSignals(j);
-    fbRenderRemedyOrders(j);
     fbRenderExplanation(j);
     fbRenderTrend(j);
-    if (!FB.loaded) {
-      fbInitSim();
-      FB.loaded = true;
-    }
   } catch (e) {
     const h = document.getElementById('fb-headline-text');
     if (h) h.textContent = '로드 실패: ' + e.message;
@@ -6071,32 +5963,6 @@ function fbRecommendMethod(grade, form) {
   }
   return ['현행 유지'];
 }
-function fbRenderRemedyOrders(j) {
-  const host = document.getElementById('fc-remedy-orders');
-  if (!host) return;
-  const stations = (j.stations || []).filter(s => s.grade === '불쾌' || s.grade === '주의' || s.grade === '관심');
-  if (!stations.length) {
-    host.innerHTML = '<div style="padding:14px;text-align:center;color:var(--gray4);font-size:12px">방역 지시가 필요한 관측소가 없습니다 (전 관측소 안정).</div>';
-    return;
-  }
-  const gColor = { '불쾌': 'var(--red)', '주의': '#C05000', '관심': '#7A5700' };
-  const rows = stations.map(s => {
-    const h2 = classifyHabitat2(s);
-    const methods = fbRecommendMethod(s.grade, h2.form);
-    return `<tr>
-      <td><strong>${escapeHtml(stationName(s.name || '-'))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
-      <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.label}</span></td>
-      <td style="font-weight:700;color:${gColor[s.grade] || 'var(--gray5)'}">${s.grade} <span style="font-family:var(--mono);font-weight:400;color:var(--gray4)">(${s.avg_index ?? '-'})</span></td>
-      <td>${methods.map(m => `<span style="display:inline-block;font-size:10px;font-weight:600;background:#FFF3E0;color:#BF360C;padding:2px 8px;border-radius:10px;margin:1px">${m}</span>`).join('')}</td>
-    </tr>`;
-  }).join('');
-  host.innerHTML = `
-    <table class="data-table" style="width:100%">
-      <thead><tr><th>관측소</th><th>특성</th><th>위험등급(지수)</th><th>권장 방역</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
-
 function fbRenderExplanation(j) {
   const stats = document.getElementById('fb-weather-stats');
   const w = j.weather || {};
