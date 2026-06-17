@@ -1576,31 +1576,32 @@ body {
     <!-- 결과 영역 (로더 끝나면 표시) -->
     <div id="predict-result" style="display:none">
 
-      <!-- 장비별 실측 + 예측 표 -->
+      <!-- 실측+예측 차트 (위) -->
+      <div class="card mb16" style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">실측 + AI 예측 추이</div>
+          <div style="font-size:11px;color:var(--gray4)">실선: 최근 7일 실측 · 점선: AI 예측 3일</div>
+        </div>
+        <div style="position:relative;height:460px">
+          <canvas id="predict-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- 관측소 선택 (아래) -->
+      <div class="card mb24" style="padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">관측소 선택</div>
+        <div id="predict-filter" style="max-height:300px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
+          <div style="color:var(--gray4);font-style:italic">로딩…</div>
+        </div>
+      </div>
+
+      <!-- 장비별 실측 + 예측 표 (밑) -->
       <div class="sec-header" style="margin-bottom:10px">
         <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 실측 · AI 예측</div>
       </div>
       <div class="card mb24">
         <div style="overflow-x:auto">
           <table class="data-table" id="predict-table"></table>
-        </div>
-      </div>
-
-      <!-- 실측+예측 차트 -->
-      <div class="card mb24" style="padding:16px">
-        <div style="display:grid;grid-template-columns:240px 1fr;gap:16px">
-          <div id="predict-filter" style="max-height:360px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
-            <div style="color:var(--gray4);font-style:italic">로딩…</div>
-          </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <div style="font-size:13px;font-weight:700;color:var(--navy)">실측 + AI 예측 추이</div>
-              <div style="font-size:11px;color:var(--gray4)">실선: 최근 7일 실측 · 점선: AI 예측 3일</div>
-            </div>
-            <div style="position:relative;height:320px">
-              <canvas id="predict-chart"></canvas>
-            </div>
-          </div>
         </div>
       </div>
 
