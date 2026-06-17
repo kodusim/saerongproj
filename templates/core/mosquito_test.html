@@ -3272,6 +3272,25 @@ function trendSelectTop(n) {
   drawTrendChart();
 }
 
+// 범례에서 점선/실선을 실제로 구분해 그리는 generateLabels (borderDash 반영)
+function dashAwareLegendLabels(chart) {
+  const ds = chart.data.datasets || [];
+  return ds.map((d, i) => {
+    const meta = chart.getDatasetMeta(i);
+    const dash = d.borderDash || [];
+    return {
+      text: d.label,
+      fillStyle: 'transparent',
+      strokeStyle: d.borderColor,
+      lineWidth: 2,
+      lineDash: dash,           // 점선 데이터셋은 범례 마커도 점선
+      lineCap: 'butt',
+      hidden: !chart.isDatasetVisible(i),
+      datasetIndex: i,
+    };
+  });
+}
+
 function drawTrendChart() {
   const ctx = document.getElementById('trend-chart');
   if (!ctx) return;
@@ -3400,7 +3419,7 @@ function drawTrendChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'right', align: 'start', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } },
+        legend: { position: 'right', align: 'start', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: dashAwareLegendLabels } },
         tooltip: { mode: 'index', intersect: false },
       },
       scales: {
@@ -3786,7 +3805,7 @@ function drawPredictChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 }, filter: (item) => !item.text.includes('· 예측') } },
+        legend: { position: 'bottom', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: dashAwareLegendLabels } },
         tooltip: { mode: 'index', intersect: false },
         annotation: {},
       },
