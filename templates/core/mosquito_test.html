@@ -2042,7 +2042,7 @@ body {
       <div class="sec-header" style="padding:12px 16px 10px;margin:0;display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="sec-bar"></div>
-          <div class="sec-title" style="font-size:13px">민원 가능성 지도 <span style="font-weight:400;color:var(--gray4);font-size:11px">관측소 위치 + 위험도 시각화 (추상 지도)</span></div>
+          <div class="sec-title" style="font-size:13px">민원 가능성 지도 <span style="font-weight:400;color:var(--gray4);font-size:11px">관측소 위치 + 민원도 시각화 (추상 지도)</span></div>
         </div>
         <span id="cp-map-count" style="font-size:11px;color:var(--gray4)"></span>
       </div>
@@ -2051,10 +2051,10 @@ body {
           <svg id="cp-map-svg" viewBox="0 0 800 460" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block"></svg>
         </div>
         <div style="background:var(--gray1);border-left:1px solid var(--gray2);padding:14px 16px;overflow-y:auto">
-          <div style="font-size:11px;font-weight:700;color:var(--gray6);letter-spacing:.04em;margin-bottom:10px">위험도 등급</div>
+          <div style="font-size:11px;font-weight:700;color:var(--gray6);letter-spacing:.04em;margin-bottom:10px">민원도 등급</div>
           <div id="cp-map-legend" style="font-size:11.5px"></div>
           <div style="margin-top:16px;background:var(--navy-l);border-left:3px solid var(--navy);border-radius:4px;padding:10px 12px;font-size:10.5px;color:var(--navy);line-height:1.5">
-            마커 색상은 위험 등급을 나타냅니다. 실측 GIS 좌표는 추후 지도 API 연동 예정이며, 현재는 위험도 순 추상 배치입니다.
+            마커 색상은 민원 발생 가능성 등급을 나타냅니다. 실측 GIS 좌표는 추후 지도 API 연동 예정이며, 현재는 민원도 순 추상 배치입니다.
           </div>
         </div>
       </div>
@@ -2073,6 +2073,18 @@ body {
           <div class="cp-chip" data-filter="보통">보통</div>
           <div class="cp-chip" data-filter="낮음">낮음</div>
           <div class="cp-chip" data-filter="residential">주거지</div>
+        </div>
+      </div>
+      <!-- 민원 가능성 점수 구간 범례 (칸 너비 = 점수 범위 비례) -->
+      <div style="padding:4px 16px 12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:700;color:var(--gray6)">민원 가능성 점수 구간</span>
+          <span style="font-size:10px;color:var(--gray4)">0 ~ 100점</span>
+        </div>
+        <div style="display:flex;border-radius:5px;overflow:hidden;border:1px solid var(--gray2);font-size:10px;font-weight:700;text-align:center">
+          <div style="flex:0 0 30%;background:#E8F5E9;color:#1B5E20;padding:6px 4px">낮음<br><span style="font-weight:500;font-size:9px">0 ~ 30</span></div>
+          <div style="flex:0 0 30%;background:#FFF3E0;color:#E65100;padding:6px 4px;border-left:1px solid #fff">보통<br><span style="font-weight:500;font-size:9px">31 ~ 60</span></div>
+          <div style="flex:0 0 40%;background:#FDECEA;color:#B71C1C;padding:6px 4px;border-left:1px solid #fff">높음<br><span style="font-weight:500;font-size:9px">61 ~ 100</span></div>
         </div>
       </div>
       <div style="overflow-x:auto">
@@ -4676,9 +4688,9 @@ function renderComplaintTop() {
   const lg = document.getElementById('cp-map-legend');
   if (lg) {
     lg.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.high};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">고위험 (민원↑)</span><strong>${high.length}</strong></div>
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.mid};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">중위험 (관심)</span><strong>${mid.length}</strong></div>
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.low};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">저위험 (안정)</span><strong>${low.length}</strong></div>`;
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.high};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">민원 높음 <span style="color:var(--gray4);font-size:10px">61~100</span></span><strong>${high.length}</strong></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.mid};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">민원 보통 <span style="color:var(--gray4);font-size:10px">31~60</span></span><strong>${mid.length}</strong></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.low};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">민원 낮음 <span style="color:var(--gray4);font-size:10px">0~30</span></span><strong>${low.length}</strong></div>`;
   }
 }
 
@@ -4694,7 +4706,7 @@ function renderComplaintTable() {
 
   const head = `<thead><tr>
       <th>관측소</th><th>특성</th>
-      <th style="text-align:center">위험도</th>
+      <th style="text-align:center">민원도</th>
       <th style="text-align:center">인구밀집도</th>
       <th style="text-align:center;min-width:150px">민원 가능성</th>
       <th>권장 조치</th>
