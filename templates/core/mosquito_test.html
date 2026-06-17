@@ -1996,12 +1996,6 @@ body {
       </div>
     </div>
 
-    <!-- 권역별 포집 현황 (요약 데이터) -->
-    <div id="aj-data-cards" class="mb16" style="display:none">
-      <div class="sec-header" style="margin-bottom:8px"><div class="sec-bar"></div><div class="sec-title" style="font-size:13px">📊 권역별 포집 현황 (기준일, 전일)</div></div>
-      <div id="aj-regions" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
-    </div>
-
     <!-- 보고서 본문 (AI 판단 근거) -->
     <div class="admin-box mb24" id="aj-box" style="display:none">
       <div class="admin-head" id="aj-head">AI 판단 근거 — </div>
@@ -4958,26 +4952,6 @@ async function buildAdminJudgment(force) {
     if (gen) gen.textContent = genKst;
     if (author) author.textContent = (json.author && json.author.login_id) ? json.author.login_id : '-';
 
-    // 권역별 포집 현황 카드 렌더
-    const cards = document.getElementById('aj-data-cards');
-    const regions = s.region_breakdown || [];
-    if (regions.length) {
-      cards.style.display = 'block';
-    }
-    if (regions.length) {
-      const colorOf = (avg) => avg >= 51 ? '#dc3545' : avg >= 21 ? '#fd7e14' : avg >= 6 ? '#7A5700' : '#198754';
-      const labelOf = (avg) => avg >= 51 ? '나쁨' : avg >= 21 ? '주의' : avg >= 6 ? '관심' : '쾌적';
-      document.getElementById('aj-regions').innerHTML = regions.map(r => `
-        <div class="kpi-card" style="border-top:3px solid ${colorOf(r.avg)}">
-          <div class="kpi-label">${escapeHtml(r.region_name)}</div>
-          <div class="kpi-value" style="color:${colorOf(r.avg)};font-size:22px">${r.total.toLocaleString()}</div>
-          <div class="kpi-sub">장비 ${r.device_count}대 · 평균 ${r.avg}마리 · <strong style="color:${colorOf(r.avg)}">${labelOf(r.avg)}</strong></div>
-        </div>
-      `).join('');
-    } else {
-      document.getElementById('aj-regions').innerHTML = '';
-    }
-
     // 보고서 본문 렌더 (섹션 ■ 기호 기준)
     const text = (json.report_text || '').trim();
     if (text) {
@@ -4998,7 +4972,7 @@ async function buildAdminJudgment(force) {
       body.innerHTML = `<p class="admin-para" style="color:var(--gray4)">AI 응답 비어 있음</p>`;
     }
 
-    footer.textContent = `모델: ${json.source || 'unknown'} · 대시보드: saerong.com/mosquito-test/`;
+    footer.textContent = '';
     AJ_LOADED = true;
   } catch (err) {
     body.innerHTML = `<p class="admin-para" style="color:var(--red)">AI 분석 실패: ${escapeHtml(err.message)}</p>`;
