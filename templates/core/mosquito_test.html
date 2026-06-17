@@ -3639,6 +3639,7 @@ function renderPredictFilter() {
       <button type="button" class="dl-btn dl-btn-print" style="padding:3px 8px;font-size:10px" onclick="predictSelect(0)">해제</button>
     </div>`,
     `<div style="font-size:10px;color:var(--gray4);font-weight:600;letter-spacing:.04em;margin-bottom:6px">관측소 선택 (${PREDICT_STATE.selected.size}/${preds.length})</div>`,
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px 12px">`,
   ];
   preds.forEach(p => {
     const checked = PREDICT_STATE.selected.has(p.uuid) ? 'checked' : '';
@@ -3647,6 +3648,7 @@ function renderPredictFilter() {
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray6)">${stationName(p.name)}</span>
     </label>`);
   });
+  html.push(`</div>`);
   box.innerHTML = html.join('');
   box.querySelectorAll('input[data-uuid]').forEach(el => {
     el.addEventListener('change', e => {
