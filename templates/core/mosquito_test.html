@@ -1632,17 +1632,6 @@ body {
     </div>
 
     <!-- ━━━━━━━━━━━━━ 보건소·질병청 종합 브리핑 ━━━━━━━━━━━━━ -->
-    <!-- 일일 핵심 알림 -->
-    <div class="card mb16" id="fb-headline" style="padding:14px 18px;background:linear-gradient(135deg,#FFF4E1,#FFE5B4);border:1px solid #F5B341;display:none">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span style="font-size:24px">🚨</span>
-        <div style="flex:1;min-width:200px">
-          <div style="font-size:11px;font-weight:700;color:var(--gray5);letter-spacing:.04em">금일의 핵심 알림</div>
-          <div id="fb-headline-text" style="font-size:14px;font-weight:700;color:#7A4500;margin-top:3px">데이터 로드 중…</div>
-        </div>
-        <button class="dl-btn" id="fb-refresh" onclick="fbLoad(true)" style="padding:5px 12px;font-size:11px">↻ 새로고침</button>
-      </div>
-    </div>
 
     <!-- 1. 관측소별 위험 신호등 -->
     <div class="sec-header" style="margin-top:6px;margin-bottom:8px">
@@ -1658,23 +1647,13 @@ body {
     <div class="card mb16" style="padding:16px 18px;background:#F4F8FF;border-color:#9EC9FF">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="font-size:18px">🌡️</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">기상 → 모기 발생 과학적 설명</div>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">기상기반 위험도 예보</div>
         <span id="fb-explain-source" style="margin-left:auto;font-size:10px;color:var(--gray4)"></span>
       </div>
       <div id="fb-weather-stats" style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--gray5);margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,.7);border-radius:6px"></div>
       <div id="fb-explanation" style="font-size:13px;line-height:1.75;color:var(--gray6);white-space:pre-wrap">데이터 로드 중…</div>
     </div>
 
-    <!-- 3. 트렌드 비교 -->
-    <div class="card mb16" style="padding:14px 18px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:18px">📅</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">트렌드 비교 (의회/기자 브리핑용)</div>
-      </div>
-      <div id="fb-trend" class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
-        <div style="grid-column:1/-1;padding:14px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div>
-      </div>
-    </div>
 
     <!-- ━━━━━━━━━━━━━ 기존 예보 영역 ━━━━━━━━━━━━━ -->
 
@@ -6191,36 +6170,11 @@ async function fbLoad(force) {
     const r = await fetch(url, { credentials: 'same-origin' });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
-    fbRenderHeadline(j);
     fbRenderSignals(j);
     fbRenderExplanation(j);
-    fbRenderTrend(j);
   } catch (e) {
-    const h = document.getElementById('fb-headline-text');
-    if (h) h.textContent = '로드 실패: ' + e.message;
+    console.error('fbLoad 실패:', e);
   }
-}
-
-function fbRenderHeadline(j) {
-  const box = document.getElementById('fb-headline');
-  const txt = document.getElementById('fb-headline-text');
-  const stations = j.stations || [];
-  const worst = stations[0];
-  if (!worst) {
-    box.style.display = 'none';
-    return;
-  }
-  box.style.display = 'block';
-  let msg;
-  const where = `${worst.name}${worst.region_name ? ' ('+worst.region_name+')' : ''}`;
-  if (worst.grade === '불쾌' || worst.grade === '주의') {
-    msg = `${where} 모기지수 ${worst.avg_index}점 (${worst.grade}) — 즉시 방역 검토 권고`;
-  } else if (worst.grade === '관심') {
-    msg = `최고 위험 관측소 ${where} 모기지수 ${worst.avg_index}점 (관심). 감시 강화 권고.`;
-  } else {
-    msg = `모든 관측소 안정 상태 (최고 ${where} ${worst.avg_index}점). 통상 운영 유지.`;
-  }
-  txt.textContent = msg;
 }
 
 function fbRenderSignals(j) {
@@ -6301,37 +6255,6 @@ function fbRenderExplanation(j) {
     explain.textContent = '데이터 부족';
     src.textContent = '';
   }
-}
-
-function fbRenderTrend(j) {
-  const t = j.trend || {};
-  const host = document.getElementById('fb-trend');
-  const wow = t.wow_change_pct;
-  const yoy = t.yoy_change_pct;
-  const arrow = (v) => v == null ? '·' : v > 5 ? '▲' : v < -5 ? '▼' : '→';
-  const color = (v) => v == null ? 'var(--gray4)' : v > 10 ? 'var(--red)' : v < -10 ? 'var(--green)' : 'var(--gray5)';
-  host.innerHTML = `
-    <div class="kpi-card navy">
-      <div class="kpi-label">최근 7일 일평균</div>
-      <div class="kpi-value val-navy">${(t.recent7_avg ?? 0).toLocaleString()}</div>
-      <div class="kpi-sub">마리/일</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">직전 7일 일평균</div>
-      <div class="kpi-value" style="color:var(--gray5)">${(t.prev7_avg ?? 0).toLocaleString()}</div>
-      <div class="kpi-sub">마리/일</div>
-    </div>
-    <div class="kpi-card" style="border-top-color:${color(wow)}">
-      <div class="kpi-label">전주 대비</div>
-      <div class="kpi-value" style="color:${color(wow)}">${arrow(wow)} ${wow != null ? (wow >= 0 ? '+' : '') + wow + '%' : '-'}</div>
-      <div class="kpi-sub">최근 7일 vs 직전 7일</div>
-    </div>
-    <div class="kpi-card" style="border-top-color:${color(yoy)}">
-      <div class="kpi-label">작년 동기 대비</div>
-      <div class="kpi-value" style="color:${color(yoy)}">${yoy != null ? arrow(yoy) + ' ' + (yoy >= 0 ? '+' : '') + yoy + '%' : '데이터 부족'}</div>
-      <div class="kpi-sub" style="font-size:9px">${t.last_year_avg != null ? '작년 일평균 ' + t.last_year_avg + '마리' : '작년 데이터 없음'}</div>
-    </div>
-  `;
 }
 
 async function fbInitSim() {
