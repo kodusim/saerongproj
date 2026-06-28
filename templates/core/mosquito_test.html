@@ -1804,7 +1804,13 @@ body {
     <div class="card" style="margin-top:14px;padding:12px 16px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
       <strong style="color:var(--yellow)">효과 반영 방식</strong> · 실시일부터 <strong>onset_days</strong> 뒤 효과가 발생하여
       <strong>duration_days</strong> 동안 지속됩니다. 해당 기간의 AI 예측값에 감소율이 곱해집니다.
-      여러 방역이 겹치면 곱셈으로 누적. 관리자는 전 장비, 일반 사용자는 허용된 장비에 한정됩니다.
+      <div style="margin-top:8px;padding:8px 12px;background:#fff;border-radius:6px;border:1px solid #F5D788;font-family:var(--mono);color:var(--navy);line-height:1.7">
+        조정 예측 = 원본 예측 × ∏<sub>(겹치는 방역)</sub> (1 − 감소율 ÷ 100)
+        <div style="font-family:var(--font);color:var(--gray5);margin-top:4px;font-size:10.5px">
+          예) BTi(65%) + IGR(55%) 동시 적용 → 1 − (1−0.65)×(1−0.55) = 1 − 0.35×0.45 = <strong style="color:var(--red)">−84.25%</strong> (예측 100마리 → 약 16마리)
+        </div>
+      </div>
+      여러 방역이 겹치면 위와 같이 곱셈으로 누적됩니다. 관리자는 전 장비, 일반 사용자는 허용된 장비에 한정됩니다.
     </div>
   </div>
 
