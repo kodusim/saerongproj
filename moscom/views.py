@@ -282,6 +282,8 @@ def region_list(request):
         dev_qs = dev_qs.filter(device_uuid__in=allowed_uuids)
     counts = Counter(dev_qs.values_list('region_code', flat=True))
     regions = list(Region.objects.all())
+    # 일반 사용자는 허용 장비가 있는 권역만 노출(권한 밖 권역 숨김). admin(allowed_uuids=None)은 전체.
+    restrict = allowed_uuids is not None
     # DB 에 없지만 Device 에 prefix 있는 경우 — 빈 row 도 노출
     existing_codes = {r.code for r in regions}
     extra_codes = sorted(set(counts.keys()) - existing_codes - {''})
@@ -294,6 +296,7 @@ def region_list(request):
             'device_count': counts.get(r.code, 0),
         }
         for r in regions
+        if (not restrict) or counts.get(r.code, 0) > 0
     ] + [
         # Region 마스터에 없지만 Device 에는 prefix 있는 경우 (lazy)
         {'id': None, 'code': c, 'name': c, 'overview_name': '', 'sort_order': 100, 'note': '',
