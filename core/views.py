@@ -516,6 +516,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
     # 장비별 7일 평균 + 추세 + 위험점수 (complaint-risk 축약본)
     warn_count = 0         # 위험 점수 61+ (경고/심각)
     anomaly_today = 0      # 오늘 bad_min 초과
+    alert_count = 0        # 경보 발생 — 이상감지 탭과 동일: 기준일 포집 50마리 이상 (관측소당 1회)
     complaint_high = 0     # 민원 위험 61+
     now_utc = datetime.now(timezone.utc)
     offline_count = 0
@@ -602,6 +603,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
         else: risk_lv = '심각'
         if risk_score >= 61: warn_count += 1
         if today_c >= m.get('bad_min', 100) and m.get('bad_min', 0) > 0: anomaly_today += 1
+        if today_c >= 50: alert_count += 1  # 경보 발생 (이상감지 탭과 동일 기준 50마리, 관측소당 1회)
 
         # 민원 점수 — 민원가능지역 페이지와 동일하게 관측소별 실제 bad_min 기준
         dev_bm = m.get('dev_bad_min', 100)
@@ -767,6 +769,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
             'top_dev': top_dev,
             'warn_count': warn_count,
             'anomaly_today': anomaly_today,
+            'alert_count': alert_count,
             'complaint_high': complaint_high,
             'equip_bad': equip_bad_count,
             'equip_lowbatt': equip_lowbatt_count,
