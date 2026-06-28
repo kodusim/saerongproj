@@ -1321,7 +1321,8 @@ body {
         <table class="data-table" style="width:100%" id="ov-station-table">
           <thead id="ov-station-thead">
             <tr>
-              <th>관측소</th><th>권역</th><th>지역</th><th>형태</th><th>위험 등급</th><th>민원 위험</th>
+              <th>관측소</th><th>권역</th><th>지역</th><th>형태</th>
+              <th style="background:#3A5A8C;text-align:center">위험 등급</th><th style="background:#3A5A8C;text-align:center">민원 위험</th>
               <th>기준일</th><th>전일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
@@ -2675,8 +2676,8 @@ function renderOvStationTable(json) {
       <td><span style="font-size:10px;font-weight:700;background:#EEF2FF;color:#3949AB;padding:2px 8px;border-radius:10px">${escapeHtml(d.region_name || '미지정')}</span></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.region}</span></td>
       <td><span style="font-size:10px;font-weight:600;background:${hbColor.bg};color:${hbColor.color};padding:2px 8px;border-radius:10px">${h2.form}</span></td>
-      <td><span style="font-size:10px;font-weight:700;background:${mg.bg};color:${mg.color};padding:2px 9px;border-radius:10px">${mg.label}</span></td>
-      <td><span style="font-size:10px;font-weight:700;background:${cpBg.bg};color:${cpBg.color};padding:2px 9px;border-radius:10px">${cpLv}</span></td>
+      <td style="background:${mg.bg};text-align:center"><span style="font-size:10px;font-weight:700;background:${mg.bg};color:${mg.color};padding:2px 9px;border-radius:10px;border:1px solid ${mg.color}33">${mg.label}</span></td>
+      <td style="background:${cpBg.bg};text-align:center"><span style="font-size:10px;font-weight:700;background:${cpBg.bg};color:${cpBg.color};padding:2px 9px;border-radius:10px;border:1px solid ${cpBg.color}33">${cpLv}</span></td>
       <td style="font-family:var(--mono);font-weight:600;color:var(--navy)">${(d.today || 0).toLocaleString()}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.yday || 0}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg || 0}</td>
