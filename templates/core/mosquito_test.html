@@ -1636,27 +1636,28 @@ body {
 
     <!-- ━━━━━━━━━━━━━ 보건소·질병청 종합 브리핑 ━━━━━━━━━━━━━ -->
 
-    <!-- 1. 관측소별 위험 신호등 -->
+    <!-- 1. 관측소별 위험 신호등 (게이지) -->
     <div class="sec-header" style="margin-top:6px;margin-bottom:8px">
       <div class="sec-bar"></div>
       <div class="sec-title" style="font-size:13px">🚦 관측소별 위험 신호등 (3일 예측 평균 모기지수)</div>
     </div>
     <div id="fb-region-summary" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
-    <div id="fb-signals" class="kpi-grid mb16" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-      <div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div>
-    </div>
-
-    <!-- 2. 기상 → 모기 과학적 설명 -->
-    <div class="card mb16" style="padding:16px 18px;background:#F4F8FF;border-color:#9EC9FF">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:18px">🌡️</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">기상기반 위험도 예보</div>
-        <span id="fb-explain-source" style="margin-left:auto;font-size:10px;color:var(--gray4)"></span>
+    <div class="card mb16" style="padding:16px">
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:stretch">
+        <!-- 종합 위험지수 (전체 평균) 큰 카드 -->
+        <div id="fb-overall" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1B3A6B,#2c5282);border-radius:10px;color:#fff;padding:18px 12px;text-align:center">
+          <div style="font-size:12px;font-weight:600;opacity:.85;letter-spacing:.04em">종합 위험지수</div>
+          <div style="font-size:10px;opacity:.7;margin-bottom:6px">(전체 관측소 평균)</div>
+          <div style="width:150px;height:84px" id="fb-overall-gauge"></div>
+          <div id="fb-overall-value" style="font-size:38px;font-weight:800;font-family:var(--mono);line-height:1;margin-top:4px">–</div>
+          <div id="fb-overall-grade" style="font-size:13px;font-weight:700;margin-top:4px">–</div>
+        </div>
+        <!-- 관측소별 게이지 그리드 -->
+        <div id="fb-signals" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start">
+          <div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--gray4);font-size:12px">데이터 로드 중…</div>
+        </div>
       </div>
-      <div id="fb-weather-stats" style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--gray5);margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,.7);border-radius:6px"></div>
-      <div id="fb-explanation" style="font-size:13px;line-height:1.75;color:var(--gray6);white-space:pre-wrap">데이터 로드 중…</div>
     </div>
-
 
     <!-- ━━━━━━━━━━━━━ 기존 예보 영역 ━━━━━━━━━━━━━ -->
 
@@ -1725,6 +1726,17 @@ body {
         <li>고인 물(화분 받침, 빈 캔, 폐타이어 등) 주기적으로 비워 모기 유충 발생을 차단해주세요.</li>
         <li>방충망 손상 시 즉시 교체하고, 출입구 사용 시 빠르게 닫아주세요.</li>
       </ul>
+    </div>
+
+    <!-- 기상기반 위험도 예보 (맨 아래) — 이전 기상 + 이전 방역 + 미래 기상 -->
+    <div class="card mb16" style="padding:16px 18px;background:#F4F8FF;border-color:#9EC9FF">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">🌡️</span>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">기상기반 위험도 예보</div>
+        <span id="fb-explain-source" style="margin-left:auto;font-size:10px;color:var(--gray4)"></span>
+      </div>
+      <div id="fb-weather-stats" style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--gray5);margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,.7);border-radius:6px"></div>
+      <div id="fb-explanation" style="font-size:13px;line-height:1.75;color:var(--gray6);white-space:pre-wrap">데이터 로드 중…</div>
     </div>
   </div>
 
@@ -6371,23 +6383,56 @@ function fbRenderSignals(j) {
         <span style="width:8px;height:8px;border-radius:50%;background:${dot}"></span>${escapeHtml(s.region_name)} ${s.avg_index} (${s.grade})</span>`;
     }).join('');
   }
-  // 메인: 관측소별 카드
+
+  // 종합 위험지수 (전체 관측소 평균)
+  const idxs = stations.map(s => s.avg_index).filter(v => v != null);
+  const overall = idxs.length ? Math.round(idxs.reduce((a,b)=>a+b,0) / idxs.length) : 0;
+  const og = indexToGrade(overall);
+  const ogEl = document.getElementById('fb-overall-gauge');
+  const ovEl = document.getElementById('fb-overall-value');
+  const ogdEl = document.getElementById('fb-overall-grade');
+  if (ogEl) ogEl.innerHTML = indexGaugeSvg(overall, '#fff');
+  if (ovEl) ovEl.textContent = overall;
+  if (ogdEl) ogdEl.textContent = og.label;
+
+  // 메인: 관측소별 게이지
   host.innerHTML = stations.map(s => {
     const [bg, color, dot] = colorMap[s.color] || colorMap.green;
-    const reason = (s.reasoning || '').trim();
     return `
-      <div class="kpi-card" style="background:${bg};border-top:3px solid ${dot}">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="width:10px;height:10px;border-radius:50%;background:${dot};display:inline-block"></span>
-          <div style="font-size:11px;font-weight:700;color:${color}">${s.grade}</div>
-        </div>
-        <div style="font-size:13px;font-weight:700;color:${color};line-height:1.3;margin-bottom:1px">${escapeHtml(stationName(s.name || '-'))}</div>
-        <div style="font-size:10px;color:var(--gray5);margin-bottom:3px">${escapeHtml(s.region_name || '')}</div>
-        <div style="font-size:24px;font-weight:700;color:${color};font-family:var(--mono);line-height:1">${s.avg_index}<span style="font-size:11px;font-weight:600;color:var(--gray5)"> 지수</span></div>
-        <div style="font-size:10px;color:var(--gray5);margin-top:5px">최대 모기지수 ${s.max_index ?? '-'}</div>
-        ${reason ? `<div style="font-size:10px;color:var(--gray6);margin-top:6px;line-height:1.45;border-top:1px dashed rgba(0,0,0,.08);padding-top:5px">${escapeHtml(reason)}</div>` : ''}
+      <div style="background:#fff;border:1px solid var(--gray2);border-top:3px solid ${dot};border-radius:8px;padding:10px 8px;text-align:center">
+        <div style="font-size:12px;font-weight:700;color:${color};line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(stationName(s.name||'-'))}">${escapeHtml(stationName(s.name || '-'))}</div>
+        <div style="font-size:9px;color:var(--gray4);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(s.region_name || '')}</div>
+        <div style="width:100%;height:64px">${indexGaugeSvg(s.avg_index ?? 0, dot)}</div>
+        <div style="font-size:18px;font-weight:800;color:${color};font-family:var(--mono);line-height:1">${s.avg_index ?? '-'}</div>
+        <div style="font-size:10px;font-weight:700;color:${color}">${s.grade}</div>
       </div>`;
   }).join('');
+}
+
+// 모기지수(0~100) 반원 게이지 — 신호등용 (gaugeSvg는 0~200 스케일이라 별도)
+function indexGaugeSvg(value, needleColor) {
+  const v = Math.min(Math.max(value || 0, 0), 100);
+  const angle = -90 + (v / 100) * 180;
+  const arc = (a, b, color) => {
+    const s = (a * Math.PI) / 180 - Math.PI / 2, e = (b * Math.PI) / 180 - Math.PI / 2;
+    const r = 60, cx = 75, cy = 75;
+    const x1 = cx + r * Math.cos(s), y1 = cy + r * Math.sin(s);
+    const x2 = cx + r * Math.cos(e), y2 = cy + r * Math.sin(e);
+    return `<path d="M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round"/>`;
+  };
+  const toDeg = (pct) => pct * 1.8 - 90;  // 0~100 → -90~90
+  return `
+    <svg viewBox="0 0 150 82" style="width:100%;height:100%">
+      <path d="M 15 75 A 60 60 0 0 1 135 75" stroke="#eceef2" stroke-width="9" fill="none" stroke-linecap="round"/>
+      ${arc(toDeg(0), toDeg(25), '#4ade80')}
+      ${arc(toDeg(25), toDeg(50), '#facc15')}
+      ${arc(toDeg(50), toDeg(75), '#fb923c')}
+      ${arc(toDeg(75), toDeg(100), '#ef4444')}
+      <g style="transform:rotate(${angle}deg);transform-origin:75px 75px">
+        <line x1="75" y1="75" x2="75" y2="25" stroke="${needleColor==='#fff'?'#fff':'#1B3A6B'}" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="75" cy="75" r="4.5" fill="${needleColor==='#fff'?'#fff':'#1B3A6B'}"/>
+      </g>
+    </svg>`;
 }
 
 // 관측소별 방역지시 — 등급+형태 기반 권장 방역 산출 (10p: 시뮬레이션 위에 배치)
@@ -6444,16 +6489,38 @@ function fbRenderExplanation(j) {
   `;
   const explain = document.getElementById('fb-explanation');
   const src = document.getElementById('fb-explain-source');
-  if (j.explanation_ai) {
-    explain.textContent = j.explanation_ai;
-    src.textContent = 'AI 생성 (GPT-4o-mini)';
-  } else if (j.explanation_rule) {
-    explain.textContent = j.explanation_rule;
-    src.textContent = '룰 기반 설명';
-  } else {
-    explain.textContent = '데이터 부족';
-    src.textContent = '';
-  }
+  const analysis = j.explanation_ai || j.explanation_rule || '데이터 부족';
+  src.textContent = j.explanation_ai ? 'AI 생성 (GPT-4o-mini)' : (j.explanation_rule ? '룰 기반 설명' : '');
+
+  // 3구성: 이전(현재) 기상 + 이전 방역 사항 + 미래 기상 전망
+  const wLine = `평균기온 ${w.avg_temperature ?? '-'}°C · 습도 ${w.avg_humidity ?? '-'}% · 강수 ${w.avg_precipitation ?? 0}mm · 풍속 ${w.avg_wind_speed ?? '-'}m/s`;
+  const block = (title, body, color) =>
+    `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:${color};margin-bottom:3px">${title}</div><div style="font-size:12.5px;color:var(--gray6);line-height:1.65;white-space:pre-wrap">${body}</div></div>`;
+
+  explain.innerHTML =
+    block('① 이전·현재 기상 조건', wLine, 'var(--navy)') +
+    block('② 이전 방역 사항', '<span id="fb-prev-remedy">최근 방역 이력 조회 중…</span>', '#0F5E6E') +
+    block('③ 미래 기상 전망 기반 위험도', analysis, '#C05000');
+
+  // 이전 방역 사항 비동기 로드
+  (async () => {
+    try {
+      const r = await fetch('/mosquito-test/api/remedy/', { credentials: 'same-origin' });
+      const rj = await r.json();
+      const plans = (rj.plans || rj.items || []).slice(0, 5);
+      const el = document.getElementById('fb-prev-remedy');
+      if (!el) return;
+      if (!plans.length) { el.textContent = '최근 14일 내 등록된 방역 이력이 없습니다.'; return; }
+      el.innerHTML = plans.map(p => {
+        const nm = stationName(p.device_name || p.device_uuid || '-');
+        const mtxt = p.method_label || p.method_name || (p.method_keys || []).join('+') || p.method_key || '방역';
+        return `· ${escapeHtml(nm)} — ${escapeHtml(mtxt)} (${(p.scheduled_date || p.date || '').slice(0,10)})`;
+      }).join('<br>');
+    } catch (e) {
+      const el = document.getElementById('fb-prev-remedy');
+      if (el) el.textContent = '방역 이력 로드 실패';
+    }
+  })();
 }
 
 async function fbInitSim() {
