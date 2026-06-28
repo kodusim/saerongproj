@@ -1562,12 +1562,20 @@ body {
     <!-- 결과 영역 (로더 끝나면 표시) -->
     <div id="predict-result" style="display:none">
 
-      <!-- 실측+예측 차트 (위) -->
+      <!-- 관측소 선택 (위 — 전체 컨트롤) -->
+      <div class="card mb16" style="padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">관측소 선택</div>
+        <div id="predict-filter" style="max-height:220px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
+          <div style="color:var(--gray4);font-style:italic">로딩…</div>
+        </div>
+      </div>
+
+      <!-- 실측+예측 차트 -->
       <div class="card mb16" style="padding:16px">
         <div style="display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px 20px">
           <div style="font-size:13px;font-weight:700;color:var(--navy)">실측 + AI 예측 추이</div>
           <div style="font-size:13px;font-weight:600;color:var(--gray6)">
-            <span style="color:var(--navy)">━</span> 최근 7일 실측 &nbsp;·&nbsp; <span style="color:var(--navy)">┈</span> AI 예측 3일
+            <span style="color:var(--navy)">━</span> 최근 7일 실측 &nbsp;·&nbsp; <span style="color:var(--navy)">┈</span> AI 예측 3일 &nbsp;·&nbsp; <span style="color:#C05000">▮</span> 현재(기준일)
           </div>
         </div>
         <div style="position:relative;height:460px">
@@ -1575,12 +1583,14 @@ body {
         </div>
       </div>
 
-      <!-- 관측소 선택 (아래) -->
-      <div class="card mb24" style="padding:16px">
-        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">관측소 선택</div>
-        <div id="predict-filter" style="max-height:300px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
-          <div style="color:var(--gray4);font-style:italic">로딩…</div>
+      <!-- 직전 방역 검증 -->
+      <div class="card mb16" style="padding:14px 16px">
+        <div class="sec-header" style="margin-bottom:8px">
+          <div class="sec-bar"></div>
+          <div class="sec-title" style="font-size:13px">🔍 직전 방역 검증</div>
+          <span style="margin-left:auto;font-size:10px;color:var(--gray4)">살포 후 실측 vs 예측 편차 기반 자동 분류</span>
         </div>
+        <div id="predict-verify"><div style="padding:10px;color:var(--gray4);font-size:12px">최근 방역 이력이 있는 관측소를 분석합니다…</div></div>
       </div>
 
       <!-- 장비별 실측 + 예측 표 (밑) -->
@@ -1593,13 +1603,18 @@ body {
         </div>
       </div>
 
-      <!-- 모델 정보 + 디스클레이머 -->
+      <!-- 모델 정보 + 계산식 + 디스클레이머 -->
       <div class="card mb16" style="padding:12px 16px;background:#FFFDF0;border-color:#E8DDA3">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--gray5)">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--gray5);margin-bottom:8px">
           <div><strong style="color:var(--navy)">알고리즘</strong> <span id="predict-model-algo">—</span></div>
           <div><strong style="color:var(--navy)">학습 데이터</strong> <span id="predict-model-train">—</span></div>
           <div><strong style="color:var(--navy)">피처</strong> <span id="predict-model-features">—</span>개</div>
           <div style="color:var(--orange);font-weight:600" id="predict-disclaimer">—</div>
+        </div>
+        <div style="padding:8px 12px;background:#fff;border-radius:6px;border:1px solid #E8DDA3;font-size:10.5px;color:var(--gray6);line-height:1.7">
+          <strong style="color:var(--navy)">AI 예측(마리수) 계산식</strong><br>
+          <span style="font-family:var(--mono)">예측마리수 = RandomForest( lag1~7, 이동평균(MA3·MA7), 요일/월/일, 기온·습도·강수·풍속, 권역 ) × 방역계수</span><br>
+          <span style="color:var(--gray5)">· 방역계수 = ∏(1 − 감소율÷100) — 예측일에 효과 지속 중인 방역들의 곱셈 누적</span>
         </div>
       </div>
 
@@ -3700,7 +3715,7 @@ function renderPredictFilter() {
       <button type="button" class="dl-btn dl-btn-print" style="padding:3px 8px;font-size:10px" onclick="predictSelect(0)">해제</button>
     </div>`,
     `<div style="font-size:10px;color:var(--gray4);font-weight:600;letter-spacing:.04em;margin-bottom:6px">관측소 선택 (${PREDICT_STATE.selected.size}/${preds.length})</div>`,
-    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px 12px">`,
+    `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px">`,
   ];
   preds.forEach(p => {
     const checked = PREDICT_STATE.selected.has(p.uuid) ? 'checked' : '';
@@ -3791,6 +3806,57 @@ function renderPredictTable() {
   }).join('')}</tbody>`;
 }
 
+// 직전 방역 검증 — 최근 실측 추세(전반 vs 후반) 편차 기반 3패턴 자동 분류
+function classifyRemedyPattern(history) {
+  const seq = (history || []).slice(-7).map(h => h.count || 0);
+  if (seq.length < 4) return null;
+  const half = Math.ceil(seq.length / 2);
+  const early = seq.slice(0, half).reduce((a,b)=>a+b,0) / half;
+  const late = seq.slice(half).reduce((a,b)=>a+b,0) / (seq.length - half);
+  const chg = early > 0 ? (late - early) / early * 100 : (late > 0 ? 100 : 0);
+  // 편차 기반 규칙
+  if (chg <= 10) {
+    return { key:'normal', label:'방역 정상 패턴', color:'var(--green)', bg:'#E8F5E9', chg,
+             desc:'방역 후 포집량이 감소·안정 추세 — 정상적으로 효과 발휘 중',
+             action:'현행 방역 주기 유지' };
+  }
+  if (chg <= 60) {
+    return { key:'leak', label:'발생원 누락 의심', color:'#C05000', bg:'#FFF3E0', chg,
+             desc:'방역 후에도 포집량이 소폭 재증가 — 처리되지 않은 발생원 잔존 가능성',
+             action:'유충방제(BTi) 추가 진행 + 주변 발생원 재조사' };
+  }
+  return { key:'major', label:'대형 발생원 미처리 의심', color:'var(--red)', bg:'#FDECEA', chg,
+           desc:'방역 후 포집량이 급증 — 대형 발생원이 처리되지 않았을 가능성',
+           action:'발생원 정밀 탐색 + 야간 연무(ULV) 긴급 시행 + 유충방제 병행' };
+}
+
+function renderPredictVerify() {
+  const host = document.getElementById('predict-verify');
+  if (!host || !PREDICT_STATE.data) return;
+  const preds = PREDICT_STATE.data.predictions || [];
+  const rows = preds.map(p => {
+    const pat = classifyRemedyPattern(p.history);
+    if (!pat) return null;
+    return `<tr>
+      <td><strong>${escapeHtml(stationName(p.name))}</strong></td>
+      <td style="text-align:center"><span style="display:inline-block;font-size:10px;font-weight:700;background:${pat.bg};color:${pat.color};padding:2px 9px;border-radius:10px">${pat.label}</span></td>
+      <td style="text-align:center;font-family:var(--mono);font-weight:700;color:${pat.color}">${pat.chg>=0?'+':''}${Math.round(pat.chg)}%</td>
+      <td style="font-size:11px;color:var(--gray5)">${pat.desc}</td>
+      <td style="font-size:11px;color:var(--navy);font-weight:600">→ ${pat.action}</td>
+    </tr>`;
+  }).filter(Boolean).join('');
+  if (!rows) {
+    host.innerHTML = '<div style="padding:12px;text-align:center;color:var(--gray4);font-size:12px">검증할 실측 이력이 충분한 관측소가 없습니다.</div>';
+    return;
+  }
+  host.innerHTML = `
+    <table class="data-table" style="width:100%">
+      <thead><tr><th>관측소</th><th style="text-align:center">검증 패턴</th><th style="text-align:center">최근 추세</th><th>해석</th><th>추천 조치</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="font-size:10px;color:var(--gray4);margin-top:6px">※ 최근 7일 실측을 전·후반으로 나눠 편차로 자동 분류: 변화 ≤10% 정상 / 10~60% 발생원 누락 의심 / 60%↑ 대형 발생원 미처리 의심.</div>`;
+}
+
 function drawPredictChart() {
   if (!PREDICT_STATE.data) return;
   const ctx = document.getElementById('predict-chart');
@@ -3866,17 +3932,40 @@ function drawPredictChart() {
     ];
   }).flat();
 
+  // 현재(기준일) 구분선 — 과거(실측)와 미래(예측) 경계
+  const boundaryIdx = histDates.length - 1;  // 마지막 실측일 = 현재 기준일
+  const nowDividerPlugin = {
+    id: 'predictNowDivider',
+    afterDraw(chart) {
+      if (boundaryIdx < 0) return;
+      const x = chart.scales.x.getPixelForValue(boundaryIdx);
+      const top = chart.scales.y.top, bottom = chart.scales.y.bottom;
+      const c = chart.ctx;
+      c.save();
+      // 미래(예측) 영역 음영
+      c.fillStyle = 'rgba(192,80,0,0.05)';
+      c.fillRect(x, top, chart.scales.x.right - x, bottom - top);
+      // 구분선
+      c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom);
+      c.lineWidth = 2; c.strokeStyle = '#C05000'; c.setLineDash([4,3]); c.stroke();
+      // 라벨
+      c.setLineDash([]); c.fillStyle = '#C05000'; c.font = 'bold 10px sans-serif'; c.textAlign = 'center';
+      c.fillText('현재', x, top + 12);
+      c.restore();
+    }
+  };
+
   if (PREDICT_STATE.chart) PREDICT_STATE.chart.destroy();
   PREDICT_STATE.chart = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
+    plugins: [nowDividerPlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: predictLegendLabels } },
         tooltip: { mode: 'index', intersect: false },
-        annotation: {},
       },
       scales: {
         y: { beginAtZero: true, title: { display: true, text: '포집량 (마리)' }, grid: { color: 'rgba(0,0,0,0.04)' } },
@@ -3928,6 +4017,7 @@ async function buildPredict() {
     // 관측소 선택 기본: 전체
     predictSelect(-1);
     renderPredictTable();
+    renderPredictVerify();
 
     PREDICT_LOADED = true;
   } catch (err) {
