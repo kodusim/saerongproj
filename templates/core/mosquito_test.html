@@ -1952,37 +1952,37 @@ body {
       </div>
     </div>
 
-    <!-- AI 추천방역 — 권역별 방역 사항 -->
+    <!-- AI 추천방역 — 관측소별 추천 방역 -->
     <div class="card mb16" style="padding:14px 16px">
       <div class="sec-header" style="margin-bottom:8px">
         <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">🛡️ 권역별 방역 사항</div>
-        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">위험도 예보 기반 권장 방역</span>
+        <div class="sec-title" style="font-size:13px">🛡️ 관측소별 추천 방역</div>
+        <span style="margin-left:auto;font-size:10px;color:var(--gray4)">위험등급(지수) · 권장 방역 적용 시 예상 위험등급</span>
       </div>
-      <div id="aj-remedy-check"><div style="padding:14px;text-align:center;color:var(--gray4);font-size:12px">위 AI 분석 실행 시 권역별 방역 사항이 표시됩니다.</div></div>
+      <div id="aj-remedy-check"><div style="padding:14px;text-align:center;color:var(--gray4);font-size:12px">위 AI 분석 실행 시 관측소별 추천 방역이 표시됩니다.</div></div>
     </div>
 
     <!-- 방역 효과 시뮬레이션 (9p에서 이동) -->
     <div class="card mb16" style="padding:14px 18px;background:#FFF8F0;border-color:#FFC080">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="font-size:18px">💉</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">방역 효과 시뮬레이션</div>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">방역 효과 시뮬레이션(마리수)</div>
         <span style="margin-left:auto;font-size:10px;color:var(--gray4)">방역 적용 시 향후 10일 예측 비교</span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:180px minmax(280px,1.6fr) 150px auto;gap:10px;margin-bottom:10px;align-items:end">
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">관측소 선택</label>
           <select id="fb-sim-device" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
         </div>
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">방역 방법 (최대 2개 · Ctrl/⌘+클릭)</label>
-          <select id="fb-sim-method" multiple size="3" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px"></select>
+          <select id="fb-sim-method" multiple size="4" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:12px"></select>
         </div>
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--navy);display:block;margin-bottom:3px">실시일</label>
           <input type="date" id="fb-sim-date" style="width:100%;padding:5px 9px;border:1px solid var(--gray3);border-radius:5px;font-size:11px">
         </div>
-        <button class="dl-btn dl-btn-html" id="fb-sim-run" onclick="fbSimRun()" style="padding:5px 14px;font-size:11px">시뮬레이션 실행</button>
+        <button class="dl-btn dl-btn-html" id="fb-sim-run" onclick="fbSimRun()" style="padding:7px 14px;font-size:11px;height:34px">시뮬레이션 실행</button>
       </div>
       <div id="fb-sim-result" style="font-size:11px;color:var(--gray5)">위 필터 선택 후 시뮬레이션 실행</div>
       <div style="position:relative;height:240px;margin-top:8px" id="fb-sim-chart-wrap">
@@ -4984,20 +4984,37 @@ async function ajRenderRemedyCheck() {
   const gColor = { '불쾌': 'var(--red)', '주의': '#C05000', '관심': '#7A5700' };
   const rows = stations.map(s => {
     const h2 = (typeof classifyHabitat2 === 'function') ? classifyHabitat2(s) : { form: '', label: '' };
-    const methods = (typeof fbRecommendMethod === 'function') ? fbRecommendMethod(s.grade, h2.form) : [];
+    const recs = recommendRemedyDetailed(s.grade, h2.form);
+    // 권장 방역(감소율>0)들의 곱셈 누적 적용 후 예상 지수
+    const idx = (s.avg_index != null) ? s.avg_index : null;
+    let factor = 1;
+    recs.forEach(r => { if (r.reductionPct > 0) factor *= (1 - r.reductionPct / 100); });
+    const afterIdx = (idx != null) ? Math.round(idx * factor) : null;
+    const beforeG = indexToGrade(idx);
+    const afterG = indexToGrade(afterIdx);
+    // 추천 목록 (번호 + 이유)
+    const recHtml = recs.map((r, i) => `
+      <div style="margin-bottom:4px">
+        <span style="display:inline-block;font-size:10px;font-weight:700;background:#FFF3E0;color:#BF360C;padding:2px 8px;border-radius:10px">추천${i+1} ${escapeHtml(r.name)}${r.reductionPct>0?` <span style="color:#888;font-weight:400">−${r.reductionPct}%</span>`:''}</span>
+        <span style="font-size:10.5px;color:var(--gray5);margin-left:4px">: ${escapeHtml(r.reason)}</span>
+      </div>`).join('');
     return `<tr>
       <td><strong>${escapeHtml(stationName(s.name || '-'))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(s.region_name || '')}</div></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.label}</span></td>
-      <td style="font-weight:700;color:${gColor[s.grade] || 'var(--gray5)'}">${s.grade} <span style="font-family:var(--mono);font-weight:400;color:var(--gray4)">(${s.avg_index ?? '-'})</span></td>
-      <td>${methods.map(m => `<span style="display:inline-block;font-size:10px;font-weight:600;background:#FFF3E0;color:#BF360C;padding:2px 8px;border-radius:10px;margin:1px">${m}</span>`).join('')}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <span style="font-weight:700;color:${beforeG.color}">${beforeG.label} <span style="font-family:var(--mono);font-weight:400;color:var(--gray4)">(${idx ?? '-'})</span></span>
+        <div style="font-size:10px;color:var(--gray4);margin:2px 0">↓ 권장 방역 적용 시</div>
+        <span style="font-weight:700;color:${afterG.color}">${afterG.label} <span style="font-family:var(--mono);font-weight:400;color:var(--gray4)">(${afterIdx ?? '-'})</span></span>
+      </td>
+      <td style="font-size:11px">${recHtml}</td>
     </tr>`;
   }).join('');
   host.innerHTML = `
     <table class="data-table" style="width:100%">
-      <thead><tr><th>관측소</th><th>특성</th><th>위험등급(지수)</th><th>권장 방역</th></tr></thead>
+      <thead><tr><th>관측소</th><th>특성</th><th style="text-align:center">위험등급(지수)<br><span style="font-weight:400;font-size:9px">현재 → 방역 후</span></th><th>추천 방역 (근거)</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <div style="font-size:10px;color:var(--gray4);margin-top:6px">※ 권장 방역은 위험등급·서식 형태 기반 자동 산출. 적용 효과는 아래 방역 효과 시뮬레이션에서 확인하세요.</div>`;
+    <div style="font-size:10px;color:var(--gray4);margin-top:6px">※ 추천 방역은 위험등급·서식 형태 기반 자동 산출, "방역 후" 지수는 권장 방역 감소율을 곱셈 누적 적용한 예상치입니다.</div>`;
 }
 
 async function buildAdminJudgment(force) {
@@ -6295,6 +6312,36 @@ function fbRecommendMethod(grade, form) {
     return ['예찰 강화'];
   }
   return ['현행 유지'];
+}
+
+// 추천 방역 + "왜 이 방역인지" 근거 + 감소율(%) — 위험등급·서식형태 기반
+function recommendRemedyDetailed(grade, form) {
+  const recs = [];
+  const isHigh = (grade === '불쾌' || grade === '주의');
+  if (isHigh) {
+    // 성충 급증 → 야간 연무 우선
+    recs.push({ name: '야간 연무 (ULV)', reason: '성충이 급증하여 긴급 살충(연무)이 필요함', reductionPct: 78 });
+    // 재발 방지 위한 유충 방제
+    recs.push({ name: '유충 방제 (BTi)', reason: '지속적인 모기 방제 효과를 얻기 위해 발생원 유충 차단', reductionPct: 65 });
+    if (form === '수변부') {
+      recs.push({ name: '잔류 분무', reason: '수변부 재발생 우려가 높아 14~21일 잔류 효과로 재발 억제', reductionPct: 55 });
+    }
+  } else if (grade === '관심') {
+    recs.push({ name: '유충 방제 (BTi)', reason: '발생 초기 단계로 유충 차단이 가장 비용효율적임', reductionPct: 65 });
+    recs.push({ name: '예찰 강화', reason: '급증 징후 조기 포착을 위한 모니터링 강화', reductionPct: 0 });
+  } else {
+    recs.push({ name: '현행 유지', reason: '안정 상태로 추가 방역 불필요', reductionPct: 0 });
+  }
+  return recs;
+}
+
+// 모기지수(0~100) → 등급 라벨/색
+function indexToGrade(idx) {
+  if (idx == null) return { label: '-', color: 'var(--gray4)' };
+  if (idx < 25) return { label: '쾌적', color: 'var(--green)' };
+  if (idx < 50) return { label: '관심', color: '#7A5700' };
+  if (idx < 75) return { label: '주의', color: '#C05000' };
+  return { label: '불쾌', color: 'var(--red)' };
 }
 function fbRenderExplanation(j) {
   const stats = document.getElementById('fb-weather-stats');
