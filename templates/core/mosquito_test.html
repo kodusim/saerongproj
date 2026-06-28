@@ -1490,21 +1490,16 @@ body {
 
     <!-- 전체 장비 표 -->
     <div class="card mb16">
-      <div class="sec-header" style="margin-bottom:10px">
+      <div class="sec-header" style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <div class="sec-bar"></div>
         <div class="sec-title" style="font-size:13px">전 관측소 일별 포집량</div>
-      </div>
-      <div style="font-size:11px;color:var(--gray4);margin:0 0 8px 2px">
-        추세 산정식: 기간을 전·후반으로 나눠 <strong>(후반 평균 − 전반 평균) / 전반 평균 × 100</strong> · +5% 초과 ↑증가 / −5% 미만 ↓감소 / 그 사이 →유지
+        <div style="margin-left:auto;font-size:10px;color:var(--gray4);text-align:right;line-height:1.4">
+          추세 산정식: 기간을 전·후반으로 나눠 <strong>(후반 평균 − 전반 평균) / 전반 평균 × 100</strong><br>
+          +5% 초과 ↑증가 / −5% 미만 ↓감소 / 그 사이 →유지
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table class="data-table" id="trend-table"></table>
-      </div>
-    </div>
-
-    <div class="card" style="padding:14px 16px">
-      <div style="background:var(--gray2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--gray4);font-weight:600">
-        종합: 준비중
       </div>
     </div>
   </div>
@@ -3244,6 +3239,7 @@ function renderTrendFilter() {
       else                          uuids.forEach(u => TREND_STATE.selected.delete(u));
       renderTrendFilter();
       drawTrendChart();
+      renderTrendTable();
     });
   });
   // 이벤트: 개별 장비
@@ -3254,6 +3250,7 @@ function renderTrendFilter() {
       else TREND_STATE.selected.delete(u);
       renderTrendFilter();
       drawTrendChart();
+      renderTrendTable();
     });
   });
 }
@@ -3529,6 +3526,11 @@ function renderTrendTable() {
     const up = chg > 5, down = chg < -5;
     const tc = up ? 'var(--red)' : down ? 'var(--green)' : 'var(--gray4)';
     const tl = up ? `↑ ${chg>=0?'+':''}${chg}%` : down ? `↓ ${chg}%` : '→ 0%';
+    // 추세선이 등록된(추세선 표시 ON + 선택됨) 관측소는 추세 열 음영 강조
+    const hasTrendline = TREND_STATE.trendlines && TREND_STATE.selected.has(u);
+    const trendCellStyle = hasTrendline
+      ? `color:${tc};font-weight:700;background:#FFF3CC;border-left:2px solid var(--teal)`
+      : `color:${tc};font-weight:700`;
     const cells = seq.map((v, wi) =>
       `<td style="font-family:var(--mono);${wi===lastIdx?'color:var(--navy);font-weight:700':'color:var(--gray5)'}">${v}</td>`
     ).join('');
@@ -3537,7 +3539,7 @@ function renderTrendTable() {
       <td style="color:var(--gray5);font-size:11px">${d.region}</td>
       ${cells}
       <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${d.total}</td>
-      <td style="color:${tc};font-weight:700">${tl}</td>
+      <td style="${trendCellStyle}">${tl}${hasTrendline?' <span style="font-size:9px;color:var(--teal)">📈</span>':''}</td>
     </tr>`;
   }).join('')}</tbody>`;
   t.innerHTML = hdr + body;
@@ -3591,9 +3593,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // 추세선
   const trAdd = document.getElementById('trend-line-add');
-  if (trAdd) trAdd.addEventListener('click', () => { TREND_STATE.trendlines = true; drawTrendChart(); });
+  if (trAdd) trAdd.addEventListener('click', () => { TREND_STATE.trendlines = true; drawTrendChart(); renderTrendTable(); });
   const trClear = document.getElementById('trend-line-clear');
-  if (trClear) trClear.addEventListener('click', () => { TREND_STATE.trendlines = false; drawTrendChart(); });
+  if (trClear) trClear.addEventListener('click', () => { TREND_STATE.trendlines = false; drawTrendChart(); renderTrendTable(); });
 });
 
 // 기준선 칩 (삭제 가능)
