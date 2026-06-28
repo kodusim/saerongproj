@@ -2049,7 +2049,7 @@ body {
         <div class="sec-bar"></div>
         <div>
           <div class="sec-title">민원가능지역</div>
-          <div class="sec-sub" id="cp-sub">관측소별 민원 발생 위험도 — 체감 포집량·급증·야간피크·주거지 인접 기준</div>
+          <div class="sec-sub" id="cp-sub">관측소별 민원 발생 위험도 — 체감 포집량·급증·야간피크 기준 + 민원 발생 건수</div>
         </div>
       </div>
       <div class="ai-model-badge"><span class="dot"></span>민원 위험 엔진</div>
@@ -2093,7 +2093,6 @@ body {
           <div class="cp-chip" data-filter="높음">높음</div>
           <div class="cp-chip" data-filter="보통">보통</div>
           <div class="cp-chip" data-filter="낮음">낮음</div>
-          <div class="cp-chip" data-filter="residential">주거지</div>
         </div>
       </div>
       <!-- 민원 가능성 점수 구간 범례 (칸 너비 = 점수 범위 비례) -->
@@ -4785,6 +4784,16 @@ function buildCpItemCard(item, criteria) {
 function cpLevelKey(lv) { return lv === '높음' ? 'high' : lv === '보통' ? 'mid' : 'low'; }
 const CP_MARKER = { high: '#e74c3c', mid: '#f39c12', low: '#27ae60' };
 
+// 민원 발생 건수 — 관측소별 수기 입력값 (localStorage 보관, 기본 0)
+function cpGetComplaintCount(uuid) {
+  try { return parseInt(localStorage.getItem('cp_complaint_' + uuid) || '0', 10) || 0; }
+  catch (e) { return 0; }
+}
+function cpSetComplaintCount(uuid, n) {
+  try { localStorage.setItem('cp_complaint_' + uuid, String(Math.max(0, parseInt(n,10) || 0))); } catch (e) {}
+  renderComplaintTop();  // 총계 갱신
+}
+
 // KPI 4개 + 지도 렌더
 function renderComplaintTop() {
   const { data } = CP_STATE;
@@ -4793,7 +4802,7 @@ function renderComplaintTop() {
   const high = items.filter(it => it.complaint.level === '높음');
   const mid  = items.filter(it => it.complaint.level === '보통');
   const low  = items.filter(it => it.complaint.level === '낮음');
-  const resi = items.filter(it => it.residential);
+  const totalComplaints = items.reduce((s, it) => s + cpGetComplaintCount(it.uuid), 0);
 
   // KPI
   const kpiEl = document.getElementById('cp-kpis');
@@ -4803,7 +4812,7 @@ function renderComplaintTop() {
       <div class="kpi-card red"><div class="kpi-label">고위험 (민원 높음)</div><div class="kpi-value val-red">${high.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">${escapeHtml(names(high))}</div></div>
       <div class="kpi-card teal"><div class="kpi-label">중위험 (민원 보통)</div><div class="kpi-value" style="color:#C05000">${mid.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">${escapeHtml(names(mid))}</div></div>
       <div class="kpi-card green"><div class="kpi-label">저위험 (민원 낮음)</div><div class="kpi-value val-green">${low.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">${escapeHtml(names(low))}</div></div>
-      <div class="kpi-card navy"><div class="kpi-label">주거지 인접 관측소</div><div class="kpi-value val-navy">${resi.length}<span style="font-size:13px">곳</span></div><div class="kpi-sub">민원 우선 대응 대상</div></div>`;
+      <div class="kpi-card navy"><div class="kpi-label">민원 발생 건수 (총계)</div><div class="kpi-value val-navy">${totalComplaints}<span style="font-size:13px">건</span></div><div class="kpi-sub">표에서 관측소별 입력</div></div>`;
   }
 
   // 지도 마커 — 민원 위험(보통/높음) 관측소만, 위험점수 순. 겹침 방지 위해 간격 넉넉히.
@@ -4819,37 +4828,55 @@ function renderComplaintTop() {
       svg.innerHTML = `<text x="400" y="100" text-anchor="middle" fill="#1e8449" font-size="15" font-weight="700">✓ 현재 민원 위험(보통 이상) 관측소가 없습니다</text>
         <text x="400" y="126" text-anchor="middle" fill="#94a3b8" font-size="12">전 관측소 안정 — 통상 모니터링 유지</text>`;
     } else {
-      const cols = risky.length <= 3 ? risky.length : risky.length <= 8 ? Math.ceil(risky.length/2) : 4;
+      const cols = risky.length <= 4 ? risky.length : risky.length <= 10 ? Math.ceil(risky.length/2) : 5;
       const rows = Math.ceil(risky.length / cols);
-      const cellW = 180, cellH = 120, padX = 40, padY = 30;
+      const cellW = 120, cellH = 84, padX = 24, padY = 20;  // 크기 축소
       const W = padX*2 + cols*cellW, H = padY*2 + rows*cellH;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      // 배경 지도(격자) 패턴
+      const bg = `
+        <defs>
+          <pattern id="cpGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#d7e0ea" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect x="0" y="0" width="${W}" height="${H}" fill="#eef3f8"/>
+        <rect x="0" y="0" width="${W}" height="${H}" fill="url(#cpGrid)"/>`;
       const markers = risky.map((it, i) => {
         const r = Math.floor(i / cols), c = i % cols;
-        const x = padX + c*cellW + cellW/2, y = padY + r*cellH + 40;
+        const x = padX + c*cellW + cellW/2, y = padY + r*cellH + 26;
         const key = cpLevelKey(it.complaint.level);
         const col = CP_MARKER[key];
         const nm = escapeHtml(stationName(it.name));
-        const pulse = `<circle cx="${x}" cy="${y}" r="18" fill="${col}" opacity="0.25"><animate attributeName="r" values="16;26;16" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.3;0.05;0.3" dur="2.2s" repeatCount="indefinite"/></circle>`;
+        const pulse = `<circle cx="${x}" cy="${y}" r="11" fill="${col}" opacity="0.22"><animate attributeName="r" values="10;16;10" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.28;0.05;0.28" dur="2.2s" repeatCount="indefinite"/></circle>`;
         return `<g>
           ${pulse}
-          <circle cx="${x}" cy="${y}" r="14" fill="${col}" stroke="#fff" stroke-width="3"/>
-          <text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text>
-          <text x="${x}" y="${y+34}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${nm}</text>
-          <text x="${x}" y="${y+50}" text-anchor="middle" font-size="11" font-weight="700" fill="${col}">민원 ${it.complaint.level} · ${it.complaint.score}</text>
+          <circle cx="${x}" cy="${y}" r="9" fill="${col}" stroke="#fff" stroke-width="2"/>
+          <text x="${x}" y="${y+3}" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">!</text>
+          <text x="${x}" y="${y+22}" text-anchor="middle" font-size="9" font-weight="700" fill="#243044">${nm}</text>
+          <text x="${x}" y="${y+34}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${col}">${it.complaint.level}·${it.complaint.score}</text>
         </g>`;
       }).join('');
-      svg.innerHTML = markers;
+      svg.innerHTML = bg + markers;
     }
   }
 
-  // 범례
+  // 범례 — 민원도 등급 + 등급별 관측소 목록
   const lg = document.getElementById('cp-map-legend');
   if (lg) {
-    lg.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.high};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">민원 높음 <span style="color:var(--gray4);font-size:10px">61~100</span></span><strong>${high.length}</strong></div>
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.mid};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">민원 보통 <span style="color:var(--gray4);font-size:10px">31~60</span></span><strong>${mid.length}</strong></div>
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0"><span style="width:16px;height:16px;border-radius:50%;background:${CP_MARKER.low};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span><span style="flex:1">민원 낮음 <span style="color:var(--gray4);font-size:10px">0~30</span></span><strong>${low.length}</strong></div>`;
+    const nameList = arr => arr.length
+      ? `<div style="font-size:10px;color:var(--gray5);margin:2px 0 6px 24px;line-height:1.5">${arr.map(it => escapeHtml(stationName(it.name))).join(', ')}</div>`
+      : `<div style="font-size:10px;color:var(--gray4);margin:2px 0 6px 24px">해당 없음</div>`;
+    const row = (color, label, range, list) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0 0">
+        <span style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+        <span style="flex:1">${label} <span style="color:var(--gray4);font-size:10px">${range}</span></span>
+        <strong>${list.length}</strong>
+      </div>${nameList(list)}`;
+    lg.innerHTML =
+      row(CP_MARKER.high, '민원 높음', '61~100', high) +
+      row(CP_MARKER.mid, '민원 보통', '31~60', mid) +
+      row(CP_MARKER.low, '민원 낮음', '0~30', low);
   }
 }
 
@@ -4859,45 +4886,54 @@ function renderComplaintTable() {
   if (!data) return;
   let items = (data.items || []).filter(it => {
     if (filter === 'all' || !filter) return true;
-    if (filter === 'residential') return it.residential;
     return it.complaint.level === filter;
   }).sort((a,b) => (b.complaint.score||0)-(a.complaint.score||0));
 
   const head = `<thead><tr>
       <th>관측소</th><th>특성</th>
       <th style="text-align:center">민원도</th>
-      <th style="text-align:center">인구밀집도</th>
       <th style="text-align:center;min-width:150px">민원 가능성</th>
+      <th style="text-align:center">민원 발생 건수</th>
       <th>권장 조치</th>
     </tr></thead>`;
   if (!items.length) {
     t.innerHTML = `${head}<tbody><tr><td colspan="6" style="text-align:center;color:var(--gray4);padding:24px">해당 조건의 관측소가 없습니다</td></tr></tbody>`;
     return;
   }
-  const bg = lv => cpLevelBg(lv);
   const body = items.map(it => {
     const h2 = (typeof classifyHabitat2 === 'function') ? classifyHabitat2(it) : { form:'', label:'' };
     const hb = (typeof habitat2BadgeColor === 'function') ? habitat2BadgeColor(h2.form) : { bg:'#eee', color:'#666' };
     const key = cpLevelKey(it.complaint.level);
     const score = it.complaint.score || 0;
-    const dens = it.residential ? '높음 (주거지 인접)' : '낮음 (분산)';
     const action = (it.actions || []).join(', ') || '모니터링 유지';
     const gradeCls = cpRiskBadgeCls(it.risk.level);
+    const cnt = cpGetComplaintCount(it.uuid);
     return `<tr>
       <td><strong>${escapeHtml(stationName(it.name))}</strong><div style="font-size:10px;color:var(--gray4)">${escapeHtml(it.address || it.region || '-')}</div></td>
       <td><span style="font-size:10px;font-weight:600;background:${hb.bg};color:${hb.color};padding:2px 8px;border-radius:10px;white-space:nowrap">${h2.label}</span></td>
       <td style="text-align:center"><span class="badge ${gradeCls}">${it.risk.level}</span></td>
-      <td style="text-align:center;font-size:11px;color:var(--gray6)">${dens}</td>
       <td style="text-align:center">
         <div style="display:flex;align-items:center;gap:8px;justify-content:center">
           <div style="width:90px;height:8px;background:var(--gray2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${score}%;background:${CP_MARKER[key]};border-radius:4px"></div></div>
           <span style="font-family:var(--mono);font-weight:700;min-width:34px;text-align:right">${score}%</span>
         </div>
       </td>
+      <td style="text-align:center">
+        <input type="number" min="0" value="${cnt}" data-cp-uuid="${it.uuid}"
+          style="width:64px;padding:4px 6px;border:1px solid var(--gray3);border-radius:5px;font-size:12px;text-align:center;font-family:var(--mono)">
+        <span style="font-size:10px;color:var(--gray4)">건</span>
+      </td>
       <td style="font-size:11px;color:var(--gray6)">${escapeHtml(action)}</td>
     </tr>`;
   }).join('');
   t.innerHTML = head + '<tbody>' + body + '</tbody>';
+
+  // 민원 발생 건수 입력 바인딩
+  t.querySelectorAll('input[data-cp-uuid]').forEach(inp => {
+    inp.addEventListener('change', e => {
+      cpSetComplaintCount(e.currentTarget.dataset.cpUuid, e.currentTarget.value);
+    });
+  });
 }
 
 async function buildComplaint() {
