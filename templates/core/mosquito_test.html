@@ -208,9 +208,10 @@ body {
 .heatmap-table th {
   background: var(--navy); color: #fff; padding: 6px 10px;
   font-size: 10px; font-weight: 600; text-align: center;
+  border: 1px solid rgba(255,255,255,0.25);
 }
 .heatmap-table th.st-col { width: 140px; text-align: left; }
-.heatmap-table td { padding: 5px 8px; border: 1px solid #e8eaf0; text-align: center; font-family: var(--mono); font-size: 11px; }
+.heatmap-table td { padding: 5px 8px; border: 1px solid rgba(120,130,150,0.35); text-align: center; font-family: var(--mono); font-size: 11px; }
 .heatmap-table td.st-name { text-align: left; font-family: var(--font); font-weight: 600; font-size: 11px; color: var(--gray6); background: var(--gray1); border-right: 2px solid var(--gray3); }
 .heatmap-table td.total-cell { background: var(--navy-l); color: var(--navy); font-weight: 700; }
 /* 히트맵 6구간 — 0~2 안전1 / 3~10 안전2 / 11~20 안전3 / 21~50 관심 / 51~100 주의 / 100+ 나쁨 */
@@ -1366,18 +1367,6 @@ body {
     <div class="card mb16">
       <div class="heatmap-wrap">
         <table class="heatmap-table" id="heatmap-table"></table>
-      </div>
-    </div>
-
-    <div class="card" style="padding:12px 16px">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px">
-        <span style="color:var(--gray4);font-weight:600">범례</span>
-        <span style="background:#F1F8E9;color:#33691E;padding:2px 8px;border-radius:4px">0~2 안전1</span>
-        <span style="background:#DCEDC8;color:#33691E;padding:2px 8px;border-radius:4px">3~10 안전2</span>
-        <span style="background:#C5E1A5;color:#1B5E20;padding:2px 8px;border-radius:4px">11~20 안전3</span>
-        <span style="background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:4px">21~50 관심</span>
-        <span style="background:#FFAB91;color:#BF360C;padding:2px 8px;border-radius:4px;font-weight:600">51~100 주의</span>
-        <span style="background:#EF5350;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">100+ 나쁨</span>
       </div>
     </div>
   </div>
