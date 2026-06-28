@@ -3217,14 +3217,13 @@ function renderTrendFilter() {
           <input type="checkbox" data-region="${region}" ${allChecked ? 'checked' : ''} ${!allChecked && someChecked ? 'data-indeterminate="1"' : ''}>
           ${region} <span style="font-weight:400;color:var(--gray4);font-size:10px">(${uuids.length}대 · ${total}마리)</span>
         </label>
-        <div style="padding-left:18px;margin-top:4px">
+        <div style="padding-left:18px;margin-top:4px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px 12px">
           ${uuids.map(u => {
             const d = TREND_STATE.deviceMap[u];
             const checked = TREND_STATE.selected.has(u) ? 'checked' : '';
             return `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 0;font-size:11px;color:var(--gray5)">
               <input type="checkbox" data-uuid="${u}" ${checked}>
               <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.displayName}</span>
-              <span style="color:var(--gray4);font-family:var(--mono);font-size:10px">${d.total}</span>
             </label>`;
           }).join('')}
         </div>
@@ -3312,11 +3311,26 @@ function drawTrendChart() {
   const todayStr = `${_kst.getUTCFullYear()}-${String(_kst.getUTCMonth()+1).padStart(2,'0')}-${String(_kst.getUTCDate()).padStart(2,'0')}`;
   const isMeasuringIdx = (dt) => dt === todayStr;
 
+  // 관측소 1개만 선택 시 막대그래프로 표시
+  const singleMode = selected.length === 1;
+
   // 선택 장비 데이터셋
   const datasets = selected.map((u, i) => {
     const d = TREND_STATE.deviceMap[u];
     if (!d) return null;
     const color = pickColor(i);
+    if (singleMode) {
+      return {
+        type: 'bar',
+        label: d.displayName,
+        data: TREND_STATE.dates.map(dt => isMeasuringIdx(dt) ? null : (d.counts[dt] || 0)),
+        backgroundColor: color + 'cc',
+        borderColor: color,
+        borderWidth: 1,
+        borderRadius: 3,
+        maxBarThickness: 48,
+      };
+    }
     return {
       label: d.displayName,
       data: TREND_STATE.dates.map(dt => isMeasuringIdx(dt) ? null : (d.counts[dt] || 0)),
