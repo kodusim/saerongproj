@@ -1564,9 +1564,11 @@ body {
 
       <!-- 실측+예측 차트 (위) -->
       <div class="card mb16" style="padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px 20px">
           <div style="font-size:13px;font-weight:700;color:var(--navy)">실측 + AI 예측 추이</div>
-          <div style="font-size:11px;color:var(--gray4)">실선: 최근 7일 실측 · 점선: AI 예측 3일</div>
+          <div style="font-size:13px;font-weight:600;color:var(--gray6)">
+            <span style="color:var(--navy)">━</span> 최근 7일 실측 &nbsp;·&nbsp; <span style="color:var(--navy)">┈</span> AI 예측 3일
+          </div>
         </div>
         <div style="position:relative;height:460px">
           <canvas id="predict-chart"></canvas>
@@ -3290,6 +3292,29 @@ function dashAwareLegendLabels(chart) {
   });
 }
 
+// AI 예측 차트 범례 — 관측소 이름만(실측/예측 접미사 제거), 관측소당 1회
+function predictLegendLabels(chart) {
+  const ds = chart.data.datasets || [];
+  const seen = new Set();
+  const out = [];
+  ds.forEach((d, i) => {
+    const name = (d.label || '').replace(/\s*·\s*(실측|예측).*$/, '').trim();
+    if (!name || seen.has(name)) return;
+    seen.add(name);
+    out.push({
+      text: name,
+      fillStyle: 'transparent',
+      strokeStyle: d.borderColor,
+      lineWidth: 2,
+      lineDash: [],
+      lineCap: 'butt',
+      hidden: false,
+      datasetIndex: i,
+    });
+  });
+  return out;
+}
+
 function drawTrendChart() {
   const ctx = document.getElementById('trend-chart');
   if (!ctx) return;
@@ -3843,7 +3868,7 @@ function drawPredictChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: dashAwareLegendLabels } },
+        legend: { position: 'bottom', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: predictLegendLabels } },
         tooltip: { mode: 'index', intersect: false },
         annotation: {},
       },
