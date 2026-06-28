@@ -1060,19 +1060,35 @@ def _build_report_body(period, base_date, su, request):
         for p in recent_plans[:10]
     ) or '  - 최근 14일간 시행/예정 방역 없음'
 
-    # 종합 현황 KPI (최신일 기준) — 보고서에 AI 요약 근거로 포함
+    # 종합 현황 KPI + 전국 지표 (최신일 기준) — 보고서 AI 요약 근거. 본문 "핵심 수치"와 중복되지 않도록 입력 데이터로만 활용.
     try:
         ov = _build_overview_data(su)
         k = ov.get('kpi') or {}
+        nat = ov.get('national') or {}
+        # 전국 지표 라인 구성 (admin 여부에 따라)
+        nat_lines = ''
+        if nat:
+            nat_lines = (
+                f"  - 전국 관측소 수: {nat.get('count', 0)}개 · 전국 일평균: {nat.get('avg', 0)}마리\n"
+            )
+            if nat.get('is_admin'):
+                if nat.get('top_name'):
+                    nat_lines += f"  - 전국 최다 관측소: {nat.get('top_name')} · {nat.get('top_count', 0)}마리\n"
+            else:
+                if nat.get('region_avg') is not None:
+                    region_label = ' · '.join(nat.get('region_names') or []) or '담당 권역'
+                    nat_lines += f"  - {region_label} 평균: {nat.get('region_avg')}마리 (전국 대비 {round((nat.get('region_avg') or 0) / nat.get('avg') , 2) if nat.get('avg') else '-'}배)\n"
+                    if nat.get('region_top_name'):
+                        nat_lines += f"  - 담당 권역 최다 관측소: {nat.get('region_top_name')} · {nat.get('region_top_count', 0)}마리\n"
         overview_block = (
-            "\n■ 종합 현황 KPI (보고일 기준)\n"
+            "\n■ 종합 현황·전국 지표 (보고일 기준, 입력 데이터)\n"
             f"  - 금일 포집 합계: {k.get('today_total', 0)}마리 (전일 대비 {k.get('change_pct', 0):+d}%)\n"
             f"  - 최다 포집 관측소: {((k.get('top_dev') or {}).get('name') or '-')} · {(k.get('top_dev') or {}).get('count', 0)}마리\n"
-            f"  - 경고 이상 관측소: {k.get('warn_count', 0)}개\n"
-            f"  - 금일 기준 초과 감지: {k.get('anomaly_today', 0)}건\n"
+            f"  - 경고 이상 관측소: {k.get('warn_count', 0)}개 · 경보 발생: {k.get('alert_count', 0)}곳\n"
             f"  - 민원 가능 '높음': {k.get('complaint_high', 0)}개\n"
             f"  - 장비 이상: {k.get('equip_bad', 0)}대 (배터리 20%↓ {k.get('equip_lowbatt', 0)}/수신지연 1h↑ {k.get('equip_delay', 0)})\n"
             f"  - 평균 데이터 신뢰도: {k.get('avg_trust', 0)}%\n"
+            f"{nat_lines}"
         )
     except Exception as _e:
         overview_block = ''
@@ -1137,8 +1153,9 @@ def _build_report_body(period, base_date, su, request):
                         '보건학(매개체 감시·방역) 전문가 AI입니다. '
                         f'{period_instruction} '
                         '주어진 실측 데이터, 기상-모기 생리학 분석, 매개체 위험 평가를 근거로 결재용 공문 형식의 한국어 보고서를 작성하십시오. '
-                        '다음 8개 섹션을 반드시 포함하십시오:\n'
-                        '1) 핵심 수치 요약 (포집량/장비/이상감지/방역 등)\n'
+                        '다음 8개 섹션을 반드시 포함하십시오. "핵심 수치 요약"은 반드시 1) 섹션 하나로만 작성하고, '
+                        '입력의 "종합 현황·전국 지표" 내용은 별도 섹션으로 분리하지 말고 1) 섹션 안에 녹여 작성하십시오(같은 내용 중복 금지):\n'
+                        '1) 핵심 수치 요약 (포집량/장비/이상감지/방역 + 전국 지표·전국 대비 비교 포함)\n'
                         '2) 권역별 발생 양상 (Top 권역, 격차, 우점 권역)\n'
                         '3) 시계열·추세 분석 (전반·후반 비교, 7일 추이)\n'
                         '4) 이상 발생 및 주요 관측 (51마리 이상 일자/장비, 패턴)\n'
