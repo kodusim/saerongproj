@@ -1394,8 +1394,10 @@ def _build_report_body(period, base_date, su, request):
             'offline_count': k.get('offline_count', 0) if k else 0,
             'check_count': k.get('check_count', 0) if k else 0,
             'avg_trust': k.get('avg_trust', 0) if k else 0,
+            'alert_count': k.get('alert_count', 0) if k else 0,
             'top_dev': k.get('top_dev') if k else None,
         } if k else None,
+        'national': (ov.get('national') if ov else None),
         # 풀 섹션
         'sections': {
             'stations': stations_section,

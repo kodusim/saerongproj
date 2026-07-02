@@ -3,548 +3,429 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ report.summary.period_label }} 모기 발생 감시 보고서 · {{ report.summary.end_date }}</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<title>MOSCOM {{ report.summary.period_label }} 모기 방역 종합 보고서 · {{ report.summary.end_date }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <style>
-:root {
-  --navy:#1B3A6B; --navy-l:#D6E0F0; --gray1:#F7F8FA; --gray2:#ECEEF2;
-  --gray4:#8A8FA0; --gray5:#4A4E5C; --gray6:#1E2130;
-  --red:#A32D2D; --green:#1A5C35; --orange:#C05000; --teal:#0F5E6E;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-  color: #111; background: #f0f2f7;
-  font-size: 11.5px; line-height: 1.55;
-  padding: 18px 0 60px;
-}
-.page-wrap { max-width: 900px; margin: 0 auto; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #f4f6fa; }
+  body {
+    font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+    color: #111; font-size: 11px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
 
-/* 액션 바 (인쇄 시 숨김) */
-.action-bar {
-  display: flex; gap: 8px; margin-bottom: 14px;
-  justify-content: space-between; align-items: center;
-  padding: 0 6px;
-}
-.action-bar h2 { font-size: 13px; color: var(--navy); font-weight: 600; }
-.btn {
-  padding: 8px 16px; background: var(--navy); color: #fff;
-  border: none; border-radius: 5px; font-size: 12px; font-weight: 600;
-  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
-}
-.btn:hover { background: #2a5298; }
-.btn-secondary { background: #fff; color: var(--gray5); border: 1px solid #D0D3DC; }
-.btn-secondary:hover { background: var(--gray1); }
+  /* 컨트롤 바 (인쇄 시 숨김) */
+  .control-bar {
+    position: fixed; top: 16px; right: 16px; z-index: 100;
+    display: flex; gap: 8px; background: rgba(255,255,255,.95);
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  }
+  .ctrl-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+    border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1px solid #cbd5e1; background: #fff; color: #1f2937; font-family: inherit;
+  }
+  .ctrl-btn:hover { background: #f8fafc; }
+  .ctrl-btn.primary { background: #d97706; color: #fff; border-color: #d97706; }
+  .ctrl-btn.primary:hover { background: #b45309; }
+  .ctrl-btn.back { color: #2c5282; border-color: #2c5282; }
 
-/* 보고서 본체 */
-.doc {
-  background: #fff;
-  padding: 22mm 20mm;
-  box-shadow: 0 4px 24px rgba(0,0,0,.1);
-  border-radius: 4px;
-}
-.logo-area { text-align: center; margin-bottom: 10px; }
-.logo-area img { height: 22px; vertical-align: middle; }
-.logo-area span {
-  font-size: 18px; font-weight: 700; color: var(--navy);
-  vertical-align: middle; margin-left: 6px; letter-spacing: .5px;
-}
+  /* A4 페이지 */
+  .page {
+    width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff;
+    padding: 12mm 14mm 10mm; box-shadow: 0 4px 14px rgba(0,0,0,.08); position: relative;
+  }
+  .page + .page { margin-top: 12px; }
 
-h1 {
-  font-size: 22px; text-align: center; color: var(--navy);
-  margin: 6px 0 4px; letter-spacing: 4px; font-weight: 700;
-}
-.sub {
-  text-align: center; color: var(--gray4); font-size: 10px;
-  margin-bottom: 16px; letter-spacing: .5px;
-}
+  /* 로고 영역 */
+  .logo-area { text-align: center; margin-bottom: 6px; }
+  .logo-area .logo { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 800; color: #1B3A6B; vertical-align: middle; letter-spacing: -.02em; }
+  .logo-area .logo .mark { color: #ff6b6b; font-style: italic; }
+  .logo-area .badge-tag { display: inline-block; background: #1B3A6B; color: #fff; font-size: 9px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; font-weight: 600; }
 
-/* 섹션 제목 */
-h2.sec {
-  font-size: 13px; color: var(--navy);
-  border-left: 4px solid var(--navy); padding: 2px 8px;
-  margin: 18px 0 8px; font-weight: 700;
-  background: linear-gradient(90deg, var(--navy-l) 0%, transparent 100%);
-}
+  h1.doc-title { font-size: 19px; text-align: center; color: #1B3A6B; margin: 4px 0; letter-spacing: 4px; font-weight: 800; }
+  .sub-title { text-align: center; color: #888; font-size: 9.5px; margin-bottom: 10px; letter-spacing: .04em; }
 
-/* 헤더 정보 표 */
-table.meta {
-  width: 100%; border-collapse: collapse; font-size: 10.5px;
-  margin-bottom: 12px;
-}
-table.meta th, table.meta td {
-  padding: 6px 8px; border: 1px solid #ccc;
-}
-table.meta th {
-  background: var(--navy); color: #fff; font-weight: 600;
-  white-space: nowrap; text-align: center;
-}
+  /* 메타 테이블 */
+  .meta-tbl { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 10px; }
+  .meta-tbl th { background: #1B3A6B; color: #fff; padding: 5px 8px; text-align: center; font-weight: 600; width: 70px; }
+  .meta-tbl th.narrow { width: 55px; }
+  .meta-tbl td { padding: 5px 8px; border: 1px solid #ccc; background: #fff; }
+  .meta-tbl td.warning { color: #B71C1C; font-weight: 700; text-align: center; }
 
-/* KPI 카드 */
-.kpi-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.kpi {
-  flex: 1; min-width: 120px;
-  border: 1px solid #ddd; border-radius: 6px; padding: 10px 8px;
-  text-align: center; border-top: 3px solid var(--navy);
-  background: #fff;
-}
-.kpi-l { font-size: 9.5px; color: var(--gray4); margin-bottom: 3px; font-weight: 500; }
-.kpi-n {
-  font-size: 20px; font-weight: 700; color: var(--navy); line-height: 1.1;
-  font-family: 'JetBrains Mono', monospace;
-}
-.kpi-u { font-size: 9.5px; color: var(--gray5); margin-top: 2px; }
-.kpi.red    { border-top-color: var(--red); } .kpi.red .kpi-n    { color: var(--red); }
-.kpi.orange { border-top-color: var(--orange); } .kpi.orange .kpi-n { color: var(--orange); }
-.kpi.green  { border-top-color: var(--green); } .kpi.green .kpi-n  { color: var(--green); }
-.kpi.teal   { border-top-color: var(--teal); } .kpi.teal .kpi-n   { color: var(--teal); }
-.kpi.purple { border-top-color: #4A1B6B; } .kpi.purple .kpi-n { color: #4A1B6B; }
+  /* 섹션 제목 */
+  h2.section { font-size: 12.5px; color: #1B3A6B; border-left: 4px solid #1B3A6B; padding-left: 8px; margin: 12px 0 6px; font-weight: 700; }
 
-/* 참조 바 */
-.natbar {
-  background: var(--gray2); border: 1px dashed #bcc3cf;
-  border-radius: 4px; padding: 7px 12px; font-size: 10.5px;
-  color: var(--gray4); margin-bottom: 10px;
-  font-style: italic;
-}
+  /* KPI 행 */
+  .kpi-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .kpi { flex: 1; min-width: 90px; border: 1px solid #ddd; border-radius: 5px; padding: 7px 5px; text-align: center; border-top: 3px solid #1B3A6B; background: #fff; }
+  .kpi-l { font-size: 8.5px; color: #888; font-weight: 500; }
+  .kpi-n { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 800; color: #1B3A6B; line-height: 1.1; margin: 2px 0 1px; }
+  .kpi-sub { font-size: 8.5px; color: #555; }
+  .kpi.urgent { border-top-color: #A32D2D; } .kpi.urgent .kpi-n { color: #A32D2D; }
+  .kpi.warn { border-top-color: #C05000; } .kpi.warn .kpi-n { color: #C05000; }
+  .kpi.safe { border-top-color: #1A5C35; } .kpi.safe .kpi-n { color: #1A5C35; }
+  .kpi.info { border-top-color: #2c5282; } .kpi.info .kpi-n { color: #2c5282; }
 
-/* 공통 데이터 표 */
-table.data {
-  width: 100%; border-collapse: collapse; font-size: 10.5px;
-  margin-bottom: 8px;
-}
-table.data th {
-  background: var(--navy); color: #fff; padding: 5px 6px; text-align: center;
-  font-weight: 600; white-space: nowrap;
-}
-table.data td {
-  padding: 5px 7px; border: 1px solid #d5d8de; vertical-align: middle;
-}
-table.data tr:nth-child(even) td { background: var(--gray1); }
+  /* 전국 비교 박스 */
+  .nat-bar { background: #D6E0F0; border: 1px solid #4A6FA5; border-radius: 4px; padding: 6px 10px; font-size: 9.5px; margin-bottom: 8px; color: #1B3A6B; line-height: 1.6; }
+  .nat-bar strong { font-weight: 700; }
 
-/* 위험 등급 색 */
-.g-safe   { background: #E8F5E9; color: #1B5E20; }
-.g-watch  { background: #F1F8E9; color: #33691E; }
-.g-caution{ background: #FFF3E0; color: #E65100; }
-.g-warn   { background: #FDECEA; color: #B71C1C; }
-.g-danger { background: #FCE4EC; color: #880E4F; }
-.g-unknown{ background: #F0F0F0; color: #888; }
-td.grade-cell { font-weight: 700; text-align: center; }
+  /* 테이블 공통 */
+  table.dt { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px; }
+  table.dt th { background: #1B3A6B; color: #fff; padding: 5px 7px; text-align: center; font-weight: 600; }
+  table.dt td { padding: 5px 7px; border: 1px solid #ccc; vertical-align: middle; }
+  table.dt td.center { text-align: center; }
+  table.dt tbody tr:nth-child(even) td { background: #f7f8fa; }
+  .empty { padding: 12px; text-align: center; color: #94a3b8; font-size: 10.5px; border: 1px dashed #d7dce4; border-radius: 5px; margin-bottom: 8px; }
 
-/* 민원 pill */
-.cp { padding: 1px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
-.cp-high { background: #FDECEA; color: #B71C1C; }
-.cp-mid  { background: #FFF3E0; color: #E65100; }
-.cp-low  { background: #E8F5E9; color: #1B5E20; }
+  /* 시간별 히트맵 */
+  table.heatmap { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 6px; table-layout: fixed; }
+  table.heatmap th { background: #1B3A6B; color: #fff; padding: 4px 2px; text-align: center; font-weight: 600; font-size: 9px; border: 1px solid #1B3A6B; }
+  table.heatmap th.station-col { width: 16%; text-align: left; padding-left: 6px; }
+  table.heatmap th.sum-col { width: 7%; background: #2c5282; }
+  table.heatmap td { padding: 4px 2px; border: 1px solid #ddd; text-align: center; font-family: 'Inter', sans-serif; font-weight: 600; }
+  table.heatmap td.station-name { text-align: left; padding-left: 6px; background: #f7f8fa; font-family: 'Pretendard', sans-serif; font-size: 9.5px; }
+  .h0 { background: #f8f9fb; color: #cbd5e1; }
+  .h1 { background: #ecfdf5; color: #065f46; }
+  .h2 { background: #fef9c3; color: #854d0e; }
+  .h3 { background: #fff4e0; color: #d97706; }
+  .h4 { background: #fde7e4; color: #c0392b; }
+  .h5 { background: #dc2626; color: #fff; font-weight: 800; }
+  table.heatmap td.sum-cell { background: #D6E0F0; color: #1B3A6B; font-weight: 700; }
 
-/* 히트맵 */
-table.heat {
-  width: 100%; border-collapse: collapse; font-size: 9px;
-  margin-bottom: 8px;
-}
-table.heat th {
-  background: var(--navy); color: #fff;
-  padding: 3px 2px; font-weight: 600; text-align: center;
-}
-table.heat td {
-  padding: 3px 2px; border: 1px solid #e0e0e0;
-  text-align: center; font-family: 'JetBrains Mono', monospace;
-}
-table.heat td.stn {
-  font-family: 'Noto Sans KR'; text-align: left; padding-left: 6px;
-  background: var(--gray1); font-weight: 600;
-  white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
-}
-.h0  { background: #F5F5F5; color: #BDBDBD; }
-.h1  { background: #E8F5E9; color: #1B5E20; }
-.h2  { background: #DCEDC8; color: #33691E; }
-.h3  { background: #FFE0B2; color: #E65100; }
-.h4  { background: #FFCDD2; color: #B71C1C; font-weight: 700; }
-.h5  { background: #F48FB1; color: #880E4F; font-weight: 700; }
-td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
+  /* 해석/범례 */
+  .heatmap-legend { display: flex; align-items: center; gap: 8px; font-size: 9px; color: #666; margin: 2px 0 8px; flex-wrap: wrap; }
+  .heatmap-legend .lg-item { display: inline-flex; align-items: center; gap: 3px; }
+  .heatmap-legend .lg-box { width: 12px; height: 10px; border: 1px solid #ddd; display: inline-block; }
 
-/* 행정 판단 박스 */
-.admin {
-  border: 2px solid var(--navy); border-radius: 6px;
-  overflow: hidden; margin: 14px 0;
-}
-.admin-h {
-  background: var(--navy); color: #fff;
-  padding: 8px 14px; font-weight: 700; font-size: 12px;
-}
-.admin-b {
-  background: #fffdf0; padding: 14px 18px; font-size: 11.5px;
-  line-height: 1.95; color: #333;
-}
-.admin-b p { margin: 0 0 8px; }
-.admin-b p:last-child { margin-bottom: 0; }
-.admin-b .bullet { margin-left: 14px; position: relative; padding-left: 10px; }
-.admin-b .bullet::before {
-  content: '·'; position: absolute; left: 0; color: var(--navy); font-weight: 700;
-}
-.admin-b h4 {
-  font-size: 12px; font-weight: 700; color: var(--navy);
-  margin: 10px 0 4px;
-}
-.admin-b h4:first-child { margin-top: 0; }
+  /* 등급 배지 */
+  .gb { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+  .gb.g1 { background: #ecfdf5; color: #065f46; border-color: #a7e8c5; }
+  .gb.g2 { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
+  .gb.g3 { background: #fff4e0; color: #d97706; border-color: #fdba74; }
+  .gb.g4 { background: #fde7e4; color: #c0392b; border-color: #fca5a5; }
+  .gb.g5 { background: #450a0a; color: #fff; border-color: #450a0a; }
+  .cp { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 700; border: 1px solid; }
+  .cp-high { background: #fde7e4; color: #c0392b; border-color: #fca5a5; }
+  .cp-mid { background: #fff4e0; color: #d97706; border-color: #fdba74; }
+  .cp-low { background: #ecfdf5; color: #065f46; border-color: #a7e8c5; }
 
-/* 결재란 */
-.sign-box {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px; margin-top: 14px;
-}
-.sign {
-  border: 1px solid var(--navy); border-radius: 6px;
-  padding: 10px; font-size: 10px; color: #555; text-align: center;
-}
-.sign .sig-label {
-  font-size: 9px; color: var(--gray4); font-weight: 600;
-  margin-bottom: 4px; letter-spacing: .06em;
-}
-.sign .sig-title { font-size: 10px; color: var(--gray5); margin-bottom: 2px; }
-.sign .sig-name {
-  display: block; font-size: 13px; color: var(--navy);
-  font-weight: 700; margin-bottom: 6px;
-}
-.sign .sig-slot {
-  font-size: 8.5px; color: #aaa;
-  padding-top: 18px; border-top: 1px dashed #ccc;
-}
+  /* 행정 판단 박스 */
+  .admin { border: 2px solid #1B3A6B; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .admin-h { background: #1B3A6B; color: #fff; padding: 6px 12px; font-weight: 700; font-size: 11.5px; }
+  .admin-b { background: #fffdf0; padding: 11px 14px; line-height: 1.85; font-size: 10.5px; }
+  .admin-b h4 { font-size: 11px; color: #1B3A6B; margin: 10px 0 3px; font-weight: 700; }
+  .admin-b p { margin-bottom: 3px; }
+  .admin-b p.bullet { padding-left: 12px; position: relative; }
+  .admin-b p.bullet:before { content: '·'; position: absolute; left: 3px; color: #C05000; font-weight: 700; }
+  .admin-b em { color: #888; font-size: 9.5px; font-style: normal; }
 
-.foot {
-  margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--gray2);
-  font-size: 9.5px; color: var(--gray4); text-align: right;
-}
+  /* 결재 박스 */
+  .sign-box { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .sign { border: 1px solid #1B3A6B; border-radius: 6px; padding: 10px 16px; font-size: 9.5px; color: #555; text-align: center; min-width: 130px; }
+  .sign .sig-label { font-size: 10px; font-weight: 700; color: #1B3A6B; letter-spacing: 4px; margin-bottom: 6px; }
+  .sign .sig-name { display: block; font-size: 11px; color: #1B3A6B; font-weight: 700; }
+  .sign .sig-slot { font-size: 8.5px; color: #aaa; margin-top: 4px; }
 
-/* 빈 메시지 */
-.empty {
-  text-align: center; padding: 14px; color: var(--gray4);
-  font-style: italic; font-size: 11px;
-  background: var(--gray1); border-radius: 4px;
-}
+  /* 푸터 */
+  .doc-footer { margin-top: 14px; padding-top: 8px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 8.5px; color: #999; }
+  .doc-footer .stamp { font-family: 'Inter', sans-serif; letter-spacing: .04em; }
+  .page-no { position: absolute; bottom: 8mm; right: 14mm; font-size: 9px; color: #aaa; font-family: 'Inter', sans-serif; }
 
-/* 인쇄 */
-@media print {
-  body { background: #fff; padding: 0; font-size: 11px; }
-  .action-bar { display: none !important; }
-  .doc { box-shadow: none; padding: 12mm 14mm; border-radius: 0; }
-  h2.sec { page-break-after: avoid; }
-  table.data, table.heat, .admin, .sign-box { page-break-inside: avoid; }
-}
+  @media print {
+    body { background: #fff; }
+    .control-bar { display: none !important; }
+    .page { box-shadow: none; margin: 0; page-break-after: always; width: 210mm; min-height: 297mm; }
+    .page:last-child { page-break-after: auto; }
+  }
+  @page { size: A4; margin: 0; }
 </style>
 </head>
 <body>
-<div class="page-wrap">
 
-  <div class="action-bar">
-    <h2>보고서 미리보기</h2>
-    <div style="display:flex;gap:6px">
-      <a href="javascript:window.close()" class="btn btn-secondary">닫기</a>
-      <button class="btn" onclick="window.print()">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="1" width="10" height="7" rx="1"/><path d="M3 8H1v6h14V8h-2"/><rect x="4" y="11" width="8" height="1.5" rx="0.5" fill="currentColor" stroke="none"/></svg>
-        인쇄 / PDF 저장
-      </button>
+<!-- 인쇄·뒤로가기 컨트롤 -->
+<div class="control-bar">
+  <button class="ctrl-btn back" onclick="history.back()">← 돌아가기</button>
+  <button class="ctrl-btn primary" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+</div>
+
+<!-- ============ [페이지 1] ============ -->
+<div class="page">
+
+  <div class="logo-area">
+    <span class="logo">MOSCOM <span class="mark">ɱ</span></span>
+    <span class="badge-tag">AI-MOS</span>
+  </div>
+
+  <h1 class="doc-title">{{ report.summary.period_label }} 모기 방역 종합 보고서</h1>
+  <div class="sub-title">Mosquito Surveillance &amp; Control Report &nbsp;|&nbsp; MOSCOM AI 방역 의사결정 시스템 &nbsp;|&nbsp; {{ report.summary.start_date }} ~ {{ report.summary.end_date }}</div>
+
+  <!-- 메타 테이블 -->
+  <table class="meta-tbl">
+    <tr>
+      <th>기관명</th><td>{{ report.org|default:"—" }}</td>
+      <th class="narrow">부서</th><td>{{ report.department|default:"—" }}</td>
+      <th class="narrow">문서번호</th><td>#{{ report.id|slice:"4:" }}</td>
+      <th class="narrow">종합등급</th>
+      <td class="warning" style="color:{% if report.summary.overall_grade == '심각' %}#B71C1C{% elif report.summary.overall_grade == '주의' %}#C05000{% elif report.summary.overall_grade == '관심' %}#7A5700{% else %}#1A5C35{% endif %}">{{ report.summary.overall_grade|default:"—" }}</td>
+    </tr>
+    <tr>
+      <th>보고 기간</th><td colspan="3">{{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일) · 장비 {{ report.summary.total_devices }}대</td>
+      <th>결재</th><td colspan="3">작성 {{ report.writer_name|default:"—" }}{% if report.reviewer_name %} · 검토 {{ report.reviewer_name }}{% else %} · 검토 (서명란){% endif %}{% if report.approver_name %} · 결재 {{ report.approver_name }}{% else %} · 결재 (서명란){% endif %}</td>
+    </tr>
+  </table>
+
+  <!-- 1. 핵심 요약 -->
+  <h2 class="section">1. 핵심 요약</h2>
+  <div class="kpi-row">
+    <div class="kpi info">
+      <div class="kpi-l">기간 합계 포집량</div>
+      <div class="kpi-n">{{ report.summary.total_in_period }}</div>
+      <div class="kpi-sub">마리 · 일평균 {{ report.summary.avg_per_day }}</div>
+    </div>
+    {% if report.summary.overview_kpi %}
+    <div class="kpi urgent">
+      <div class="kpi-l">최다 포집</div>
+      <div class="kpi-n" style="font-size:13px">{{ report.summary.overview_kpi.top_dev.name|default:"-"|truncatechars:12 }}</div>
+      <div class="kpi-sub">{{ report.summary.overview_kpi.top_dev.count|default:0 }}마리 (금일)</div>
+    </div>
+    <div class="kpi urgent">
+      <div class="kpi-l">경보 발생</div>
+      <div class="kpi-n">{{ report.summary.overview_kpi.alert_count|default:0 }}</div>
+      <div class="kpi-sub">50마리 이상</div>
+    </div>
+    <div class="kpi warn">
+      <div class="kpi-l">경고 이상 장비</div>
+      <div class="kpi-n">{{ report.summary.overview_kpi.warn_count }}</div>
+      <div class="kpi-sub">위험 점수 61+</div>
+    </div>
+    {% endif %}
+    <div class="kpi warn">
+      <div class="kpi-l">이상 감지</div>
+      <div class="kpi-n">{{ report.summary.anomaly_count }}</div>
+      <div class="kpi-sub">≥{{ report.summary.anomaly_threshold|default:51 }}마리/일</div>
+    </div>
+    <div class="kpi safe">
+      <div class="kpi-l">장비 가동</div>
+      <div class="kpi-n">{{ report.summary.overview_kpi.avg_trust|default:0 }}<span style="font-size:11px">%</span></div>
+      <div class="kpi-sub">평균 신뢰도</div>
     </div>
   </div>
 
-  <div class="doc">
-    <!-- 로고 + 제목 -->
-    <div class="logo-area">
-      <img src="https://www.moscom.kr/images/common/logo.svg" alt="" onerror="this.style.display='none'">
-      <span>MOSCOM</span>
-    </div>
-    <h1>{{ report.summary.period_label|stringformat:'s' }} 모 기 발 생 감 시 보 고 서</h1>
-    <div class="sub">
-      {{ report.summary.period_label }} Mosquito Monitoring Report &nbsp;|&nbsp;
-      AI 기반 모기 감시 예측 제어시스템 &nbsp;|&nbsp;
-      {{ report.summary.start_date }} ~ {{ report.summary.end_date }}
-    </div>
-
-    <!-- 헤더 표 -->
-    <table class="meta">
-      <tr>
-        <th style="width:70px">기관명</th><td>{{ report.org|default:"—" }}</td>
-        <th style="width:60px">부서</th><td>{{ report.department|default:"—" }}</td>
-        <th style="width:70px">문서번호</th><td>#{{ report.id|slice:"4:" }}</td>
-        <th style="width:60px">종합 등급</th>
-        <td style="text-align:center;font-weight:700;color:{% if report.summary.overall_grade == '심각' %}#A32D2D{% elif report.summary.overall_grade == '주의' %}#C05000{% elif report.summary.overall_grade == '관심' %}#7A5700{% else %}#1A5C35{% endif %}">{{ report.summary.overall_grade|default:"—" }}</td>
-      </tr>
-      <tr>
-        <th>보고 기간</th><td>{{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일)</td>
-        <th>장비 범위</th><td>{{ report.summary.total_devices }}대</td>
-        <th>작성일</th><td>{{ report.created_at|slice:":10" }}</td>
-      </tr>
-      <tr>
-        <th>작성자</th>
-        <td colspan="5">
-          {{ report.writer_name|default:"—" }}{% if report.writer_title %} ({{ report.writer_title }}){% endif %}
-          {% if report.reviewer_name %} &nbsp;|&nbsp; 검토 {{ report.reviewer_name }}{% if report.reviewer_title %} ({{ report.reviewer_title }}){% endif %}{% endif %}
-          {% if report.approver_name %} &nbsp;|&nbsp; 결재 {{ report.approver_name }}{% if report.approver_title %} ({{ report.approver_title }}){% endif %}{% endif %}
-        </td>
-      </tr>
-    </table>
-
-    <!-- 0. AI 행정 판단 (메인 참조 — 보고서 본문보다 우선 제시) -->
-    <div class="admin" style="margin-bottom:18px">
-      <div class="admin-h">AI 행정 판단 · 종합 의견 (메인)</div>
-      <div class="admin-b" id="admin-body-lead">
-        <p style="color:var(--gray4)">본문 로드 중…</p>
-      </div>
-    </div>
-
-    <!-- 1. 핵심 요약 KPI -->
-    <h2 class="sec">1. 핵심 요약</h2>
-    <div class="kpi-row">
-      <div class="kpi">
-        <div class="kpi-l">기간 합계 포집량</div>
-        <div class="kpi-n">{{ report.summary.total_in_period }}</div>
-        <div class="kpi-u">마리 · 일평균 {{ report.summary.avg_per_day }}</div>
-      </div>
-      {% if report.summary.overview_kpi %}
-      <div class="kpi red">
-        <div class="kpi-l">최다 포집 관측소</div>
-        <div class="kpi-n" style="font-size:13px">{{ report.summary.overview_kpi.top_dev.name|default:"-"|truncatechars:14 }}</div>
-        <div class="kpi-u">{{ report.summary.overview_kpi.top_dev.count|default:0 }}마리 (금일)</div>
-      </div>
-      <div class="kpi red">
-        <div class="kpi-l">경고 이상 장비</div>
-        <div class="kpi-n">{{ report.summary.overview_kpi.warn_count }}</div>
-        <div class="kpi-u">위험 점수 61+</div>
-      </div>
-      {% endif %}
-      <div class="kpi orange">
-        <div class="kpi-l">포집량 이상 감지</div>
-        <div class="kpi-n">{{ report.summary.anomaly_count }}</div>
-        <div class="kpi-u">≥{{ report.summary.anomaly_threshold|default:51 }}마리/일</div>
-      </div>
-      {% if report.summary.overview_kpi %}
-      <div class="kpi purple">
-        <div class="kpi-l">민원 가능 '높음'</div>
-        <div class="kpi-n">{{ report.summary.overview_kpi.complaint_high }}</div>
-        <div class="kpi-u">사전 대응 권장</div>
-      </div>
-      {% endif %}
-      <div class="kpi teal">
-        <div class="kpi-l">장비 이상</div>
-        <div class="kpi-n">{{ report.summary.overview_kpi.equip_bad|default:0 }}</div>
-        <div class="kpi-u">배터리20%↓ 기준 · 수신지연1h↑ {{ report.summary.overview_kpi.equip_delay|default:0 }}(참고)</div>
-      </div>
-      <div class="kpi green">
-        <div class="kpi-l">평균 신뢰도</div>
-        <div class="kpi-n">{{ report.summary.overview_kpi.avg_trust|default:0 }}<span style="font-size:13px">%</span></div>
-        <div class="kpi-u">지역 평균</div>
-      </div>
-    </div>
-
-    <div class="natbar">[ 전국 참조 ] · 전국 비교 지표 준비중</div>
-
-    <!-- 2. 관측소별 현황 -->
-    <h2 class="sec">2. 관측소별 현황</h2>
-    {% if report.summary.sections.stations %}
-    <table class="data">
-      <thead>
-        <tr>
-          <th>관측소</th><th>지역</th><th>위험 등급</th>
-          <th>금일</th><th>전일</th><th>7일 평균</th>
-          <th>민원 위험</th><th>장비 상태</th><th>신뢰도</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for s in report.summary.sections.stations %}
-        <tr>
-          <td><strong>{{ s.name|truncatechars:28 }}</strong></td>
-          <td style="font-size:10px;color:var(--gray4)">{{ s.addr|default:"-" }}</td>
-          <td class="grade-cell g-{% if s.risk_level == '안전' %}safe{% elif s.risk_level == '관심' %}watch{% elif s.risk_level == '주의' %}caution{% elif s.risk_level == '경고' %}warn{% elif s.risk_level == '심각' %}danger{% else %}unknown{% endif %}">{{ s.risk_level }} <span style="font-size:9px">({{ s.risk_score }})</span></td>
-          <td style="text-align:right;font-weight:600">{{ s.today }}</td>
-          <td style="text-align:right;color:var(--gray5)">{{ s.yday }}</td>
-          <td style="text-align:right;color:var(--gray5)">{{ s.week_avg }}</td>
-          <td style="text-align:center"><span class="cp cp-{% if s.complaint_level == '높음' %}high{% elif s.complaint_level == '보통' %}mid{% else %}low{% endif %}">{{ s.complaint_level }}</span></td>
-          <td style="text-align:center;font-size:10px">{{ s.status }}</td>
-          <td style="text-align:center;font-weight:700">{{ s.trust_score }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+  <!-- 전국 비교 -->
+  {% if report.summary.national %}
+  <div class="nat-bar">
+    <strong>[전국 참조]</strong> 전국 {{ report.summary.national.count }}개소 일평균 {{ report.summary.national.avg }}마리
+    {% if report.summary.national.is_admin %}
+      &nbsp;|&nbsp; 전국 최다 {{ report.summary.national.top_name|default:"-" }} {{ report.summary.national.top_count }}마리
     {% else %}
-    <div class="empty">관측소 데이터 없음</div>
+      {% if report.summary.national.region_avg != None %}&nbsp;|&nbsp; 담당 권역 평균 {{ report.summary.national.region_avg }}마리{% endif %}
+      {% if report.summary.national.region_top_name %}&nbsp;|&nbsp; 권역 최다 {{ report.summary.national.region_top_name }} {{ report.summary.national.region_top_count }}마리{% endif %}
     {% endif %}
-
-    <!-- 3. 시간별 포집 히트맵 (일간 only) -->
-    {% if report.summary.sections.heatmap %}
-    <h2 class="sec">3. 시간별 포집 히트맵 (수집창 18:00~익일 05:00)</h2>
-    <table class="heat">
-      <thead>
-        <tr>
-          <th style="width:150px">관측소</th>
-          <th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th>
-          <th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th>
-          <th>합계</th>
-        </tr>
-      </thead>
-      <tbody id="heatmap-body"></tbody>
-    </table>
-    <script type="application/json" id="hm-data">{{ heatmap_json|default:"[]"|safe }}</script>
-    {% endif %}
-
-    <!-- 4. 포집량 이상 감지 -->
-    <h2 class="sec">4. 포집량 이상 감지 <span style="font-size:10px;color:var(--gray4);font-weight:400">(임계 {{ report.summary.anomaly_threshold|default:51 }}마리/일)</span></h2>
-    {% if report.summary.sections.anomaly %}
-    <table class="data">
-      <thead>
-        <tr><th>일자</th><th>관측소</th><th>권역</th><th>주소</th><th>포집량</th><th>임계</th><th>초과율</th></tr>
-      </thead>
-      <tbody>
-      {% for a in report.summary.sections.anomaly %}
-        <tr>
-          <td style="text-align:center">{{ a.date }}</td>
-          <td><strong>{{ a.name|truncatechars:24 }}</strong></td>
-          <td style="text-align:center;font-size:10px;color:var(--teal);font-weight:600">{{ a.region_name|default:"-" }}</td>
-          <td style="font-size:10px;color:var(--gray5)">{{ a.addr|default:"-" }}</td>
-          <td style="text-align:right;color:var(--red);font-weight:700">{{ a.count }}마리</td>
-          <td style="text-align:right;color:var(--gray5)">{{ a.bad_min }}</td>
-          <td style="text-align:right;color:var(--red);font-weight:700">+{{ a.pct_over }}%</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="empty">기간 내 포집량 이상 감지 없음 (≥{{ report.summary.anomaly_threshold|default:51 }}마리/일)</div>
-    {% endif %}
-
-    <!-- 4-1. 권역·추세 요약 -->
-    {% if report.summary.sections.region_breakdown %}
-    <h2 class="sec">4-1. 권역별 발생 분포</h2>
-    <table class="data">
-      <thead>
-        <tr><th>권역</th><th>관측소 수</th><th>기간 합계</th><th>관측소당 평균</th><th>최다 포집 관측소</th></tr>
-      </thead>
-      <tbody>
-      {% for r in report.summary.sections.region_breakdown|slice:":8" %}
-        <tr>
-          <td><strong style="color:var(--teal)">{{ r.region_name }}</strong></td>
-          <td style="text-align:center">{{ r.devices }}</td>
-          <td style="text-align:right;font-weight:700;color:var(--navy)">{{ r.total }}마리</td>
-          <td style="text-align:right;color:var(--gray5)">{{ r.avg_per_device }}</td>
-          <td style="font-size:10px">{{ r.top_dev|default:"-"|truncatechars:20 }} <span style="color:var(--red)">({{ r.top_count }})</span></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% if report.summary.sections.last7_timeseries %}
-    <table class="data" style="margin-top:4px">
-      <thead>
-        <tr><th style="background:var(--teal)">최근 7일</th>{% for ts in report.summary.sections.last7_timeseries %}<th>{{ ts.date|slice:"5:" }}</th>{% endfor %}</tr>
-      </thead>
-      <tbody>
-        <tr><td style="font-weight:600;color:var(--teal)">전체 합(마리)</td>{% for ts in report.summary.sections.last7_timeseries %}<td style="text-align:right;font-weight:700;color:var(--navy);font-family:monospace">{{ ts.total }}</td>{% endfor %}</tr>
-      </tbody>
-    </table>
-    {% endif %}
-    {% if report.summary.trend_text or report.summary.avg_temp %}
-    <div class="natbar" style="font-style:normal">
-      {% if report.summary.avg_temp %}기온 {{ report.summary.avg_temp }}°C · 습도 {{ report.summary.avg_humid|default:"-" }}% · 강수 {{ report.summary.avg_precip|default:0 }}mm{% if report.summary.trend_text %} · {% endif %}{% endif %}{{ report.summary.trend_text }}
-    </div>
-    {% endif %}
-    {% endif %}
-
-    <!-- 5. AI 예측 -->
-    {% if report.summary.sections.predict %}
-    <h2 class="sec">5. AI 예측</h2>
-    {% if report.summary.sections.predict.day_totals %}
-    <div class="kpi-row">
-      {% for t in report.summary.sections.predict.day_totals|slice:":4" %}
-      <div class="kpi">
-        <div class="kpi-l">{{ t.date|slice:"5:" }}</div>
-        <div class="kpi-n" style="font-size:17px">{{ t.total }}</div>
-        <div class="kpi-u">전체 합 예측</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-    <table class="data">
-      <thead>
-        <tr>
-          <th>관측소</th><th>등급</th><th>평균 지수</th><th>최대 마리수</th>
-          {% for pp in report.summary.sections.predict.devices.0.predictions|slice:":7" %}
-          <th>{{ pp.date|slice:"5:" }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-      {% for d in report.summary.sections.predict.devices %}
-        <tr>
-          <td><strong>{{ d.name|truncatechars:24 }}</strong></td>
-          <td class="grade-cell g-{% if d.grade == '쾌적' or d.grade == '안전' %}safe{% elif d.grade == '관심' %}watch{% elif d.grade == '주의' %}caution{% elif d.grade == '불쾌' or d.grade == '경고' %}warn{% elif d.grade == '위험' %}danger{% else %}unknown{% endif %}">{{ d.grade|default:"-" }}</td>
-          <td style="text-align:right;font-weight:700;color:var(--navy)">{{ d.avg_index|default:"-" }}</td>
-          <td style="text-align:right;color:var(--gray5)">{{ d.max_predicted }}</td>
-          {% for pp in d.predictions|slice:":7" %}
-          <td style="text-align:right;font-family:monospace">{% if pp.predicted_index != None %}<strong style="color:var(--navy)">{{ pp.predicted_index }}</strong><span style="font-size:9px;color:var(--gray4)"> / {{ pp.predicted }}</span>{% else %}{{ pp.predicted }}{% endif %}</td>
-          {% endfor %}
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
-
-    <!-- 6. 방역 내역 -->
-    <h2 class="sec">6. 방역 내역 <span style="font-size:10px;color:var(--gray4);font-weight:400">(기간 내 시행 {{ report.summary.plans_executed_count|default:0 }}건)</span></h2>
-    {% if report.summary.sections.plans %}
-    <table class="data">
-      <thead>
-        <tr>
-          <th>실시 예정일</th><th>대상 관측소</th><th>방역 방법</th><th>감소율</th><th>구분</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for p in report.summary.sections.plans %}
-        <tr>
-          <td style="text-align:center">{{ p.scheduled_date }}</td>
-          <td><strong>{{ p.device|truncatechars:28 }}</strong></td>
-          <td style="color:var(--teal);font-weight:700">{{ p.method }}</td>
-          <td style="text-align:right;color:var(--red);font-weight:700">-{{ p.reduction_pct }}%</td>
-          <td style="text-align:center;font-size:10px;color:{% if p.executed %}var(--green){% else %}var(--gray4){% endif %}">{% if p.executed %}기간내{% else %}예정{% endif %}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="empty">등록된 방역 내역 없음</div>
-    {% endif %}
-
-    <!-- 7. 행정 판단 -->
-    <div class="admin">
-      <div class="admin-h">7. 행정 판단 · AI 분석 초안</div>
-      <div class="admin-b" id="admin-body">
-        <p style="color:var(--gray4)">본문 로드 중…</p>
-      </div>
-    </div>
-
-    <!-- 결재란 -->
-    <div class="sign-box">
-      <div class="sign">
-        <div class="sig-label">작 성</div>
-        <div class="sig-title">{{ report.writer_title|default:"" }}</div>
-        <span class="sig-name">{{ report.writer_name|default:"—" }}</span>
-        <div class="sig-slot">(서명 또는 인)</div>
-      </div>
-      <div class="sign">
-        <div class="sig-label">검 토</div>
-        <div class="sig-title">{{ report.reviewer_title|default:"" }}</div>
-        <span class="sig-name">{{ report.reviewer_name|default:"—" }}</span>
-        <div class="sig-slot">(서명 또는 인)</div>
-      </div>
-      <div class="sign">
-        <div class="sig-label">결 재</div>
-        <div class="sig-title">{{ report.approver_title|default:"" }}</div>
-        <span class="sig-name">{{ report.approver_name|default:"—" }}</span>
-        <div class="sig-slot">(서명 또는 인)</div>
-      </div>
-    </div>
-
-    <div class="foot">
-      AI 기반 모기 감시 예측 제어시스템 자동 생성 · 생성 {{ report.created_at|slice:":19"|cut:"T" }} UTC · 모델 {{ report.source }} · 보고서 #{{ report.id }}
-    </div>
   </div>
+  {% else %}
+  <div class="nat-bar"><strong>[전국 참조]</strong> 전국 비교 데이터 없음</div>
+  {% endif %}
+
+  <!-- 2. 관측소별 현황 -->
+  <h2 class="section">2. 관측소별 현황</h2>
+  {% if report.summary.sections.stations %}
+  <table class="dt">
+    <thead>
+      <tr>
+        <th style="width:20%">관측소</th><th style="width:14%">지역</th><th>위험 등급</th>
+        <th>금일</th><th>전일</th><th>7일 평균</th><th>민원 위험</th><th>장비 상태</th><th>신뢰도</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in report.summary.sections.stations %}
+      <tr>
+        <td><strong>{{ s.name|truncatechars:24 }}</strong></td>
+        <td style="font-size:9px;color:#888">{{ s.addr|default:"-" }}</td>
+        <td class="center"><span class="gb {% if s.risk_level == '안전' %}g1{% elif s.risk_level == '관심' %}g2{% elif s.risk_level == '주의' %}g3{% elif s.risk_level == '경고' %}g4{% elif s.risk_level == '심각' %}g5{% else %}g1{% endif %}">{{ s.risk_level }} ({{ s.risk_score }})</span></td>
+        <td class="center" style="font-weight:700">{{ s.today }}</td>
+        <td class="center" style="color:#888">{{ s.yday }}</td>
+        <td class="center" style="color:#888">{{ s.week_avg }}</td>
+        <td class="center"><span class="cp cp-{% if s.complaint_level == '높음' %}high{% elif s.complaint_level == '보통' %}mid{% else %}low{% endif %}">{{ s.complaint_level }}</span></td>
+        <td class="center" style="font-size:9px">{{ s.status }}</td>
+        <td class="center" style="font-weight:700">{{ s.trust_score }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">관측소 데이터 없음</div>
+  {% endif %}
+
+  <!-- 2-1. 시간별 히트맵 (일간 only) -->
+  {% if report.summary.sections.heatmap %}
+  <h2 class="section">2-1. 시간별 포집 패턴 (야간 수집창 18~05시)</h2>
+  <table class="heatmap">
+    <thead>
+      <tr>
+        <th class="station-col">관측소</th>
+        <th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th>
+        <th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th>
+        <th class="sum-col">합계</th>
+      </tr>
+    </thead>
+    <tbody id="heatmap-body"></tbody>
+  </table>
+  <div class="heatmap-legend">
+    <span style="font-weight:600">색상 단계:</span>
+    <span class="lg-item"><span class="lg-box" style="background:#f8f9fb"></span>0</span>
+    <span class="lg-item"><span class="lg-box" style="background:#ecfdf5"></span>1~10</span>
+    <span class="lg-item"><span class="lg-box" style="background:#fef9c3"></span>11~50</span>
+    <span class="lg-item"><span class="lg-box" style="background:#fff4e0"></span>51~100</span>
+    <span class="lg-item"><span class="lg-box" style="background:#fde7e4"></span>101~200</span>
+    <span class="lg-item"><span class="lg-box" style="background:#dc2626"></span>200+</span>
+  </div>
+  {% endif %}
+
+  <!-- 3. AI 예측 -->
+  {% if report.summary.sections.predict %}
+  <h2 class="section">3. AI 예측 + 추천 방역</h2>
+  {% if report.summary.sections.predict.day_totals %}
+  <div class="kpi-row">
+    {% for t in report.summary.sections.predict.day_totals|slice:":4" %}
+    <div class="kpi warn">
+      <div class="kpi-l">{{ t.date|slice:"5:" }}</div>
+      <div class="kpi-n" style="font-size:16px">{{ t.total }}</div>
+      <div class="kpi-sub">전체 합 예측</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <table class="dt">
+    <thead>
+      <tr>
+        <th style="width:20%">관측소</th><th>등급</th><th>평균 지수</th><th>최대 마리수</th>
+        {% for pp in report.summary.sections.predict.devices.0.predictions|slice:":7" %}
+        <th>{{ pp.date|slice:"5:" }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+    {% for d in report.summary.sections.predict.devices %}
+      <tr>
+        <td><strong>{{ d.name|truncatechars:22 }}</strong></td>
+        <td class="center"><span class="gb {% if d.grade == '쾌적' or d.grade == '안전' %}g1{% elif d.grade == '관심' %}g2{% elif d.grade == '주의' %}g3{% elif d.grade == '불쾌' or d.grade == '경고' %}g4{% elif d.grade == '위험' %}g5{% else %}g1{% endif %}">{{ d.grade|default:"-" }}</span></td>
+        <td class="center" style="font-weight:700;color:#1B3A6B">{{ d.avg_index|default:"-" }}</td>
+        <td class="center" style="color:#888">{{ d.max_predicted }}</td>
+        {% for pp in d.predictions|slice:":7" %}
+        <td class="center" style="font-family:'Inter'">{% if pp.predicted_index != None %}<strong style="color:#1B3A6B">{{ pp.predicted_index }}</strong>{% else %}{{ pp.predicted }}{% endif %}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div class="page-no">— 1 / 2 —</div>
+</div>
+
+<!-- ============ [페이지 2] ============ -->
+<div class="page">
+
+  <div class="logo-area">
+    <span class="logo">MOSCOM <span class="mark">ɱ</span></span>
+    <span class="badge-tag">AI-MOS</span>
+  </div>
+  <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — 상세·행정 판단</h1>
+
+  <!-- 4. 포집량 이상 감지 -->
+  <h2 class="section">4. 포집량 이상 감지 <span style="font-size:10px;color:#888;font-weight:400">(임계 {{ report.summary.anomaly_threshold|default:51 }}마리/일)</span></h2>
+  {% if report.summary.sections.anomaly %}
+  <table class="dt">
+    <thead>
+      <tr><th>일자</th><th style="width:20%">관측소</th><th>권역</th><th>주소</th><th>포집량</th><th>임계</th><th>초과율</th></tr>
+    </thead>
+    <tbody>
+    {% for a in report.summary.sections.anomaly %}
+      <tr>
+        <td class="center">{{ a.date }}</td>
+        <td><strong>{{ a.name|truncatechars:22 }}</strong></td>
+        <td class="center" style="font-size:9px;color:#0F5E6E;font-weight:600">{{ a.region_name|default:"-" }}</td>
+        <td style="font-size:9px;color:#888">{{ a.addr|default:"-" }}</td>
+        <td class="center" style="color:#c0392b;font-weight:700">{{ a.count }}마리</td>
+        <td class="center" style="color:#888">{{ a.bad_min }}</td>
+        <td class="center" style="color:#c0392b;font-weight:700">+{{ a.pct_over }}%</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">기간 내 포집량 이상 감지 없음 (≥{{ report.summary.anomaly_threshold|default:51 }}마리/일)</div>
+  {% endif %}
+
+  <!-- 4-1. 권역별 발생 분포 -->
+  {% if report.summary.sections.region_breakdown %}
+  <h2 class="section">4-1. 권역별 발생 분포</h2>
+  <table class="dt">
+    <thead>
+      <tr><th style="width:18%">권역</th><th>관측소 수</th><th>기간 합계</th><th>관측소당 평균</th><th>최다 포집 관측소</th></tr>
+    </thead>
+    <tbody>
+    {% for r in report.summary.sections.region_breakdown|slice:":8" %}
+      <tr>
+        <td><strong style="color:#0F5E6E">{{ r.region_name }}</strong></td>
+        <td class="center">{{ r.devices }}</td>
+        <td class="center" style="font-weight:700;color:#1B3A6B">{{ r.total }}마리</td>
+        <td class="center" style="color:#888">{{ r.avg_per_device }}</td>
+        <td style="font-size:9px">{{ r.top_dev|default:"-"|truncatechars:18 }} <span style="color:#c0392b">({{ r.top_count }})</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- 5. 방역 내역 -->
+  <h2 class="section">5. 방역 내역 <span style="font-size:10px;color:#888;font-weight:400">(기간 내 시행 {{ report.summary.plans_executed_count|default:0 }}건)</span></h2>
+  {% if report.summary.sections.plans %}
+  <table class="dt">
+    <thead>
+      <tr><th>실시 예정일</th><th style="width:26%">대상 관측소</th><th>방역 방법</th><th>감소율</th><th>구분</th></tr>
+    </thead>
+    <tbody>
+    {% for p in report.summary.sections.plans %}
+      <tr>
+        <td class="center">{{ p.scheduled_date }}</td>
+        <td><strong>{{ p.device|truncatechars:26 }}</strong></td>
+        <td class="center" style="color:#0F5E6E;font-weight:700">{{ p.method }}</td>
+        <td class="center" style="color:#c0392b;font-weight:700">-{{ p.reduction_pct }}%</td>
+        <td class="center" style="font-size:9px;color:{% if p.executed %}#1A5C35{% else %}#888{% endif %}">{% if p.executed %}기간내{% else %}예정{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">등록된 방역 내역 없음</div>
+  {% endif %}
+
+  <!-- 6. 행정 판단 -->
+  <div class="admin">
+    <div class="admin-h">6. 행정 판단 — 결재용 (AI 자동 생성 · {{ report.source }})</div>
+    <div class="admin-b" id="admin-body"><p style="color:#888">본문 로드 중…</p></div>
+  </div>
+
+  <!-- 결재란 -->
+  <div class="sign-box">
+    <div class="sign"><div class="sig-label">작 성</div><span class="sig-name">{{ report.writer_name|default:"—" }}</span><div class="sig-slot">(서명 또는 인)</div></div>
+    <div class="sign"><div class="sig-label">검 토</div><span class="sig-name">{{ report.reviewer_name|default:"—" }}</span><div class="sig-slot">(서명 또는 인)</div></div>
+    <div class="sign"><div class="sig-label">결 재</div><span class="sig-name">{{ report.approver_name|default:"—" }}</span><div class="sig-slot">(서명 또는 인)</div></div>
+  </div>
+
+  <div class="doc-footer">
+    <div>MOSCOM · AI 기반 모기 감시 예측 제어시스템 · moscom.kr</div>
+    <div class="stamp">보고서 #{{ report.id }} · 생성 {{ report.created_at|slice:":19"|cut:"T" }} · 모델 {{ report.source }}</div>
+  </div>
+
+  <div class="page-no">— 2 / 2 —</div>
 </div>
 
 <!-- 행정 판단 본문 -->
@@ -557,11 +438,10 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
   // 행정 판단 본문 렌더 (섹션/불릿)
   const raw = document.getElementById('admin-body-raw');
   const target = document.getElementById('admin-body');
-  const lead = document.getElementById('admin-body-lead');
   if (raw && target) {
     const text = (raw.textContent || '').trim();
     let out;
-    if (!text) { out = '<p style="color:var(--gray4)">AI 분석 결과 없음</p>'; }
+    if (!text) { out = '<p style="color:#888">AI 분석 결과 없음</p>'; }
     else {
       const html = [];
       text.split('\n').forEach(line => {
@@ -574,7 +454,6 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
       out = html.join('');
     }
     target.innerHTML = out;
-    if (lead) lead.innerHTML = out;  // 상단 메인 행정판단에도 동일 본문 미러링
   }
 
   // 히트맵 렌더
@@ -584,12 +463,12 @@ td.total-c { background: var(--navy-l); color: var(--navy); font-weight: 700; }
     let rows = [];
     try { rows = JSON.parse(hmRaw.textContent || '[]'); } catch (e) { rows = []; }
     if (rows.length === 0) {
-      hmBody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#aaa;padding:10px">데이터 없음</td></tr>';
+      hmBody.innerHTML = '<tr><td colspan="14" class="h0" style="padding:10px">데이터 없음</td></tr>';
     } else {
       const heatCls = v => v === 0 ? 'h0' : v <= 10 ? 'h1' : v <= 50 ? 'h2' : v <= 100 ? 'h3' : v <= 200 ? 'h4' : 'h5';
       hmBody.innerHTML = rows.map(r => {
         const cells = (r.hours || []).map(v => `<td class="${heatCls(v)}">${v || '-'}</td>`).join('');
-        return `<tr><td class="stn">${(r.name || '').replace(/</g,'&lt;')}</td>${cells}<td class="total-c">${r.total || '-'}</td></tr>`;
+        return `<tr><td class="station-name"><strong>${(r.name || '').replace(/</g,'&lt;')}</strong></td>${cells}<td class="sum-cell">${r.total || '-'}</td></tr>`;
       }).join('');
     }
   }
