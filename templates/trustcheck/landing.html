@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustCheck — IT 외주 계약 검증·분쟁 분석 플랫폼</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0a0a0a;
+      --muted: #71717a;      /* zinc-500 */
+      --muted-2: #a1a1aa;    /* zinc-400 */
+      --line: rgba(0, 0, 0, .08);
+      --line-strong: rgba(0, 0, 0, .12);
+      --surface: #fafafa;    /* zinc-50 */
+      --surface-2: #f4f4f5;  /* zinc-100 */
+      --accent: #0a0a0a;
+      --accent-fg: #ffffff;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+      --radius: 14px;
+      --maxw: 1120px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --fg: #ededed;
+        --muted: #a1a1aa;
+        --muted-2: #71717a;
+        --line: rgba(255, 255, 255, .12);
+        --line-strong: rgba(255, 255, 255, .18);
+        --surface: #131313;
+        --surface-2: #1a1a1a;
+        --accent: #ededed;
+        --accent-fg: #0a0a0a;
+        --green: #4ade80;
+        --amber: #fbbf24;
+        --red: #f87171;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      letter-spacing: -0.011em;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 48px; padding: 0 22px; border-radius: 999px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background .18s ease, border-color .18s ease, transform .05s ease, opacity .18s ease;
+      border: 1px solid transparent; white-space: nowrap;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--accent); color: var(--accent-fg); }
+    .btn-primary:hover { opacity: .88; }
+    .btn-ghost { background: transparent; color: var(--fg); border-color: var(--line-strong); }
+    .btn-ghost:hover { background: var(--surface-2); border-color: transparent; }
+    .btn-sm { height: 40px; padding: 0 16px; font-size: 14px; }
+
+    /* ---------- Header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: saturate(180%) blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
+    .logo-mark {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--accent); color: var(--accent-fg);
+      display: grid; place-items: center; font-weight: 800; font-size: 15px;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { font-size: 14.5px; color: var(--muted); font-weight: 500; transition: color .15s; }
+    .nav-links a:hover { color: var(--fg); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    @media (max-width: 880px) { .nav-links { display: none; } }
+
+    /* ---------- Hero ---------- */
+    .hero { padding: 96px 0 72px; text-align: center; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line);
+      background: var(--surface); font-size: 13px; font-weight: 500; color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .hero h1 {
+      font-size: clamp(34px, 6vw, 60px); line-height: 1.08; font-weight: 800;
+      letter-spacing: -0.03em; max-width: 820px; margin: 0 auto 22px;
+    }
+    .hero h1 .hl { color: var(--muted); }
+    .hero p.sub {
+      font-size: clamp(16px, 2.2vw, 19px); color: var(--muted);
+      max-width: 600px; margin: 0 auto 36px; line-height: 1.6;
+    }
+    .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-note { margin-top: 20px; font-size: 13px; color: var(--muted-2); }
+
+    /* ---------- Flow strip ---------- */
+    .flow { padding: 40px 0 20px; }
+    .flow-inner {
+      display: flex; align-items: stretch; gap: 0; flex-wrap: wrap;
+      border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+      background: var(--surface);
+    }
+    .flow-step {
+      flex: 1 1 0; min-width: 140px; padding: 22px 20px;
+      border-right: 1px solid var(--line); position: relative;
+    }
+    .flow-step:last-child { border-right: none; }
+    .flow-step .num { font-size: 12px; font-weight: 700; color: var(--muted-2); letter-spacing: .04em; }
+    .flow-step .t { margin-top: 8px; font-weight: 700; font-size: 15px; }
+    .flow-step .d { margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+    @media (max-width: 720px) {
+      .flow-step { flex-basis: 50%; border-bottom: 1px solid var(--line); }
+    }
+
+    /* ---------- Section shell ---------- */
+    section { padding: 84px 0; }
+    .sec-head { text-align: center; max-width: 640px; margin: 0 auto 52px; }
+    .sec-tag { font-size: 13px; font-weight: 700; color: var(--muted-2); letter-spacing: .08em; text-transform: uppercase; }
+    .sec-head h2 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; letter-spacing: -0.025em; margin: 12px 0 14px; }
+    .sec-head p { color: var(--muted); font-size: 16px; line-height: 1.6; }
+
+    /* ---------- User type cards ---------- */
+    .cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 840px) { .cards-3 { grid-template-columns: 1fr; } }
+    .card {
+      border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 28px; background: var(--bg); transition: border-color .18s, transform .18s;
+    }
+    .card:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+    .card .ico {
+      width: 44px; height: 44px; border-radius: 11px; background: var(--surface-2);
+      display: grid; place-items: center; font-size: 22px; margin-bottom: 18px;
+    }
+    .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .card ul { list-style: none; margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .card ul li { font-size: 13.5px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
+    .card ul li::before { content: "→"; color: var(--muted-2); font-weight: 700; }
+
+    /* ---------- Products ---------- */
+    .products { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    @media (max-width: 980px) { .products { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .products { grid-template-columns: 1fr; } }
+    .prod {
+      border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 24px;
+      display: flex; flex-direction: column; background: var(--bg); position: relative;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .prod:hover { border-color: var(--line-strong); }
+    .prod.featured { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); }
+    .prod .badge {
+      position: absolute; top: -11px; left: 24px; background: var(--accent); color: var(--accent-fg);
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: .02em;
+    }
+    .prod .code { font-size: 13px; font-weight: 800; color: var(--muted-2); letter-spacing: .06em; }
+    .prod h3 { font-size: 20px; font-weight: 800; margin: 6px 0 12px; letter-spacing: -0.02em; }
+    .prod .desc { font-size: 14px; color: var(--muted); line-height: 1.6; flex: 1; }
+    .prod .out {
+      margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 13px; color: var(--fg); font-weight: 600;
+    }
+    .prod .out span { display: block; color: var(--muted); font-weight: 500; margin-top: 4px; font-size: 12.5px; }
+
+    /* ---------- Feature (free chat highlight) ---------- */
+    .split { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+    @media (max-width: 860px) { .split { grid-template-columns: 1fr; gap: 36px; } }
+    .split h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 800; letter-spacing: -0.025em; margin-bottom: 16px; }
+    .split p { color: var(--muted); font-size: 16px; line-height: 1.65; margin-bottom: 22px; }
+    .feature-list { display: flex; flex-direction: column; gap: 14px; }
+    .feature-list .fi { display: flex; gap: 12px; align-items: flex-start; }
+    .feature-list .fi .ck {
+      flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--surface-2); color: var(--green); display: grid; place-items: center;
+      font-size: 12px; font-weight: 800; margin-top: 1px;
+    }
+    .feature-list .fi div .h { font-weight: 600; font-size: 15px; }
+    .feature-list .fi div .s { font-size: 13.5px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+
+    /* chat mock */
+    .chat-mock {
+      border: 1px solid var(--line); border-radius: 18px; background: var(--surface);
+      overflow: hidden; box-shadow: 0 10px 40px -20px rgba(0,0,0,.25);
+    }
+    .chat-top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--bg);
+    }
+    .chat-top .who { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+    .chat-top .who .av { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-size: 13px; }
+    .timer {
+      font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+      color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent);
+      padding: 5px 10px; border-radius: 999px;
+    }
+    .chat-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; }
+    .msg { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; }
+    .msg.them { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+    .msg.me { align-self: flex-end; background: var(--accent); color: var(--accent-fg); border-bottom-right-radius: 4px; }
+    .msg.sys { align-self: center; background: transparent; color: var(--muted-2); font-size: 12px; max-width: 100%; text-align: center; }
+
+    /* ---------- Signal report ---------- */
+    .signal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 8px; }
+    @media (max-width: 760px) { .signal-grid { grid-template-columns: 1fr; } }
+    .sig {
+      border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; background: var(--bg);
+    }
+    .sig .lamp { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sig .lamp i { width: 12px; height: 12px; border-radius: 50%; background: var(--surface-2); }
+    .sig.g .lamp i:nth-child(1) { background: var(--green); }
+    .sig.a .lamp i:nth-child(2) { background: var(--amber); }
+    .sig.r .lamp i:nth-child(3) { background: var(--red); }
+    .sig h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .sig p { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+
+    /* ---------- CTA band ---------- */
+    .cta-band {
+      border: 1px solid var(--line); border-radius: 20px; padding: 56px 40px; text-align: center;
+      background: var(--surface);
+    }
+    .cta-band h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; letter-spacing: -0.025em; margin-bottom: 14px; }
+    .cta-band p { color: var(--muted); font-size: 16px; margin-bottom: 28px; }
+
+    /* ---------- Footer ---------- */
+    footer { border-top: 1px solid var(--line); padding: 48px 0 40px; margin-top: 40px; }
+    .foot { display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+    .foot .col h5 { font-size: 13px; font-weight: 700; margin-bottom: 14px; color: var(--fg); }
+    .foot .col a { display: block; font-size: 13.5px; color: var(--muted); margin-bottom: 9px; transition: color .15s; }
+    .foot .col a:hover { color: var(--fg); }
+    .foot-brand { max-width: 280px; }
+    .foot-brand p { font-size: 13.5px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+    .foot-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted-2); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#top">
+        <span class="logo-mark">T</span>
+        TrustCheck
+      </a>
+      <nav class="nav-links">
+        <a href="#how">이용 방법</a>
+        <a href="#products">상품</a>
+        <a href="#chat">무료 상담</a>
+        <a href="#experts">전문가</a>
+      </nav>
+      <div class="nav-actions" id="navActions">
+        {% if user %}
+        <a class="btn btn-ghost btn-sm" href="/trustcheck/app/">{{ user.name }} 님</a>
+        <a class="btn btn-primary btn-sm" href="/trustcheck/app/">대시보드</a>
+        {% else %}
+        <a class="btn btn-ghost btn-sm" href="#" onclick="openAuth('login');return false;">로그인</a>
+        <a class="btn btn-primary btn-sm" href="#" onclick="openAuth('signup');return false;">무료로 시작하기</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ===== Hero ===== -->
+    <section class="hero">
+      <div class="wrap">
+        <span class="pill"><span class="dot"></span>계약 전 검증 · 분쟁 분석 플랫폼</span>
+        <h1>IT 외주, 계약하기 전에<br /><span class="hl">전문가에게 먼저 확인하세요</span></h1>
+        <p class="sub">
+          계약서 · 기획서 · 견적서를 IT PM과 변호사가 검토합니다.
+          15분 무료 채팅으로 시작하고, 필요할 때만 결제하세요.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#" onclick="openAuth('signup','client');return false;">상담 게시하고 전문가 만나기</a>
+          <a class="btn btn-ghost" href="#products">상품 살펴보기</a>
+        </div>
+        <p class="hero-note">가입 무료 · 15분 무료 채팅 상담 제공 · 발주자 / 전문가 모두 이용 가능</p>
+      </div>
+    </section>
+
+    <!-- ===== Flow strip ===== -->
+    <div class="wrap flow" id="how">
+      <div class="flow-inner">
+        <div class="flow-step">
+          <div class="num">STEP 01</div>
+          <div class="t">고민 게시</div>
+          <div class="d">상담 분야·상황을 작성해 게시합니다.</div>
+        </div>
+        <div class="flow-step">
+          <div class="num">STEP 02</div>
+          <div class="t">전문가 매칭</div>
+          <div class="d">분야 전문가가 어필 메시지를 보냅니다.</div>
+        </div>
+        <div class="flow-step">
+          <div class="num">STEP 03</div>
+          <div class="t">15분 무료 채팅</div>
+          <div class="d">부담 없이 실시간으로 상담해 보세요.</div>
+        </div>
+        <div class="flow-step">
+          <div class="num">STEP 04</div>
+          <div class="t">결제 · 화상 상담</div>
+          <div class="d">상품 선택 후 구글 미트로 상담합니다.</div>
+        </div>
+        <div class="flow-step">
+          <div class="num">STEP 05</div>
+          <div class="t">리포트 발행</div>
+          <div class="d">검토 결과 리포트를 열람·다운로드합니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== User types ===== -->
+    <section id="who">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">For Everyone</div>
+          <h2>누구를 위한 서비스인가요?</h2>
+          <p>발주자와 전문가, 그리고 운영을 잇는 하나의 플랫폼입니다.</p>
+        </div>
+        <div class="cards-3">
+          <div class="card">
+            <div class="ico">🧑‍💼</div>
+            <h3>발주자 (Client)</h3>
+            <p>외주 계약이 걱정되는 의뢰인. 검토를 요청하는 사용자입니다.</p>
+            <ul>
+              <li>상담 게시글 작성 · 전문가 선택</li>
+              <li>15분 무료 채팅 · 결제</li>
+              <li>일정 조율 · 화상 상담</li>
+              <li>검토 리포트 열람</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="ico">⚖️</div>
+            <h3>전문가 (Expert)</h3>
+            <p>IT PM 또는 변호사. 계약·기획·법률을 검토하는 전문가입니다.</p>
+            <ul>
+              <li>게시글 열람 · 메시지 발송</li>
+              <li>채팅 · 일정 조율 · 화상 상담</li>
+              <li>리포트 작성·업로드</li>
+              <li>정산 내역 조회</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="ico">🛠️</div>
+            <h3>관리자 (Admin)</h3>
+            <p>운영 담당자. 전문가와 케이스, 정산을 관리합니다.</p>
+            <ul>
+              <li>전문가 승인 · 반려</li>
+              <li>케이스 모니터링</li>
+              <li>정산 처리</li>
+              <li>통계 조회</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Free chat highlight ===== -->
+    <section id="chat" style="background: var(--surface);">
+      <div class="wrap split">
+        <div>
+          <div class="sec-tag" style="text-align:left;">Free Consultation</div>
+          <h2>먼저 15분, 무료로 대화해 보세요</h2>
+          <p>
+            결제 전에 전문가와 실시간으로 채팅하며 내 상황을 설명할 수 있습니다.
+            부담 없이 시작하고, 정말 필요할 때만 유료 상담으로 이어가세요.
+          </p>
+          <div class="feature-list">
+            <div class="fi">
+              <span class="ck">✓</span>
+              <div>
+                <div class="h">실시간 채팅 · 파일 첨부</div>
+                <div class="s">계약서·기획서 이미지와 문서를 채팅 중 바로 공유합니다.</div>
+              </div>
+            </div>
+            <div class="fi">
+              <span class="ck">✓</span>
+              <div>
+                <div class="h">발주자에게는 타이머가 보이지 않아요</div>
+                <div class="s">"무료 상담 중" 상태만 표시되어 편하게 대화할 수 있습니다.</div>
+              </div>
+            </div>
+            <div class="fi">
+              <span class="ck">✓</span>
+              <div>
+                <div class="h">종료 후 자유롭게 선택</div>
+                <div class="s">결제 진행 · 다른 전문가 선택 · 상담 이어가기 중 고르세요.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- chat mock -->
+        <div class="chat-mock" aria-hidden="true">
+          <div class="chat-top">
+            <div class="who">
+              <span class="av">P</span>
+              <div>
+                박준호 · IT PM
+                <div style="font-size:11.5px; color:var(--muted); font-weight:500;">무료 상담 중</div>
+              </div>
+            </div>
+            <span class="timer">⏱ 12:41</span>
+          </div>
+          <div class="chat-body">
+            <div class="msg sys">무료 채팅 상담이 시작되었습니다</div>
+            <div class="msg them">안녕하세요! 견적서 보내주시면 항목별로 짚어드릴게요.</div>
+            <div class="msg me">네, 방금 견적서 파일 첨부했어요. 금액이 적정한지 걱정돼서요.</div>
+            <div class="msg them">확인했습니다. 개발 범위 대비 3개 항목이 과다 산정된 것 같아요.</div>
+            <div class="msg me">아 그렇군요! 계약서도 봐주실 수 있나요?</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Products ===== -->
+    <section id="products">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">Products</div>
+          <h2>필요한 만큼만, 골라서 검토</h2>
+          <p>PM 검수부터 법률 검토, 융합 상담, 분쟁 분석까지 4가지 상품을 제공합니다.</p>
+        </div>
+        <div class="products">
+          <div class="prod">
+            <div class="code">A형</div>
+            <h3>PM 검수</h3>
+            <div class="desc">기획서·견적서를 IT PM이 검수합니다. 개발 범위와 금액의 적정성을 짚어드립니다.</div>
+            <div class="out">기술 분석 리포트 <span>기획·견적 항목별 검토</span></div>
+          </div>
+          <div class="prod">
+            <div class="code">B형</div>
+            <h3>변호사 검토</h3>
+            <div class="desc">계약서를 변호사가 검토합니다. 독소조항과 리스크를 법률 관점에서 확인합니다.</div>
+            <div class="out">법률 의견서 <span>계약 조항 리스크 분석</span></div>
+          </div>
+          <div class="prod featured">
+            <div class="badge">추천</div>
+            <div class="code">C형</div>
+            <h3>PM + 변호사</h3>
+            <div class="desc">PM 검수 결과를 변호사에게 전달해 순차 진행합니다. 기술·법률을 한 번에.</div>
+            <div class="out">기술 + 법률 리포트 <span>순차 융합 검토</span></div>
+          </div>
+          <div class="prod">
+            <div class="code">Premium</div>
+            <h3>분쟁 분석</h3>
+            <div class="desc">이미 분쟁이 발생했다면, 기능 구현율을 산출하고 법률 의견을 더합니다.</div>
+            <div class="out">구현율 + 법률 의견서 <span>분쟁 대응 자료</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Signal report ===== -->
+    <section id="report" style="background: var(--surface);">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">Report</div>
+          <h2>신호등처럼 한눈에</h2>
+          <p>복잡한 계약도 초록·노랑·빨강으로 명확하게. 어디를 조심해야 하는지 바로 보입니다.</p>
+        </div>
+        <div class="signal-grid">
+          <div class="sig g">
+            <div class="lamp"><i></i><i></i><i></i></div>
+            <h4>안전 항목</h4>
+            <p>표준에 부합하고 특별한 리스크가 없는 조항·견적 항목입니다.</p>
+          </div>
+          <div class="sig a">
+            <div class="lamp"><i></i><i></i><i></i></div>
+            <h4>주의 항목</h4>
+            <p>협의·조정이 필요하거나 해석의 여지가 있는 부분을 표시합니다.</p>
+          </div>
+          <div class="sig r">
+            <div class="lamp"><i></i><i></i><i></i></div>
+            <h4>위험 항목</h4>
+            <p>계약 전 반드시 수정·확인이 필요한 독소조항·과다 산정입니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Experts CTA ===== -->
+    <section id="experts">
+      <div class="wrap split">
+        <div>
+          <div class="sec-tag" style="text-align:left;">For Experts</div>
+          <h2>전문가로 활동하시나요?</h2>
+          <p>
+            IT PM · 변호사로 입점 신청하고, 본인 분야의 상담 게시글에 직접 어필하세요.
+            케이스를 단계별로 관리하고 정산 내역을 투명하게 확인할 수 있습니다.
+          </p>
+          <div class="hero-cta" style="justify-content:flex-start;">
+            <a class="btn btn-primary" href="#" onclick="openAuth('signup','expert');return false;">전문가 입점 신청</a>
+            <a class="btn btn-ghost" href="#how">활동 안내 보기</a>
+          </div>
+        </div>
+        <div class="cards-3" style="grid-template-columns:1fr; gap:14px;">
+          <div class="card" style="padding:20px 22px;">
+            <h3 style="font-size:16px;">🔎 역매칭 구조</h3>
+            <p>발주자가 올린 게시글에 전문가가 먼저 어필합니다.</p>
+          </div>
+          <div class="card" style="padding:20px 22px;">
+            <h3 style="font-size:16px;">📋 케이스 관리</h3>
+            <p>상담·검토 케이스를 진행 단계별로 관리합니다.</p>
+          </div>
+          <div class="card" style="padding:20px 22px;">
+            <h3 style="font-size:16px;">💳 투명한 정산</h3>
+            <p>정산 예정·완료 내역을 언제든 조회할 수 있습니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Final CTA ===== -->
+    <section id="start">
+      <div class="wrap">
+        <div class="cta-band">
+          <h2>계약서에 서명하기 전, 3분이면 충분합니다</h2>
+          <p>지금 고민을 게시하고 전문가의 무료 상담을 받아보세요.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#" onclick="openAuth('signup','client');return false;">발주자로 시작하기</a>
+            <a class="btn btn-ghost" href="#" onclick="openAuth('signup','expert');return false;">전문가로 시작하기</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div class="foot-brand">
+          <a class="brand" href="#top">
+            <span class="logo-mark">T</span>
+            TrustCheck
+          </a>
+          <p>IT 외주 계약 검증·분쟁 분석 플랫폼. 계약 전 전문가 검토로 리스크를 줄이세요.</p>
+        </div>
+        <div class="col">
+          <h5>서비스</h5>
+          <a href="#how">이용 방법</a>
+          <a href="#products">상품 안내</a>
+          <a href="#chat">무료 상담</a>
+          <a href="#report">리포트</a>
+        </div>
+        <div class="col">
+          <h5>전문가</h5>
+          <a href="#expert-apply">입점 신청</a>
+          <a href="#expert-guide">활동 안내</a>
+          <a href="#experts">정산 안내</a>
+        </div>
+        <div class="col">
+          <h5>회사</h5>
+          <a href="#about">소개</a>
+          <a href="#terms">이용약관</a>
+          <a href="#privacy">개인정보처리방침</a>
+          <a href="#contact">문의하기</a>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>© 2026 TrustCheck. All rights reserved.</span>
+        <span>사업자 정보 · 대표 · 주소 (추후 입력)</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== Auth Modal ===== -->
+  <div id="authOverlay" style="display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.5); backdrop-filter:blur(2px); align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--bg); border:1px solid var(--line-strong); border-radius:18px; width:100%; max-width:420px; padding:32px; box-shadow:0 20px 60px -20px rgba(0,0,0,.4);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 id="authTitle" style="font-size:22px; font-weight:800; letter-spacing:-.02em;">로그인</h3>
+        <button onclick="closeAuth()" style="border:none; background:transparent; font-size:22px; cursor:pointer; color:var(--muted);">×</button>
+      </div>
+      <p id="authSub" style="font-size:14px; color:var(--muted); margin-bottom:22px;">이메일로 로그인하세요.</p>
+
+      <div id="authErr" style="display:none; background:color-mix(in srgb, var(--red) 12%, transparent); color:var(--red); font-size:13px; padding:10px 12px; border-radius:10px; margin-bottom:14px;"></div>
+
+      <div id="signupOnly" style="display:none;">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">이름</label>
+        <input id="fName" type="text" placeholder="홍길동" style="width:100%; height:44px; padding:0 14px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:14px; margin-bottom:16px;" />
+
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">가입 유형</label>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button type="button" class="roleBtn" data-role="client" onclick="pickRole('client')" style="flex:1; height:42px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:13.5px; font-weight:600; cursor:pointer;">발주자</button>
+          <button type="button" class="roleBtn" data-role="expert" onclick="pickRole('expert')" style="flex:1; height:42px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:13.5px; font-weight:600; cursor:pointer;">전문가</button>
+        </div>
+
+        <div id="expertTypeWrap" style="display:none; margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">전문가 유형</label>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="etBtn" data-et="pm" onclick="pickET('pm')" style="flex:1; height:42px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:13.5px; font-weight:600; cursor:pointer;">IT PM</button>
+            <button type="button" class="etBtn" data-et="lawyer" onclick="pickET('lawyer')" style="flex:1; height:42px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:13.5px; font-weight:600; cursor:pointer;">변호사</button>
+          </div>
+        </div>
+      </div>
+
+      <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">이메일</label>
+      <input id="fEmail" type="email" placeholder="you@example.com" style="width:100%; height:44px; padding:0 14px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:14px; margin-bottom:16px;" />
+
+      <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">비밀번호</label>
+      <input id="fPassword" type="password" placeholder="••••••••" style="width:100%; height:44px; padding:0 14px; border:1px solid var(--line-strong); border-radius:10px; background:var(--bg); color:var(--fg); font-size:14px; margin-bottom:22px;" />
+
+      <button id="authSubmit" class="btn btn-primary" onclick="submitAuth()" style="width:100%;">로그인</button>
+
+      <p style="text-align:center; font-size:13px; color:var(--muted); margin-top:16px;">
+        <span id="authSwitchText">계정이 없으신가요?</span>
+        <a href="#" id="authSwitch" onclick="toggleMode();return false;" style="color:var(--fg); font-weight:600;">회원가입</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    let mode = 'login';        // 'login' | 'signup'
+    let role = 'client';
+    let expertType = '';
+
+    function openAuth(m, presetRole) {
+      mode = m || 'login';
+      if (presetRole) { role = presetRole; }
+      renderAuth();
+      if (presetRole) pickRole(presetRole);
+      document.getElementById('authOverlay').style.display = 'flex';
+    }
+    function closeAuth() { document.getElementById('authOverlay').style.display = 'none'; }
+    function toggleMode() { mode = (mode === 'login') ? 'signup' : 'login'; renderAuth(); }
+
+    function renderAuth() {
+      const isSignup = mode === 'signup';
+      document.getElementById('authTitle').textContent = isSignup ? '회원가입' : '로그인';
+      document.getElementById('authSub').textContent = isSignup ? '가입 유형을 선택하고 시작하세요.' : '이메일로 로그인하세요.';
+      document.getElementById('signupOnly').style.display = isSignup ? 'block' : 'none';
+      document.getElementById('authSubmit').textContent = isSignup ? '가입하기' : '로그인';
+      document.getElementById('authSwitchText').textContent = isSignup ? '이미 계정이 있으신가요?' : '계정이 없으신가요?';
+      document.getElementById('authSwitch').textContent = isSignup ? '로그인' : '회원가입';
+      document.getElementById('authErr').style.display = 'none';
+    }
+    function pickRole(r) {
+      role = r;
+      document.querySelectorAll('.roleBtn').forEach(b => {
+        const on = b.dataset.role === r;
+        b.style.borderColor = on ? 'var(--fg)' : 'var(--line-strong)';
+        b.style.background = on ? 'var(--surface-2)' : 'var(--bg)';
+      });
+      document.getElementById('expertTypeWrap').style.display = (r === 'expert') ? 'block' : 'none';
+    }
+    function pickET(et) {
+      expertType = et;
+      document.querySelectorAll('.etBtn').forEach(b => {
+        const on = b.dataset.et === et;
+        b.style.borderColor = on ? 'var(--fg)' : 'var(--line-strong)';
+        b.style.background = on ? 'var(--surface-2)' : 'var(--bg)';
+      });
+    }
+    function showErr(msg) {
+      const el = document.getElementById('authErr');
+      el.textContent = msg; el.style.display = 'block';
+    }
+    async function submitAuth() {
+      const email = document.getElementById('fEmail').value.trim();
+      const password = document.getElementById('fPassword').value;
+      if (!email || !password) return showErr('이메일과 비밀번호를 입력하세요.');
+      let url, payload;
+      if (mode === 'signup') {
+        const name = document.getElementById('fName').value.trim();
+        if (!name) return showErr('이름을 입력하세요.');
+        if (role === 'expert' && !expertType) return showErr('전문가 유형을 선택하세요.');
+        url = '/trustcheck/api/signup/';
+        payload = { email, password, name, role, expert_type: expertType };
+      } else {
+        url = '/trustcheck/api/login/';
+        payload = { email, password };
+      }
+      try {
+        const res = await fetch(url, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) return showErr(data.error || '오류가 발생했습니다.');
+        window.location.href = '/trustcheck/app/';
+      } catch (e) { showErr('네트워크 오류'); }
+    }
+  </script>
+
+</body>
+</html>

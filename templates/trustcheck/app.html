@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustCheck · 대시보드</title>
+  <style>
+    :root{--bg:#fff;--fg:#0a0a0a;--muted:#71717a;--line:rgba(0,0,0,.1);--line-strong:rgba(0,0,0,.16);--surface:#fafafa;--surface-2:#f4f4f5;--accent:#0a0a0a;--accent-fg:#fff;--green:#16a34a;--amber:#d97706;--red:#dc2626;--radius:12px;}
+    @media(prefers-color-scheme:dark){:root{--bg:#0a0a0a;--fg:#ededed;--muted:#a1a1aa;--line:rgba(255,255,255,.12);--line-strong:rgba(255,255,255,.2);--surface:#131313;--surface-2:#1a1a1a;--accent:#ededed;--accent-fg:#0a0a0a;--green:#4ade80;--amber:#fbbf24;--red:#f87171;}}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--fg);font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+    a{color:inherit;text-decoration:none;}
+    header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);}
+    .nav{max-width:1080px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+    .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px;}
+    .logo{width:26px;height:26px;border-radius:7px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:800;font-size:14px;}
+    .wrap{max-width:1080px;margin:0 auto;padding:24px 20px;}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;background:var(--accent);color:var(--accent-fg);}
+    .btn.ghost{background:transparent;color:var(--fg);border-color:var(--line-strong);}
+    .btn.sm{height:32px;padding:0 12px;font-size:13px;}
+    .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--line);}
+    .tab{padding:10px 14px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+    .tab.active{color:var(--fg);border-bottom-color:var(--fg);}
+    .card{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--bg);margin-bottom:12px;}
+    .card h4{font-size:15px;font-weight:700;margin-bottom:6px;}
+    .card .meta{font-size:12.5px;color:var(--muted);}
+    .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);}
+    input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:9px;background:var(--bg);color:var(--fg);font-size:14px;font-family:inherit;margin-bottom:12px;}
+    textarea{min-height:88px;resize:vertical;}
+    label{font-size:13px;font-weight:600;display:block;margin-bottom:5px;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+    .empty{color:var(--muted);font-size:14px;padding:24px;text-align:center;}
+    .sig-g{color:var(--green);}.sig-a{color:var(--amber);}.sig-r{color:var(--red);}
+    /* chat */
+    .chat-body{border:1px solid var(--line);border-radius:12px;height:340px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface);}
+    .msg{max-width:78%;padding:9px 13px;border-radius:13px;font-size:13.5px;}
+    .msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-fg);}
+    .msg.them{align-self:flex-start;background:var(--bg);border:1px solid var(--line);}
+    .msg.sys{align-self:center;color:var(--muted);font-size:12px;}
+    .timer{font-size:13px;font-weight:700;color:var(--amber);}
+    dialog{border:none;border-radius:16px;padding:24px;max-width:460px;width:92%;background:var(--bg);color:var(--fg);box-shadow:0 20px 60px -20px rgba(0,0,0,.4);}
+    dialog::backdrop{background:rgba(0,0,0,.5);}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <a class="brand" href="/trustcheck/"><span class="logo">T</span>TrustCheck</a>
+      <div class="row" style="align-items:center;">
+        <span class="badge" id="roleBadge">{{ user.get_role_display }}</span>
+        <span style="font-size:14px;font-weight:600;">{{ user.name }}</span>
+        <button class="btn ghost sm" onclick="logout()">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div id="view"></div>
+  </div>
+
+  <script>
+    const ME = { id: {{ user.id }}, name: "{{ user.name|escapejs }}", role: "{{ user.role }}", expert_type: "{{ user.expert_type }}", approved: {{ user.approved|yesno:"true,false" }} };
+    const $ = s => document.querySelector(s);
+    async function api(url, opts={}) {
+      const res = await fetch(url, Object.assign({ headers: opts.body && !(opts.body instanceof FormData) ? {'Content-Type':'application/json'} : {} }, opts));
+      let data = {}; try { data = await res.json(); } catch(e){}
+      if (!res.ok) throw new Error(data.error || '오류');
+      return data;
+    }
+    async function logout(){ await api('/trustcheck/api/logout/', {method:'POST', body:'{}'}); location.href='/trustcheck/'; }
+    function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    // ---- tabs per role ----
+    const TABS = {
+      client: [['posts','내 상담글'],['new','상담 게시'],['cases','내 케이스'],['products','상품']],
+      expert: [['browse','상담글 열람'],['cases','내 케이스'],['products','상품']],
+      admin:  [['experts','전문가 승인'],['cases','전체 케이스'],['browse','상담글']],
+    };
+    let cur = (TABS[ME.role]||TABS.client)[0][0];
+    function renderTabs(){
+      $('#tabs').innerHTML = (TABS[ME.role]||TABS.client).map(([k,l])=>
+        `<div class="tab ${k===cur?'active':''}" onclick="go('${k}')">${l}</div>`).join('');
+    }
+    function go(k){ cur=k; renderTabs(); render(); }
+
+    async function render(){
+      const v = $('#view'); v.innerHTML = '<div class="empty">불러오는 중…</div>';
+      try {
+        if (cur==='new') return renderNew(v);
+        if (cur==='posts') return renderPosts(v, true);
+        if (cur==='browse') return renderPosts(v, false);
+        if (cur==='cases') return renderCases(v);
+        if (cur==='products') return renderProducts(v);
+        if (cur==='experts') return renderExperts(v);
+      } catch(e){ v.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+    }
+
+    // ---- 상담 게시 ----
+    function renderNew(v){
+      v.innerHTML = `<div class="card" style="max-width:560px;">
+        <h4>상담 게시글 작성</h4>
+        <label>제목</label><input id="nTitle" placeholder="예: 홈페이지 외주 견적이 적정한가요?">
+        <label>분야</label>
+        <select id="nField">
+          <option value="pm">IT PM (기획·견적)</option>
+          <option value="lawyer">법률 (계약)</option>
+          <option value="both">융합 (기술+법률)</option>
+          <option value="dispute">분쟁 분석</option>
+        </select>
+        <label>상황 설명</label><textarea id="nSit" placeholder="상황을 자세히 적어주세요."></textarea>
+        <label>금액 규모 (선택)</label><input id="nBudget" placeholder="예: 3,000만원">
+        <button class="btn" onclick="submitPost()">게시하기</button>
+      </div>`;
+    }
+    async function submitPost(){
+      const body = JSON.stringify({ title:$('#nTitle').value, field:$('#nField').value, situation:$('#nSit').value, budget:$('#nBudget').value });
+      try { await api('/trustcheck/api/posts/', {method:'POST', body}); cur='posts'; renderTabs(); render(); }
+      catch(e){ alert(e.message); }
+    }
+
+    // ---- 게시글 목록 ----
+    async function renderPosts(v, mine){
+      const url = '/trustcheck/api/posts/' + (mine ? '?mine=1' : (ME.expert_type ? '' : ''));
+      const {posts} = await api(url);
+      if(!posts.length){ v.innerHTML = '<div class="empty">게시글이 없습니다.</div>'; return; }
+      v.innerHTML = posts.map(p=>`
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;gap:10px;">
+            <h4>${esc(p.title)}</h4>
+            <span class="badge">${p.status_display}</span>
+          </div>
+          <div class="meta">${p.field_display} · ${esc(p.author)} · 어필 ${p.appeal_count}건 ${p.budget?('· '+esc(p.budget)):''}</div>
+          <p style="font-size:13.5px;margin-top:8px;color:var(--muted);">${esc(p.situation).slice(0,140)}</p>
+          <div class="row" style="margin-top:12px;">
+            ${ME.role==='expert' ? `<button class="btn sm" onclick="appealDlg(${p.id})">어필 메시지 보내기</button>`:''}
+            ${(ME.role==='client'&&p.is_mine) ? `<button class="btn ghost sm" onclick="viewAppeals(${p.id})">받은 어필 보기</button>`:''}
+          </div>
+        </div>`).join('');
+    }
+
+    function appealDlg(postId){
+      const d = document.createElement('dialog');
+      d.innerHTML = `<h4 style="margin-bottom:12px;">어필 메시지</h4>
+        <textarea id="apMsg" placeholder="이 상담을 도울 수 있는 이유를 적어주세요."></textarea>
+        <div class="row" style="justify-content:flex-end;">
+          <button class="btn ghost sm" onclick="this.closest('dialog').close()">취소</button>
+          <button class="btn sm" id="apSend">보내기</button>
+        </div>`;
+      document.body.appendChild(d); d.showModal();
+      d.querySelector('#apSend').onclick = async ()=>{
+        try{ await api(`/trustcheck/api/posts/${postId}/appeal/`, {method:'POST', body:JSON.stringify({message:d.querySelector('#apMsg').value})}); d.close(); alert('어필을 보냈습니다.'); }
+        catch(e){ alert(e.message); }
+      };
+    }
+
+    async function viewAppeals(postId){
+      const {post} = await api(`/trustcheck/api/posts/${postId}/`);
+      const d = document.createElement('dialog');
+      d.innerHTML = `<h4 style="margin-bottom:12px;">받은 어필 — ${esc(post.title)}</h4>
+        ${post.appeals.length? post.appeals.map(a=>`
+          <div class="card">
+            <div class="meta"><b>${esc(a.expert)}</b> · ${a.expert_type||'전문가'} · ${a.status}</div>
+            <p style="font-size:13.5px;margin:8px 0;">${esc(a.message)}</p>
+            ${a.status==='pending'?`<div class="row">
+              <button class="btn sm" onclick="respond(${a.id},'accept',this)">수락 → 채팅</button>
+              <button class="btn ghost sm" onclick="respond(${a.id},'reject',this)">거절</button>
+            </div>`:''}
+          </div>`).join('') : '<div class="empty">아직 어필이 없습니다.</div>'}
+        <div class="row" style="justify-content:flex-end;"><button class="btn ghost sm" onclick="this.closest('dialog').close()">닫기</button></div>`;
+      document.body.appendChild(d); d.showModal();
+    }
+    async function respond(appealId, action, btn){
+      try{
+        const r = await api(`/trustcheck/api/appeals/${appealId}/respond/`, {method:'POST', body:JSON.stringify({action})});
+        btn.closest('dialog').close();
+        if(action==='accept' && r.room_id){ openChat(r.room_id); }
+      }catch(e){ alert(e.message); }
+    }
+
+    // ---- 채팅 ----
+    let chatTimer=null;
+    async function openChat(roomId){
+      if(chatTimer) clearInterval(chatTimer);
+      const d = document.createElement('dialog'); d.style.maxWidth='520px';
+      document.body.appendChild(d);
+      async function tick(){
+        const r = await api(`/trustcheck/api/rooms/${roomId}/`);
+        const mm = String(Math.floor(r.remaining_seconds/60)).padStart(2,'0');
+        const ss = String(r.remaining_seconds%60).padStart(2,'0');
+        d.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div><b>${esc(r.other)}</b><div class="meta">${esc(r.post_title)}</div></div>
+            <div>${ r.timer_visible ? `<span class="timer">⏱ ${r.timer_expired?'무료 종료':mm+':'+ss}</span>` : '<span class="meta">무료 상담 중</span>'}</div>
+          </div>
+          <div class="chat-body" id="cb">${r.messages.map(m=>`<div class="msg ${m.is_system?'sys':(m.mine?'me':'them')}">${m.is_system?'':'<b style=\\'font-size:11px;opacity:.7\\'>'+esc(m.sender)+'</b><br>'}${esc(m.body)}${m.file?` <a href="${m.file}" target="_blank" style="text-decoration:underline">[파일]</a>`:''}</div>`).join('')}</div>
+          <div class="row" style="margin-top:10px;">
+            <input id="cMsg" placeholder="메시지 입력" style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')document.getElementById('cSend').click()">
+            <button class="btn sm" id="cSend">전송</button>
+            <button class="btn ghost sm" onclick="closeChat(this)">닫기</button>
+          </div>`;
+        const cb=d.querySelector('#cb'); cb.scrollTop=cb.scrollHeight;
+        d.querySelector('#cSend').onclick = async ()=>{
+          const val=d.querySelector('#cMsg').value.trim(); if(!val)return;
+          await api(`/trustcheck/api/rooms/${roomId}/send/`, {method:'POST', body:JSON.stringify({body:val})});
+          tick();
+        };
+      }
+      window.closeChat = (b)=>{ if(chatTimer)clearInterval(chatTimer); b.closest('dialog').close(); };
+      await tick(); d.showModal();
+      chatTimer = setInterval(()=>{ if(d.open) tick(); else clearInterval(chatTimer); }, 5000);
+    }
+
+    // ---- 상품 / 결제 ----
+    async function renderProducts(v){
+      const {products} = await api('/trustcheck/api/products/');
+      v.innerHTML = `<div class="grid2">${products.map(p=>`
+        <div class="card">
+          <span class="badge">${p.code}</span>
+          <h4 style="margin-top:8px;">${esc(p.name)} · ${p.price.toLocaleString()}원</h4>
+          <p style="font-size:13.5px;color:var(--muted);margin:6px 0 12px;">${esc(p.description)}</p>
+          ${ME.role==='client'?`<button class="btn sm" onclick="checkout('${p.code}')">결제하고 시작</button>`:''}
+        </div>`).join('')}</div>`;
+    }
+    async function checkout(code){
+      try{ const r = await api('/trustcheck/api/checkout/', {method:'POST', body:JSON.stringify({product:code})});
+        alert('결제 완료(목). 케이스가 생성되었습니다.'); cur='cases'; renderTabs(); render();
+      }catch(e){ alert(e.message); }
+    }
+
+    // ---- 케이스 ----
+    async function renderCases(v){
+      const {cases} = await api('/trustcheck/api/cases/');
+      if(!cases.length){ v.innerHTML='<div class="empty">케이스가 없습니다.</div>'; return; }
+      v.innerHTML = cases.map(c=>`
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;gap:10px;">
+            <h4>${c.product_name} <span class="badge">${c.stage_display}</span></h4>
+            <span class="meta">#${c.id} · ${c.paid_amount.toLocaleString()}원</span>
+          </div>
+          <div class="meta" style="margin-top:6px;">발주자 ${esc(c.client)} · 전문가 ${esc(c.expert||'-')} ${c.lawyer?('· 변호사 '+esc(c.lawyer)):''}</div>
+          ${c.reports.length?`<div style="margin-top:10px;">${c.reports.map(r=>`<div style="font-size:13.5px;"><span class="sig-${r.signal||'a'}">●</span> ${esc(r.title)} — ${esc(r.summary).slice(0,80)} ${r.file?`<a href="${r.file}" target="_blank" style="text-decoration:underline">[PDF]</a>`:''}</div>`).join('')}</div>`:''}
+          <div class="row" style="margin-top:12px;">
+            <button class="btn ghost sm" onclick="caseDetail(${c.id})">상세 / 자료</button>
+            ${(ME.role==='expert') ? `<button class="btn sm" onclick="reportDlg(${c.id})">리포트 작성</button>`:''}
+          </div>
+        </div>`).join('');
+    }
+    async function caseDetail(id){
+      const {case:c} = await api(`/trustcheck/api/cases/${id}/`);
+      const d = document.createElement('dialog'); document.body.appendChild(d);
+      d.innerHTML = `<h4>케이스 #${c.id} · ${c.product_name}</h4>
+        <div class="meta" style="margin:6px 0 12px;">${c.stage_display}</div>
+        <label>질의사항</label><textarea id="cq">${esc(c.inquiry)}</textarea>
+        <label>화상 링크 (Google Meet)</label><input id="cm" value="${esc(c.meet_url)}" placeholder="https://meet.google.com/...">
+        <label>자료 첨부</label>
+        <select id="cfk"><option value="contract">계약서</option><option value="plan">기획서</option><option value="quote">견적서</option><option value="etc">기타</option></select>
+        <input id="cf" type="file">
+        <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">첨부: ${c.files.map(f=>esc(f.kind)).join(', ')||'없음'}</div>
+        <div class="row" style="justify-content:flex-end;">
+          <button class="btn ghost sm" onclick="this.closest('dialog').close()">닫기</button>
+          <button class="btn sm" id="cSave">저장</button>
+        </div>`;
+      d.showModal();
+      d.querySelector('#cSave').onclick = async ()=>{
+        try{
+          await api(`/trustcheck/api/cases/${id}/update/`, {method:'POST', body:JSON.stringify({inquiry:d.querySelector('#cq').value, meet_url:d.querySelector('#cm').value})});
+          const file = d.querySelector('#cf').files[0];
+          if(file){ const fd=new FormData(); fd.append('file',file); fd.append('kind',d.querySelector('#cfk').value); await api(`/trustcheck/api/cases/${id}/update/`,{method:'POST',body:fd}); }
+          d.close(); render();
+        }catch(e){ alert(e.message); }
+      };
+    }
+    function reportDlg(caseId){
+      const d = document.createElement('dialog'); document.body.appendChild(d);
+      d.innerHTML = `<h4 style="margin-bottom:12px;">검토 리포트</h4>
+        <label>제목</label><input id="rT" placeholder="기술 검토 리포트">
+        <label>신호등</label><select id="rSig"><option value="green">🟢 안전</option><option value="amber">🟡 주의</option><option value="red">🔴 위험</option></select>
+        <label>요약</label><textarea id="rSum"></textarea>
+        <label>PDF (선택)</label><input id="rF" type="file">
+        <div class="row" style="justify-content:flex-end;">
+          <button class="btn ghost sm" onclick="this.closest('dialog').close()">취소</button>
+          <button class="btn sm" id="rSend">발행</button>
+        </div>`;
+      d.showModal();
+      d.querySelector('#rSend').onclick = async ()=>{
+        try{
+          const fd=new FormData(); fd.append('title',d.querySelector('#rT').value||'검토 리포트');
+          fd.append('signal',d.querySelector('#rSig').value); fd.append('summary',d.querySelector('#rSum').value);
+          const f=d.querySelector('#rF').files[0]; if(f) fd.append('file',f);
+          await api(`/trustcheck/api/cases/${caseId}/report/`, {method:'POST', body:fd});
+          d.close(); render();
+        }catch(e){ alert(e.message); }
+      };
+    }
+
+    // ---- 관리자: 전문가 승인 ----
+    async function renderExperts(v){
+      const {experts} = await api('/trustcheck/api/admin/experts/');
+      if(!experts.length){ v.innerHTML='<div class="empty">전문가가 없습니다.</div>'; return; }
+      v.innerHTML = experts.map(e=>`
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;">
+            <h4>${esc(e.name)} <span class="badge">${e.expert_type||'-'}</span></h4>
+            <span class="badge">${e.is_approved?'승인됨':'대기'}</span>
+          </div>
+          <div class="meta">${esc(e.email)}</div>
+          <div class="row" style="margin-top:10px;">
+            <button class="btn sm" onclick="approve(${e.id},true)">승인</button>
+            <button class="btn ghost sm" onclick="approve(${e.id},false)">반려</button>
+          </div>
+        </div>`).join('');
+    }
+    async function approve(id, ok){
+      try{ await api(`/trustcheck/api/admin/experts/${id}/approve/`, {method:'POST', body:JSON.stringify({approve:ok})}); render(); }
+      catch(e){ alert(e.message); }
+    }
+
+    renderTabs(); render();
+  </script>
+</body>
+</html>
