@@ -1447,11 +1447,23 @@ body {
       </div>
     </div>
 
-    <!-- 차트 (위) -->
+    <!-- 관측소 선택 (맨 위) -->
+    <div class="card mb16" style="padding:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">관측소 선택</div>
+      <div id="trend-filter" style="max-height:220px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
+        <div style="color:var(--gray4);font-style:italic">장비 목록 불러오는 중…</div>
+      </div>
+    </div>
+
+    <!-- 차트 -->
     <div class="card mb16" style="padding:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
         <div style="font-size:13px;font-weight:700;color:var(--navy)" id="trend-chart-title">일별 포집량 추이</div>
-        <div style="font-size:11px;color:var(--gray4)" id="trend-chart-sub"></div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="font-size:12px;font-weight:600;color:var(--gray6)"><span style="color:var(--navy)">━</span> 실측</span>
+          <span style="font-size:12px;font-weight:600;color:var(--gray6)"><span style="color:var(--teal)">┈</span> 추세선</span>
+          <span style="font-size:11px;color:var(--gray4)" id="trend-chart-sub"></span>
+        </div>
       </div>
       <!-- 기준선 / 추세선 컨트롤 -->
       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px;padding:8px 10px;background:var(--gray1);border-radius:6px">
@@ -1475,17 +1487,8 @@ body {
           <span class="arrow"></span>
         </div>
       </div>
-      <!-- 선 설명(범례) + 추세선 식 — 3열 -->
-      <div id="trend-legend-box" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray2)"></div>
+      <!-- 추세선 식 — 4열 -->
       <div id="trend-eq-box" style="margin-top:10px;font-size:11px;color:var(--gray6);line-height:1.6"></div>
-    </div>
-
-    <!-- 관측소 선택 (아래) -->
-    <div class="card mb16" style="padding:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">관측소 선택</div>
-      <div id="trend-filter" style="max-height:300px;overflow-y:auto;border:1px solid var(--gray2);border-radius:6px;padding:10px 12px;font-size:12px">
-        <div style="color:var(--gray4);font-style:italic">장비 목록 불러오는 중…</div>
-      </div>
     </div>
 
     <!-- 전체 장비 표 -->
@@ -3463,14 +3466,13 @@ function drawTrendChart() {
     });
   }
 
-  // 기준선 — 전 구간 동일 값 수평선 데이터셋
+  // 기준선 — 전 구간 동일 값 수평선 데이터셋 (실선·굵게)
   TREND_STATE.baselines.forEach(b => {
     datasets.push({
       label: `▬ ${b.name} (${b.value})`,
       data: TREND_STATE.dates.map(() => b.value),
       borderColor: '#B71C1C',
-      borderWidth: 1.5,
-      borderDash: [4, 3],
+      borderWidth: 3,
       pointRadius: 0,
       fill: false,
       spanGaps: true,
@@ -3509,29 +3511,11 @@ function drawTrendChart() {
       eqLines.push(`<div><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:5px"></span><strong>${escapeHtml(d.name)}</strong> · y = ${slope.toFixed(2)}x ${intercept>=0?'+':'−'} ${Math.abs(intercept).toFixed(1)} <span style="color:var(--gray4)">(x=일 순서, 하루당 ${slope>=0?'+':''}${slope.toFixed(1)}마리)</span></div>`);
     });
   }
-  // 선 설명(범례) — 차트 우측 대신 아래로, 3열 그리드
-  const legendBox = document.getElementById('trend-legend-box');
-  if (legendBox) {
-    if (datasets.length) {
-      const items = datasets.map(ds => {
-        const dash = (ds.borderDash && ds.borderDash.length) ? 'dashed' : 'solid';
-        return `<div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gray6);overflow:hidden">
-          <span style="flex:0 0 22px;height:0;border-top:2px ${dash} ${ds.borderColor}"></span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(ds.label)}</span>
-        </div>`;
-      }).join('');
-      legendBox.innerHTML = `
-        <div style="font-weight:700;color:var(--navy);font-size:11px;margin-bottom:6px">선 설명</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px">${items}</div>`;
-    } else {
-      legendBox.innerHTML = '';
-    }
-  }
-  // 추세선 식 박스 — 3열 그리드
+  // 추세선 식 박스 — 4열 그리드
   const eqBox = document.getElementById('trend-eq-box');
   if (eqBox) eqBox.innerHTML = eqLines.length
     ? `<div style="font-weight:700;color:var(--teal);margin-bottom:6px">추세선 식 (선형회귀)</div>
-       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px">${eqLines.join('')}</div>`
+       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px 16px">${eqLines.join('')}</div>`
     : '';
 
   if (TREND_STATE.chart) TREND_STATE.chart.destroy();
@@ -3602,7 +3586,7 @@ function renderTrendTable() {
     <th style="min-width:200px">관측소</th>
     <th>지역</th>
     ${dates.map(d => { const [,m,dd] = d.split('-'); return `<th>${parseInt(m,10)}/${parseInt(dd,10)}</th>`; }).join('')}
-    <th>합계</th><th>추세</th>
+    <th>합계</th><th style="text-align:center">추세</th>
   </tr></thead>`;
   const rows = Object.entries(TREND_STATE.deviceMap)
     .sort((a, b) => b[1].total - a[1].total);
@@ -3616,11 +3600,7 @@ function renderTrendTable() {
     const up = chg > 5, down = chg < -5;
     const tc = up ? 'var(--red)' : down ? 'var(--green)' : 'var(--gray4)';
     const tl = up ? `↑ ${chg>=0?'+':''}${chg}%` : down ? `↓ ${chg}%` : '→ 0%';
-    // 추세선이 등록된(추세선 표시 ON + 선택됨) 관측소는 추세 열 음영 강조
-    const hasTrendline = TREND_STATE.trendlines && TREND_STATE.selected.has(u);
-    const trendCellStyle = hasTrendline
-      ? `color:${tc};font-weight:700;background:#FFF3CC;border-left:2px solid var(--teal)`
-      : `color:${tc};font-weight:700`;
+    // 추세는 가장 중요한 열 — 전 행 음영 + 중앙정렬 강조
     const cells = seq.map((v, wi) =>
       `<td style="font-family:var(--mono);${wi===lastIdx?'color:var(--navy);font-weight:700':'color:var(--gray5)'}">${v}</td>`
     ).join('');
@@ -3629,7 +3609,7 @@ function renderTrendTable() {
       <td style="color:var(--gray5);font-size:11px">${d.region}</td>
       ${cells}
       <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${d.total}</td>
-      <td style="${trendCellStyle}">${tl}${hasTrendline?' <span style="font-size:9px;color:var(--teal)">📈</span>':''}</td>
+      <td style="text-align:center;color:${tc};font-weight:800;background:#FFF6E0">${tl}</td>
     </tr>`;
   }).join('')}</tbody>`;
   t.innerHTML = hdr + body;
