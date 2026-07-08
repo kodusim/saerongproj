@@ -98,6 +98,11 @@
   .h5 { background: #dc2626; color: #fff; font-weight: 800; }
   table.heatmap td.sum-cell { background: #D6E0F0; color: #1B3A6B; font-weight: 700; }
 
+  /* 파란 해석/분석/요약 박스 */
+  .insight { background: #f0f7ff; border-left: 3px solid #2c5282; border-radius: 3px; padding: 7px 11px; font-size: 9.5px; color: #1B3A6B; margin: 4px 0 10px; line-height: 1.6; }
+  .insight strong { font-weight: 700; }
+  .insight .hl { color: #c0392b; font-weight: 700; }
+
   /* 해석/범례 */
   .heatmap-legend { display: flex; align-items: center; gap: 8px; font-size: 9px; color: #666; margin: 2px 0 8px; flex-wrap: wrap; }
   .heatmap-legend .lg-item { display: inline-flex; align-items: center; gap: 3px; }
@@ -232,6 +237,10 @@
   <div class="nat-bar"><strong>[전국 참조]</strong> 전국 비교 데이터 없음</div>
   {% endif %}
 
+  {% if report.summary.insights.summary %}
+  <div class="insight"><strong>■ 요약 분석</strong> · {{ report.summary.insights.summary }}</div>
+  {% endif %}
+
   <!-- 2. 관측소별 현황 -->
   <h2 class="section">2. 관측소별 현황</h2>
   {% if report.summary.sections.stations %}
@@ -324,6 +333,9 @@
     {% endfor %}
     </tbody>
   </table>
+  {% if report.summary.insights.predict %}
+  <div class="insight"><strong>■ 예측 분석</strong> · {{ report.summary.insights.predict }}</div>
+  {% endif %}
   {% endif %}
 
   <!-- 3-1. 일자별 추천 방역 -->
@@ -360,26 +372,36 @@
   </div>
   <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — 상세·행정 판단</h1>
 
-  <!-- 3-2. 직전 방역 검증 -->
+  <!-- 3-2. 관측소별 방역 이력 + 효과 검증 -->
   {% if report.summary.sections.remedy_verify %}
-  <h2 class="section">3-2. 직전 방역 검증 <span style="font-size:10px;color:#888;font-weight:400">(살포 후 실측 추세 편차 기반 3패턴)</span></h2>
+  <h2 class="section">3-2. 관측소별 방역 이력 + 효과 검증 <span style="font-size:10px;color:#888;font-weight:400">(예상 대비 실측 편차 기반)</span></h2>
   <table class="dt">
     <thead>
-      <tr><th style="width:18%">관측소</th><th>직전 방역</th><th>방역일</th><th>최근 추세</th><th>검증 패턴</th><th>해석 / 추천 조치</th></tr>
+      <tr><th style="width:16%">관측소</th><th style="width:20%">직전 방역 (날짜·약제·담당)</th><th>효과 검증</th><th>검증 패턴</th><th>분석 / 사유</th></tr>
     </thead>
     <tbody>
     {% for v in report.summary.sections.remedy_verify %}
       <tr>
-        <td><strong>{{ v.name|truncatechars:20 }}</strong></td>
-        <td class="center" style="color:#0F5E6E;font-size:9px">{{ v.last_method }}</td>
-        <td class="center" style="font-size:9px">{{ v.last_date }}</td>
-        <td class="center" style="font-weight:700;color:{% if v.change_pct > 60 %}#c0392b{% elif v.change_pct > 10 %}#d97706{% else %}#1A5C35{% endif %}">{% if v.change_pct >= 0 %}+{% endif %}{{ v.change_pct }}%</td>
-        <td class="center"><span class="gb {% if v.pattern == '방역 정상 패턴' %}g1{% elif v.pattern == '발생원 누락 의심' %}g3{% else %}g4{% endif %}">{{ v.pattern }}</span></td>
-        <td style="font-size:9px">{{ v.desc }}<br><strong style="color:#1B3A6B">→ {{ v.action }}</strong></td>
+        <td><strong>{{ v.name|truncatechars:18 }}</strong></td>
+        <td style="font-size:9px">
+          {% if v.has_plan %}<strong>{{ v.last_date }}</strong><br><span style="color:#0F5E6E;font-weight:600">{{ v.last_method }}</span>{% if v.worker %}<br><span style="color:#888">{{ v.worker }} 담당{% if v.volume_l != None %} · {{ v.volume_l }}L{% endif %}</span>{% endif %}{% else %}<span style="color:#888">최근 방역 없음</span>{% endif %}
+        </td>
+        <td class="center" style="font-size:9px">
+          {% if v.has_plan %}
+          <strong style="font-size:11px;color:{% if v.change_pct > 60 %}#c0392b{% elif v.change_pct > 10 %}#d97706{% else %}#1A5C35{% endif %}">{% if v.change_pct >= 0 %}+{% endif %}{{ v.change_pct }}%</strong><br>
+          <span style="color:{% if v.verdict == '효과 양호' %}#1A5C35{% else %}#c0392b{% endif %};font-weight:600">{{ v.verdict }}</span><br>
+          <span style="color:#888">예상 {{ v.expected }} → 실측 {{ v.actual }}</span>
+          {% else %}<span style="color:#888">N/A</span>{% endif %}
+        </td>
+        <td class="center"><span class="gb {% if v.pattern == '방역 정상 패턴' %}g1{% elif v.pattern == '발생원 누락 의심' %}g3{% elif v.pattern == '방역 이력 없음' %}g1{% else %}g4{% endif %}">{{ v.pattern }}</span></td>
+        <td style="font-size:9px">{{ v.desc }}{% if v.has_plan %}<br><strong style="color:#1B3A6B">→ {{ v.action }}</strong>{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
+  {% if report.summary.insights.verify %}
+  <div class="insight"><strong>■ 방역 효과 분석</strong> · {{ report.summary.insights.verify }}</div>
+  {% endif %}
   {% endif %}
 
   <!-- 4. 포집량 이상 감지 -->
@@ -405,6 +427,9 @@
   </table>
   {% else %}
   <div class="empty">기간 내 포집량 이상 감지 없음 (≥{{ report.summary.anomaly_threshold|default:51 }}마리/일)</div>
+  {% endif %}
+  {% if report.summary.insights.anomaly %}
+  <div class="insight"><strong>■ 이상 감지 분석</strong> · {{ report.summary.insights.anomaly }}</div>
   {% endif %}
 
   <!-- 4-1. 권역별 발생 분포 -->

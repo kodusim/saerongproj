@@ -810,6 +810,14 @@ def _build_report_body(period, base_date, su, request):
     from collections import defaultdict
     from django.conf import settings as dj_settings
 
+    # 기준일 미지정 시 어제(전일, 측정 완료일)로. 오늘은 수집 진행 중이라 부적합.
+    if not base_date:
+        try:
+            from moscom.timeutil import business_yesterday
+            base_date = business_yesterday().isoformat()
+        except Exception:
+            base_date = (datetime.now(timezone(timedelta(hours=9))).date() - timedelta(days=1)).isoformat()
+
     start_s, end_s = report_store.period_range(period, base_date)
 
     devices = moscom_client.list_devices()
@@ -1337,10 +1345,10 @@ def _build_report_body(period, base_date, su, request):
         logger.exception('predict section failed')
         predict_section = None
 
-    # 직전 방역 검증 — 최근 실측 추세(전·후반 편차) 기반 3패턴 자동 분류 (AI 예측 화면 로직 포팅)
+    # 직전 방역 검증 — 예상(방역 전 7일 평균) 대비 실측(기준일) 편차로 효과 검증 + 3패턴 분류
+    # "예상 X → 실측 Y (+Z%)" 형태. 전 관측소 표시(방역 이력 있으면 방역명, 없으면 '방역 이력 없음').
     remedy_verify = []
     try:
-        # device별 최근 방역일 매핑 (가장 최근 scheduled_date)
         last_plan_by_dev = {}
         for p in all_plans:
             u = p.get('device_uuid'); sd = p.get('scheduled_date') or ''
@@ -1348,29 +1356,42 @@ def _build_report_body(period, base_date, su, request):
                 continue
             if u not in last_plan_by_dev or sd > last_plan_by_dev[u]['scheduled_date']:
                 m = method_map.get(p.get('method_key'), {})
-                last_plan_by_dev[u] = {'scheduled_date': sd, 'method': m.get('name', p.get('method_key'))}
+                last_plan_by_dev[u] = {
+                    'scheduled_date': sd, 'method': m.get('name', p.get('method_key')),
+                    'worker': p.get('worker') or '', 'volume_l': p.get('volume_l'),
+                }
+        base_d = sorted_dates[-1] if sorted_dates else None
         for u, m in name_map.items():
             plan = last_plan_by_dev.get(u)
-            if not plan:
-                continue  # 방역 이력 없는 관측소는 검증 대상 아님
-            seq = [daily[u].get(dt, 0) for dt in sorted_dates[-7:]]
-            if len(seq) < 4:
+            seq = [daily[u].get(dt, 0) for dt in sorted_dates[-8:]]
+            if len(seq) < 4 or base_d is None:
                 continue
-            half = (len(seq) + 1) // 2
-            early = sum(seq[:half]) / half if half else 0
-            late = sum(seq[half:]) / (len(seq) - half) if (len(seq) - half) else 0
-            chg = round((late - early) / early * 100) if early > 0 else (100 if late > 0 else 0)
-            if chg <= 10:
-                pat = {'label': '방역 정상 패턴', 'desc': '방역 후 포집량 감소·안정 — 정상 효과', 'action': '현행 방역 주기 유지'}
-            elif chg <= 60:
-                pat = {'label': '발생원 누락 의심', 'desc': '방역 후 소폭 재증가 — 미처리 발생원 잔존 가능성', 'action': '유충방제(BTi) 추가 + 발생원 재조사'}
+            actual = daily[u].get(base_d, 0)                    # 실측 (기준일)
+            prior = seq[:-1]                                    # 기준일 직전까지
+            expected = round(sum(prior) / len(prior), 1) if prior else 0   # 예상 (직전 평균 기대치)
+            dev_pct = round((actual - expected) / expected * 100) if expected > 0 else (100 if actual > 0 else 0)
+            # 3패턴: 방역 이력 있는 관측소만 판정, 없으면 '검증 대상 외'
+            if plan:
+                if dev_pct <= 10:
+                    pat = {'label': '방역 정상 패턴', 'ver': '효과 양호', 'desc': '방역 후 실측이 예상 이하로 안정 — 정상 효과.', 'action': '현행 방역 주기 유지'}
+                elif dev_pct <= 60:
+                    pat = {'label': '발생원 누락 의심', 'ver': '효과 부족', 'desc': f'예상 대비 +{dev_pct}% 편차 — 미처리 발생원 잔존 가능성.', 'action': '유충방제(BTi) 추가 + 발생원 재조사'}
+                else:
+                    pat = {'label': '대형 발생원 미처리 의심', 'ver': '발생원 누락', 'desc': f'예상 대비 +{dev_pct}% 급증 — 대형 발생원 미처리 가능성.', 'action': '발생원 정밀탐색 + 야간 연무(ULV) 긴급 + 유충방제 병행'}
             else:
-                pat = {'label': '대형 발생원 미처리 의심', 'desc': '방역 후 급증 — 대형 발생원 미처리 가능성', 'action': '발생원 정밀탐색 + 야간 연무(ULV) 긴급 + 유충방제 병행'}
+                pat = {'label': '방역 이력 없음', 'ver': 'N/A', 'desc': '최근 방역 이력이 없어 효과 검증 대상 외.', 'action': '필요 시 방역 계획 등록'}
             remedy_verify.append({
-                'name': m['name'], 'last_method': plan['method'], 'last_date': plan['scheduled_date'],
-                'change_pct': chg, 'pattern': pat['label'], 'desc': pat['desc'], 'action': pat['action'],
+                'name': m['name'],
+                'last_method': plan['method'] if plan else '',
+                'last_date': plan['scheduled_date'] if plan else '',
+                'worker': plan['worker'] if plan else '',
+                'volume_l': plan['volume_l'] if plan else None,
+                'expected': expected, 'actual': actual, 'change_pct': dev_pct,
+                'verdict': pat['ver'], 'pattern': pat['label'], 'desc': pat['desc'], 'action': pat['action'],
+                'has_plan': bool(plan),
             })
-        remedy_verify.sort(key=lambda x: x['change_pct'], reverse=True)
+        # 방역 이력 있는 것 먼저, 편차 큰 순
+        remedy_verify.sort(key=lambda x: (x['has_plan'], x['change_pct']), reverse=True)
     except Exception:
         logger.exception('remedy_verify failed')
         remedy_verify = []
@@ -1435,8 +1456,50 @@ def _build_report_body(period, base_date, su, request):
     else:
         overall_grade = '안전'
 
+    # ── 섹션별 해석/분석/요약 (파란 박스용) ── 실제 수치 기반 자동 문장
+    insights = {}
+    try:
+        top = (k.get('top_dev') or {}) if k else {}
+        chg = k.get('change_pct', 0) if k else 0
+        chg_word = '증가' if chg > 5 else ('감소' if chg < -5 else '유지')
+        nat = (ov.get('national') if ov else None) or {}
+        nat_txt = ''
+        if nat.get('avg'):
+            nat_txt = f" 전국 일평균 {nat.get('avg')}마리 대비 참고 필요."
+        insights['summary'] = (
+            f"기준일 전체 포집 {total_in_period}마리(일평균 {avg_per_day}), 전일 대비 {'+' if chg>=0 else ''}{chg}% {chg_word}. "
+            f"최다 포집은 {top.get('name') or '-'} {top.get('count', 0)}마리, "
+            f"경고 이상 {_warn}개소·이상감지 {len(anomalies)}건.{nat_txt}"
+        )
+        if anomalies:
+            worst = anomalies[0]
+            insights['anomaly'] = (
+                f"기간 내 {len(anomalies)}건의 이상 감지(≥{ANOMALY_THRESHOLD}마리/일). "
+                f"최고는 {worst.get('name') or '-'} {worst.get('count', 0)}마리(임계 {worst.get('bad_min','-')} 대비 +{worst.get('pct_over','-')}%). "
+                f"해당 관측소 우선 방역 검토 필요."
+            )
+        else:
+            insights['anomaly'] = f"기간 내 이상 감지(≥{ANOMALY_THRESHOLD}마리/일) 없음 — 전 관측소 안정."
+        # 방역 검증 요약
+        flagged = [v for v in remedy_verify if v.get('has_plan') and v.get('change_pct', 0) > 10]
+        if flagged:
+            names = ', '.join(f"{v['name']}(+{v['change_pct']}%)" for v in flagged[:3])
+            insights['verify'] = f"방역 후 예상 대비 편차가 큰 {len(flagged)}개소 감지: {names}. 발생원 재조사·추가 방역 권고."
+        elif any(v.get('has_plan') for v in remedy_verify):
+            insights['verify'] = "방역 실시 관측소 모두 예상 범위 내 — 정상 효과 발휘 중."
+        # 예측 요약
+        if predict_section and predict_section.get('day_totals'):
+            dts = predict_section['day_totals']
+            first, last = dts[0]['total'], dts[-1]['total']
+            trend_w = '상승' if last > first else ('하강' if last < first else '유지')
+            insights['predict'] = f"향후 {len(dts)}일 예측 합계 {first}→{last}마리 {trend_w} 추세. 등급 상향 시 사전 방역 권고."
+    except Exception:
+        logger.exception('insights build failed')
+        insights = {}
+
     summary = {
         'total_devices': len(devices),
+        'insights': insights,
         'period': period, 'period_label': period_label,
         'start_date': start_s, 'end_date': end_s,
         'total_in_period': total_in_period,
