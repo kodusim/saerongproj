@@ -1236,49 +1236,71 @@ def _build_report_body(period, base_date, su, request):
                 'today': d.get('today', 0), 'week_avg': d.get('week_avg', 0),
             })
 
-    # 섹션 3: 일간이면 시간별 히트맵 (48h raw로 허용 장비의 시간×장비)
+    # 섹션 3: 시간별 히트맵 — 사이트 buildHeatmap 과 동일 알고리즘
+    #   기준일(end_s) 업무일 창 [end_s 10:00 KST ~ 다음날 10:00 KST) 하루만,
+    #   HM_HOURS(18→05) 순서로 누적→증분 차분. (48h 접힘/자정 순서 버그 제거)
     heatmap_section = None
     if period == 'daily':
         try:
-            now_for_hm = datetime.now(timezone.utc)
-            hm_start = (now_for_hm - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
-            hm_end = now_for_hm.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            HM_HOURS = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
+            KST = timezone(timedelta(hours=9))
+            base_kst = datetime.strptime(end_s, '%Y-%m-%d').date()
+            # 업무일 창: 기준일 10:00 KST ~ 다음날 10:00 KST
+            win_start_kst = datetime(base_kst.year, base_kst.month, base_kst.day, 10, 0, 0, tzinfo=KST)
+            win_end_kst = win_start_kst + timedelta(days=1)
+            hm_start = win_start_kst.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            hm_end = win_end_kst.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
             hm_raw = moscom_client.get_statistics_by_date(
                 start_dt=hm_start, end_dt=hm_end, aggregation='raw', device_uuid='0'
             )
             hm_raw = [r for r in (hm_raw or []) if r.get('device_uuid') in allowed_set]
-            per_dev_hour = defaultdict(lambda: [None] * 24)
+
+            def _bucket_idx(iso):
+                # KST 시각 → HM_HOURS 내 위치 (없으면 -1)
+                try:
+                    dt = datetime.fromisoformat(iso.replace('Z', '+00:00')).astimezone(KST)
+                except Exception:
+                    return -1
+                if dt < win_start_kst or dt >= win_end_kst:
+                    return -1
+                try:
+                    return HM_HOURS.index(dt.hour)
+                except ValueError:
+                    return -1
+
+            N = len(HM_HOURS)
+            per_dev = defaultdict(lambda: [None] * N)  # 버킷별 최대 누적값
             for r in hm_raw:
                 u = r.get('device_uuid')
-                iso = r.get('created_date') or ''
-                try:
-                    utc_h = int(iso[11:13])
-                except Exception:
+                idx = _bucket_idx(r.get('created_date') or '')
+                if idx < 0:
                     continue
-                kst_h = (utc_h + 9) % 24
                 cnt = r.get('mosquito_count') or 0
-                cur = per_dev_hour[u][kst_h]
+                cur = per_dev[u][idx]
                 if cur is None or cnt > cur:
-                    per_dev_hour[u][kst_h] = cnt
-            # 시간별 히트맵 — 시간별 히트맵 탭(2p)과 동일하게 수집창 18:00~익일 05:00 (12칸)만
-            HM_HOURS = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
+                    per_dev[u][idx] = cnt
+
             rows = []
             for u in allowed_uuids:
-                hr = per_dev_hour.get(u, [None]*24)
-                deltas24 = [0]*24; prev = 0
-                for h in range(24):
-                    v = hr[h]
-                    if v is None: continue
-                    d_ = v - prev; deltas24[h] = d_ if d_ > 0 else 0; prev = v
-                deltas = [deltas24[h] for h in HM_HOURS]  # 수집창 순서로 재배열
+                hourMax = per_dev.get(u, [None] * N)
+                deltas = [0] * N
+                prev = 0
+                for i in range(N):  # HM_HOURS 순서(18→05)로 차분
+                    cur = hourMax[i]
+                    if cur is None:
+                        continue
+                    d_ = cur - prev
+                    deltas[i] = d_ if d_ > 0 else 0
+                    prev = cur
                 total = sum(deltas)
                 rows.append({
                     'name': name_map.get(u, {}).get('name') or u,
                     'hours': deltas, 'total': total,
                 })
             rows.sort(key=lambda x: x['total'], reverse=True)
-            heatmap_section = rows[:30]  # 상위 30대
+            heatmap_section = rows[:30]
         except Exception:
+            logger.exception('heatmap section failed')
             heatmap_section = None
 
     # 섹션 4: 이상 감지 상세 (anomalies는 이미 있음)

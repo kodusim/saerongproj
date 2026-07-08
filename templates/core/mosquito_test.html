@@ -1670,14 +1670,14 @@ body {
     <!-- 기간 + 프리셋 -->
     <div class="fc-controls">
       <label>예측 기간</label>
-      <button class="fc-preset" data-days="3">3일</button>
+      <button class="fc-preset active" data-days="3">3일</button>
       <button class="fc-preset" data-days="5">5일</button>
-      <button class="fc-preset active" data-days="7">7일</button>
+      <button class="fc-preset" data-days="7">7일</button>
       <button class="fc-preset" data-days="10">10일</button>
       <button class="fc-preset" data-days="14">14일</button>
       <span style="color:var(--gray3)">|</span>
       <label>직접 입력</label>
-      <input type="number" class="days-input" id="fc-days-input" min="1" max="14" value="7">
+      <input type="number" class="days-input" id="fc-days-input" min="1" max="14" value="3">
       <label style="color:var(--gray5);font-weight:500">일 (1~14)</label>
       <button id="fc-run" class="dl-btn dl-btn-html" style="padding:6px 14px;font-size:12px;margin-left:auto">예측 실행</button>
     </div>
@@ -3272,7 +3272,6 @@ function renderTrendFilter() {
     <div style="display:flex;gap:6px;margin-bottom:10px">
       <button type="button" class="dl-btn dl-btn-print" style="padding:4px 8px;font-size:11px" onclick="trendSelectAll(true)">전체</button>
       <button type="button" class="dl-btn dl-btn-print" style="padding:4px 8px;font-size:11px" onclick="trendSelectAll(false)">해제</button>
-      <button type="button" class="dl-btn dl-btn-csv" style="padding:4px 8px;font-size:11px" onclick="trendSelectTop(5)">상위 5개</button>
     </div>
   `);
   regs.forEach(region => {
@@ -3286,7 +3285,7 @@ function renderTrendFilter() {
           <input type="checkbox" data-region="${region}" ${allChecked ? 'checked' : ''} ${!allChecked && someChecked ? 'data-indeterminate="1"' : ''}>
           ${region} <span style="font-weight:400;color:var(--gray4);font-size:10px">(${uuids.length}대 · ${total}마리)</span>
         </label>
-        <div style="padding-left:18px;margin-top:4px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px 12px">
+        <div style="padding-left:18px;margin-top:4px;display:grid;grid-template-columns:repeat(4,1fr);gap:2px 12px">
           ${uuids.map(u => {
             const d = TREND_STATE.deviceMap[u];
             const checked = TREND_STATE.selected.has(u) ? 'checked' : '';
@@ -3405,7 +3404,7 @@ function drawTrendChart() {
   const todayStr = `${_kst.getUTCFullYear()}-${String(_kst.getUTCMonth()+1).padStart(2,'0')}-${String(_kst.getUTCDate()).padStart(2,'0')}`;
   const isMeasuringIdx = (dt) => dt === todayStr;
 
-  // 관측소 1개만 선택 시 막대그래프로 표시
+  // 관측소 1개만 선택 시 막대그래프 + 선그래프 함께 표시
   const singleMode = selected.length === 1;
 
   // 선택 장비 데이터셋
@@ -3414,16 +3413,33 @@ function drawTrendChart() {
     if (!d) return null;
     const color = pickColor(i);
     if (singleMode) {
-      return {
-        type: 'bar',
-        label: d.displayName,
-        data: TREND_STATE.dates.map(dt => isMeasuringIdx(dt) ? null : (d.counts[dt] || 0)),
-        backgroundColor: color + 'cc',
-        borderColor: color,
-        borderWidth: 1,
-        borderRadius: 3,
-        maxBarThickness: 48,
-      };
+      const vals = TREND_STATE.dates.map(dt => isMeasuringIdx(dt) ? null : (d.counts[dt] || 0));
+      return [
+        {
+          type: 'bar',
+          label: d.displayName,
+          data: vals,
+          backgroundColor: color + '55',
+          borderColor: color,
+          borderWidth: 1,
+          borderRadius: 3,
+          maxBarThickness: 48,
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: d.displayName + ' (추이)',
+          data: vals,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.25,
+          fill: false,
+          order: 1,
+        },
+      ];
     }
     return {
       label: d.displayName,
@@ -3437,7 +3453,7 @@ function drawTrendChart() {
       fill: false,
       spanGaps: false,  // null 갭에서 선 끊기
     };
-  }).filter(Boolean);
+  }).filter(Boolean).flat();  // singleMode는 [bar,line] 배열이므로 flatten
 
   // 지역 합계도 표시 (선택된 장비만 대상으로 지역별 합산)
   // 지역 선 → 굵게, 점선
@@ -3603,7 +3619,8 @@ function renderTrendTable() {
     const chg = fAvg > 0 ? Math.round((lAvg - fAvg) / fAvg * 100) : 0;
     const up = chg > 5, down = chg < -5;
     const tc = up ? 'var(--red)' : down ? 'var(--green)' : 'var(--gray4)';
-    const tl = up ? `↑ ${chg>=0?'+':''}${chg}%` : down ? `↓ ${chg}%` : '→ 0%';
+    // 종합현황과 동일한 대각선 화살표
+    const arrow = up ? '↗' : down ? '↘' : '→';
     // 추세는 가장 중요한 열 — 전 행 음영 + 중앙정렬 강조
     const cells = seq.map((v, wi) =>
       `<td style="font-family:var(--mono);${wi===lastIdx?'color:var(--navy);font-weight:700':'color:var(--gray5)'}">${v}</td>`
@@ -3613,7 +3630,7 @@ function renderTrendTable() {
       <td style="color:var(--gray5);font-size:11px">${d.region}</td>
       ${cells}
       <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${d.total}</td>
-      <td style="text-align:center;color:${tc};font-weight:800;background:#FFF6E0">${tl}</td>
+      <td style="text-align:center;color:${tc};font-weight:700;font-size:18px;background:#FFF6E0">${arrow}</td>
     </tr>`;
   }).join('')}</tbody>`;
   t.innerHTML = hdr + body;
@@ -4059,7 +4076,7 @@ async function buildPredict() {
 
 // ── AI 예보 (기간 선택 + 게이지 미터 + 장비 선택) ────────
 const FC_STATE = {
-  days: 7,
+  days: 3,
   data: null,            // API 응답
   selected: new Set(),   // 선택된 장비 UUID
 };
@@ -6729,14 +6746,12 @@ function pdFillDeviceOptions(regionCode) {
   const opt = d => `<option value="${d.device_uuid}">${escapeHtml(stationName(d.device_name || d.device_uuid))}</option>`;
   if (regionCode) {
     const list = all.filter(d => (d.region_code || '') === regionCode);
-    // 해당 권역만 — (전체) 없이 그 지역 장비만 노출
-    ds.innerHTML = list.length
-      ? list.map(opt).join('')
-      : '<option value="">(해당 권역 장비 없음)</option>';
+    // 해당 권역 장비 + (전체) 옵션 유지
+    ds.innerHTML = '<option value="">(전체)</option>' + (list.length ? list.map(opt).join('') : '');
   } else {
     ds.innerHTML = '<option value="">(전체)</option>' + all.map(opt).join('');
   }
-  ds.value = ds.options.length ? ds.options[0].value : '';
+  ds.value = '';  // 기본은 (전체)
 }
 
 function pdPreset(days, unit) {
