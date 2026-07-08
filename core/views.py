@@ -917,6 +917,8 @@ def _build_report_body(period, base_date, su, request):
                 'scheduled_date': sd,
                 'reduction_pct': m.get('reduction_pct'),
                 'executed': in_range,
+                'worker': p.get('worker') or '',
+                'volume_l': p.get('volume_l'),
             })
             if in_range:
                 plans_executed_count += 1
@@ -1335,6 +1337,79 @@ def _build_report_body(period, base_date, su, request):
         logger.exception('predict section failed')
         predict_section = None
 
+    # 직전 방역 검증 — 최근 실측 추세(전·후반 편차) 기반 3패턴 자동 분류 (AI 예측 화면 로직 포팅)
+    remedy_verify = []
+    try:
+        # device별 최근 방역일 매핑 (가장 최근 scheduled_date)
+        last_plan_by_dev = {}
+        for p in all_plans:
+            u = p.get('device_uuid'); sd = p.get('scheduled_date') or ''
+            if not u or not sd:
+                continue
+            if u not in last_plan_by_dev or sd > last_plan_by_dev[u]['scheduled_date']:
+                m = method_map.get(p.get('method_key'), {})
+                last_plan_by_dev[u] = {'scheduled_date': sd, 'method': m.get('name', p.get('method_key'))}
+        for u, m in name_map.items():
+            plan = last_plan_by_dev.get(u)
+            if not plan:
+                continue  # 방역 이력 없는 관측소는 검증 대상 아님
+            seq = [daily[u].get(dt, 0) for dt in sorted_dates[-7:]]
+            if len(seq) < 4:
+                continue
+            half = (len(seq) + 1) // 2
+            early = sum(seq[:half]) / half if half else 0
+            late = sum(seq[half:]) / (len(seq) - half) if (len(seq) - half) else 0
+            chg = round((late - early) / early * 100) if early > 0 else (100 if late > 0 else 0)
+            if chg <= 10:
+                pat = {'label': '방역 정상 패턴', 'desc': '방역 후 포집량 감소·안정 — 정상 효과', 'action': '현행 방역 주기 유지'}
+            elif chg <= 60:
+                pat = {'label': '발생원 누락 의심', 'desc': '방역 후 소폭 재증가 — 미처리 발생원 잔존 가능성', 'action': '유충방제(BTi) 추가 + 발생원 재조사'}
+            else:
+                pat = {'label': '대형 발생원 미처리 의심', 'desc': '방역 후 급증 — 대형 발생원 미처리 가능성', 'action': '발생원 정밀탐색 + 야간 연무(ULV) 긴급 + 유충방제 병행'}
+            remedy_verify.append({
+                'name': m['name'], 'last_method': plan['method'], 'last_date': plan['scheduled_date'],
+                'change_pct': chg, 'pattern': pat['label'], 'desc': pat['desc'], 'action': pat['action'],
+            })
+        remedy_verify.sort(key=lambda x: x['change_pct'], reverse=True)
+    except Exception:
+        logger.exception('remedy_verify failed')
+        remedy_verify = []
+
+    # 일자별 추천 방역 — 예측 등급(모기지수)에 따라 방법·시기·사유 매핑
+    remedy_recommend = []
+    try:
+        if predict_section and predict_section.get('day_totals'):
+            # 날짜별 평균 예측지수 (상위 예측 device들의 해당일 predicted_index 평균)
+            devs = predict_section.get('devices') or []
+            for i, dtot in enumerate(predict_section['day_totals']):
+                idx_vals = []
+                for d in devs:
+                    preds = d.get('predictions') or []
+                    if i < len(preds) and preds[i].get('predicted_index') is not None:
+                        idx_vals.append(preds[i]['predicted_index'])
+                avg_idx = round(sum(idx_vals) / len(idx_vals), 1) if idx_vals else None
+                if avg_idx is None:
+                    grade = '관심'
+                elif avg_idx < 25: grade = '쾌적'
+                elif avg_idx < 50: grade = '관심'
+                elif avg_idx < 75: grade = '주의'
+                else: grade = '불쾌'
+                # 등급 → 추천 방역(방법·시기·사유)
+                if grade in ('주의', '불쾌'):
+                    rec = {'method': 'ULV 야간 연무 + BTi 유충방제', 'timing': '당일 야간 21:00~22:00', 'reason': '성충 급증 예상 — 즉시 살충 + 발생원 차단 병행 필요'}
+                elif grade == '관심':
+                    rec = {'method': 'BTi 유충방제', 'timing': '오전 09:00~11:00', 'reason': '발생 초기 — 유충 차단이 비용효율적'}
+                else:
+                    rec = {'method': '예찰 강화(방역 보류)', 'timing': '-', 'reason': '안정 상태 — 추가 방역 불필요'}
+                remedy_recommend.append({
+                    'date': dtot['date'], 'grade': grade, 'avg_index': avg_idx,
+                    'predicted_total': dtot['total'],
+                    'method': rec['method'], 'timing': rec['timing'], 'reason': rec['reason'],
+                })
+    except Exception:
+        logger.exception('remedy_recommend failed')
+        remedy_recommend = []
+
     # 권역별 breakdown — 보고서 표용
     region_breakdown = [
         {
@@ -1404,6 +1479,8 @@ def _build_report_body(period, base_date, su, request):
             'heatmap': heatmap_section,
             'anomaly': anomaly_section,
             'predict': predict_section,
+            'remedy_verify': remedy_verify,
+            'remedy_recommend': remedy_recommend,
             'plans': plans_in_range,
             'region_breakdown': region_breakdown,
             'vector_risks': vector_risks,
