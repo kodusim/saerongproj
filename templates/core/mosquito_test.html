@@ -1323,7 +1323,7 @@ body {
           <thead id="ov-station-thead">
             <tr>
               <th>관측소</th><th>권역</th><th>지역</th><th>형태</th>
-              <th style="background:#3A5A8C;text-align:center">위험 등급</th><th style="background:#3A5A8C;text-align:center">민원 위험</th>
+              <th style="text-align:center">위험 등급</th><th style="text-align:center">민원 위험</th>
               <th>기준일</th><th>전일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
@@ -1360,7 +1360,7 @@ body {
           <button id="heatmap-next" type="button" class="dl-btn dl-btn-print" style="padding:5px 12px;font-size:12px">금일 &gt;</button>
           <span id="heatmap-range" style="font-size:12px;font-weight:600;color:var(--navy);margin-left:8px"></span>
         </div>
-        <div style="font-size:12px;color:var(--gray4)">요약 분석: 준비중</div>
+        <div id="heatmap-summary" style="font-size:12px;color:var(--gray5);font-weight:600;flex:1;text-align:right;min-width:200px">요약 분석 로딩 중…</div>
       </div>
     </div>
 
@@ -2695,8 +2695,8 @@ function renderOvStationTable(json) {
       <td><span style="font-size:10px;font-weight:700;background:#EEF2FF;color:#3949AB;padding:2px 8px;border-radius:10px">${escapeHtml(d.region_name || '미지정')}</span></td>
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.region}</span></td>
       <td><span style="font-size:10px;font-weight:600;background:${hbColor.bg};color:${hbColor.color};padding:2px 8px;border-radius:10px">${h2.form}</span></td>
-      <td style="background:${mg.bg};text-align:center"><span style="font-size:10px;font-weight:700;background:${mg.bg};color:${mg.color};padding:2px 9px;border-radius:10px;border:1px solid ${mg.color}33">${mg.label}</span></td>
-      <td style="background:${cpBg.bg};text-align:center"><span style="font-size:10px;font-weight:700;background:${cpBg.bg};color:${cpBg.color};padding:2px 9px;border-radius:10px;border:1px solid ${cpBg.color}33">${cpLv}</span></td>
+      <td style="text-align:center;font-size:11px;font-weight:800;color:${mg.color}">${mg.label}</td>
+      <td style="text-align:center;font-size:11px;font-weight:800;color:${cpBg.color}">${cpLv}</td>
       <td style="font-family:var(--mono);font-weight:600;color:var(--navy)">${(d.today || 0).toLocaleString()}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.yday || 0}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg || 0}</td>
@@ -2795,6 +2795,34 @@ function hmBucketIndex(isoStr) {
 
 let HM_OFFSET = 0; // 0: 오늘 업무일, -1: 어제 업무일
 
+// 히트맵 요약 평가 — 피크 시간대(연속 구간)가 전체 포집의 몇 %인지 산출
+function renderHeatmapSummary(rows) {
+  const el = document.getElementById('heatmap-summary');
+  if (!el) return;
+  const N = HM_HOURS.length;
+  const colTotals = new Array(N).fill(0);
+  let grand = 0;
+  rows.forEach(r => r.arr.forEach((v, i) => { colTotals[i] += v; grand += v; }));
+  if (grand <= 0) { el.textContent = '요약 분석: 포집 데이터 없음'; return; }
+  // 2~4시간 연속 구간 중 점유율 최대 구간 탐색
+  let best = { share: 0, start: 0, len: 3 };
+  for (let len = 2; len <= 4; len++) {
+    for (let s = 0; s + len <= N; s++) {
+      let sum = 0;
+      for (let k = s; k < s + len; k++) sum += colTotals[k];
+      const share = sum / grand;
+      if (share > best.share) best = { share, start: s, len };
+    }
+  }
+  const h1 = HM_HOURS[best.start];
+  const h2 = HM_HOURS[best.start + best.len - 1];
+  const pct = Math.round(best.share * 100);
+  // 피크 단일 시각
+  let peakIdx = 0; colTotals.forEach((v, i) => { if (v > colTotals[peakIdx]) peakIdx = i; });
+  const peakH = HM_HOURS[peakIdx];
+  el.innerHTML = `요약 · <strong style="color:var(--navy)">${String(h1).padStart(2,'0')}~${String(h2).padStart(2,'0')}시</strong>가 전체 포집의 <strong style="color:var(--red)">${pct}%</strong>를 차지 (피크 ${String(peakH).padStart(2,'0')}시)`;
+}
+
 async function buildHeatmap(){
   const t = document.getElementById('heatmap-table');
   const rangeLabel = document.getElementById('heatmap-range');
@@ -2892,6 +2920,8 @@ async function buildHeatmap(){
 
     if (rows.length === 0) {
       t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center;color:var(--gray4)">해당 업무일의 수집 데이터가 없습니다</th></tr></thead>`;
+      const sEl = document.getElementById('heatmap-summary');
+      if (sEl) sEl.textContent = '요약 분석: 수집 데이터 없음';
       return;
     }
 
@@ -2901,6 +2931,9 @@ async function buildHeatmap(){
       return `<tr><td class="st-name">${r.label}</td>${cells}<td class="total-cell">${r.total}</td></tr>`;
     }).join('');
     t.innerHTML = `<thead>${hdr}</thead><tbody>${body}</tbody>`;
+
+    // 요약 평가 — 피크 시간대가 전체의 몇 %를 차지하는지
+    renderHeatmapSummary(rows);
   } catch (err) {
     t.innerHTML = `<thead><tr><th class="st-col">관측소</th><th colspan="${colCount-1}" style="text-align:center;color:var(--red)">데이터 로드 실패: ${err.message}</th></tr></thead>`;
   }
