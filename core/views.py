@@ -1438,14 +1438,21 @@ def _build_report_body(period, base_date, su, request):
             dev_pct = round((actual - expected) / expected * 100) if expected > 0 else (100 if actual > 0 else 0)
             # 3패턴: 방역 이력 있는 관측소만 판정, 없으면 '검증 대상 외'
             if plan:
+                mname = plan['method']
                 if dev_pct <= 10:
-                    pat = {'label': '방역 정상 패턴', 'ver': '효과 양호', 'desc': '방역 후 실측이 예상 이하로 안정 — 정상 효과.', 'action': '현행 방역 주기 유지'}
+                    pat = {'label': '방역 정상 패턴', 'ver': '효과 양호',
+                           'desc': f'{mname} 실시 후 검증 결과 실측({actual})이 예상({expected}) 이하로 안정. 방역 효과가 정상적으로 발휘되고 있음.',
+                           'action': '현행 방역 주기 유지'}
                 elif dev_pct <= 60:
-                    pat = {'label': '발생원 누락 의심', 'ver': '효과 부족', 'desc': f'예상 대비 +{dev_pct}% 편차 — 미처리 발생원 잔존 가능성.', 'action': '유충방제(BTi) 추가 + 발생원 재조사'}
+                    pat = {'label': '발생원 누락 의심', 'ver': '효과 부족',
+                           'desc': f'{mname} 실시 후에도 예상({expected}) 대비 실측({actual})이 +{dev_pct}% 초과. 방역이 닿지 않은 발생원이 남아 있을 가능성.',
+                           'action': '유충방제(BTi) 추가 살포 + 주변 발생원 재조사'}
                 else:
-                    pat = {'label': '대형 발생원 미처리 의심', 'ver': '발생원 누락', 'desc': f'예상 대비 +{dev_pct}% 급증 — 대형 발생원 미처리 가능성.', 'action': '발생원 정밀탐색 + 야간 연무(ULV) 긴급 + 유충방제 병행'}
+                    pat = {'label': '대형 발생원 미처리 의심', 'ver': '발생원 누락',
+                           'desc': f'{mname} 실시에도 예상({expected}) 대비 실측({actual})이 +{dev_pct}% 급증. 대형 발생원이 처리되지 않았을 가능성이 높음.',
+                           'action': '발생원 정밀 탐색 + 야간 연무(ULV) 긴급 시행 + 유충방제 병행'}
             else:
-                pat = {'label': '방역 이력 없음', 'ver': 'N/A', 'desc': '최근 방역 이력이 없어 효과 검증 대상 외.', 'action': '필요 시 방역 계획 등록'}
+                pat = {'label': '방역 이력 없음', 'ver': 'N/A', 'desc': '', 'action': ''}
             remedy_verify.append({
                 'name': m['name'],
                 'last_method': plan['method'] if plan else '',

@@ -248,7 +248,7 @@
         <th style="width:15%">관측소</th>
         <th>오늘<br>포집</th>
         <th>위험 등급</th>
-        <th style="width:19%">직전 방역<br>(날짜·약제·담당)</th>
+        <th style="width:19%">직전 방역<br>(날짜·약제·살포량)</th>
         <th style="width:13%">효과 검증</th>
         <th>분석 / 사유</th>
       </tr>
@@ -260,7 +260,7 @@
         <td class="center" style="font-weight:700;color:{% if s.today >= 100 %}#c0392b{% elif s.today >= 50 %}#d97706{% else %}#1A5C35{% endif %}">{{ s.today }}마리</td>
         <td class="center"><span class="gb {% if s.risk_level == '안전' %}g1{% elif s.risk_level == '관심' %}g2{% elif s.risk_level == '주의' %}g3{% elif s.risk_level == '경고' %}g4{% elif s.risk_level == '심각' %}g5{% else %}g1{% endif %}">{{ s.risk_level }} ({{ s.risk_score }})</span></td>
         <td style="font-size:9px">
-          {% if s.has_plan %}<strong>{{ s.last_date }}</strong><br><span style="color:#0F5E6E;font-weight:600">{{ s.last_method }}</span>{% if s.worker %}<br><span style="color:#888">{{ s.worker }}{% if s.volume_l != None %} · {{ s.volume_l }}L{% endif %}</span>{% endif %}{% else %}<span style="color:#888">최근 방역 없음</span>{% endif %}
+          {% if s.has_plan %}<strong>{{ s.last_date }}</strong><br><span style="color:#0F5E6E;font-weight:600">{{ s.last_method }}</span>{% if s.volume_l != None %}<br><span style="color:#888">살포량 {{ s.volume_l }}L</span>{% endif %}{% else %}<span style="color:#888">최근 방역 없음</span>{% endif %}
         </td>
         <td class="center" style="font-size:9px">
           {% if s.has_plan %}
@@ -270,8 +270,8 @@
           {% else %}<span style="color:#888">N/A</span>{% endif %}
         </td>
         <td style="font-size:9px">
-          {% if s.analysis %}{{ s.analysis }}{% if s.has_plan and s.action %}<br><strong style="color:#1B3A6B">→ {{ s.action }}</strong>{% endif %}
-          {% else %}위험 {{ s.risk_level }} · 민원 {{ s.complaint_level }} · 신뢰도 {{ s.trust_score }} · {{ s.status }}{% endif %}
+          {% if s.has_plan %}{{ s.analysis }}{% if s.action %}<br><strong style="color:#1B3A6B">→ {{ s.action }}</strong>{% endif %}
+          {% else %}<span style="color:#888">N/A</span>{% endif %}
         </td>
       </tr>
     {% endfor %}
@@ -284,9 +284,9 @@
   <div class="empty">관측소 데이터 없음</div>
   {% endif %}
 
-  <!-- 3. 시간별 포집 패턴 -->
+  <!-- 3. 시간별 히트맵 -->
   {% if report.summary.sections.heatmap %}
-  <h2 class="section">3. 시간별 포집 패턴 (야간 수집창 18~05시)</h2>
+  <h2 class="section">3. 시간별 히트맵</h2>
   <table class="heatmap">
     <thead>
       <tr>
@@ -317,7 +317,7 @@
   <table class="dt">
     <thead>
       <tr>
-        <th style="width:20%">관측소</th><th>등급</th><th>평균 지수</th><th>최대 마리수</th>
+        <th style="width:20%">관측소</th><th>등급</th><th>최대 마리수</th>
         {% for pp in report.summary.sections.predict.devices.0.predictions|slice:":7" %}
         <th>{{ pp.date|slice:"5:" }}</th>
         {% endfor %}
@@ -328,10 +328,9 @@
       <tr>
         <td><strong>{{ d.name|truncatechars:22 }}</strong></td>
         <td class="center"><span class="gb {% if d.grade == '쾌적' or d.grade == '안전' %}g1{% elif d.grade == '관심' %}g2{% elif d.grade == '주의' %}g3{% elif d.grade == '불쾌' or d.grade == '경고' %}g4{% elif d.grade == '위험' %}g5{% else %}g1{% endif %}">{{ d.grade|default:"-" }}</span></td>
-        <td class="center" style="font-weight:700;color:#1B3A6B">{{ d.avg_index|default:"-" }}</td>
-        <td class="center" style="color:#888">{{ d.max_predicted }}</td>
+        <td class="center" style="font-weight:700;color:#1B3A6B">{{ d.max_predicted }}마리</td>
         {% for pp in d.predictions|slice:":7" %}
-        <td class="center" style="font-family:'Inter'">{% if pp.predicted_index != None %}<strong style="color:#1B3A6B">{{ pp.predicted_index }}</strong>{% else %}{{ pp.predicted }}{% endif %}</td>
+        <td class="center" style="font-family:'Inter'"><strong style="color:#1B3A6B">{{ pp.predicted }}</strong></td>
         {% endfor %}
       </tr>
     {% endfor %}
@@ -346,14 +345,14 @@
   <div style="font-size:11px;font-weight:700;color:#1B3A6B;margin:10px 0 4px">일자별 추천 방역</div>
   <table class="dt">
     <thead>
-      <tr><th style="width:12%">일자</th><th>예측 등급</th><th>예측 지수</th><th style="width:26%">추천 방역</th><th>실시 시기</th><th>사유</th></tr>
+      <tr><th style="width:12%">일자</th><th>예측 등급</th><th>예측 마리수</th><th style="width:26%">추천 방역</th><th>실시 시기</th><th>사유</th></tr>
     </thead>
     <tbody>
     {% for r in report.summary.sections.remedy_recommend %}
       <tr>
         <td class="center"><strong>{{ r.date|slice:"5:" }}</strong></td>
         <td class="center"><span class="gb {% if r.grade == '쾌적' %}g1{% elif r.grade == '관심' %}g2{% elif r.grade == '주의' %}g3{% else %}g4{% endif %}">{{ r.grade }}</span></td>
-        <td class="center" style="font-weight:700;color:#1B3A6B">{{ r.avg_index|default:"-" }}</td>
+        <td class="center" style="font-weight:700;color:#1B3A6B">{{ r.predicted_total }}마리</td>
         <td style="color:#0F5E6E;font-weight:700">{{ r.method }}</td>
         <td class="center" style="color:#C05000;font-weight:600">{{ r.timing }}</td>
         <td style="font-size:9px">{{ r.reason }}</td>
@@ -458,9 +457,9 @@
     if (rows.length === 0) {
       hmBody.innerHTML = '<tr><td colspan="14" style="padding:10px;color:#888">데이터 없음</td></tr>';
     } else {
-      // 색상 단계 없이 — 값만 표시 (0은 옅게)
+      const heatCls = v => v === 0 ? 'h0' : v <= 10 ? 'h1' : v <= 50 ? 'h2' : v <= 100 ? 'h3' : v <= 200 ? 'h4' : 'h5';
       hmBody.innerHTML = rows.map(r => {
-        const cells = (r.hours || []).map(v => `<td style="${v ? '' : 'color:#cbd5e1'}">${v || '-'}</td>`).join('');
+        const cells = (r.hours || []).map(v => `<td class="${heatCls(v)}">${v || '-'}</td>`).join('');
         return `<tr><td class="station-name"><strong>${(r.name || '').replace(/</g,'&lt;')}</strong></td>${cells}<td class="sum-cell">${r.total || '-'}</td></tr>`;
       }).join('');
     }
