@@ -881,6 +881,14 @@ def _build_report_body(period, base_date, su, request):
             'bad_min': ANOMALY_THRESHOLD,
             'region_name': rname,
             'region_code': rc,
+            # 사이트 예측(moscom_predict)과 동일한 입력을 위해 sido·weather 포함
+            'sido': (md.address_sido if md else (dv.get('address_sido') or '')) or '',
+            'weather': {
+                'temperature': md.temperature if md else None,
+                'humidity': md.humidity if md else None,
+                'precipitation': md.precipitation if md else None,
+                'wind_speed': md.wind_speed if md else None,
+            } if md else {},
         }
 
     # 장비별 기간 합계 Top 5
@@ -1273,19 +1281,43 @@ def _build_report_body(period, base_date, su, request):
         for a in anomalies
     ]
 
-    # 섹션 5: AI 예측 — 기간에 따라 다르게 호출
+    # 섹션 5: AI 예측 — 사이트(moscom_predict)와 동일하게: 기준일 직전 10일 실측 + 기상 입력
     predict_section = None
     try:
         p_days = 3 if period == 'daily' else 7 if period == 'weekly' else 14
+        # 예측용 history: 기준일(end_s) 직전 10일을 별도 조회 (lag7까지 확보, 사이트와 동일 조건)
+        pred_hist = defaultdict(list)
+        try:
+            _end_d = datetime.strptime(end_s, '%Y-%m-%d').date()
+            _start_d = _end_d - timedelta(days=10)
+            _ph_start = _start_d.strftime('%Y-%m-%dT00:00:00.000Z')
+            _ph_end = (_end_d + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00.000Z')
+            _ph_records = moscom_client.get_statistics_by_date(
+                start_dt=_ph_start, end_dt=_ph_end, aggregation='day', device_uuid='0'
+            )
+            _ph_daily = defaultdict(lambda: defaultdict(int))
+            for r in (_ph_records or []):
+                u = r.get('device_uuid'); dd = (r.get('created_date') or '')[:10]
+                if u in allowed_set and dd and dd <= end_s:   # 기준일까지만(그 이후 제외)
+                    _ph_daily[u][dd] += (r.get('mosquito_count') or 0)
+            for u in name_map:
+                for dd in sorted(_ph_daily[u].keys()):
+                    pred_hist[u].append({'date': dd, 'count': _ph_daily[u][dd]})
+        except Exception:
+            logger.exception('predict history fetch failed; falling back to period daily')
+            for u in name_map:
+                for dd in sorted(daily[u].keys()):
+                    pred_hist[u].append({'date': dd, 'count': daily[u].get(dd, 0)})
+
         p_inputs = []
         for u, m in name_map.items():
-            hist = []
-            for dt in sorted_dates[-10:] if False else sorted({dd for dd in daily[u]}):
-                hist.append({'date': dt, 'count': daily[u].get(dt, 0)})
-            hist.sort(key=lambda h: h['date'])
             p_inputs.append({
                 'uuid': u, 'name': m['name'], 'region': m.get('addr') or '',
-                'history': hist,
+                'history': pred_hist.get(u, []),
+                # 사이트 예측과 동일한 입력 (기상·권역 반영)
+                'region_code': m.get('region_code') or '',
+                'sido': m.get('sido') or '',
+                'weather': m.get('weather') or {},
             })
         raw_preds = predictor.predict_for_devices(p_inputs, days_ahead=p_days)
         # 방역 효과 적용 — 모기지수 보존
