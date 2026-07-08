@@ -291,3 +291,36 @@ def predict_for_devices(devices_stats, weather_by_region=None, days_ahead=3):
         r['confidence'] = min(base, 92)
 
     return results
+
+
+def backcast_for_date(history, target_date, region_code='', sido='', weather=None):
+    """과거 예측(backcast) — target_date 를 방역 미적용으로 예측했다면 얼마였을지.
+    history: 전체 [{date, count}] (오름차순 가정). target_date 이전 데이터만 lag 로 사용.
+    반환: 예측 마릿수(int) 또는 None(모델/데이터 부족).
+    방역 효과 검증에서 '예상' 값으로 사용."""
+    try:
+        model, feature_cols, ver, idx_model, meta = _load()
+        if model is None or ver != 'v2':
+            return None  # v2 모델일 때만 지원(피처 일관성)
+        if isinstance(target_date, str):
+            td = datetime.strptime(target_date[:10], '%Y-%m-%d').date()
+        else:
+            td = target_date
+        # target_date 직전까지의 history 만 사용 (누출 방지)
+        prior = [h for h in (history or []) if (h.get('date') or '')[:10] < td.isoformat()]
+        prior.sort(key=lambda h: h['date'])
+        if len(prior) < 3:
+            return None  # lag 계산에 필요한 최소 데이터 부족
+        row = _build_v2_row(history=prior, target_date=td,
+                            region_code=region_code or '', sido=sido or '',
+                            weather=weather or {})
+        X = pd.DataFrame([row])
+        for col in feature_cols:
+            if col not in X.columns:
+                X[col] = 0
+        X = X[feature_cols].astype('float64')
+        yhat = float(np.maximum(model.predict(X)[0], 0))
+        return int(round(yhat))
+    except Exception:
+        logger.exception('backcast_for_date failed')
+        return None

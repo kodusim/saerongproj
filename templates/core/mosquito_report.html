@@ -168,7 +168,7 @@
   </div>
 
   <h1 class="doc-title">{{ report.summary.period_label }} 모기 방역 종합 보고서</h1>
-  <div class="sub-title">Mosquito Surveillance &amp; Control Report &nbsp;|&nbsp; MOSCOM AI 방역 의사결정 시스템 &nbsp;|&nbsp; {{ report.summary.start_date }} ~ {{ report.summary.end_date }}</div>
+  <div class="sub-title">Mosquito Surveillance &amp; Control Report &nbsp;|&nbsp; MOSCOM AI 방역 의사결정 시스템 &nbsp;|&nbsp; 기준일 {{ report.summary.end_date }}{% if report.summary.period != 'daily' %} ({{ report.summary.start_date }} ~ {{ report.summary.end_date }}){% endif %}</div>
 
   <!-- 메타 테이블 -->
   <table class="meta-tbl">
@@ -180,7 +180,7 @@
       <td class="warning" style="color:{% if report.summary.overall_grade == '심각' %}#B71C1C{% elif report.summary.overall_grade == '주의' %}#C05000{% elif report.summary.overall_grade == '관심' %}#7A5700{% else %}#1A5C35{% endif %}">{{ report.summary.overall_grade|default:"—" }}</td>
     </tr>
     <tr>
-      <th>보고 기간</th><td colspan="3">{{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일) · 장비 {{ report.summary.total_devices }}대</td>
+      <th>기준일</th><td colspan="3"><strong>{{ report.summary.end_date }}</strong> (전일·측정완료){% if report.summary.period != 'daily' %} · 기간 {{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일){% endif %} · 장비 {{ report.summary.total_devices }}대</td>
       <th>결재</th><td colspan="3">작성 {{ report.writer_name|default:"—" }}{% if report.reviewer_name %} · 검토 {{ report.reviewer_name }}{% else %} · 검토 (서명란){% endif %}{% if report.approver_name %} · 결재 {{ report.approver_name }}{% else %} · 결재 (서명란){% endif %}</td>
     </tr>
   </table>
@@ -390,7 +390,8 @@
           {% if v.has_plan %}
           <strong style="font-size:11px;color:{% if v.change_pct > 60 %}#c0392b{% elif v.change_pct > 10 %}#d97706{% else %}#1A5C35{% endif %}">{% if v.change_pct >= 0 %}+{% endif %}{{ v.change_pct }}%</strong><br>
           <span style="color:{% if v.verdict == '효과 양호' %}#1A5C35{% else %}#c0392b{% endif %};font-weight:600">{{ v.verdict }}</span><br>
-          <span style="color:#888">예상 {{ v.expected }} → 실측 {{ v.actual }}</span>
+          <span style="color:#888">예상 {{ v.expected }} → 실측 {{ v.actual }}</span><br>
+          <span style="color:#aaa;font-size:8px">예상: {{ v.expected_src|default:"AI 예측" }}</span>
           {% else %}<span style="color:#888">N/A</span>{% endif %}
         </td>
         <td class="center"><span class="gb {% if v.pattern == '방역 정상 패턴' %}g1{% elif v.pattern == '발생원 누락 의심' %}g3{% elif v.pattern == '방역 이력 없음' %}g1{% else %}g4{% endif %}">{{ v.pattern }}</span></td>

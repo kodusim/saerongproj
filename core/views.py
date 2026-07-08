@@ -1361,14 +1361,28 @@ def _build_report_body(period, base_date, su, request):
                     'worker': p.get('worker') or '', 'volume_l': p.get('volume_l'),
                 }
         base_d = sorted_dates[-1] if sorted_dates else None
+        # 관측소별 전체 history (backcast용)
         for u, m in name_map.items():
             plan = last_plan_by_dev.get(u)
             seq = [daily[u].get(dt, 0) for dt in sorted_dates[-8:]]
             if len(seq) < 4 or base_d is None:
                 continue
             actual = daily[u].get(base_d, 0)                    # 실측 (기준일)
-            prior = seq[:-1]                                    # 기준일 직전까지
-            expected = round(sum(prior) / len(prior), 1) if prior else 0   # 예상 (직전 평균 기대치)
+            # 예상 = AI 과거예측(backcast, 방역 미적용). 실패 시 직전 평균으로 폴백.
+            full_hist = [{'date': dt, 'count': daily[u].get(dt, 0)} for dt in sorted_dates]
+            expected = None
+            try:
+                bc = predictor.backcast_for_date(full_hist, base_d)
+                if bc is not None:
+                    expected = float(bc)
+            except Exception:
+                expected = None
+            expected_src = 'AI 예측'
+            if expected is None:
+                prior = seq[:-1]
+                expected = round(sum(prior) / len(prior), 1) if prior else 0
+                expected_src = '직전 평균'
+            expected = round(expected, 1)
             dev_pct = round((actual - expected) / expected * 100) if expected > 0 else (100 if actual > 0 else 0)
             # 3패턴: 방역 이력 있는 관측소만 판정, 없으면 '검증 대상 외'
             if plan:
@@ -1386,7 +1400,7 @@ def _build_report_body(period, base_date, su, request):
                 'last_date': plan['scheduled_date'] if plan else '',
                 'worker': plan['worker'] if plan else '',
                 'volume_l': plan['volume_l'] if plan else None,
-                'expected': expected, 'actual': actual, 'change_pct': dev_pct,
+                'expected': expected, 'expected_src': expected_src, 'actual': actual, 'change_pct': dev_pct,
                 'verdict': pat['ver'], 'pattern': pat['label'], 'desc': pat['desc'], 'action': pat['action'],
                 'has_plan': bool(plan),
             })
