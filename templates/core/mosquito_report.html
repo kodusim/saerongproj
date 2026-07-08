@@ -241,32 +241,47 @@
   <div class="insight"><strong>■ 요약 분석</strong> · {{ report.summary.insights.summary }}</div>
   {% endif %}
 
-  <!-- 2. 관측소별 현황 -->
-  <h2 class="section">2. 관측소별 현황</h2>
+  <!-- 2. 관측소별 현황 + 방역 이력 (효과 검증) -->
+  <h2 class="section">2. 관측소별 현황 + 방역 이력 (효과 검증)</h2>
   {% if report.summary.sections.stations %}
   <table class="dt">
     <thead>
       <tr>
-        <th style="width:20%">관측소</th><th style="width:14%">지역</th><th>위험 등급</th>
-        <th>금일</th><th>전일</th><th>7일 평균</th><th>민원 위험</th><th>장비 상태</th><th>신뢰도</th>
+        <th style="width:15%">관측소</th>
+        <th>오늘<br>포집</th>
+        <th>위험 등급</th>
+        <th style="width:19%">직전 방역<br>(날짜·약제·담당)</th>
+        <th style="width:13%">효과 검증</th>
+        <th>분석 / 사유</th>
       </tr>
     </thead>
     <tbody>
     {% for s in report.summary.sections.stations %}
       <tr>
-        <td><strong>{{ s.name|truncatechars:24 }}</strong></td>
-        <td style="font-size:9px;color:#888">{{ s.addr|default:"-" }}</td>
+        <td><strong>{{ s.name|truncatechars:18 }}</strong><br><span style="font-size:8px;color:#888">{{ s.addr|default:"-" }}</span></td>
+        <td class="center" style="font-weight:700;color:{% if s.today >= 100 %}#c0392b{% elif s.today >= 50 %}#d97706{% else %}#1A5C35{% endif %}">{{ s.today }}마리</td>
         <td class="center"><span class="gb {% if s.risk_level == '안전' %}g1{% elif s.risk_level == '관심' %}g2{% elif s.risk_level == '주의' %}g3{% elif s.risk_level == '경고' %}g4{% elif s.risk_level == '심각' %}g5{% else %}g1{% endif %}">{{ s.risk_level }} ({{ s.risk_score }})</span></td>
-        <td class="center" style="font-weight:700">{{ s.today }}</td>
-        <td class="center" style="color:#888">{{ s.yday }}</td>
-        <td class="center" style="color:#888">{{ s.week_avg }}</td>
-        <td class="center"><span class="cp cp-{% if s.complaint_level == '높음' %}high{% elif s.complaint_level == '보통' %}mid{% else %}low{% endif %}">{{ s.complaint_level }}</span></td>
-        <td class="center" style="font-size:9px">{{ s.status }}</td>
-        <td class="center" style="font-weight:700">{{ s.trust_score }}</td>
+        <td style="font-size:9px">
+          {% if s.has_plan %}<strong>{{ s.last_date }}</strong><br><span style="color:#0F5E6E;font-weight:600">{{ s.last_method }}</span>{% if s.worker %}<br><span style="color:#888">{{ s.worker }}{% if s.volume_l != None %} · {{ s.volume_l }}L{% endif %}</span>{% endif %}{% else %}<span style="color:#888">최근 방역 없음</span>{% endif %}
+        </td>
+        <td class="center" style="font-size:9px">
+          {% if s.has_plan %}
+          <strong style="font-size:11px;color:{% if s.change_pct > 60 %}#c0392b{% elif s.change_pct > 10 %}#d97706{% else %}#1A5C35{% endif %}">{% if s.change_pct >= 0 %}+{% endif %}{{ s.change_pct }}%</strong><br>
+          <span style="color:{% if s.verdict == '효과 양호' %}#1A5C35{% else %}#c0392b{% endif %};font-weight:600">{{ s.verdict }}</span><br>
+          <span style="color:#888">예상 {{ s.expected }} → 실측 {{ s.actual }}</span>
+          {% else %}<span style="color:#888">N/A</span>{% endif %}
+        </td>
+        <td style="font-size:9px">
+          {% if s.analysis %}{{ s.analysis }}{% if s.has_plan and s.action %}<br><strong style="color:#1B3A6B">→ {{ s.action }}</strong>{% endif %}
+          {% else %}위험 {{ s.risk_level }} · 민원 {{ s.complaint_level }} · 신뢰도 {{ s.trust_score }} · {{ s.status }}{% endif %}
+        </td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
+  {% if report.summary.insights.verify %}
+  <div class="insight"><strong>■ 방역 효과 분석</strong> · {{ report.summary.insights.verify }}</div>
+  {% endif %}
   {% else %}
   <div class="empty">관측소 데이터 없음</div>
   {% endif %}
@@ -371,39 +386,6 @@
     <span class="badge-tag">AI-MOS</span>
   </div>
   <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — 상세·행정 판단</h1>
-
-  <!-- 3-2. 관측소별 방역 이력 + 효과 검증 -->
-  {% if report.summary.sections.remedy_verify %}
-  <h2 class="section">3-2. 관측소별 방역 이력 + 효과 검증 <span style="font-size:10px;color:#888;font-weight:400">(예상 대비 실측 편차 기반)</span></h2>
-  <table class="dt">
-    <thead>
-      <tr><th style="width:16%">관측소</th><th style="width:20%">직전 방역 (날짜·약제·담당)</th><th>효과 검증</th><th>검증 패턴</th><th>분석 / 사유</th></tr>
-    </thead>
-    <tbody>
-    {% for v in report.summary.sections.remedy_verify %}
-      <tr>
-        <td><strong>{{ v.name|truncatechars:18 }}</strong></td>
-        <td style="font-size:9px">
-          {% if v.has_plan %}<strong>{{ v.last_date }}</strong><br><span style="color:#0F5E6E;font-weight:600">{{ v.last_method }}</span>{% if v.worker %}<br><span style="color:#888">{{ v.worker }} 담당{% if v.volume_l != None %} · {{ v.volume_l }}L{% endif %}</span>{% endif %}{% else %}<span style="color:#888">최근 방역 없음</span>{% endif %}
-        </td>
-        <td class="center" style="font-size:9px">
-          {% if v.has_plan %}
-          <strong style="font-size:11px;color:{% if v.change_pct > 60 %}#c0392b{% elif v.change_pct > 10 %}#d97706{% else %}#1A5C35{% endif %}">{% if v.change_pct >= 0 %}+{% endif %}{{ v.change_pct }}%</strong><br>
-          <span style="color:{% if v.verdict == '효과 양호' %}#1A5C35{% else %}#c0392b{% endif %};font-weight:600">{{ v.verdict }}</span><br>
-          <span style="color:#888">예상 {{ v.expected }} → 실측 {{ v.actual }}</span><br>
-          <span style="color:#aaa;font-size:8px">예상: {{ v.expected_src|default:"AI 예측" }}</span>
-          {% else %}<span style="color:#888">N/A</span>{% endif %}
-        </td>
-        <td class="center"><span class="gb {% if v.pattern == '방역 정상 패턴' %}g1{% elif v.pattern == '발생원 누락 의심' %}g3{% elif v.pattern == '방역 이력 없음' %}g1{% else %}g4{% endif %}">{{ v.pattern }}</span></td>
-        <td style="font-size:9px">{{ v.desc }}{% if v.has_plan %}<br><strong style="color:#1B3A6B">→ {{ v.action }}</strong>{% endif %}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% if report.summary.insights.verify %}
-  <div class="insight"><strong>■ 방역 효과 분석</strong> · {{ report.summary.insights.verify }}</div>
-  {% endif %}
-  {% endif %}
 
   <!-- 4. 포집량 이상 감지 -->
   <h2 class="section">4. 포집량 이상 감지 <span style="font-size:10px;color:#888;font-weight:400">(임계 {{ report.summary.anomaly_threshold|default:51 }}마리/일)</span></h2>

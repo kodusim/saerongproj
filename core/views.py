@@ -1415,6 +1415,24 @@ def _build_report_body(period, base_date, su, request):
             })
         # 방역 이력 있는 것 먼저, 편차 큰 순
         remedy_verify.sort(key=lambda x: (x['has_plan'], x['change_pct']), reverse=True)
+        # 관측소별 현황 표(stations_section)에 방역이력·효과검증을 병합 — 목업의 통합 표
+        verify_by_name = {v['name']: v for v in remedy_verify}
+        for s in stations_section:
+            v = verify_by_name.get(s['name'])
+            if v:
+                s['last_method'] = v['last_method']
+                s['last_date'] = v['last_date']
+                s['worker'] = v['worker']
+                s['volume_l'] = v['volume_l']
+                s['expected'] = v['expected']
+                s['expected_src'] = v['expected_src']
+                s['actual'] = v['actual']
+                s['change_pct'] = v['change_pct']
+                s['verdict'] = v['verdict']
+                s['pattern'] = v['pattern']
+                s['analysis'] = v['desc']
+                s['action'] = v['action']
+                s['has_plan'] = v['has_plan']
     except Exception:
         logger.exception('remedy_verify failed')
         remedy_verify = []
