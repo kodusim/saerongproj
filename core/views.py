@@ -810,13 +810,22 @@ def _build_report_body(period, base_date, su, request):
     from collections import defaultdict
     from django.conf import settings as dj_settings
 
-    # 기준일 미지정 시 어제(전일, 측정 완료일)로. 오늘은 수집 진행 중이라 부적합.
+    # 기준일 규칙: 선택일 당일은 수집 진행 중이라 부적합 → 항상 "선택일의 전날"을 데이터 기준일로.
+    #  - 미지정 시: 업무일 기준 어제
+    #  - 지정 시(예: 7/8 선택): 그 전날(7/7)로 시프트
+    try:
+        from moscom.timeutil import business_yesterday
+        default_base = business_yesterday()
+    except Exception:
+        default_base = datetime.now(timezone(timedelta(hours=9))).date() - timedelta(days=1)
     if not base_date:
+        base_date = default_base.isoformat()
+    else:
         try:
-            from moscom.timeutil import business_yesterday
-            base_date = business_yesterday().isoformat()
+            sel = datetime.strptime(base_date[:10], '%Y-%m-%d').date()
+            base_date = (sel - timedelta(days=1)).isoformat()   # 선택일의 전날을 기준일로
         except Exception:
-            base_date = (datetime.now(timezone(timedelta(hours=9))).date() - timedelta(days=1)).isoformat()
+            base_date = default_base.isoformat()
 
     start_s, end_s = report_store.period_range(period, base_date)
 
