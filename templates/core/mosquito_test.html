@@ -1787,6 +1787,15 @@ body {
         </div>
 
         <div class="rm-field">
+          <label>담당자 (선택)</label>
+          <input type="text" id="rm-worker" maxlength="50" placeholder="예: 홍길동">
+        </div>
+        <div class="rm-field">
+          <label>살포량 L (선택)</label>
+          <input type="number" id="rm-volume" min="0" step="0.1" placeholder="예: 1.8">
+        </div>
+
+        <div class="rm-field">
           <label>비고 (선택)</label>
           <textarea id="rm-note" maxlength="200" placeholder="현장 특이사항 등 (최대 200자)"></textarea>
         </div>
@@ -4517,6 +4526,8 @@ function renderRmList() {
           <span>🦟 ${devName}</span>
           <span>📅 ${p.scheduled_date}</span>
           <span class="rm-plan-badge">${m.target || '-'}</span>
+          ${p.worker ? `<span>👷 ${escapeHtml(p.worker)}</span>` : ''}
+          ${p.volume_l != null ? `<span>💧 ${p.volume_l}L</span>` : ''}
           <span>등록 ${(p.owner_id || '')}</span>
         </div>
         <div class="rm-plan-effect">
@@ -4612,6 +4623,8 @@ function rmStartEdit(planId) {
   document.getElementById('rm-method').value = p.method_key;
   document.getElementById('rm-date').value = p.scheduled_date;
   document.getElementById('rm-note').value = p.note || '';
+  const wEl = document.getElementById('rm-worker'); if (wEl) wEl.value = p.worker || '';
+  const vEl = document.getElementById('rm-volume'); if (vEl) vEl.value = (p.volume_l != null ? p.volume_l : '');
   document.getElementById('rm-save-btn').textContent = '수정 저장';
   document.getElementById('rm-cancel-btn').style.display = 'block';
   renderRmMethodInfo();
@@ -4629,6 +4642,8 @@ function rmCancelEdit() {
   const yday = new Date(); yday.setDate(yday.getDate() - 1);
   document.getElementById('rm-date').value = `${yday.getFullYear()}-${String(yday.getMonth()+1).padStart(2,'0')}-${String(yday.getDate()).padStart(2,'0')}`;
   document.getElementById('rm-note').value = '';
+  const wEl = document.getElementById('rm-worker'); if (wEl) wEl.value = '';
+  const vEl = document.getElementById('rm-volume'); if (vEl) vEl.value = '';
   document.getElementById('rm-save-btn').textContent = '방역 실시 내역 등록';
   document.getElementById('rm-cancel-btn').style.display = 'none';
   renderRmMethodInfo();
@@ -4641,13 +4656,15 @@ async function rmSubmit() {
   const m3 = (document.getElementById('rm-method3') || {}).value || '';
   const sched = document.getElementById('rm-date').value;
   const note = document.getElementById('rm-note').value;
+  const worker = (document.getElementById('rm-worker') || {}).value || '';
+  const volume_l = (document.getElementById('rm-volume') || {}).value || '';
   if (!devUuid || !methodKey || !sched) {
     rmMsg('관측소·방역 방법1·실시일은 필수입니다', 'err');
     return;
   }
   // 방법1/2/3 (중복 제거, 빈값 제외)
   const methodKeys = [methodKey, m2, m3].filter((v, i, a) => v && a.indexOf(v) === i);
-  const payload = { device_uuid: devUuid, method_key: methodKey, method_keys: methodKeys, scheduled_date: sched, note };
+  const payload = { device_uuid: devUuid, method_key: methodKey, method_keys: methodKeys, scheduled_date: sched, note, worker, volume_l };
   const btn = document.getElementById('rm-save-btn');
   btn.disabled = true;
   try {

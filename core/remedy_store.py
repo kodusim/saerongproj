@@ -156,8 +156,9 @@ def _validate(plan, require_all=True):
         raise ValueError(' / '.join(errs))
 
 
-def create_plan(owner_id, device_uuid, method_key, scheduled_date, note='', method_keys=None):
-    """방역 방법 최대 3개(method_keys). method_key(단수)는 하위호환 — method_keys[0]."""
+def create_plan(owner_id, device_uuid, method_key, scheduled_date, note='', method_keys=None, worker='', volume_l=None):
+    """방역 방법 최대 3개(method_keys). method_key(단수)는 하위호환 — method_keys[0].
+    worker: 담당자명(선택), volume_l: 살포량 L(선택)."""
     now = datetime.utcnow().isoformat() + 'Z'
     # method_keys 정규화: 유효한 METHODS 키만, '없음'/'' 제거, 최대 3개
     if method_keys is None:
@@ -165,6 +166,10 @@ def create_plan(owner_id, device_uuid, method_key, scheduled_date, note='', meth
     mks = [m for m in method_keys if m and m in METHODS][:3]
     if not mks:
         raise ValueError('방역 방법1은 필수입니다')
+    try:
+        vol = float(volume_l) if volume_l not in (None, '') else None
+    except (TypeError, ValueError):
+        vol = None
     plan = {
         'id': 'r_' + uuid.uuid4().hex[:10],
         'owner_id': owner_id,
@@ -173,6 +178,8 @@ def create_plan(owner_id, device_uuid, method_key, scheduled_date, note='', meth
         'method_keys': mks,            # 다중 방역
         'scheduled_date': scheduled_date,
         'note': (note or '').strip()[:200],
+        'worker': (worker or '').strip()[:50],     # 담당자
+        'volume_l': vol,                            # 살포량(L)
         'created_at': now,
         'updated_at': now,
     }
@@ -187,7 +194,7 @@ def update_plan(plan_id, patch):
     data = _load()
     for p in data:
         if p.get('id') == plan_id:
-            merged = {**p, **{k: v for k, v in patch.items() if k in ('device_uuid','method_key','method_keys','scheduled_date','note')}}
+            merged = {**p, **{k: v for k, v in patch.items() if k in ('device_uuid','method_key','method_keys','scheduled_date','note','worker','volume_l')}}
             if 'method_keys' in patch:
                 mks = [m for m in (patch.get('method_keys') or []) if m and m in METHODS][:3]
                 if mks:

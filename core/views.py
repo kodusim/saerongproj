@@ -2288,6 +2288,8 @@ def moscom_remedy_api(request):
                 method_keys=body.get('method_keys'),
                 scheduled_date=body.get('scheduled_date'),
                 note=body.get('note', ''),
+                worker=body.get('worker', ''),
+                volume_l=body.get('volume_l'),
             )
             return JsonResponse({'ok': True, 'plan': plan})
         except ValueError as e:
