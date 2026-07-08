@@ -4442,14 +4442,12 @@ function renderRmMethodTable() {
     <th>방역 방법</th><th>대상</th><th>효과 시작</th><th>지속 기간</th><th>감소율</th><th>설명</th>
   </tr></thead>
   <tbody>${RM_STATE.methods.map(m => {
-    const cls = rmTargetClass(m.target);
-    const colorStroke = m.target === '유충' ? 'var(--teal)' : m.target === '성충' ? 'var(--red)' : 'var(--green)';
     return `<tr>
-      <td><strong style="color:${colorStroke}">${m.name}</strong></td>
+      <td><strong style="color:var(--navy)">${m.name}</strong></td>
       <td>${m.target}</td>
       <td style="font-family:var(--mono)">+${m.onset_days}일</td>
       <td style="font-family:var(--mono)">${m.duration_days}일</td>
-      <td style="font-family:var(--mono);font-weight:700;color:${colorStroke}">-${m.reduction_pct}%</td>
+      <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">-${m.reduction_pct}%</td>
       <td style="color:var(--gray5);font-size:11px">${m.note}</td>
     </tr>`;
   }).join('')}</tbody>`;
@@ -4489,17 +4487,25 @@ function renderRmList() {
     nameMap[d.device_uuid] = stationName(dv.device_name || '') || d.device_uuid;
   });
 
-  // 관측소 필터 탭 (전체 + 내역 있는 관측소별)
+  // 관측소 필터 탭 (전체 + 최근 7일 + 내역 있는 관측소별)
   const filt = RM_STATE.listFilter || 'all';
+  const now = new Date(); now.setHours(0,0,0,0);
+  const weekAgo = new Date(now.getTime() - 7 * 86400000);
+  const isRecent7 = p => { const d = new Date(p.scheduled_date); return d >= weekAgo && d <= new Date(now.getTime() + 86400000); };
+  const recent7Count = RM_STATE.plans.filter(isRecent7).length;
   const planUuids = Array.from(new Set(RM_STATE.plans.map(p => p.device_uuid)));
-  const tabs = [`<button class="rm-tab ${filt==='all'?'active':''}" onclick="rmSetFilter('all')">전체 (${RM_STATE.plans.length})</button>`]
-    .concat(planUuids.map(u => {
+  const tabs = [
+    `<button class="rm-tab ${filt==='all'?'active':''}" onclick="rmSetFilter('all')">전체 (${RM_STATE.plans.length})</button>`,
+    `<button class="rm-tab ${filt==='recent7'?'active':''}" onclick="rmSetFilter('recent7')">최근 7일 (${recent7Count})</button>`,
+  ].concat(planUuids.map(u => {
       const c = RM_STATE.plans.filter(p => p.device_uuid === u).length;
       return `<button class="rm-tab ${filt===u?'active':''}" onclick="rmSetFilter('${u}')">${escapeHtml(nameMap[u] || u)} (${c})</button>`;
     }));
   const tabsHtml = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${tabs.join('')}</div>`;
 
-  const plans = filt === 'all' ? RM_STATE.plans : RM_STATE.plans.filter(p => p.device_uuid === filt);
+  const plans = filt === 'all' ? RM_STATE.plans
+    : filt === 'recent7' ? RM_STATE.plans.filter(isRecent7)
+    : RM_STATE.plans.filter(p => p.device_uuid === filt);
   cnt.textContent = `${plans.length}건`;
   if (RM_STATE.plans.length === 0) {
     box.innerHTML = `<div style="color:var(--gray4);font-size:12px;text-align:center;padding:30px">
@@ -6682,9 +6688,14 @@ async function pdInit() {
       const j = await r.json();
       PD.regions = j.items || [];
       const rs = document.getElementById('pd-region');
-      rs.innerHTML = '<option value="">(전체)</option>' + PD.regions.map(rg =>
-        `<option value="${rg.code}">${rg.name}</option>`
-      ).join('');
+      const opts = PD.regions.map(rg => `<option value="${rg.code}">${rg.name}</option>`).join('');
+      if (PD.regions.length <= 1) {
+        // 권역이 1개뿐이면 (전체) 없이 그 권역을 기본 선택
+        rs.innerHTML = opts;
+        if (PD.regions.length === 1) { rs.value = PD.regions[0].code; pdFillDeviceOptions(PD.regions[0].code); }
+      } else {
+        rs.innerHTML = '<option value="">(전체)</option>' + opts;
+      }
       // 권역 선택 시: 해당 권역 장비만 노출 (분당 선택 → 분당 장비만)
       rs.onchange = () => { pdFillDeviceOptions(rs.value); pdLoad(); };
     } catch (e) {}
