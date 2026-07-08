@@ -175,9 +175,7 @@
     <tr>
       <th>기관명</th><td>{{ report.org|default:"—" }}</td>
       <th class="narrow">부서</th><td>{{ report.department|default:"—" }}</td>
-      <th class="narrow">문서번호</th><td>#{{ report.id|slice:"4:" }}</td>
-      <th class="narrow">종합등급</th>
-      <td class="warning" style="color:{% if report.summary.overall_grade == '심각' %}#B71C1C{% elif report.summary.overall_grade == '주의' %}#C05000{% elif report.summary.overall_grade == '관심' %}#7A5700{% else %}#1A5C35{% endif %}">{{ report.summary.overall_grade|default:"—" }}</td>
+      <th class="narrow">문서번호</th><td colspan="3">#{{ report.id|slice:"4:" }}</td>
     </tr>
     <tr>
       <th>기준일</th><td colspan="3"><strong>{{ report.summary.end_date }}</strong> (전일·측정완료){% if report.summary.period != 'daily' %} · 기간 {{ report.summary.start_date }} ~ {{ report.summary.end_date }} ({{ report.summary.n_days }}일){% endif %} · 장비 {{ report.summary.total_devices }}대</td>
@@ -286,9 +284,9 @@
   <div class="empty">관측소 데이터 없음</div>
   {% endif %}
 
-  <!-- 2-1. 시간별 히트맵 (일간 only) -->
+  <!-- 3. 시간별 포집 패턴 -->
   {% if report.summary.sections.heatmap %}
-  <h2 class="section">2-1. 시간별 포집 패턴 (야간 수집창 18~05시)</h2>
+  <h2 class="section">3. 시간별 포집 패턴 (야간 수집창 18~05시)</h2>
   <table class="heatmap">
     <thead>
       <tr>
@@ -300,20 +298,11 @@
     </thead>
     <tbody id="heatmap-body"></tbody>
   </table>
-  <div class="heatmap-legend">
-    <span style="font-weight:600">색상 단계:</span>
-    <span class="lg-item"><span class="lg-box" style="background:#f8f9fb"></span>0</span>
-    <span class="lg-item"><span class="lg-box" style="background:#ecfdf5"></span>1~10</span>
-    <span class="lg-item"><span class="lg-box" style="background:#fef9c3"></span>11~50</span>
-    <span class="lg-item"><span class="lg-box" style="background:#fff4e0"></span>51~100</span>
-    <span class="lg-item"><span class="lg-box" style="background:#fde7e4"></span>101~200</span>
-    <span class="lg-item"><span class="lg-box" style="background:#dc2626"></span>200+</span>
-  </div>
   {% endif %}
 
-  <!-- 3. AI 예측 -->
+  <!-- 4. AI 예측 + 추천 방역 -->
   {% if report.summary.sections.predict %}
-  <h2 class="section">3. AI 예측 + 추천 방역</h2>
+  <h2 class="section">4. AI 예측 + 추천 방역</h2>
   {% if report.summary.sections.predict.day_totals %}
   <div class="kpi-row">
     {% for t in report.summary.sections.predict.day_totals|slice:":4" %}
@@ -351,11 +340,10 @@
   {% if report.summary.insights.predict %}
   <div class="insight"><strong>■ 예측 분석</strong> · {{ report.summary.insights.predict }}</div>
   {% endif %}
-  {% endif %}
 
-  <!-- 3-1. 일자별 추천 방역 -->
+  <!-- 일자별 추천 방역 (같은 섹션 통합) -->
   {% if report.summary.sections.remedy_recommend %}
-  <h2 class="section">3-1. 일자별 추천 방역</h2>
+  <div style="font-size:11px;font-weight:700;color:#1B3A6B;margin:10px 0 4px">일자별 추천 방역</div>
   <table class="dt">
     <thead>
       <tr><th style="width:12%">일자</th><th>예측 등급</th><th>예측 지수</th><th style="width:26%">추천 방역</th><th>실시 시기</th><th>사유</th></tr>
@@ -374,6 +362,7 @@
     </tbody>
   </table>
   {% endif %}
+  {% endif %}
 
   <div class="page-no">— 1 / 2 —</div>
 </div>
@@ -385,80 +374,30 @@
     <span class="logo">MOSCOM <span class="mark">ɱ</span></span>
     <span class="badge-tag">AI-MOS</span>
   </div>
-  <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — 상세·행정 판단</h1>
+  <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — 민원·행정 판단</h1>
 
-  <!-- 4. 포집량 이상 감지 -->
-  <h2 class="section">4. 포집량 이상 감지 <span style="font-size:10px;color:#888;font-weight:400">(임계 {{ report.summary.anomaly_threshold|default:51 }}마리/일)</span></h2>
-  {% if report.summary.sections.anomaly %}
+  <!-- 5. 민원가능지역 -->
+  <h2 class="section">5. 민원가능지역 <span style="font-size:10px;color:#888;font-weight:400">(체감 포집·급증·야간피크 기반 · 민원 가능성 순)</span></h2>
+  {% if report.summary.sections.complaint %}
   <table class="dt">
     <thead>
-      <tr><th>일자</th><th style="width:20%">관측소</th><th>권역</th><th>주소</th><th>포집량</th><th>임계</th><th>초과율</th></tr>
+      <tr><th style="width:22%">관측소</th><th>권역</th><th>민원도</th><th>민원 가능성</th><th>기준일 포집</th><th>7일 평균</th></tr>
     </thead>
     <tbody>
-    {% for a in report.summary.sections.anomaly %}
+    {% for c in report.summary.sections.complaint %}
       <tr>
-        <td class="center">{{ a.date }}</td>
-        <td><strong>{{ a.name|truncatechars:22 }}</strong></td>
-        <td class="center" style="font-size:9px;color:#0F5E6E;font-weight:600">{{ a.region_name|default:"-" }}</td>
-        <td style="font-size:9px;color:#888">{{ a.addr|default:"-" }}</td>
-        <td class="center" style="color:#c0392b;font-weight:700">{{ a.count }}마리</td>
-        <td class="center" style="color:#888">{{ a.bad_min }}</td>
-        <td class="center" style="color:#c0392b;font-weight:700">+{{ a.pct_over }}%</td>
+        <td><strong>{{ c.name|truncatechars:20 }}</strong></td>
+        <td class="center" style="font-size:9px;color:#0F5E6E;font-weight:600">{{ c.region_name|default:"-" }}</td>
+        <td class="center"><span class="cp cp-{% if c.complaint_level == '높음' %}high{% elif c.complaint_level == '보통' %}mid{% else %}low{% endif %}">{{ c.complaint_level }}</span></td>
+        <td class="center" style="font-weight:700;color:{% if c.complaint_level == '높음' %}#c0392b{% elif c.complaint_level == '보통' %}#d97706{% else %}#1A5C35{% endif %}">{{ c.complaint_score }}%</td>
+        <td class="center" style="font-weight:600">{{ c.today }}마리</td>
+        <td class="center" style="color:#888">{{ c.week_avg }}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <div class="empty">기간 내 포집량 이상 감지 없음 (≥{{ report.summary.anomaly_threshold|default:51 }}마리/일)</div>
-  {% endif %}
-  {% if report.summary.insights.anomaly %}
-  <div class="insight"><strong>■ 이상 감지 분석</strong> · {{ report.summary.insights.anomaly }}</div>
-  {% endif %}
-
-  <!-- 4-1. 권역별 발생 분포 -->
-  {% if report.summary.sections.region_breakdown %}
-  <h2 class="section">4-1. 권역별 발생 분포</h2>
-  <table class="dt">
-    <thead>
-      <tr><th style="width:18%">권역</th><th>관측소 수</th><th>기간 합계</th><th>관측소당 평균</th><th>최다 포집 관측소</th></tr>
-    </thead>
-    <tbody>
-    {% for r in report.summary.sections.region_breakdown|slice:":8" %}
-      <tr>
-        <td><strong style="color:#0F5E6E">{{ r.region_name }}</strong></td>
-        <td class="center">{{ r.devices }}</td>
-        <td class="center" style="font-weight:700;color:#1B3A6B">{{ r.total }}마리</td>
-        <td class="center" style="color:#888">{{ r.avg_per_device }}</td>
-        <td style="font-size:9px">{{ r.top_dev|default:"-"|truncatechars:18 }} <span style="color:#c0392b">({{ r.top_count }})</span></td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-
-  <!-- 5. 방역 내역 -->
-  <h2 class="section">5. 방역 내역 <span style="font-size:10px;color:#888;font-weight:400">(기간 내 시행 {{ report.summary.plans_executed_count|default:0 }}건)</span></h2>
-  {% if report.summary.sections.plans %}
-  <table class="dt">
-    <thead>
-      <tr><th>실시 예정일</th><th style="width:22%">대상 관측소</th><th>방역 방법</th><th>감소율</th><th>담당자</th><th>살포량</th><th>구분</th></tr>
-    </thead>
-    <tbody>
-    {% for p in report.summary.sections.plans %}
-      <tr>
-        <td class="center">{{ p.scheduled_date }}</td>
-        <td><strong>{{ p.device|truncatechars:22 }}</strong></td>
-        <td class="center" style="color:#0F5E6E;font-weight:700">{{ p.method }}</td>
-        <td class="center" style="color:#c0392b;font-weight:700">-{{ p.reduction_pct }}%</td>
-        <td class="center" style="font-size:9px">{{ p.worker|default:"-" }}</td>
-        <td class="center" style="font-size:9px">{% if p.volume_l != None %}{{ p.volume_l }}L{% else %}-{% endif %}</td>
-        <td class="center" style="font-size:9px;color:{% if p.executed %}#1A5C35{% else %}#888{% endif %}">{% if p.executed %}기간내{% else %}예정{% endif %}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty">등록된 방역 내역 없음</div>
+  <div class="empty">민원가능지역 데이터 없음</div>
   {% endif %}
 
   <!-- 6. 행정 판단 -->
@@ -517,11 +456,11 @@
     let rows = [];
     try { rows = JSON.parse(hmRaw.textContent || '[]'); } catch (e) { rows = []; }
     if (rows.length === 0) {
-      hmBody.innerHTML = '<tr><td colspan="14" class="h0" style="padding:10px">데이터 없음</td></tr>';
+      hmBody.innerHTML = '<tr><td colspan="14" style="padding:10px;color:#888">데이터 없음</td></tr>';
     } else {
-      const heatCls = v => v === 0 ? 'h0' : v <= 10 ? 'h1' : v <= 50 ? 'h2' : v <= 100 ? 'h3' : v <= 200 ? 'h4' : 'h5';
+      // 색상 단계 없이 — 값만 표시 (0은 옅게)
       hmBody.innerHTML = rows.map(r => {
-        const cells = (r.hours || []).map(v => `<td class="${heatCls(v)}">${v || '-'}</td>`).join('');
+        const cells = (r.hours || []).map(v => `<td style="${v ? '' : 'color:#cbd5e1'}">${v || '-'}</td>`).join('');
         return `<tr><td class="station-name"><strong>${(r.name || '').replace(/</g,'&lt;')}</strong></td>${cells}<td class="sum-cell">${r.total || '-'}</td></tr>`;
       }).join('');
     }

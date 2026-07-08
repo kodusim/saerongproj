@@ -1214,6 +1214,7 @@ def _build_report_body(period, base_date, su, request):
 
     # 섹션 2: 관측소별 현황 (ov['devices']에 이미 계산되어 있음)
     stations_section = []
+    complaint_section = []
     if ov:
         for d in ov.get('devices', []):
             stations_section.append({
@@ -1223,6 +1224,16 @@ def _build_report_body(period, base_date, su, request):
                 'complaint_level': d['complaint_level'],
                 'status': d['status'], 'trust_score': d['trust_score'],
                 'trend': d.get('trend', '·'),
+            })
+        # 민원가능지역 — 민원 점수 높은 순 (사이트 민원가능지역과 동일 산식)
+        for d in sorted(ov.get('devices', []), key=lambda x: x.get('complaint_score', 0), reverse=True):
+            cp_lv = d.get('complaint_level', '낮음')
+            complaint_section.append({
+                'name': d['name'], 'region_name': d.get('region_name', ''),
+                'addr': d.get('addr', ''),
+                'complaint_score': d.get('complaint_score', 0),
+                'complaint_level': cp_lv,
+                'today': d.get('today', 0), 'week_avg': d.get('week_avg', 0),
             })
 
     # 섹션 3: 일간이면 시간별 히트맵 (48h raw로 허용 장비의 시간×장비)
@@ -1617,6 +1628,7 @@ def _build_report_body(period, base_date, su, request):
             'predict': predict_section,
             'remedy_verify': remedy_verify,
             'remedy_recommend': remedy_recommend,
+            'complaint': complaint_section,
             'plans': plans_in_range,
             'region_breakdown': region_breakdown,
             'vector_risks': vector_risks,
