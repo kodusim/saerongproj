@@ -1578,7 +1578,7 @@ body {
         <div style="display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px 20px">
           <div style="font-size:13px;font-weight:700;color:var(--navy)">실측 + AI 예측 추이</div>
           <div style="font-size:13px;font-weight:600;color:var(--gray6)">
-            <span style="color:var(--navy)">━</span> 최근 7일 실측 &nbsp;·&nbsp; <span style="color:var(--navy)">┈</span> AI 예측 3일 &nbsp;·&nbsp; <span style="color:#C05000">▮</span> 현재(기준일)
+            <span style="color:var(--navy)">━</span> 최근 7일 실측 &nbsp;·&nbsp; <span style="color:var(--navy)">┈</span> AI 예측 3일
           </div>
         </div>
         <div style="position:relative;height:460px">
@@ -2027,15 +2027,6 @@ body {
         <p class="admin-para" style="color:var(--gray4)">AI 분석 실행 버튼을 누르면 보고서가 생성됩니다.</p>
       </div>
       <div class="admin-footer" id="aj-footer"></div>
-    </div>
-
-    <div class="card" style="padding:14px 16px">
-      <div style="display:flex;gap:20px;font-size:12px;color:var(--gray5);flex-wrap:wrap">
-        <div><span style="color:var(--gray4)">작성자:</span> <strong id="aj-author">-</strong></div>
-        <div><span style="color:var(--gray4)">검토:</span> <strong>(서명란)</strong></div>
-        <div><span style="color:var(--gray4)">결재:</span> <strong>(서명란)</strong></div>
-        <div style="margin-left:auto"><span style="color:var(--gray4)">생성 시각:</span> <span id="aj-gen">-</span></div>
-      </div>
     </div>
 
     <div class="card" style="margin-top:14px;padding:10px 14px;background:var(--yellow-l);border-color:#F5D788;font-size:11px;color:var(--gray5)">
@@ -3988,7 +3979,7 @@ function drawPredictChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: predictLegendLabels } },
+        legend: { position: 'right', align: 'start', labels: { usePointStyle: false, boxWidth: 24, boxHeight: 0, font: { size: 10 }, generateLabels: predictLegendLabels } },
         tooltip: { mode: 'index', intersect: false },
       },
       scales: {
@@ -6450,16 +6441,18 @@ function fbRenderSignals(j) {
   if (ovEl) ovEl.textContent = overall;
   if (ogdEl) ogdEl.textContent = og.label;
 
-  // 메인: 관측소별 게이지
+  // 메인: 관측소별 게이지 — 카드 내부를 고정 높이 영역으로 나눠 게이지·수치가 카드끼리 정렬되게
   host.innerHTML = stations.map(s => {
     const [bg, color, dot] = colorMap[s.color] || colorMap.green;
     return `
-      <div style="background:#fff;border:1px solid var(--gray2);border-top:3px solid ${dot};border-radius:8px;padding:10px 8px;text-align:center">
-        <div style="font-size:12px;font-weight:700;color:${color};line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(stationName(s.name||'-'))}">${escapeHtml(stationName(s.name || '-'))}</div>
-        <div style="font-size:9px;color:var(--gray4);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(s.region_name || '')}</div>
-        <div style="width:100%;height:64px">${indexGaugeSvg(s.avg_index ?? 0, dot)}</div>
-        <div style="font-size:18px;font-weight:800;color:${color};font-family:var(--mono);line-height:1">${s.avg_index ?? '-'}</div>
-        <div style="font-size:10px;font-weight:700;color:${color}">${s.grade}</div>
+      <div style="background:#fff;border:1px solid var(--gray2);border-top:3px solid ${dot};border-radius:8px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;align-items:center">
+        <div style="height:30px;display:flex;flex-direction:column;justify-content:flex-start;width:100%">
+          <div style="font-size:12px;font-weight:700;color:${color};line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(stationName(s.name||'-'))}">${escapeHtml(stationName(s.name || '-'))}</div>
+          <div style="font-size:9px;color:var(--gray4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(s.region_name || '')}</div>
+        </div>
+        <div style="width:100%;height:64px;margin:2px 0">${indexGaugeSvg(s.avg_index ?? 0, dot)}</div>
+        <div style="font-size:20px;font-weight:800;color:${color};font-family:var(--mono);line-height:1;margin-top:2px">${s.avg_index ?? '-'}</div>
+        <div style="font-size:10px;font-weight:700;color:${color};margin-top:2px">${s.grade}</div>
       </div>`;
   }).join('');
 }
