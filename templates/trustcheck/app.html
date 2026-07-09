@@ -194,7 +194,7 @@
             <div><b>${esc(r.other)}</b><div class="meta">${esc(r.post_title)}</div></div>
             <div>${ r.timer_visible ? `<span class="timer">⏱ ${r.timer_expired?'무료 종료':mm+':'+ss}</span>` : '<span class="meta">무료 상담 중</span>'}</div>
           </div>
-          <div class="chat-body" id="cb">${r.messages.map(m=>`<div class="msg ${m.is_system?'sys':(m.mine?'me':'them')}">${m.is_system?'':'<b style=\\'font-size:11px;opacity:.7\\'>'+esc(m.sender)+'</b><br>'}${esc(m.body)}${m.file?` <a href="${m.file}" target="_blank" style="text-decoration:underline">[파일]</a>`:''}</div>`).join('')}</div>
+          <div class="chat-body" id="cb">${r.messages.map(m=>`<div class="msg ${m.is_system?'sys':(m.mine?'me':'them')}">${m.is_system?'':('<b style="font-size:11px;opacity:.7">'+esc(m.sender)+'</b><br>')}${esc(m.body)}${m.file?(' <a href="'+m.file+'" target="_blank" style="text-decoration:underline">[파일]</a>'):''}</div>`).join('')}</div>
           <div class="row" style="margin-top:10px;">
             <input id="cMsg" placeholder="메시지 입력" style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')document.getElementById('cSend').click()">
             <button class="btn sm" id="cSend">전송</button>
