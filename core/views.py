@@ -1225,16 +1225,17 @@ def _build_report_body(period, base_date, su, request):
                 'status': d['status'], 'trust_score': d['trust_score'],
                 'trend': d.get('trend', '·'),
             })
-        # 민원가능지역 — 민원 점수 높은 순 (사이트 민원가능지역과 동일 산식)
-        for d in sorted(ov.get('devices', []), key=lambda x: x.get('complaint_score', 0), reverse=True):
-            cp_lv = d.get('complaint_level', '낮음')
-            complaint_section.append({
-                'name': d['name'], 'region_name': d.get('region_name', ''),
-                'addr': d.get('addr', ''),
-                'complaint_score': d.get('complaint_score', 0),
-                'complaint_level': cp_lv,
-                'today': d.get('today', 0), 'week_avg': d.get('week_avg', 0),
-            })
+        # 민원가능지역 — admin 전용 섹션 (일반 사용자 보고서에는 미포함)
+        if su.get('is_admin'):
+            for d in sorted(ov.get('devices', []), key=lambda x: x.get('complaint_score', 0), reverse=True):
+                cp_lv = d.get('complaint_level', '낮음')
+                complaint_section.append({
+                    'name': d['name'], 'region_name': d.get('region_name', ''),
+                    'addr': d.get('addr', ''),
+                    'complaint_score': d.get('complaint_score', 0),
+                    'complaint_level': cp_lv,
+                    'today': d.get('today', 0), 'week_avg': d.get('week_avg', 0),
+                })
 
     # 섹션 3: 시간별 히트맵 — 사이트 buildHeatmap 과 동일 알고리즘
     #   기준일(end_s) 업무일 창 [end_s 10:00 KST ~ 다음날 10:00 KST) 하루만,
@@ -3049,6 +3050,9 @@ def moscom_complaint_risk(request):
     auth_err = _require_mosquito_auth(request)
     if auth_err:
         return auth_err
+    # 민원가능지역은 관리자 전용
+    if not _current_session_user(request).get('is_admin'):
+        return JsonResponse({'error': '관리자 전용 기능입니다'}, status=403)
     from datetime import datetime, timedelta, timezone
     from collections import defaultdict
     try:

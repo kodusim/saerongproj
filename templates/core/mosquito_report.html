@@ -375,11 +375,11 @@
     <span class="logo">MOSCOM <span class="mark">ɱ</span></span>
     <span class="badge-tag">AI-MOS</span>
   </div>
-  <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — 민원·행정 판단</h1>
+  <h1 class="doc-title" style="font-size:14px;letter-spacing:2px;margin-bottom:8px">{{ report.summary.period_label }} 모기 방역 종합 보고서 — {% if report.summary.sections.complaint %}민원·{% endif %}행정 판단</h1>
 
-  <!-- 5. 민원가능지역 -->
-  <h2 class="section">5. 민원가능지역 <span style="font-size:10px;color:#888;font-weight:400">(체감 포집·급증·야간피크 기반 · 민원 가능성 순)</span></h2>
+  <!-- 5. 민원가능지역 (admin 전용) -->
   {% if report.summary.sections.complaint %}
+  <h2 class="section">5. 민원가능지역 <span style="font-size:10px;color:#888;font-weight:400">(체감 포집·급증·야간피크 기반 · 민원 가능성 순)</span></h2>
   <table class="dt">
     <thead>
       <tr><th style="width:22%">관측소</th><th>권역</th><th>민원도</th><th>민원 가능성</th><th>기준일 포집</th><th>7일 평균</th></tr>
@@ -397,8 +397,6 @@
     {% endfor %}
     </tbody>
   </table>
-  {% else %}
-  <div class="empty">민원가능지역 데이터 없음</div>
   {% endif %}
 
   <!-- 6. 행정 판단 -->

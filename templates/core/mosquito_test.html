@@ -1206,10 +1206,12 @@ body {
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>
       AI 추천방역
     </a>
+    {% if is_admin %}
     <a class="nav-item" onclick="showPage('complaint')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v8H6l-3 2z"/></svg>
       민원가능지역
     </a>
+    {% endif %}
   </div>
 
   <div class="nav-section">
@@ -1326,7 +1328,7 @@ body {
           <thead id="ov-station-thead">
             <tr>
               <th>관측소</th><th>권역</th><th>지역</th><th>형태</th>
-              <th style="text-align:center">위험 등급</th><th style="text-align:center">민원 위험</th>
+              <th style="text-align:center">위험 등급</th>{% if is_admin %}<th style="text-align:center">민원 위험</th>{% endif %}
               <th>기준일</th><th>전일</th><th>7일 평균</th>
               <th>온도</th><th>습도</th><th>장비 상태</th><th>추세</th>
             </tr>
@@ -2048,7 +2050,8 @@ body {
     </div>
   </div>
 
-  <!-- ══════════ 10-2. 민원가능지역 ══════════ -->
+  {% if is_admin %}
+  <!-- ══════════ 10-2. 민원가능지역 (admin 전용) ══════════ -->
   <div class="page" id="page-complaint">
     <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;align-items:center;gap:10px">
@@ -2125,6 +2128,7 @@ body {
     <div id="cp-list" style="display:none"></div>
     <span id="cp-count" style="display:none"></span>
   </div>
+  {% endif %}
 
   <!-- ══════════ 11. 모스콤 관리자 (admin 전용) ══════════ -->
   <div class="page" id="page-moscom_admin">
@@ -2342,6 +2346,9 @@ body {
 </div>
 
 <script>
+// 관리자 여부 (민원가능지역 등 admin 전용 표시 제어)
+const IS_ADMIN = {% if is_admin %}true{% else %}false{% endif %};
+
 // ── 데이터 ──────────────────────────────────────────────
 const STATIONS = [
   {id:1,name:"관측소 A (공원)",grade:"주의",  total:291, peak:"23시",peakCount:58, prevDay:312,weekAvg:285,
@@ -2541,11 +2548,12 @@ function renderOvKpis(json) {
       <div class="kpi-value val-green">${(kpi.total_devices || 0) - (kpi.equip_bad || 0)}</div>
       <div class="kpi-sub">${kpi.total_devices || 0}대 중</div>
     </div>
+    ${IS_ADMIN ? `
     <div class="kpi-card" style="border-top-color:#4A1B6B">
       <div class="kpi-label">민원 위험 지역</div>
       <div class="kpi-value" style="color:#4A1B6B">${kpi.complaint_high || 0}<span style="font-size:14px">곳</span></div>
       <div class="kpi-sub">민원 '높음' · 사전 대응 권장</div>
-    </div>
+    </div>` : ''}
   `;
   renderOvNational(json.national);
 }
@@ -2703,7 +2711,7 @@ function renderOvStationTable(json) {
       <td><span style="font-size:10px;font-weight:600;color:var(--gray6)">${h2.region}</span></td>
       <td><span style="font-size:10px;font-weight:600;background:${hbColor.bg};color:${hbColor.color};padding:2px 8px;border-radius:10px">${h2.form}</span></td>
       <td style="text-align:center"><span style="display:inline-block;font-size:11px;font-weight:800;color:${mg.color};background:${mg.bg};border:2px solid ${mg.color};padding:3px 10px;border-radius:8px">${mg.label}</span></td>
-      <td style="text-align:center"><span style="display:inline-block;font-size:11px;font-weight:800;color:${cpBg.color};background:${cpBg.bg};border:2px solid ${cpBg.color};padding:3px 10px;border-radius:8px">${cpLv}</span></td>
+      ${IS_ADMIN ? `<td style="text-align:center"><span style="display:inline-block;font-size:11px;font-weight:800;color:${cpBg.color};background:${cpBg.bg};border:2px solid ${cpBg.color};padding:3px 10px;border-radius:8px">${cpLv}</span></td>` : ''}
       <td style="font-family:var(--mono);font-weight:600;color:var(--navy)">${(d.today || 0).toLocaleString()}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.yday || 0}</td>
       <td style="font-family:var(--mono);color:var(--gray5)">${d.week_avg || 0}</td>
