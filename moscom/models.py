@@ -167,3 +167,62 @@ class EditLog(models.Model):
 
     def __str__(self):
         return f'{self.table}#{self.row_id}.{self.field}: {self.old_value!r}→{self.new_value!r}'
+
+
+class PredictionLog(models.Model):
+    """AI 예측 스냅샷. 1행 = (관측소 × 예측대상일 × 스냅샷 시점).
+    목적: 그때 그 예측을 보관해 두고, 나중에 실측이 들어오면 비교(정확도 검증).
+    """
+    device_uuid = models.CharField('장비 UUID', max_length=64, db_index=True)
+    device_name = models.CharField('관측소명', max_length=120, blank=True, default='')
+    region_name = models.CharField('권역', max_length=80, blank=True, default='')
+
+    snapshot_date = models.DateField('예측 산출일', db_index=True)   # 언제 한 예측인가
+    target_date = models.DateField('예측 대상일', db_index=True)     # 어느 날을 예측했나
+    horizon_days = models.IntegerField('예측 시평(일)', default=0)   # target - snapshot
+
+    # 예측 결과
+    predicted = models.IntegerField('예측 마릿수(방역 반영)', default=0)
+    predicted_raw = models.IntegerField('예측 마릿수(방역 미반영)', default=0)
+    predicted_index = models.FloatField('예측 모기지수', null=True, blank=True)
+    grade = models.CharField('예측 등급', max_length=10, blank=True, default='')
+    remedy_factor = models.FloatField('방역 계수', default=1.0)
+
+    # 입력 피처 요약 (사람이 검증 가능한 수준)
+    lag1 = models.IntegerField('전일 실측', default=0)
+    lag7 = models.IntegerField('7일전 실측', default=0)
+    ma3 = models.FloatField('3일 이동평균', default=0)
+    ma7 = models.FloatField('7일 이동평균', default=0)
+    temperature = models.FloatField('기온', null=True, blank=True)
+    humidity = models.FloatField('습도', null=True, blank=True)
+    precipitation = models.FloatField('강수', null=True, blank=True)
+    wind_speed = models.FloatField('풍속', null=True, blank=True)
+
+    # 실측 대조 (target_date 실측이 들어오면 채움)
+    actual = models.IntegerField('실측 마릿수', null=True, blank=True)
+    error = models.IntegerField('오차(실측-예측)', null=True, blank=True)
+    abs_error_pct = models.FloatField('절대 오차율(%)', null=True, blank=True)
+    matched_at = models.DateTimeField('실측 대조 시각', null=True, blank=True)
+
+    model_version = models.CharField('모델 버전', max_length=20, blank=True, default='')
+    created_at = models.DateTimeField('생성 시각', auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-target_date', '-snapshot_date']
+        # 같은 스냅샷일에 같은 관측소·대상일 중복 저장 방지
+        constraints = [
+            models.UniqueConstraint(
+                fields=['device_uuid', 'snapshot_date', 'target_date'],
+                name='uniq_prediction_snapshot',
+            )
+        ]
+        indexes = [
+            models.Index(fields=['device_uuid', '-target_date']),
+            models.Index(fields=['-snapshot_date']),
+            models.Index(fields=['target_date', 'actual']),
+        ]
+        verbose_name = 'AI 예측 로그'
+        verbose_name_plural = 'AI 예측 로그'
+
+    def __str__(self):
+        return f'{self.device_name or self.device_uuid} {self.snapshot_date}→{self.target_date}: 예측 {self.predicted} / 실측 {self.actual}'
