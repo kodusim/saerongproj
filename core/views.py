@@ -4042,7 +4042,7 @@ def moscom_prediction_log_api(request):
     from moscom.models import PredictionLog
     from core import prediction_log as plog
     try:
-        days = max(1, min(int(request.GET.get('days', '14')), 120))
+        days = max(1, min(int(request.GET.get('days', '14')), 400))
     except (TypeError, ValueError):
         days = 14
     today = plog._today_kst()

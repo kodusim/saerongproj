@@ -179,7 +179,7 @@ class PredictionLog(models.Model):
 
     snapshot_date = models.DateField('예측 산출일', db_index=True)   # 언제 한 예측인가
     target_date = models.DateField('예측 대상일', db_index=True)     # 어느 날을 예측했나
-    horizon_days = models.IntegerField('예측 시평(일)', default=0)   # target - snapshot
+    horizon_days = models.IntegerField('예측 간격(일)', default=0)   # 며칠 뒤를 예측했나 = target - snapshot
 
     # 예측 결과
     predicted = models.IntegerField('예측 마릿수(방역 반영)', default=0)

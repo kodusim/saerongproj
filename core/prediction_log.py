@@ -5,7 +5,7 @@
 
 - save_snapshot(preds, meta_by_uuid): 오늘자 예측을 PredictionLog 에 저장 (하루 1회, 중복 무시)
 - match_actuals(): 실측이 들어온 target_date 행에 actual/error 채우기
-- accuracy_summary(): 시평(horizon)별 정확도 요약
+- accuracy_summary(): 예측 간격(며칠 뒤 예측인지)별 정확도 요약
 """
 import logging
 from datetime import date, datetime, timedelta, timezone
@@ -83,7 +83,7 @@ def save_snapshot(preds, meta_by_uuid=None, snapshot_date=None):
     return created, skipped
 
 
-def match_actuals(daily_by_uuid=None, limit_days=30):
+def match_actuals(daily_by_uuid=None, limit_days=400):
     """실측이 확보된 과거 예측 행에 actual/error 채우기.
     daily_by_uuid: {uuid: {'YYYY-MM-DD': count}} 형태(선택). 없으면 Collection 에서 집계.
     반환: 갱신된 행 수
@@ -143,7 +143,7 @@ def _actual_from_db(device_uuid, target_date):
 
 
 def accuracy_summary(days=30, allowed_uuids=None):
-    """시평(horizon)별 정확도 요약. 반환: {'overall': {...}, 'by_horizon': [...]}"""
+    """예측 간격(며칠 뒤 예측인지)별 정확도 요약. 반환: {'overall': {...}, 'by_horizon': [...]}"""
     from moscom.models import PredictionLog
     today = _today_kst()
     since = today - timedelta(days=days)

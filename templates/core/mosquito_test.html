@@ -2276,6 +2276,7 @@ body {
           <option value="14" selected>최근 14일</option>
           <option value="30">최근 30일</option>
           <option value="60">최근 60일</option>
+          <option value="120">최근 120일 (전체)</option>
         </select>
         <label style="font-size:12px;color:var(--gray5);display:flex;align-items:center;gap:5px">
           <input type="checkbox" id="pl-only-matched"> 실측 대조된 것만
@@ -2291,11 +2292,11 @@ body {
     <!-- 정확도 요약 -->
     <div class="kpi-grid mb16" id="pl-summary" style="grid-template-columns:repeat(4,1fr)"></div>
 
-    <!-- 시평별 정확도 -->
+    <!-- N일 후 예측별 정확도 -->
     <div class="card mb16">
       <div class="sec-header" style="padding:12px 16px 4px;margin:0">
         <div class="sec-bar"></div>
-        <div class="sec-title" style="font-size:13px">예측 시평별 정확도</div>
+        <div class="sec-title" style="font-size:13px">예측 간격별 정확도 (며칠 뒤를 예측했나)</div>
         <span style="margin-left:auto;font-size:10px;color:var(--gray4);padding-right:16px">1일 후 예측일수록 정확해야 정상</span>
       </div>
       <div style="overflow-x:auto;padding:0 16px 12px">
@@ -7024,7 +7025,7 @@ function plRenderHorizon(summary) {
     return;
   }
   t.innerHTML = `<thead><tr>
-      <th>예측 시평</th><th>건수</th><th>평균 절대오차(마리)</th><th>평균 오차율(%)</th><th>편향</th><th>적중률(±20%)</th>
+      <th>예측 간격</th><th>건수</th><th>평균 절대오차(마리)</th><th>평균 오차율(%)</th><th>편향</th><th>적중률(±20%)</th>
     </tr></thead><tbody>${rows.map(h => `
       <tr>
         <td><strong>${h.horizon_days === 0 ? '당일' : h.horizon_days + '일 후'}</strong></td>
@@ -7045,7 +7046,7 @@ function plRenderTable(items) {
   }
   t.innerHTML = `<thead><tr>
       <th rowspan="2" style="min-width:110px">관측소</th>
-      <th rowspan="2">산출일</th><th rowspan="2">대상일</th><th rowspan="2">시평</th>
+      <th rowspan="2">산출일</th><th rowspan="2">대상일</th><th rowspan="2">간격</th>
       <th colspan="4" style="background:var(--gray5)">입력 피처</th>
       <th colspan="2" style="background:var(--navy)">예측</th>
       <th colspan="3" style="background:#4A1B6B">실측 대조</th>
