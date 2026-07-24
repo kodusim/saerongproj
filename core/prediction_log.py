@@ -152,20 +152,31 @@ def accuracy_summary(days=30, allowed_uuids=None):
         qs = qs.filter(device_uuid__in=list(allowed_uuids))
 
     rows = list(qs.values('horizon_days', 'predicted', 'actual', 'error', 'abs_error_pct'))
+    # (actual 포함 — 오차율 계산에서 실측 0 제외에 사용)
     if not rows:
         return {'overall': None, 'by_horizon': [], 'count': 0}
 
     def _agg(items):
         n = len(items)
         mae = sum(abs(r['error'] or 0) for r in items) / n
-        mape = sum((r['abs_error_pct'] or 0) for r in items) / n
         bias = sum((r['error'] or 0) for r in items) / n
-        # 오차 20% 이내 비율 (적중률)
-        hit = sum(1 for r in items if (r['abs_error_pct'] or 999) <= 20) / n * 100
+        # 오차율: 실측 0인 날(장비 미작동/결측)은 오차율이 무한대로 튀므로 제외
+        pct_items = [r for r in items if (r['actual'] or 0) > 0]
+        if pct_items:
+            pcts = sorted((r['abs_error_pct'] or 0) for r in pct_items)
+            mape = sum(pcts) / len(pcts)
+            mid = len(pcts) // 2
+            mdape = pcts[mid] if len(pcts) % 2 else (pcts[mid - 1] + pcts[mid]) / 2
+            hit = sum(1 for p in pcts if p <= 20) / len(pcts) * 100
+        else:
+            mape = mdape = hit = 0
         return {
             'count': n,
+            'pct_count': len(pct_items),   # 오차율 산출에 쓴 건수(실측>0)
+            'zero_count': n - len(pct_items),  # 실측 0(결측 의심) 건수
             'mae': round(mae, 1),          # 평균 절대 오차(마리)
             'mape': round(mape, 1),        # 평균 절대 오차율(%)
+            'mdape': round(mdape, 1),      # 중앙값 오차율(%) — 극단값에 안 흔들림
             'bias': round(bias, 1),        # 편향(+면 과소예측)
             'hit_rate': round(hit, 1),     # 오차 20% 이내 비율
         }

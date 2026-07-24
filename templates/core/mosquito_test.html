@@ -7009,11 +7009,12 @@ function plRenderSummary(summary) {
       <div class="kpi-value val-navy">${o.count}</div><div class="kpi-sub">예측 vs 실측</div></div>
     <div class="kpi-card red"><div class="kpi-label">평균 절대 오차 (MAE)</div>
       <div class="kpi-value val-red">${o.mae}</div><div class="kpi-sub">마리</div></div>
-    <div class="kpi-card teal"><div class="kpi-label">평균 오차율 (MAPE)</div>
-      <div class="kpi-value val-teal">${o.mape}<span style="font-size:14px">%</span></div><div class="kpi-sub">낮을수록 정확</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">중앙값 오차율</div>
+      <div class="kpi-value val-teal">${o.mdape != null ? o.mdape : o.mape}<span style="font-size:14px">%</span></div>
+      <div class="kpi-sub">절반이 이 오차 이내 (평균 ${o.mape}%)</div></div>
     <div class="kpi-card green"><div class="kpi-label">적중률</div>
       <div class="kpi-value val-green">${o.hit_rate}<span style="font-size:14px">%</span></div>
-      <div class="kpi-sub">오차 20% 이내 · 편향 ${o.bias >= 0 ? '+' : ''}${o.bias}</div></div>`;
+      <div class="kpi-sub">오차 20% 이내 · 편향 ${o.bias >= 0 ? '+' : ''}${o.bias}${o.zero_count ? ` · 결측 ${o.zero_count}건 제외` : ''}</div></div>`;
 }
 
 function plRenderHorizon(summary) {
@@ -7025,13 +7026,13 @@ function plRenderHorizon(summary) {
     return;
   }
   t.innerHTML = `<thead><tr>
-      <th>예측 간격</th><th>건수</th><th>평균 절대오차(마리)</th><th>평균 오차율(%)</th><th>편향</th><th>적중률(±20%)</th>
+      <th>예측 간격</th><th>건수</th><th>평균 절대오차(마리)</th><th>중앙값 오차율(%)</th><th>편향</th><th>적중률(±20%)</th>
     </tr></thead><tbody>${rows.map(h => `
       <tr>
         <td><strong>${h.horizon_days === 0 ? '당일' : h.horizon_days + '일 후'}</strong></td>
         <td>${h.count}</td>
         <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${h.mae}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:${h.mape > 50 ? 'var(--red)' : h.mape > 25 ? '#C05000' : 'var(--green)'}">${h.mape}%</td>
+        <td style="font-family:var(--mono);font-weight:700;color:${(h.mdape ?? h.mape) > 50 ? 'var(--red)' : (h.mdape ?? h.mape) > 25 ? '#C05000' : 'var(--green)'}">${h.mdape != null ? h.mdape : h.mape}%</td>
         <td style="font-family:var(--mono);color:${h.bias > 0 ? 'var(--red)' : 'var(--teal)'}">${h.bias >= 0 ? '+' : ''}${h.bias}</td>
         <td style="font-family:var(--mono);font-weight:700;color:${h.hit_rate >= 70 ? 'var(--green)' : h.hit_rate >= 40 ? '#C05000' : 'var(--red)'}">${h.hit_rate}%</td>
       </tr>`).join('')}</tbody>`;
