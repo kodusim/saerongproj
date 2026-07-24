@@ -3489,6 +3489,13 @@ def moscom_predict(request):
                     _msg = f"방역 {len(applied_by_date)}일 반영(예: {_names[0]})"
                     p['reasoning'] = (p.get('reasoning') or '') + ' · ' + _msg if p.get('reasoning') else _msg
 
+        # 예측 스냅샷 자동 저장 (하루 1회 — unique 제약으로 중복은 무시됨)
+        try:
+            from core import prediction_log
+            prediction_log.save_snapshot(preds, meta_by_uuid=meta)
+        except Exception:
+            logger.exception('prediction snapshot skipped')
+
         # max_predicted 내림차순 정렬
         preds.sort(key=lambda x: x.get('max_predicted', 0), reverse=True)
         return JsonResponse({
@@ -4010,3 +4017,100 @@ def moscom_hourly(request):
     except Exception as e:
         logger.exception('MOSCOM /device/statisticsByDate failed')
         return JsonResponse({'error': str(e)}, status=502)
+
+
+# ── AI 예측 관리 (admin 전용) ──────────────────────────────
+def _require_admin(request):
+    """admin 전용 가드. 통과면 None, 아니면 JsonResponse."""
+    auth_err = _require_mosquito_auth(request)
+    if auth_err:
+        return auth_err
+    if not _current_session_user(request).get('is_admin'):
+        return JsonResponse({'error': '관리자 전용 기능입니다'}, status=403)
+    return None
+
+
+@require_GET
+def moscom_prediction_log_api(request):
+    """AI 예측 로그 조회 (admin).
+    쿼리: days(기본 14), device_uuid(선택), only_matched=1(실측 대조된 것만)
+    """
+    err = _require_admin(request)
+    if err:
+        return err
+    from datetime import timedelta
+    from moscom.models import PredictionLog
+    from core import prediction_log as plog
+    try:
+        days = max(1, min(int(request.GET.get('days', '14')), 120))
+    except (TypeError, ValueError):
+        days = 14
+    today = plog._today_kst()
+    since = today - timedelta(days=days)
+
+    qs = PredictionLog.objects.filter(target_date__gte=since)
+    dev = request.GET.get('device_uuid') or ''
+    if dev:
+        qs = qs.filter(device_uuid=dev)
+    if request.GET.get('only_matched') == '1':
+        qs = qs.filter(actual__isnull=False)
+    qs = qs.order_by('-target_date', '-snapshot_date', 'device_name')[:1000]
+
+    items = [{
+        'id': r.id,
+        'device_uuid': r.device_uuid, 'device_name': r.device_name, 'region_name': r.region_name,
+        'snapshot_date': r.snapshot_date.isoformat(), 'target_date': r.target_date.isoformat(),
+        'horizon_days': r.horizon_days,
+        'predicted': r.predicted, 'predicted_raw': r.predicted_raw,
+        'predicted_index': r.predicted_index, 'grade': r.grade, 'remedy_factor': r.remedy_factor,
+        'lag1': r.lag1, 'lag7': r.lag7, 'ma3': r.ma3, 'ma7': r.ma7,
+        'temperature': r.temperature, 'humidity': r.humidity,
+        'precipitation': r.precipitation, 'wind_speed': r.wind_speed,
+        'actual': r.actual, 'error': r.error, 'abs_error_pct': r.abs_error_pct,
+        'model_version': r.model_version,
+    } for r in qs]
+
+    summary = plog.accuracy_summary(days=days)
+    return JsonResponse({'count': len(items), 'items': items, 'summary': summary, 'days': days})
+
+
+@csrf_exempt
+@require_POST
+def moscom_prediction_snapshot_api(request):
+    """지금 예측을 스냅샷 저장 (admin 수동 실행)."""
+    err = _require_admin(request)
+    if err:
+        return err
+    try:
+        import json as _j
+        from django.test import RequestFactory
+        # 내부적으로 예측 API 를 호출해 동일 결과를 받아 저장
+        rf = RequestFactory()
+        inner = rf.get('/mosquito-test/api/predict/?days=3')
+        inner.session = request.session
+        resp = moscom_predict(inner)
+        if resp.status_code != 200:
+            return JsonResponse({'error': '예측 실행 실패'}, status=500)
+        # moscom_predict 내부에서 이미 save_snapshot 수행됨
+        payload = _j.loads(resp.content.decode('utf-8'))
+        return JsonResponse({'ok': True, 'predicted_devices': payload.get('count', 0)})
+    except Exception as e:
+        logger.exception('manual snapshot failed')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def moscom_prediction_match_api(request):
+    """실측 대조 실행 (admin) — 지난 예측에 실제값 채우기."""
+    err = _require_admin(request)
+    if err:
+        return err
+    try:
+        from core import prediction_log as plog
+        updated = plog.match_actuals()
+        summary = plog.accuracy_summary(days=30)
+        return JsonResponse({'ok': True, 'updated': updated, 'summary': summary})
+    except Exception as e:
+        logger.exception('actual match failed')
+        return JsonResponse({'error': str(e)}, status=500)

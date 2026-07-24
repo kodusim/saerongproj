@@ -1225,6 +1225,10 @@ body {
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="3" rx="1"/><rect x="2" y="7" width="12" height="3" rx="1"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
       데이터 관리
     </a>
+    <a class="nav-item" onclick="showPage('predict_admin')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l4-5 3 3 5-7"/><circle cx="6" cy="7" r="1.2" fill="currentColor"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/></svg>
+      AI 예측 관리
+    </a>
     {% endif %}
   </div>
 
@@ -2246,6 +2250,71 @@ body {
     <div class="card" style="padding:14px 16px">
       <div id="dm-content" style="font-size:12px">
         <div style="color:var(--gray4);font-style:italic">상단 버튼을 선택하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 13. AI 예측 관리 (admin 전용) ══════════ -->
+  <div class="page" id="page-predict_admin">
+    <div class="sec-header mb16" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sec-bar"></div>
+        <div>
+          <div class="sec-title">AI 예측 관리</div>
+          <div class="sec-sub">예측 입력 데이터 · 과거 예측 누적 · 실측 대비 정확도 검증</div>
+        </div>
+      </div>
+      <div class="ai-model-badge"><span class="dot"></span>예측 정확도 추적</div>
+    </div>
+
+    <!-- 컨트롤 -->
+    <div class="card mb16" style="padding:14px 16px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:12px;font-weight:700;color:var(--navy)">조회 기간</label>
+        <select id="pl-days" style="padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px">
+          <option value="7">최근 7일</option>
+          <option value="14" selected>최근 14일</option>
+          <option value="30">최근 30일</option>
+          <option value="60">최근 60일</option>
+        </select>
+        <label style="font-size:12px;color:var(--gray5);display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="pl-only-matched"> 실측 대조된 것만
+        </label>
+        <button class="dl-btn dl-btn-html" onclick="plLoad()" style="padding:6px 14px;font-size:12px">조회</button>
+        <span style="flex:1"></span>
+        <button class="dl-btn dl-btn-csv" onclick="plSnapshot(this)" style="padding:6px 14px;font-size:12px">📸 지금 예측 스냅샷 저장</button>
+        <button class="dl-btn dl-btn-print" onclick="plMatch(this)" style="padding:6px 14px;font-size:12px">🔄 실측 대조 실행</button>
+      </div>
+      <div id="pl-msg" style="font-size:11px;margin-top:8px"></div>
+    </div>
+
+    <!-- 정확도 요약 -->
+    <div class="kpi-grid mb16" id="pl-summary" style="grid-template-columns:repeat(4,1fr)"></div>
+
+    <!-- 시평별 정확도 -->
+    <div class="card mb16">
+      <div class="sec-header" style="padding:12px 16px 4px;margin:0">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">예측 시평별 정확도</div>
+        <span style="margin-left:auto;font-size:10px;color:var(--gray4);padding-right:16px">1일 후 예측일수록 정확해야 정상</span>
+      </div>
+      <div style="overflow-x:auto;padding:0 16px 12px">
+        <table class="data-table" id="pl-horizon-table" style="width:100%"></table>
+      </div>
+    </div>
+
+    <!-- 예측 로그 표 -->
+    <div class="card mb16">
+      <div class="sec-header" style="padding:12px 16px 4px;margin:0">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">예측 로그 (입력 피처 + 예측값 + 실측)</div>
+        <span id="pl-count" style="margin-left:auto;font-size:11px;color:var(--gray4);padding-right:16px"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="pl-table" style="width:100%;min-width:1100px"></table>
+      </div>
+      <div style="font-size:10px;color:var(--gray4);padding:8px 16px">
+        ※ 예측 산출일 = 그 예측을 만든 날, 예측 대상일 = 예측이 가리키는 날. 대상일이 지나면 실측이 채워지고 오차가 계산됩니다.
       </div>
     </div>
   </div>
@@ -5379,7 +5448,7 @@ const PAGE_TITLES = {
   remedy:"방역 실시 내역",
   equipment:"관측소 장비 현황", admin:"AI 추천방역", complaint:"민원가능지역",
   moscom_admin:"모스콤 관리자",
-  data_admin:"데이터 관리", period:"기간별 데이터"
+  data_admin:"데이터 관리", period:"기간별 데이터", predict_admin:"AI 예측 관리"
 };
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -5404,6 +5473,8 @@ function showPage(name){
   // 모스콤 관리자: 탭 진입 시 데이터 로드
   if (name === 'moscom_admin' && typeof maLoad === 'function') maLoad();
   if (name === 'period' && typeof pdInit === 'function') pdInit();
+  // AI 예측 관리: 탭 진입 시 로드
+  if (name === 'predict_admin' && typeof plLoad === 'function') plLoad();
   // 모바일: 탭 클릭 시 사이드바 자동 닫기
   document.body.classList.remove('mb-open');
 }
@@ -6890,6 +6961,153 @@ function pdRenderTable(j) {
     <td style="text-align:right;font-family:var(--mono);color:var(--gray5)">${it.events}</td>
   </tr>`).join('');
   t.innerHTML = head + '<tbody>' + body + '</tbody>';
+}
+
+// ── AI 예측 관리 (admin) ──────────────────────────────
+function plMsg(text, kind) {
+  const el = document.getElementById('pl-msg');
+  if (!el) return;
+  const color = kind === 'err' ? 'var(--red)' : kind === 'ok' ? 'var(--green)' : 'var(--gray5)';
+  el.innerHTML = `<span style="color:${color};font-weight:600">${escapeHtml(text)}</span>`;
+  if (kind === 'ok') setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+async function plLoad() {
+  const days = document.getElementById('pl-days')?.value || '14';
+  const onlyMatched = document.getElementById('pl-only-matched')?.checked ? '1' : '';
+  const t = document.getElementById('pl-table');
+  if (t) t.innerHTML = `<thead><tr><th style="text-align:center;padding:18px;color:var(--gray4)">불러오는 중…</th></tr></thead>`;
+  try {
+    const qs = new URLSearchParams({ days });
+    if (onlyMatched) qs.set('only_matched', '1');
+    const r = await fetch('/mosquito-test/api/prediction-log/?' + qs.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    plRenderSummary(j.summary);
+    plRenderHorizon(j.summary);
+    plRenderTable(j.items || []);
+    const c = document.getElementById('pl-count');
+    if (c) c.textContent = `${j.count || 0}건`;
+  } catch (e) {
+    plMsg('로드 실패: ' + e.message, 'err');
+    if (t) t.innerHTML = `<thead><tr><th style="text-align:center;padding:18px;color:var(--red)">로드 실패: ${escapeHtml(e.message)}</th></tr></thead>`;
+  }
+}
+
+function plRenderSummary(summary) {
+  const host = document.getElementById('pl-summary');
+  if (!host) return;
+  const o = summary && summary.overall;
+  if (!o) {
+    host.innerHTML = `<div class="kpi-card" style="grid-column:1/-1;text-align:center;color:var(--gray4);padding:18px">
+      실측 대조된 예측이 아직 없습니다. 예측이 쌓이고 대상일이 지나면 "실측 대조 실행"을 눌러주세요.</div>`;
+    return;
+  }
+  host.innerHTML = `
+    <div class="kpi-card navy"><div class="kpi-label">대조 건수</div>
+      <div class="kpi-value val-navy">${o.count}</div><div class="kpi-sub">예측 vs 실측</div></div>
+    <div class="kpi-card red"><div class="kpi-label">평균 절대 오차 (MAE)</div>
+      <div class="kpi-value val-red">${o.mae}</div><div class="kpi-sub">마리</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">평균 오차율 (MAPE)</div>
+      <div class="kpi-value val-teal">${o.mape}<span style="font-size:14px">%</span></div><div class="kpi-sub">낮을수록 정확</div></div>
+    <div class="kpi-card green"><div class="kpi-label">적중률</div>
+      <div class="kpi-value val-green">${o.hit_rate}<span style="font-size:14px">%</span></div>
+      <div class="kpi-sub">오차 20% 이내 · 편향 ${o.bias >= 0 ? '+' : ''}${o.bias}</div></div>`;
+}
+
+function plRenderHorizon(summary) {
+  const t = document.getElementById('pl-horizon-table');
+  if (!t) return;
+  const rows = (summary && summary.by_horizon) || [];
+  if (!rows.length) {
+    t.innerHTML = `<thead><tr><th style="text-align:center;padding:14px;color:var(--gray4)">데이터 없음</th></tr></thead>`;
+    return;
+  }
+  t.innerHTML = `<thead><tr>
+      <th>예측 시평</th><th>건수</th><th>평균 절대오차(마리)</th><th>평균 오차율(%)</th><th>편향</th><th>적중률(±20%)</th>
+    </tr></thead><tbody>${rows.map(h => `
+      <tr>
+        <td><strong>${h.horizon_days === 0 ? '당일' : h.horizon_days + '일 후'}</strong></td>
+        <td>${h.count}</td>
+        <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${h.mae}</td>
+        <td style="font-family:var(--mono);font-weight:700;color:${h.mape > 50 ? 'var(--red)' : h.mape > 25 ? '#C05000' : 'var(--green)'}">${h.mape}%</td>
+        <td style="font-family:var(--mono);color:${h.bias > 0 ? 'var(--red)' : 'var(--teal)'}">${h.bias >= 0 ? '+' : ''}${h.bias}</td>
+        <td style="font-family:var(--mono);font-weight:700;color:${h.hit_rate >= 70 ? 'var(--green)' : h.hit_rate >= 40 ? '#C05000' : 'var(--red)'}">${h.hit_rate}%</td>
+      </tr>`).join('')}</tbody>`;
+}
+
+function plRenderTable(items) {
+  const t = document.getElementById('pl-table');
+  if (!t) return;
+  if (!items.length) {
+    t.innerHTML = `<thead><tr><th style="text-align:center;padding:18px;color:var(--gray4)">예측 로그가 없습니다. "지금 예측 스냅샷 저장"을 눌러 첫 기록을 만드세요.</th></tr></thead>`;
+    return;
+  }
+  t.innerHTML = `<thead><tr>
+      <th rowspan="2" style="min-width:110px">관측소</th>
+      <th rowspan="2">산출일</th><th rowspan="2">대상일</th><th rowspan="2">시평</th>
+      <th colspan="4" style="background:var(--gray5)">입력 피처</th>
+      <th colspan="2" style="background:var(--navy)">예측</th>
+      <th colspan="3" style="background:#4A1B6B">실측 대조</th>
+    </tr><tr>
+      <th style="background:var(--gray5)">전일</th><th style="background:var(--gray5)">7일전</th>
+      <th style="background:var(--gray5)">MA7</th><th style="background:var(--gray5)">기온/습도</th>
+      <th style="background:var(--navy)">마리수</th><th style="background:var(--navy)">등급</th>
+      <th style="background:#4A1B6B">실측</th><th style="background:#4A1B6B">오차</th><th style="background:#4A1B6B">오차율</th>
+    </tr></thead>
+    <tbody>${items.map(r => {
+      const matched = r.actual != null;
+      const errColor = !matched ? 'var(--gray4)'
+        : (r.abs_error_pct <= 20 ? 'var(--green)' : r.abs_error_pct <= 50 ? '#C05000' : 'var(--red)');
+      const wx = (r.temperature != null ? `${r.temperature}°` : '-') + ' / ' + (r.humidity != null ? `${r.humidity}%` : '-');
+      return `<tr>
+        <td><strong>${escapeHtml(stationName(r.device_name || r.device_uuid))}</strong></td>
+        <td style="font-family:var(--mono);font-size:10px">${r.snapshot_date}</td>
+        <td style="font-family:var(--mono);font-size:10px;font-weight:700">${r.target_date}</td>
+        <td style="font-size:10px">${r.horizon_days === 0 ? '당일' : '+' + r.horizon_days + '일'}</td>
+        <td style="font-family:var(--mono);color:var(--gray5)">${r.lag1}</td>
+        <td style="font-family:var(--mono);color:var(--gray5)">${r.lag7}</td>
+        <td style="font-family:var(--mono);color:var(--gray5)">${r.ma7}</td>
+        <td style="font-size:10px;color:var(--gray5)">${wx}</td>
+        <td style="font-family:var(--mono);font-weight:700;color:var(--navy)">${r.predicted}</td>
+        <td style="font-size:10px">${r.grade || '-'}</td>
+        <td style="font-family:var(--mono);font-weight:700">${matched ? r.actual : '<span style="color:var(--gray4)">대기</span>'}</td>
+        <td style="font-family:var(--mono);color:${errColor};font-weight:700">${matched ? (r.error >= 0 ? '+' : '') + r.error : '-'}</td>
+        <td style="font-family:var(--mono);color:${errColor};font-weight:700">${matched ? r.abs_error_pct + '%' : '-'}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+
+async function plSnapshot(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중…'; }
+  plMsg('현재 예측을 스냅샷으로 저장하는 중…');
+  try {
+    const r = await fetch('/mosquito-test/api/prediction-log/snapshot/', { method: 'POST', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    plMsg(`스냅샷 저장 완료 — ${j.predicted_devices}개 관측소 예측 기록`, 'ok');
+    plLoad();
+  } catch (e) {
+    plMsg('스냅샷 실패: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📸 지금 예측 스냅샷 저장'; }
+  }
+}
+
+async function plMatch(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '대조 중…'; }
+  plMsg('지난 예측에 실측값을 대조하는 중…');
+  try {
+    const r = await fetch('/mosquito-test/api/prediction-log/match/', { method: 'POST', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    plMsg(`실측 대조 완료 — ${j.updated}건 갱신`, 'ok');
+    plLoad();
+  } catch (e) {
+    plMsg('대조 실패: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 실측 대조 실행'; }
+  }
 }
 </script>
 </body>
