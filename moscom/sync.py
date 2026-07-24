@@ -112,7 +112,23 @@ def sync_devices():
                 'is_active': True,
                 'region_code': region_code,
             }
-            _, created = Device.objects.update_or_create(device_uuid=uuid, defaults=defaults)
+            # 신규 생성 시에만 2축 분류를 빈 문자열로 초기화 (NOT NULL 제약 대응).
+            # 기존 장비는 관리자가 지정한 값을 덮어쓰지 않도록 defaults 에서 제외한다.
+            existing = Device.objects.filter(device_uuid=uuid).first()
+            if existing is None:
+                create_defaults = dict(defaults, region_type='', form_type='')
+                Device.objects.create(device_uuid=uuid, **create_defaults)
+                created = True
+            else:
+                for k, v in defaults.items():
+                    setattr(existing, k, v)
+                # 과거에 NULL 로 저장된 행 방어
+                if existing.region_type is None:
+                    existing.region_type = ''
+                if existing.form_type is None:
+                    existing.form_type = ''
+                existing.save()
+                created = False
             if created:
                 n_create += 1
             else:
