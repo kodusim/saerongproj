@@ -181,6 +181,11 @@ body {
 }
 .data-table th:first-child { border-radius: 6px 0 0 0; }
 .data-table th:last-child  { border-radius: 0 6px 0 0; }
+.station-search {
+  padding: 6px 12px; border: 1px solid var(--gray3); border-radius: 6px;
+  font-size: 12px; min-width: 200px; background: var(--white); color: inherit;
+}
+.station-search:focus { outline: none; border-color: var(--navy); }
 .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--gray2); vertical-align: middle; text-align: center; }
 .data-table td:first-child { text-align: left; }  /* 관측소명 등 첫 열만 좌측 */
 .data-table th { text-align: center; }
@@ -1325,6 +1330,7 @@ body {
       <div class="sec-bar"></div>
       <div class="sec-title">관측소별 현황</div>
       <div class="sec-sub" id="ov-station-sub"></div>
+      <input type="text" class="station-search" data-search-table="ov-station-table" placeholder="🔍 관측소 검색 (예: 서울)" style="margin-left:auto">
     </div>
     <div class="card mb24">
       <div style="overflow-x:auto">
@@ -1505,7 +1511,8 @@ body {
       <div class="sec-header" style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <div class="sec-bar"></div>
         <div class="sec-title" style="font-size:13px">전 관측소 일별 포집량</div>
-        <div style="margin-left:auto;font-size:10px;color:var(--gray4);text-align:right;line-height:1.4">
+        <input type="text" class="station-search" data-search-table="trend-table" placeholder="🔍 관측소 검색" style="margin-left:auto">
+        <div style="font-size:10px;color:var(--gray4);text-align:right;line-height:1.4">
           추세 산정식: 기간을 전·후반으로 나눠 <strong>(후반 평균 − 전반 평균) / 전반 평균 × 100</strong><br>
           +5% 초과 ↑증가 / −5% 미만 ↓감소 / 그 사이 →유지
         </div>
@@ -1606,8 +1613,9 @@ body {
       </div>
 
       <!-- 장비별 실측 + 예측 표 (밑) -->
-      <div class="sec-header" style="margin-bottom:10px">
+      <div class="sec-header" style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <div class="sec-title" style="font-size:13px;color:var(--gray5)">장비별 실측 · AI 예측</div>
+        <input type="text" class="station-search" data-search-table="predict-table" placeholder="🔍 관측소 검색" style="margin-left:auto">
       </div>
       <div class="card mb24">
         <div style="overflow-x:auto">
@@ -1883,9 +1891,10 @@ body {
 
     <!-- 전체 표 -->
     <div class="card mb16">
-      <div class="sec-header" style="margin-bottom:10px">
+      <div class="sec-header" style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <div class="sec-bar"></div>
         <div class="sec-title" style="font-size:13px">전 관측소 상세</div>
+        <input type="text" class="station-search" data-search-table="equipment-table" placeholder="🔍 관측소 검색" style="margin-left:auto">
       </div>
       <div style="overflow-x:auto">
         <table class="data-table" id="equipment-table"></table>
@@ -2101,11 +2110,14 @@ body {
           <div class="sec-bar"></div>
           <div class="sec-title" style="font-size:13px">관측소별 민원 가능성 <span style="font-weight:400;color:var(--gray4);font-size:11px">민원 발생 가능성 점수 + 권장 조치 · 가능성 순</span></div>
         </div>
+        <div style="display:flex;align-items:center;gap:10px">
+        <input type="text" class="station-search" data-search-table="complaint-table" placeholder="🔍 관측소 검색">
         <div class="rp-period-chips" style="margin:0">
           <div class="cp-chip active" data-filter="all">전체</div>
           <div class="cp-chip" data-filter="높음">높음</div>
           <div class="cp-chip" data-filter="보통">보통</div>
           <div class="cp-chip" data-filter="낮음">낮음</div>
+        </div>
         </div>
       </div>
       <!-- 민원 가능성 점수 구간 범례 (칸 너비 = 점수 범위 비례) -->
@@ -7111,6 +7123,43 @@ async function plMatch(btn) {
     if (btn) { btn.disabled = false; btn.textContent = '🔄 실측 대조 실행'; }
   }
 }
+
+// ── 관측소 실시간 검색 (엔터 없이 입력 즉시 필터) ──────────
+// data-search-table="테이블ID" 를 가진 input 이 있으면 자동 연결.
+// 첫 열(관측소명)에 검색어가 포함된 행만 보이게 하고, 테이블 재렌더 시에도 유지.
+const STATION_SEARCH = {};  // tableId -> 검색어
+
+function applyTableSearch(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const q = (STATION_SEARCH[tableId] || '').trim().toLowerCase();
+  const tbody = table.tBodies && table.tBodies[0];
+  if (!tbody) return;
+  Array.from(tbody.rows).forEach(tr => {
+    // 필터용 행이 아닌 안내/헤더 행(td 1개 등)은 건드리지 않음
+    if (!q) { tr.style.display = ''; return; }
+    const firstCell = tr.cells && tr.cells[0];
+    const txt = (firstCell ? firstCell.textContent : '').toLowerCase();
+    tr.style.display = txt.includes(q) ? '' : 'none';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[data-search-table]').forEach(inp => {
+    const tableId = inp.getAttribute('data-search-table');
+    // 입력 즉시 필터
+    inp.addEventListener('input', () => {
+      STATION_SEARCH[tableId] = inp.value;
+      applyTableSearch(tableId);
+    });
+    // 테이블이 재렌더(innerHTML 교체)돼도 현재 검색어 다시 적용
+    const table = document.getElementById(tableId);
+    if (table) {
+      const mo = new MutationObserver(() => applyTableSearch(tableId));
+      mo.observe(table, { childList: true, subtree: true });
+    }
+  });
+});
 </script>
 </body>
 </html>
