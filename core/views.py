@@ -468,6 +468,33 @@ def _build_overview_data(su, date_str='', hour_str=''):
         if u and dd:
             daily[u][dd] += (r.get('mosquito_count') or 0)
             dates_set.add(dd)
+    # MOSCOM 7일 통계 API 는 최근 7일만 반환한다. 기준일(또는 전일)이 그 창을 벗어나면
+    # 우리 DB(Collection)에서 직접 집계해 채운다. (과거 조회 시 0으로 나오던 문제 해결)
+    need_dates = [target_iso, yday_iso]
+    missing = [d for d in need_dates if d not in dates_set]
+    if missing:
+        try:
+            from moscom.models import Collection
+            from django.db.models import Sum
+            from django.db.models.functions import TruncDate
+            from datetime import datetime as _dt
+            for d_iso in missing:
+                dd = date_cls.fromisoformat(d_iso)
+                # KST 하루 = KST 00:00 ~ 24:00 (UTC 로 변환)
+                day_start = _dt(dd.year, dd.month, dd.day, 0, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
+                day_end = day_start + timedelta(days=1)
+                rows_db = (
+                    Collection.objects
+                    .filter(device_uuid__in=allowed_uuids,
+                            created_date__gte=day_start, created_date__lt=day_end)
+                    .values('device_uuid').annotate(total=Sum('mosquito_count'))
+                )
+                for row in rows_db:
+                    daily[row['device_uuid']][d_iso] = row['total'] or 0
+                dates_set.add(d_iso)
+        except Exception as e:
+            logger.warning(f'overview DB fallback failed: {e}')
+
     sorted_dates = sorted(dates_set)
     # date_str 가 주어진 경우 그 날짜를 기준일로 사용 (없으면 7일 stats 의 마지막 날짜 = 어제)
     today_d = target_iso if target_iso in dates_set else (sorted_dates[-1] if sorted_dates else target_iso)
