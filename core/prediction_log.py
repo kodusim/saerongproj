@@ -85,7 +85,9 @@ def save_snapshot(preds, meta_by_uuid=None, snapshot_date=None):
 
 def match_actuals(daily_by_uuid=None, limit_days=400):
     """실측이 확보된 과거 예측 행에 actual/error 채우기.
-    daily_by_uuid: {uuid: {'YYYY-MM-DD': count}} 형태(선택). 없으면 Collection 에서 집계.
+    ⚠️ 실측은 moscom 일별 API(get_daily_map) 값을 쓴다. Collection.mosquito_count 는
+       누적값이라 직접 Sum 하면 부풀려짐.
+    daily_by_uuid: {uuid: {'YYYY-MM-DD': count}} 형태(선택). 없으면 API 로 조회.
     반환: 갱신된 행 수
     """
     from moscom.models import PredictionLog
@@ -93,22 +95,25 @@ def match_actuals(daily_by_uuid=None, limit_days=400):
     since = today - timedelta(days=limit_days)
     # 아직 대조 안 됐고, 대상일이 이미 지난(=실측 확보 가능) 행
     qs = PredictionLog.objects.filter(actual__isnull=True, target_date__lt=today, target_date__gte=since)
-    updated = 0
-    cache = {}
 
+    # 대조에 필요한 실측을 moscom 일별 API 로 한 번에 확보
+    if daily_by_uuid is None:
+        try:
+            from core import moscom_client
+            tds_list = list(qs.values_list('target_date', flat=True).distinct())
+            if tds_list:
+                daily_by_uuid = moscom_client.get_daily_map(min(tds_list), max(tds_list))
+            else:
+                daily_by_uuid = {}
+        except Exception:
+            logger.exception('get_daily_map for match failed')
+            daily_by_uuid = {}
+
+    updated = 0
     for row in qs.iterator():
         u, td = row.device_uuid, row.target_date
         tds = td.isoformat()
-        actual = None
-        if daily_by_uuid and u in daily_by_uuid:
-            actual = daily_by_uuid[u].get(tds)
-        if actual is None:
-            key = (u, tds)
-            if key in cache:
-                actual = cache[key]
-            else:
-                actual = _actual_from_db(u, td)
-                cache[key] = actual
+        actual = (daily_by_uuid.get(u) or {}).get(tds)
         if actual is None:
             continue
         row.actual = int(actual)
@@ -124,22 +129,6 @@ def match_actuals(daily_by_uuid=None, limit_days=400):
     return updated
 
 
-def _actual_from_db(device_uuid, target_date):
-    """Collection 에서 해당 장비·날짜(KST)의 포집 합계."""
-    try:
-        from django.db.models import Sum
-        from moscom.models import Collection
-        start = datetime(target_date.year, target_date.month, target_date.day, 0, 0, 0, tzinfo=KST)
-        end = start + timedelta(days=1)
-        agg = Collection.objects.filter(
-            device_uuid=device_uuid,
-            created_date__gte=start.astimezone(timezone.utc),
-            created_date__lt=end.astimezone(timezone.utc),
-        ).aggregate(t=Sum('mosquito_count'))
-        return agg.get('t')
-    except Exception:
-        logger.exception('actual lookup failed')
-        return None
 
 
 def accuracy_summary(days=30, allowed_uuids=None):

@@ -473,38 +473,30 @@ def _build_overview_data(su, date_str='', hour_str=''):
     need_dates = [target_iso, yday_iso]
     missing = [d for d in need_dates if d not in dates_set]
     if missing:
+        # ⚠️ Collection.mosquito_count 는 누적값이라 직접 Sum 하면 부풀려짐.
+        # moscom 일별 API(get_daily_map)로 정확한 일별값을 채운다. (moscom.co.kr 과 동일)
         try:
-            from moscom.models import Collection
-            from django.db.models import Sum
-            from django.db.models.functions import TruncDate
-            from datetime import datetime as _dt
+            dmap = moscom_client.get_daily_map(min(missing), max(missing), allowed_uuids=allowed_uuids)
+            for u, per in dmap.items():
+                for d_iso in missing:
+                    if d_iso in per:
+                        daily[u][d_iso] = per[d_iso]
             for d_iso in missing:
-                dd = date_cls.fromisoformat(d_iso)
-                # KST 하루 = KST 00:00 ~ 24:00 (UTC 로 변환)
-                day_start = _dt(dd.year, dd.month, dd.day, 0, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
-                day_end = day_start + timedelta(days=1)
-                rows_db = (
-                    Collection.objects
-                    .filter(device_uuid__in=allowed_uuids,
-                            created_date__gte=day_start, created_date__lt=day_end)
-                    .values('device_uuid').annotate(total=Sum('mosquito_count'))
-                )
-                for row in rows_db:
-                    daily[row['device_uuid']][d_iso] = row['total'] or 0
                 dates_set.add(d_iso)
         except Exception as e:
-            logger.warning(f'overview DB fallback failed: {e}')
+            logger.warning(f'overview daily fallback failed: {e}')
 
     sorted_dates = sorted(dates_set)
     # date_str 가 주어진 경우 그 날짜를 기준일로 사용 (없으면 7일 stats 의 마지막 날짜 = 어제)
     today_d = target_iso if target_iso in dates_set else (sorted_dates[-1] if sorted_dates else target_iso)
     yday_d = yday_iso if yday_iso in dates_set else (sorted_dates[-2] if len(sorted_dates) >= 2 else yday_iso)
 
-    # ?hour 지정 시: 그 날짜의 0시 ~ hour시까지의 누적값으로 today_by_dev 재계산
+    # ?hour 지정 시: 그 날짜의 0시 ~ hour시까지의 값으로 today_by_dev 재계산.
+    # ⚠️ mosquito_count 는 누적값이므로 Sum 이 아니라 Max(그 시각까지의 최신 누적값)를 써야 함.
     if cutoff_hour is not None and 0 <= cutoff_hour <= 23:
         try:
             from moscom.models import Collection
-            from django.db.models import Sum
+            from django.db.models import Max
             from datetime import datetime as dt
             day_start = dt(target_date.year, target_date.month, target_date.day, 0, 0, 0, tzinfo=timezone.utc) - timedelta(hours=9)
             cutoff_dt = day_start + timedelta(hours=cutoff_hour)
@@ -514,7 +506,7 @@ def _build_overview_data(su, date_str='', hour_str=''):
                         created_date__gte=day_start,
                         created_date__lte=cutoff_dt)
                 .values('device_uuid')
-                .annotate(total=Sum('mosquito_count'))
+                .annotate(total=Max('mosquito_count'))
             )
             hour_by_dev = {row['device_uuid']: (row['total'] or 0) for row in cutoff_data}
             # daily[today_d] 를 시각별 cutoff 값으로 override
@@ -3757,26 +3749,22 @@ def moscom_forecast_brief(request):
         prev7_avg = (prev7_total / 7) if prev7_total else 0
         wow_change_pct = round((recent7_avg - prev7_avg) / prev7_avg * 100) if prev7_avg > 0 else 0
 
-        # 작년 동기간 — 우리 Collection 에 1년치 데이터 없으면 None
+        # 작년 동기간 평균 — moscom 일별 API(누적값 Sum 금지) 기준. 1년치 없으면 None
         last_year_avg = None
         last_year_range = None
-        if Collection is not None:
-            try:
-                ly_start = today_d.replace(year=today_d.year - 1) - timedelta(days=7)
-                ly_end = today_d.replace(year=today_d.year - 1)
-                from django.utils import timezone as dj_tz
-                start_utc = dj_tz.make_aware(datetime.combine(ly_start, datetime.min.time()))
-                end_utc = dj_tz.make_aware(datetime.combine(ly_end, datetime.max.time()))
-                ly_qs = Collection.objects.filter(
-                    device_uuid__in=allowed_uuids,
-                    created_date__gte=start_utc, created_date__lte=end_utc,
-                )
-                ly_total = sum(c.mosquito_count for c in ly_qs)
-                if ly_qs.exists():
-                    last_year_avg = round(ly_total / 7, 1)
-                    last_year_range = f'{ly_start.isoformat()} ~ {ly_end.isoformat()}'
-            except (ValueError, Exception):
-                pass
+        try:
+            ly_start = today_d.replace(year=today_d.year - 1) - timedelta(days=6)
+            ly_end = today_d.replace(year=today_d.year - 1)
+            ly_map = moscom_client.get_daily_map(ly_start, ly_end, allowed_uuids=allowed_uuids)
+            ly_days = {}
+            for per in ly_map.values():
+                for d_iso, cnt in per.items():
+                    ly_days[d_iso] = ly_days.get(d_iso, 0) + cnt
+            if ly_days:
+                last_year_avg = round(sum(ly_days.values()) / 7, 1)
+                last_year_range = f'{ly_start.isoformat()} ~ {ly_end.isoformat()}'
+        except (ValueError, Exception):
+            pass
 
         # 작년 대비 비율
         yoy_change_pct = None
