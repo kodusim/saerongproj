@@ -45,20 +45,26 @@ class Command(BaseCommand):
         use_weather = not opts['no_weather']
         test_size = opts['test_size']
 
-        self.stdout.write(self.style.NOTICE('1) Collection → 장비×일 집계'))
-        rows = list(
-            Collection.objects
-            .annotate(d=TruncDate('created_date'))
-            .values('device_uuid', 'd')
-            .annotate(total=Sum('mosquito_count'))
-            .order_by('device_uuid', 'd')
-        )
-        self.stdout.write(f'   행 수: {len(rows)}')
+        # ⚠️ Collection.mosquito_count 는 누적값 → 직접 Sum 금지.
+        # 학습 타깃(일 마릿수)은 moscom 일별 API(get_daily_map) 값을 쓴다.
+        self.stdout.write(self.style.NOTICE('1) moscom 일별 API → 장비×일 집계'))
+        from core import moscom_client
+        from django.db.models import Min, Max as _Max
+        rng = Collection.objects.aggregate(mn=Min('created_date'), mx=_Max('created_date'))
+        if not rng['mn']:
+            self.stdout.write(self.style.ERROR('데이터 없음')); return
+        import datetime as _dt
+        KST = _dt.timezone(_dt.timedelta(hours=9))
+        d0 = rng['mn'].astimezone(KST).date()
+        d1 = rng['mx'].astimezone(KST).date()
+        dmap = moscom_client.get_daily_map(d0, d1)
 
         # 장비별 시계열로 정리
         dev_series = defaultdict(list)  # uuid -> [(date, total), ...]
-        for r in rows:
-            dev_series[r['device_uuid']].append((r['d'], r['total'] or 0))
+        for u, per in dmap.items():
+            for d_iso, cnt in sorted(per.items()):
+                dev_series[u].append((_dt.date.fromisoformat(d_iso), cnt))
+        self.stdout.write(f'   관측소: {len(dev_series)}, 일수 합계: {sum(len(v) for v in dev_series.values())}')
 
         # 장비 메타
         devices = {d.device_uuid: d for d in Device.objects.all()}

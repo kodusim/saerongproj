@@ -47,15 +47,21 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR('활성 장비가 없습니다'))
             return
 
-        # 2) 일별 실측 집계 (KST 기준)
-        self.stdout.write('실측 집계 중…')
+        # 2) 일별 실측 = moscom 일별 API(get_daily_map). Collection 누적값 Sum 금지.
+        self.stdout.write('실측 집계 중(moscom 일별 API)…')
+        from core import moscom_client
+        from moscom.models import Collection as _Col
+        from django.db.models import Min, Max as _Max
+        rng = _Col.objects.aggregate(mn=Min('created_date'), mx=_Max('created_date'))
+        if not rng['mn']:
+            self.stdout.write(self.style.ERROR('실측 데이터가 없습니다'))
+            return
+        d0 = rng['mn'].astimezone(KST).date()
+        d1 = rng['mx'].astimezone(KST).date()
+        dmap = moscom_client.get_daily_map(d0, d1, allowed_uuids=list(devices.keys()))
         daily = defaultdict(dict)   # uuid -> {date_str: count}
-        qs = Collection.objects.filter(device_uuid__in=list(devices.keys())).values(
-            'device_uuid', 'created_date', 'mosquito_count')
-        for row in qs.iterator(chunk_size=5000):
-            u = row['device_uuid']
-            d_kst = row['created_date'].astimezone(KST).date().isoformat()
-            daily[u][d_kst] = daily[u].get(d_kst, 0) + (row['mosquito_count'] or 0)
+        for u, per in dmap.items():
+            daily[u] = dict(per)
 
         all_dates = sorted({d for m in daily.values() for d in m.keys()})
         if not all_dates:
