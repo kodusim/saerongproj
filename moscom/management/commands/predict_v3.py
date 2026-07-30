@@ -280,28 +280,41 @@ class Command(BaseCommand):
         reg_by_sid = dict(zip(panel['station'], panel['region']))
         y_by = {(r['station'], pd.to_datetime(r['bizdate']).date()): r['y']
                 for _, r in panel.iterrows() if pd.notna(r['y'])}
+        # (관측소, 산출일, 대상일) 중복 제거 — unique 제약 위반 방지
+        allp = allp.drop_duplicates(subset=['sid', 'bizdate', '_h'], keep='last')
         objs = []
+        seen = set()
         dmax = allp['bizdate'].max()
         for _, r in allp.iterrows():
             snap = pd.to_datetime(r['bizdate']).date()
             if days and (dmax.date() - snap).days > days:
                 continue
-            td = snap + timedelta(days=int(r['_h']))
-            actual = y_by.get((r['station'], td))
-            err = (int(actual) - int(r['_pred'])) if actual is not None else None
+            h = int(r['_h'])
+            td = snap + timedelta(days=h)
+            key = (str(r['sid']), snap, td)
+            if key in seen:
+                continue
+            seen.add(key)
+            pred = int(r['_pred'])
+            av = y_by.get((str(r['station']), td))
+            actual = None if (av is None or pd.isna(av)) else int(round(float(av)))
+            err = (actual - pred) if actual is not None else None
             objs.append(PredictionLog(
-                device_uuid=r['sid'], device_name=r['station'],
-                region_name=reg_by_sid.get(r['sid'], ''),
-                snapshot_date=snap, target_date=td, horizon_days=int(r['_h']),
-                predicted=int(r['_pred']), predicted_raw=int(r['_pred']),
-                actual=(int(actual) if actual is not None else None),
-                error=err,
-                abs_error_pct=(round(abs(err) / max(1, int(actual)) * 100, 1)
+                device_uuid=str(r['sid']), device_name=str(r['station']),
+                region_name=str(reg_by_sid.get(r['sid'], '') or ''),
+                snapshot_date=snap, target_date=td, horizon_days=h,
+                predicted=pred, predicted_raw=pred,
+                actual=actual, error=err,
+                abs_error_pct=(round(abs(err) / max(1, actual) * 100, 1)
                                if (actual is not None and err is not None) else None),
                 matched_at=(datetime.now(timezone.utc) if actual is not None else None),
                 model_version='v3'))
-        PredictionLog.objects.bulk_create(objs, ignore_conflicts=True, batch_size=2000)
-        self.stdout.write(self.style.SUCCESS(f'backfill 저장: {len(objs)}행'))
+        try:
+            PredictionLog.objects.bulk_create(objs, batch_size=1000)
+            self.stdout.write(self.style.SUCCESS(f'backfill 저장: {len(objs)}행'))
+        except Exception as e:
+            self.stderr.write(f'bulk_create 실패: {e!r}')
+            raise
 
 
 def _business_yesterday():
