@@ -275,7 +275,8 @@ class Command(BaseCommand):
 
     def _save_backfill(self, allp, panel, PredictionLog, days):
         # 각 기준일마다 그날 만든 h=1~3 예측을 이력으로 저장 (과거 예측 재현)
-        PredictionLog.objects.filter(model_version='v3').delete()
+        # 구 모델(backfill/v2)이 unique 제약을 선점하지 않도록 함께 제거하고 v3로 대체
+        PredictionLog.objects.filter(model_version__in=['v3', 'backfill', 'v2']).delete()
         reg_by_sid = dict(zip(panel['station'], panel['region']))
         y_by = {(r['station'], pd.to_datetime(r['bizdate']).date()): r['y']
                 for _, r in panel.iterrows() if pd.notna(r['y'])}
