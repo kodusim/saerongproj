@@ -17,6 +17,7 @@ from core.views import (
     kakao_status, kakao_oauth_start, kakao_oauth_callback, kakao_disconnect, kakao_send_api,
     moscom_anomaly_history,
     moscom_prediction_log_api, moscom_prediction_snapshot_api, moscom_prediction_match_api,
+    moscom_prediction_series_api,
     beta_view, beta_logout,
 )
 from django.views.decorators.csrf import csrf_exempt
@@ -63,6 +64,7 @@ urlpatterns = [
     path("mosquito-test/api/prediction-log/", moscom_prediction_log_api, name="moscom_prediction_log_api"),
     path("mosquito-test/api/prediction-log/snapshot/", csrf_exempt(moscom_prediction_snapshot_api), name="moscom_prediction_snapshot_api"),
     path("mosquito-test/api/prediction-log/match/", csrf_exempt(moscom_prediction_match_api), name="moscom_prediction_match_api"),
+    path("mosquito-test/api/prediction-series/", moscom_prediction_series_api, name="moscom_prediction_series_api"),
     path("games/", game_notices, name="game_notices"),  # 게임 공지사항
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),  # Summernote 에디터

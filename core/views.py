@@ -4089,6 +4089,48 @@ def moscom_prediction_log_api(request):
     return JsonResponse({'count': len(items), 'items': items, 'summary': summary, 'days': days})
 
 
+@require_GET
+def moscom_prediction_series_api(request):
+    """관측소별 예측 vs 실측 시계열 (admin).
+    쿼리: device=관측소명(선택). 없으면 관측소 목록만 반환.
+    반환: 대상일별 실측 + 그날을 예측한 h=1 예측값 (과거 예측 이력 검증용).
+    """
+    err = _require_admin(request)
+    if err:
+        return err
+    from moscom.models import PredictionLog
+    # 관측소 목록 (예측 로그에 있는 것)
+    names = list(PredictionLog.objects
+                 .exclude(device_name='')
+                 .values_list('device_name', flat=True).distinct().order_by('device_name'))
+    dev = request.GET.get('device') or ''
+    series = None
+    if dev:
+        # h=1 예측(전날 산출) + 실측을 target_date 기준으로
+        qs = (PredictionLog.objects
+              .filter(device_name=dev, horizon_days=1)
+              .order_by('target_date')
+              .values('target_date', 'predicted', 'actual'))
+        series = [{
+            'date': r['target_date'].isoformat(),
+            'predicted': r['predicted'],
+            'actual': r['actual'],
+        } for r in qs]
+        # 요약 정확도
+        pairs = [(r['predicted'], r['actual']) for r in series
+                 if r['actual'] is not None and r['actual'] > 0]
+        acc = None
+        if pairs:
+            n = len(pairs)
+            mae = sum(abs(a - p) for p, a in pairs) / n
+            aps = sorted(abs(a - p) / max(1, a) * 100 for p, a in pairs)
+            mdape = aps[n // 2] if n % 2 else (aps[n // 2 - 1] + aps[n // 2]) / 2
+            hit = sum(1 for p, a in pairs if abs(a - p) / max(1, a) <= 0.2) / n * 100
+            acc = {'count': n, 'mae': round(mae, 1), 'mdape': round(mdape, 1), 'hit_rate': round(hit, 1)}
+        return JsonResponse({'device': dev, 'series': series, 'accuracy': acc, 'devices': names})
+    return JsonResponse({'devices': names})
+
+
 @csrf_exempt
 @require_POST
 def moscom_prediction_snapshot_api(request):

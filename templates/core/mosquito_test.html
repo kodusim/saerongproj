@@ -2304,6 +2304,21 @@ body {
     <!-- 정확도 요약 -->
     <div class="kpi-grid mb16" id="pl-summary" style="grid-template-columns:repeat(4,1fr)"></div>
 
+    <!-- 관측소별 예측 vs 실측 그래프 -->
+    <div class="card mb16" style="padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title" style="font-size:13px">관측소별 예측 vs 실측 (1일 후 예측 이력)</div>
+        <input type="text" id="ps-search" placeholder="🔍 관측소 검색" class="station-search" style="margin-left:auto">
+        <select id="ps-device" style="padding:6px 10px;border:1px solid var(--gray3);border-radius:5px;font-size:12px;min-width:180px"></select>
+        <span id="ps-acc" style="font-size:11px;color:var(--gray5)"></span>
+      </div>
+      <div style="position:relative;height:340px"><canvas id="ps-chart"></canvas></div>
+      <div style="font-size:10px;color:var(--gray4);margin-top:6px">
+        ※ 실선=실측, 점선=그 전날 만든 1일 후 예측. 과거 예측이 실측을 얼마나 맞췄는지 확인.
+      </div>
+    </div>
+
     <!-- N일 후 예측별 정확도 -->
     <div class="card mb16">
       <div class="sec-header" style="padding:12px 16px 4px;margin:0">
@@ -6985,7 +7000,63 @@ function plMsg(text, kind) {
   if (kind === 'ok') setTimeout(() => { el.innerHTML = ''; }, 4000);
 }
 
+// ── 관측소별 예측 vs 실측 시계열 ──
+let PS_CHART = null, PS_DEVICES = [];
+async function psInit() {
+  const sel = document.getElementById('ps-device');
+  if (!sel) return;
+  try {
+    const r = await fetch('/mosquito-test/api/prediction-series/', { credentials: 'same-origin' });
+    const j = await r.json();
+    PS_DEVICES = j.devices || [];
+    psFillOptions('');
+    if (PS_DEVICES.length) { sel.value = PS_DEVICES[0]; psLoadDevice(PS_DEVICES[0]); }
+    sel.onchange = () => psLoadDevice(sel.value);
+    const srch = document.getElementById('ps-search');
+    if (srch) srch.oninput = () => psFillOptions(srch.value);
+  } catch (e) {}
+}
+function psFillOptions(q) {
+  const sel = document.getElementById('ps-device');
+  if (!sel) return;
+  const ql = (q || '').trim().toLowerCase();
+  const list = ql ? PS_DEVICES.filter(n => n.toLowerCase().includes(ql)) : PS_DEVICES;
+  const cur = sel.value;
+  sel.innerHTML = list.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${stationName(n)}</option>`).join('');
+  if (list.includes(cur)) sel.value = cur;
+  else if (list.length) { sel.value = list[0]; psLoadDevice(list[0]); }
+}
+async function psLoadDevice(dev) {
+  if (!dev) return;
+  try {
+    const r = await fetch('/mosquito-test/api/prediction-series/?device=' + encodeURIComponent(dev), { credentials: 'same-origin' });
+    const j = await r.json();
+    const s = j.series || [];
+    const labels = s.map(x => x.date.slice(5));
+    const actual = s.map(x => x.actual);
+    const pred = s.map(x => x.predicted);
+    const acc = j.accuracy;
+    const accEl = document.getElementById('ps-acc');
+    if (accEl) accEl.innerHTML = acc
+      ? `대조 ${acc.count}건 · MAE ${acc.mae} · 중앙값오차율 ${acc.mdape}% · 적중률 ${acc.hit_rate}%`
+      : '실측 대조 데이터 없음';
+    const ctx = document.getElementById('ps-chart');
+    if (PS_CHART) PS_CHART.destroy();
+    PS_CHART = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: '실측', data: actual, borderColor: '#1B3A6B', backgroundColor: 'rgba(27,58,107,.06)', borderWidth: 2.5, pointRadius: 2, tension: 0.25, fill: false, spanGaps: true },
+        { label: '예측(1일 후)', data: pred, borderColor: '#C05000', borderWidth: 2, borderDash: [6,4], pointRadius: 2, tension: 0.25, fill: false, spanGaps: true },
+      ]},
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: '포집량(마리)' } }, x: { grid: { display: false } } } },
+    });
+  } catch (e) {}
+}
+
 async function plLoad() {
+  psInit();
   const days = document.getElementById('pl-days')?.value || '14';
   const onlyMatched = document.getElementById('pl-only-matched')?.checked ? '1' : '';
   const t = document.getElementById('pl-table');
