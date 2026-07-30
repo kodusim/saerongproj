@@ -118,6 +118,7 @@ class Command(BaseCommand):
 
     # ── panel: moscom 일별값 + 장비상태 ──
     def _build_panel(self, moscom_client, Collection, Device, Region):
+        from django.db.models import Min, Max
         rng = Collection.objects.aggregate(mn=Min('created_date'), mx=Max('created_date'))
         if not rng['mn']:
             return None
