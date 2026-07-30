@@ -155,3 +155,38 @@ def get_statistics_by_date(start_dt, end_dt, aggregation='raw',
     )
     cache.set(cache_key, data, BYDATE_TTL)
     return data
+
+
+def get_daily_map(start_date, end_date, allowed_uuids=None, force_refresh=False):
+    """moscom 일별 통계(aggregation='day')를 정확한 일별값으로 반환.
+
+    ⚠️ 중요: Collection.mosquito_count 는 누적값이라 직접 Sum 하면 몇 배로 부풀려진다.
+    반드시 이 함수를 통해 moscom API 의 일별 집계값을 사용할 것. (moscom.co.kr 과 동일)
+
+    start_date, end_date: 'YYYY-MM-DD' (양끝 포함)
+    allowed_uuids: 있으면 그 장비만 필터
+    반환: { device_uuid: { 'YYYY-MM-DD': count, ... }, ... }
+    """
+    from datetime import datetime, timedelta
+    try:
+        sd = datetime.strptime(str(start_date)[:10], '%Y-%m-%d').date()
+        ed = datetime.strptime(str(end_date)[:10], '%Y-%m-%d').date()
+    except Exception:
+        return {}
+    # API 는 [start, end) 로 동작하므로 end 다음날 00:00 까지
+    start_iso = sd.strftime('%Y-%m-%dT00:00:00.000Z')
+    end_iso = (ed + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00.000Z')
+    rows = get_statistics_by_date(
+        start_dt=start_iso, end_dt=end_iso, aggregation='day',
+        device_uuid='0', force_refresh=force_refresh) or []
+    allowed = set(allowed_uuids) if allowed_uuids is not None else None
+    out = {}
+    for r in rows:
+        u = r.get('device_uuid')
+        if not u or (allowed is not None and u not in allowed):
+            continue
+        d = (r.get('created_date') or '')[:10]
+        if not d or d < sd.isoformat() or d > ed.isoformat():
+            continue
+        out.setdefault(u, {})[d] = r.get('mosquito_count') or 0
+    return out
