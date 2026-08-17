@@ -21,3 +21,7 @@ core/kakao_tokens.json
 # TDM 모델 가중치 (large, 서버에 별도 배포)
 tdm/ml_artifacts/*.joblib
 tdm/ml_artifacts/*.pt
+tdm/ml_artifacts_v2/
+
+# 학습 작업 폴더 (커밋 금지 — 로컬/특허 전용)
+Hybrid_model_2cm_bs_pipet_수정/
