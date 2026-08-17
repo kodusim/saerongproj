@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vancomycin TDM — 환자군별 예측</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --navy:#1B3A6B; --navy-l:#D6E0F0; --gray1:#F7F8FA; --gray2:#ECEEF2;
@@ -82,6 +83,9 @@ table.data tr:hover { background:var(--gray1); }
 .note { background:var(--gray1); border-left:3px solid var(--gray4); padding:8px 12px; font-size:11px; color:var(--gray5); margin-top:8px; }
 .empty { padding:30px 0; text-align:center; color:var(--gray4); font-size:11px; }
 
+#chart-wrap { position:relative; height:340px; }
+@media (max-width:600px) { #chart-wrap { height:280px; } }
+
 .spinner { display:inline-block; width:12px; height:12px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:6px; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
@@ -143,7 +147,7 @@ table.data tr:hover { background:var(--gray1); }
       </div>
       <div class="row" style="margin-top:8px">
         <div><label>하루 투여 횟수</label><input type="number" id="f-dpd" value="2" min="1" max="6" step="1"></div>
-        <div></div>
+        <div><label>곡선 사이클 수</label><select id="f-n"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
       </div>
       <h3>채혈 시점 농도 예측 (선택)</h3>
       <div class="note" style="margin:0 0 8px">비워두면 채혈농도 예측은 생략되고 Peak/Trough/AUC/용량만 계산됩니다.</div>
@@ -192,6 +196,15 @@ table.data tr:hover { background:var(--gray1); }
         <div class="kpi" id="kpi-conc" style="display:none"><div class="kpi-l">채혈시점 농도</div><div class="kpi-n" id="k-conc">-</div><div class="kpi-u">mg/L</div><div class="kpi-err" id="k-conc-err"></div></div>
       </div>
 
+      <!-- 곡선 -->
+      <div class="card">
+        <h2>재구성 농도 곡선 (사이클별 ML Peak/Trough 반복 예측 + 보간)</h2>
+        <div id="chart-wrap"><canvas id="conc-chart"></canvas></div>
+        <div class="note">사이클 순번을 바꿔가며 모델을 반복 호출해 얻은 Peak/Trough를 랜드마크로,
+          주입 상승(선형) + 투여 후 지수감쇠 곡선으로 이어 그린 재구성 그래프입니다.
+          실측 시계열이 아니라 시각화용 보간이며, ▲/▼ 지점만 모델 예측값입니다.</div>
+      </div>
+
       <!-- 요약 -->
       <div class="card">
         <h2>산출값 · 요약</h2>
@@ -215,6 +228,8 @@ table.data tr:hover { background:var(--gray1); }
 </div>
 
 <script>
+let CHART = null;
+
 function val(id) {
   const v = document.getElementById(id).value.trim();
   if (v === '') return null;
@@ -248,6 +263,7 @@ async function runPredict() {
     doses_per_day: val('f-dpd'),
     blood_collection_hour: val('f-bch'),
     hours_from_request_to_collection: val('f-hrc'),
+    n_doses: parseInt(document.getElementById('f-n').value, 10) || 5,
   };
 
   try {
@@ -323,6 +339,9 @@ function render(j) {
   document.getElementById('k-trough-status').innerHTML = 'mg/L ' + (ts ? '<span class="status ' + statusClass(ts) + '">' + ts + '</span>' : '');
   document.getElementById('k-auc-status').innerHTML = 'mg·hr/L ' + (as_ ? '<span class="status ' + statusClass(as_) + '">' + as_ + '</span>' : '');
 
+  // 곡선
+  drawChart(j.curve || [], targetTroughLo, targetTroughHi);
+
   // 요약
   const d = j.derived || {};
   const rows = [
@@ -348,6 +367,56 @@ function render(j) {
     detailHtml += '<tr><td style="text-align:left">' + label + '</td><td>' + item.value + '</td><td>' + (item.rmse ?? '-') + '</td><td>' + (item.mae ?? '-') + '</td></tr>';
   }
   document.getElementById('detail-tbody').innerHTML = detailHtml;
+}
+
+function drawChart(curve, lo, hi) {
+  const ctx = document.getElementById('conc-chart');
+  if (CHART) CHART.destroy();
+  const labels = curve.map(p => p.t_hr.toFixed(1) + 'h');
+  const data = curve.map(p => p.conc);
+  const peakPts = curve.map(p => p.is_peak ? p.conc : null);
+  const troughPts = curve.map(p => p.is_trough ? p.conc : null);
+
+  CHART = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '목표 상한 (' + hi + ')', data: labels.map(_ => hi),
+          borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:'-1',
+          backgroundColor: 'rgba(26,92,53,.08)',
+        },
+        {
+          label: '목표 하한 (' + lo + ')', data: labels.map(_ => lo),
+          borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:false,
+        },
+        {
+          label: '재구성 농도 곡선', data, borderColor:'#1B3A6B', backgroundColor:'#1B3A6B22',
+          borderWidth:2.5, tension:0.25, pointRadius:0, fill:false,
+        },
+        {
+          label: 'ML 예측 Peak', data: peakPts, borderColor:'transparent',
+          backgroundColor:'#A32D2D', pointRadius:5, pointStyle:'triangle', showLine:false,
+        },
+        {
+          label: 'ML 예측 Trough', data: troughPts, borderColor:'transparent',
+          backgroundColor:'#0F5E6E', pointRadius:5, pointStyle:'rectRot', showLine:false,
+        },
+      ],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { position:'bottom', labels:{ font:{size:10}, boxWidth:10, usePointStyle:true } },
+        tooltip: { mode:'index', intersect:false },
+      },
+      scales: {
+        y: { beginAtZero:true, title:{display:true,text:'혈중 농도 (mg/L)'}, grid:{color:'rgba(0,0,0,.05)'} },
+        x: { title:{display:true,text:'시간 (시간)'}, grid:{display:false}, ticks:{maxTicksLimit:12} },
+      },
+    },
+  });
 }
 </script>
 </body>

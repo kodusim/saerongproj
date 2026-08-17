@@ -74,6 +74,7 @@ def tdm_predict_api(request):
         doses_per_day = body.get('doses_per_day')
         blood_collection_hour = body.get('blood_collection_hour')
         hours_from_request_to_collection = body.get('hours_from_request_to_collection')
+        n_doses = int(body.get('n_doses') or 5)
 
         result = tdm_predictor.predict_tdm_v2(
             patient=patient, cycle_seq=cycle_seq,
@@ -81,6 +82,7 @@ def tdm_predict_api(request):
             doses_per_day=float(doses_per_day) if doses_per_day not in (None, '') else None,
             blood_collection_hour=float(blood_collection_hour) if blood_collection_hour not in (None, '') else None,
             hours_from_request_to_collection=float(hours_from_request_to_collection) if hours_from_request_to_collection not in (None, '') else None,
+            n_doses=n_doses,
         )
 
         # 로그 저장

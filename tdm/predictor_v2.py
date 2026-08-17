@@ -6,13 +6,16 @@
 타겟 5종: dose_mg, EstimatedPeak, EstimatedTrough, AUC, target_concentration
 joblib 번들 구조: {'pipeline': sklearn Pipeline, 'features': [...], 'target': str, 'model': str}
 
+농도 곡선: 이 모델은 사이클 단위 포인트 예측(Peak/Trough)만 내놓으므로, 사이클 순번(1..n_doses)을
+바꿔가며 반복 예측한 뒤 Hybrid_model_2cm_bs_pipet/model/deep_learning/visualize_hybrid.py의
+build_landmark_curve()와 동일한 방식(주입 상승 선형 + 투여 후 지수감쇠)으로 시간축 곡선을 재구성한다.
+
 Lazy load + lru_cache. 첫 요청 때만 그룹×타겟 조합을 로드.
 """
 from __future__ import annotations
 import json
 import logging
 import os
-import re
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
@@ -101,21 +104,8 @@ def classify_group(age_years: float, is_hd: bool) -> str:
     return age_group
 
 
-def predict_tdm_v2(patient: dict, cycle_seq: int = 1, dose_interval_hr: float | None = None,
-                    doses_per_day: float | None = None,
-                    blood_collection_hour: float | None = None,
-                    hours_from_request_to_collection: float | None = None) -> dict:
-    """환자군 자동판정 + 5타겟(dose_mg/Peak/Trough/AUC/target_concentration) XGBoost 예측.
-
-    patient: {age, sex(0/1), height, weight, is_hd(bool),
-              Serum_Cr, CrCL?, Albumin, AST, ALT, WBC, Platelet, hs_CRP}
-    cycle_seq: TDM 사이클 순번 (CycleSequence)
-    dose_interval_hr / doses_per_day: 투여 계획 (없으면 기본값)
-    blood_collection_hour / hours_from_request_to_collection:
-        target_concentration(채혈 시점 농도) 예측용 — 없으면 해당 타겟은 생략
-
-    반환: {group, predictions: {target: {value, rmse, mae}}, derived: {...}}
-    """
+def _build_patient_context(patient: dict) -> dict:
+    """환자 입력 → 산출 covariate. cycle에 무관한 값들만 계산."""
     def f(key, default):
         v = patient.get(key)
         return float(v) if v not in (None, '') else float(default)
@@ -142,12 +132,10 @@ def predict_tdm_v2(patient: dict, cycle_seq: int = 1, dose_interval_hr: float | 
     age_group = 'Pediatric' if age < PEDIATRIC_AGE_CUTOFF_YEARS else 'Adult'
     remark_label = 'POS' if is_hd else 'NEG'
 
-    row = dict(DEFAULTS)
-    row.update({
+    base_row = dict(DEFAULTS)
+    base_row.update({
         'Age': age, 'Sex': 'M' if sex == 1 else 'F', 'Height': height, 'Weight': weight,
-        'BMI': bmi, 'CycleSequence': float(cycle_seq),
-        'DoseIntervalHr': dose_interval_hr if dose_interval_hr else DEFAULTS.get('DoseIntervalHr'),
-        'DosesPerDay': doses_per_day if doses_per_day else DEFAULTS['DosesPerDay'],
+        'BMI': bmi,
         'Albumin_lab': albumin, 'Albumin': albumin,
         'WBC': f('WBC', 7.73),
         'Platelet': f('Platelet', 165.0),
@@ -157,19 +145,18 @@ def predict_tdm_v2(patient: dict, cycle_seq: int = 1, dose_interval_hr: float | 
         'SerumCr': scr, 'CrCL_CG': crcl, 'BSA': bsa, 'eGFR': egfr,
         'age_group': age_group, 'is_HD': is_hd, 'remark_label': remark_label,
         'group': group,
-        'concentration_event_index': 1.0,
-        'blood_collection_hour': blood_collection_hour,
-        'hours_from_request_to_collection': hours_from_request_to_collection,
     })
+    return {
+        'group': group, 'base_row': base_row,
+        'derived': {'crcl_mL_min': crcl, 'bmi': bmi, 'bsa': bsa, 'egfr': egfr},
+    }
 
+
+def _predict_targets(group: str, row: dict, targets: list[str]) -> dict:
     import pandas as pd
 
     metrics = _load_metrics().get(group, {})
-    predictions = {}
-    targets = list(TARGETS)
-    if blood_collection_hour is None or hours_from_request_to_collection is None:
-        targets.remove('target_concentration')
-
+    out = {}
     for target in targets:
         try:
             pipe, features = _load_bundle(group, target)
@@ -179,17 +166,114 @@ def predict_tdm_v2(patient: dict, cycle_seq: int = 1, dose_interval_hr: float | 
         X = pd.DataFrame([{k: row.get(k) for k in features}])
         pred = float(pipe.predict(X)[0])
         m = metrics.get(target, {})
-        predictions[target] = {
-            'value': round(pred, 2),
-            'rmse': m.get('rmse'),
-            'mae': m.get('mae'),
-        }
+        out[target] = {'value': round(pred, 2), 'rmse': m.get('rmse'), 'mae': m.get('mae')}
+    return out
+
+
+def _landmark_curve(peaks: list[float], troughs: list[float], q_hr: float,
+                     infusion_h: float = 1.0) -> list[dict]:
+    """사이클별 Peak/Trough 랜드마크를 주입 상승(선형)+투여후 지수감쇠로 잇는다.
+
+    Hybrid_model_2cm_bs_pipet/model/deep_learning/visualize_hybrid.py의
+    build_landmark_curve()와 동일한 재구성 공식 (실측 곡선이 아닌 시각화용 보간).
+    """
+    points = []
+    prev_trough = 0.0
+    dose_t = 0.0
+    n = len(peaks)
+    for i in range(n):
+        peak = max(float(peaks[i]), 0.0)
+        trough = max(float(troughs[i]), 0.0)
+        peak_t = dose_t + infusion_h
+        next_dose_t = dose_t + q_hr
+        trough_t = next_dose_t
+
+        rise_t = [dose_t + (peak_t - dose_t) * k / 7 for k in range(8)]
+        rise_y = [prev_trough + (peak - prev_trough) * k / 7 for k in range(8)]
+
+        decay_steps = 24
+        decay_t = [peak_t + (trough_t - peak_t) * k / (decay_steps - 1) for k in range(decay_steps)]
+        decay_y = [trough + (peak - trough) * (2.718281828 ** (-3.2 * k / (decay_steps - 1))) for k in range(decay_steps)]
+        decay_y[-1] = trough
+
+        n_rise = len(rise_t)
+        for idx, (t, c) in enumerate(zip(rise_t, rise_y)):
+            is_last = (idx == n_rise - 1)
+            points.append({
+                't_hr': round(t, 2), 'conc': round(c, 3),
+                'is_dose': (idx == 0), 'is_tdm': is_last, 'is_peak': is_last,
+            })
+        for t, c in zip(decay_t[1:], decay_y[1:]):
+            is_trough_pt = (t == trough_t)
+            points.append({
+                't_hr': round(t, 2), 'conc': round(c, 3),
+                'is_dose': False, 'is_tdm': is_trough_pt, 'is_trough': is_trough_pt,
+            })
+
+        prev_trough = trough
+        dose_t = next_dose_t
+    return points
+
+
+def predict_tdm_v2(patient: dict, cycle_seq: int = 1, dose_interval_hr: float | None = None,
+                    doses_per_day: float | None = None,
+                    blood_collection_hour: float | None = None,
+                    hours_from_request_to_collection: float | None = None,
+                    n_doses: int = 5) -> dict:
+    """환자군 자동판정 + 5타겟(dose_mg/Peak/Trough/AUC/target_concentration) XGBoost 예측
+    + 사이클별 Peak/Trough를 반복 예측해 재구성한 농도 곡선.
+
+    patient: {age, sex(0/1), height, weight, is_hd(bool),
+              Serum_Cr, CrCL?, Albumin, AST, ALT, WBC, Platelet, hs_CRP}
+    cycle_seq: 대표 사이클(요약 KPI에 사용). 곡선은 1..n_doses 전체를 반복 예측해 구성.
+    dose_interval_hr / doses_per_day: 투여 계획 (없으면 기본값)
+    blood_collection_hour / hours_from_request_to_collection:
+        target_concentration(채혈 시점 농도) 예측용 — 없으면 해당 타겟은 생략
+    n_doses: 곡선에 사용할 사이클 수 (1~5)
+
+    반환: {group, predictions, derived, curve: [{t_hr, conc, is_dose, is_tdm}], model_meta}
+    """
+    ctx = _build_patient_context(patient)
+    group, base_row = ctx['group'], ctx['base_row']
+    n_doses = max(1, min(5, int(n_doses)))
+    q_hr = float(dose_interval_hr) if dose_interval_hr else 12.0
+
+    # 대표 사이클 KPI (dose_mg/AUC/target_concentration 포함)
+    rep_row = dict(base_row)
+    rep_row.update({
+        'CycleSequence': float(cycle_seq),
+        'DoseIntervalHr': dose_interval_hr if dose_interval_hr else DEFAULTS.get('DoseIntervalHr'),
+        'DosesPerDay': doses_per_day if doses_per_day else DEFAULTS['DosesPerDay'],
+        'concentration_event_index': 1.0,
+        'blood_collection_hour': blood_collection_hour,
+        'hours_from_request_to_collection': hours_from_request_to_collection,
+    })
+    targets = list(TARGETS)
+    if blood_collection_hour is None or hours_from_request_to_collection is None:
+        targets.remove('target_concentration')
+    predictions = _predict_targets(group, rep_row, targets)
+
+    # 사이클별 Peak/Trough 반복 예측 → 곡선 재구성
+    peaks, troughs = [], []
+    for cyc in range(1, n_doses + 1):
+        cyc_row = dict(base_row)
+        cyc_row.update({
+            'CycleSequence': float(cyc),
+            'DoseIntervalHr': dose_interval_hr if dose_interval_hr else DEFAULTS.get('DoseIntervalHr'),
+            'DosesPerDay': doses_per_day if doses_per_day else DEFAULTS['DosesPerDay'],
+        })
+        cyc_pred = _predict_targets(group, cyc_row, ['EstimatedPeak', 'EstimatedTrough'])
+        peaks.append(cyc_pred.get('EstimatedPeak', {}).get('value', 0.0))
+        troughs.append(cyc_pred.get('EstimatedTrough', {}).get('value', 0.0))
+
+    curve = _landmark_curve(peaks, troughs, q_hr) if peaks else []
 
     return {
         'group': group,
         'predictions': predictions,
-        'derived': {
-            'crcl_mL_min': crcl, 'bmi': bmi, 'bsa': bsa, 'egfr': egfr,
-        },
-        'model_meta': {'model': 'xgboost', 'group': group},
+        'derived': ctx['derived'],
+        'curve': curve,
+        'cycle_peaks': [round(p, 2) for p in peaks],
+        'cycle_troughs': [round(t, 2) for t in troughs],
+        'model_meta': {'model': 'xgboost', 'group': group, 'n_doses': n_doses, 'q_hr': q_hr},
     }
