@@ -7,8 +7,10 @@
 joblib 번들 구조: {'pipeline': sklearn Pipeline, 'features': [...], 'target': str, 'model': str}
 
 농도 곡선: 이 모델은 사이클 단위 포인트 예측(Peak/Trough)만 내놓으므로, 사이클 순번(1..n_doses)을
-바꿔가며 반복 예측한 뒤 Hybrid_model_2cm_bs_pipet/model/deep_learning/visualize_hybrid.py의
-build_landmark_curve()와 동일한 방식(주입 상승 선형 + 투여 후 지수감쇠)으로 시간축 곡선을 재구성한다.
+바꿔가며 반복 예측한 뒤 표준 1-compartment 정상상태 공식(제거속도상수 k_e를 그 사이클의
+Peak/Trough 예측값에서 역산 → C(t)=Peak·exp(-k_e·t) 감쇠)으로 시간축 곡선을 재구성한다.
+(초기 구현은 Hybrid_model_2cm_bs_pipet의 build_landmark_curve()를 그대로 이식해 임의 지수계수를
+썼으나, 약동학적 근거가 없어 1-compartment 역산 공식으로 교체함 — _landmark_curve() 참고.)
 
 Lazy load + lru_cache. 첫 요청 때만 그룹×타겟 조합을 로드.
 """
@@ -175,25 +177,39 @@ def _landmark_curve(peaks: list[float], troughs: list[float], q_hr: float,
     """사이클별 Peak/Trough 랜드마크를 주입 상승(선형)+투여후 지수감쇠로 잇는다.
 
     Hybrid_model_2cm_bs_pipet/model/deep_learning/visualize_hybrid.py의
-    build_landmark_curve()와 동일한 재구성 공식 (실측 곡선이 아닌 시각화용 보간).
+    표준 1-compartment 정상상태 근사를 사용한다 (임의 보간이 아님):
+      - 제거속도상수 k_e = ln(Peak / Trough) / (다음 투여시각 − Peak 시각)
+        → 모델이 예측한 그 사이클의 Peak/Trough 두 값 자체에서 역산.
+      - 투여 후 감쇠: C(t) = Peak · exp(-k_e · (t − peak_t))       [1-comp 표준 감쇠식]
+      - 주입 중 상승: C(t) = Peak − (Peak − prev_trough) · exp(-k_e · (t − dose_t))
+        [zero-order infusion을 동일 k_e로 근사 — 분포용적/주입속도 미상이므로
+         상승·감쇠에 같은 제거속도상수를 적용해 임의 선형보다 약동학적으로 타당하게 처리]
     """
     points = []
     prev_trough = 0.0
     dose_t = 0.0
     n = len(peaks)
     for i in range(n):
-        peak = max(float(peaks[i]), 0.0)
-        trough = max(float(troughs[i]), 0.0)
+        peak = max(float(peaks[i]), 0.01)
+        trough = max(float(troughs[i]), 0.01)
+        if trough >= peak:
+            trough = peak * 0.9  # 모델 예측이 역전된 경우 방어 (trough < peak 강제)
         peak_t = dose_t + infusion_h
         next_dose_t = dose_t + q_hr
         trough_t = next_dose_t
 
-        rise_t = [dose_t + (peak_t - dose_t) * k / 7 for k in range(8)]
-        rise_y = [prev_trough + (peak - prev_trough) * k / 7 for k in range(8)]
+        # k_e: 이 사이클의 peak→trough 구간(주입 종료~다음 투여)에서 역산한 제거속도상수 (1/hr)
+        import math
+        k_e = math.log(peak / trough) / max(trough_t - peak_t, 1e-6)
+
+        rise_steps = 8
+        rise_t = [dose_t + (peak_t - dose_t) * k / (rise_steps - 1) for k in range(rise_steps)]
+        rise_y = [peak - (peak - prev_trough) * math.exp(-k_e * (t - dose_t)) for t in rise_t]
+        rise_y[-1] = peak
 
         decay_steps = 24
         decay_t = [peak_t + (trough_t - peak_t) * k / (decay_steps - 1) for k in range(decay_steps)]
-        decay_y = [trough + (peak - trough) * (2.718281828 ** (-3.2 * k / (decay_steps - 1))) for k in range(decay_steps)]
+        decay_y = [peak * math.exp(-k_e * (t - peak_t)) for t in decay_t]
         decay_y[-1] = trough
 
         n_rise = len(rise_t)
