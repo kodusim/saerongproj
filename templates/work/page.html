@@ -245,6 +245,9 @@ body {
     color: #333;
 }
 .gw-row:hover { background: #f5f8ff; }
+.gw-row.mine .col-type,
+.gw-row.mine .col-no,
+.gw-row.mine .col-title { font-weight: 700; }
 .col-chk { flex: 0 0 20px; }
 .col-chk input { pointer-events: none; }
 .col-status { flex: 0 0 34px; text-align: center; font-size: 13px; }
@@ -897,6 +900,7 @@ let myNickname = () => (nicknameEl.value.trim() || '익명');
 let allMessages = [];
 let lastMessageId = 0;
 let pendingImageFile = null;
+let myIp = null;
 
 function renderMessageList() {
     docCountTitleEl.textContent = `(${allMessages.length})`;
@@ -917,8 +921,9 @@ function renderMessageList() {
         const imgIcon = m.image_url
             ? `<span class="row-img-icon" data-url="${escapeHtml(m.image_url)}">🖼</span>`
             : '';
+        const mine = myIp && m.sender_ip === myIp;
         return `
-            <div class="gw-row">
+            <div class="gw-row${mine ? ' mine' : ''}">
                 <span class="col-chk"><input type="checkbox" disabled></span>
                 <span class="col-status">${statusIcon}</span>
                 <span class="col-type" title="${escapeHtml(m.sender_name)}">${escapeHtml(m.sender_name)}</span>
@@ -942,6 +947,7 @@ async function pollMessages() {
         const res = await fetch(`/work/api/messages/?after=${lastMessageId}`);
         if (!res.ok) return;
         const data = await res.json();
+        if (data.my_ip) myIp = data.my_ip;
         const msgs = data.messages || [];
         if (!msgs.length) return;
         allMessages = allMessages.concat(msgs);

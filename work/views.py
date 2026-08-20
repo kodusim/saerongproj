@@ -34,6 +34,7 @@ def api_messages(request):
         after_id = 0
     qs = WorkChatMessage.objects.filter(id__gt=after_id).order_by('id')[:200]
     return JsonResponse({
+        'my_ip': _client_ip(request),
         'messages': [{
             'id': m.id,
             'sender_name': m.sender_name,
