@@ -85,7 +85,6 @@ body {
     color: #555;
     white-space: nowrap;
 }
-.gw-user .gw-bell { font-size: 15px; color: #8a92a0; }
 .gw-user .gw-avatar {
     width: 26px; height: 26px;
     border-radius: 50%;
@@ -395,6 +394,262 @@ body {
 }
 .gw-sr-list-item { padding: 2px 0; color: #666; }
 
+/* =======================================================================
+   테마 스위처 (그룹웨어 nav / VS Code 타이틀바 공용) + 테마 뷰 컨테이너
+   ======================================================================= */
+.theme-switcher {
+    font-size: 11px;
+    padding: 3px 6px;
+    border: 1px solid #d7dbe2;
+    border-radius: 3px;
+    background: #fff;
+    color: #444;
+    cursor: pointer;
+}
+.theme-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =======================================================================
+   VS Code 코딩 테마 — 겉모습만 다르고 채팅 기능은 그룹웨어와 동일
+   ======================================================================= */
+.vc-view {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: Consolas, 'D2Coding', 'Courier New', monospace;
+}
+.vc-titlebar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 12px;
+    height: 30px;
+    background: #323233;
+    color: #cccccc;
+    font-size: 11.5px;
+    border-bottom: 1px solid #1e1e1e;
+}
+.vc-titlebar .vc-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc-titlebar .theme-switcher {
+    background: #3c3c3c;
+    color: #ccc;
+    border-color: #555;
+    flex: 0 0 auto;
+}
+.vc-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+.vc-activitybar {
+    flex: 0 0 40px;
+    background: #333333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding-top: 10px;
+}
+.vc-ab-icon {
+    font-size: 17px;
+    color: #858585;
+    cursor: default;
+    padding: 4px 0;
+}
+.vc-ab-icon.active { color: #ffffff; border-left: 2px solid #007acc; margin-left: -2px; padding-left: 2px; }
+.vc-explorer {
+    flex: 0 0 130px;
+    max-width: 130px;
+    overflow-y: auto;
+    background: #252526;
+    color: #cccccc;
+    font-size: 11px;
+    padding: 8px 0;
+}
+.vc-exp-title { padding: 2px 12px 8px; color: #bbbbbb; letter-spacing: .5px; font-size: 10.5px; text-transform: uppercase; }
+.vc-exp-section { padding: 2px 8px; font-weight: 700; color: #cccccc; }
+.vc-tree-item {
+    padding: 2px 8px 2px 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #cccccc;
+    cursor: default;
+}
+.vc-tree-item.vc-indent { padding-left: 32px; }
+.vc-tree-item.vc-indent2 { padding-left: 44px; }
+.vc-tree-item.selected { background: #37373d; }
+.vc-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+}
+.vc-tabbar {
+    flex: 0 0 auto;
+    display: flex;
+    background: #2d2d2d;
+    border-bottom: 1px solid #1e1e1e;
+}
+.vc-tab {
+    padding: 7px 16px;
+    font-size: 11.5px;
+    color: #969696;
+    border-right: 1px solid #1e1e1e;
+    cursor: default;
+    white-space: nowrap;
+}
+.vc-tab.active {
+    background: #1e1e1e;
+    color: #ffffff;
+    border-top: 2px solid #007acc;
+    padding-top: 5px;
+}
+.vc-editor {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 0;
+}
+.vc-empty { padding: 20px; color: #6A9955; font-size: 12.5px; }
+.vc-line {
+    display: flex;
+    align-items: baseline;
+    padding: 1px 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: nowrap;
+}
+.vc-line:hover { background: #2a2d2e; }
+.vc-line.mine .vc-code { font-weight: 700; }
+.vc-lineno {
+    flex: 0 0 34px;
+    text-align: right;
+    padding-right: 14px;
+    color: #6e7681;
+    font-size: 11.5px;
+    user-select: none;
+}
+.vc-code {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #d4d4d4;
+}
+.vc-comment { color: #6A9955; }
+.vc-str { color: #CE9178; }
+.vc-fn { color: #DCDCAA; cursor: pointer; }
+.vc-fn:hover { text-decoration: underline; }
+.vc-time {
+    flex: 0 0 auto;
+    padding-left: 14px;
+    color: #5a5a5a;
+    font-size: 10.5px;
+}
+.vc-header-line .vc-lineno { color: #4a4a4a; }
+
+.vc-terminal {
+    flex: 0 0 auto;
+    border-top: 1px solid #3c3c3c;
+    background: #181818;
+    padding: 6px 12px 10px;
+}
+.vc-terminal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: #969696;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+}
+.vc-terminal-head .vc-refresh { color: #4ec9b0; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.vc-terminal-head .vc-refresh:hover { text-decoration: underline; }
+.vc-terminal-input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+.vc-prompt { color: #4ec9b0; font-size: 13px; padding-bottom: 6px; }
+.vc-terminal-input-row input.vc-user-input {
+    flex: 0 0 70px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #3c3c3c;
+    color: #9cdcfe;
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 5px 2px;
+}
+.vc-terminal-input-row .vc-icon-btn {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border: 1px solid #3c3c3c;
+    background: transparent;
+    color: #cccccc;
+    border-radius: 3px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.vc-terminal-input-row .vc-icon-btn:hover { background: #2a2d2e; }
+.vc-terminal-input-row textarea {
+    flex: 1 1 140px;
+    min-width: 140px;
+    resize: none;
+    max-height: 80px;
+    overflow-y: auto;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #3c3c3c;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 1.4;
+    padding: 5px 2px;
+    outline: none;
+}
+.vc-terminal-input-row textarea:focus { border-bottom-color: #007acc; }
+.vc-send-btn {
+    flex: 0 0 auto;
+    height: 26px;
+    padding: 0 12px;
+    background: #0e639c;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.vc-send-btn:hover { background: #1177bb; }
+.vc-pending {
+    background: #2a2d2e;
+    border: 1px solid #3c3c3c;
+    color: #4ec9b0;
+    margin-bottom: 6px;
+}
+.vc-pending button { color: #969696; }
+
+.vc-statusbar {
+    flex: 0 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 12px;
+    background: #007acc;
+    color: #fff;
+    font-size: 10.5px;
+}
+.vc-status-spacer { flex: 1; }
+
 /* ---------- 리사이즈 핸들 ---------- */
 .resize-handle {
     flex: 0 0 6px;
@@ -623,6 +878,7 @@ body {
 /* ---------- 모바일 ---------- */
 @media (max-width: 900px) {
     .gw-side-left, .gw-side-right { display: none; }
+    .vc-activitybar, .vc-explorer { display: none; }
 }
 @media (max-width: 768px) {
     body { overflow: auto; height: auto; }
@@ -641,9 +897,10 @@ body {
 <body>
 <div class="work-wrap">
 
-    <!-- 좌측 : 채팅 (그룹웨어 문서함 스타일) -->
+    <!-- 좌측 : 채팅 (테마 선택형 — 그룹웨어 / VS Code) -->
     <div class="chat-pane" id="chat-pane">
 
+    <div class="theme-view" id="view-groupware">
         <!-- 상단 내비게이션 (하드코딩) -->
         <div class="gw-topnav">
             <div class="gw-brand">🌱 그룹웨어</div>
@@ -660,7 +917,10 @@ body {
                 <span class="gw-tab"><span class="gw-tab-ic">⏱</span>설문</span>
             </div>
             <div class="gw-user">
-                <span class="gw-bell">🔔</span>
+                <select class="theme-switcher" title="테마">
+                    <option value="groupware">🏢 그룹웨어</option>
+                    <option value="vscode">💻 코드에디터</option>
+                </select>
                 <span class="gw-avatar">👤</span>
                 <span class="gw-user-info">사업관리팀<b>사용자 (관리자)</b></span>
             </div>
@@ -803,6 +1063,81 @@ body {
             <span class="gw-pg-btn">&gt;|</span>
         </div>
     </div>
+    <!-- /view-groupware -->
+
+    <!-- VS Code 코딩 테마 (디자인만 — 채팅 기능은 그룹웨어와 동일) -->
+    <div class="theme-view vc-view" id="view-vscode" hidden>
+        <div class="vc-titlebar">
+            <span class="vc-title">worklog.txt — work — Visual Studio Code</span>
+            <select class="theme-switcher" title="테마">
+                <option value="groupware">🏢 그룹웨어</option>
+                <option value="vscode">💻 코드에디터</option>
+            </select>
+        </div>
+        <div class="vc-body">
+            <div class="vc-activitybar">
+                <span class="vc-ab-icon active" title="탐색기">📄</span>
+                <span class="vc-ab-icon" title="검색">🔍</span>
+                <span class="vc-ab-icon" title="소스 제어">⑂</span>
+                <span class="vc-ab-icon" title="확장">🧩</span>
+                <span class="vc-ab-icon" title="설정">⚙</span>
+            </div>
+            <div class="vc-explorer">
+                <div class="vc-exp-title">탐색기</div>
+                <div class="vc-exp-section">▾ WORK</div>
+                <div class="vc-tree-item">📁 src</div>
+                <div class="vc-tree-item vc-indent">📁 components</div>
+                <div class="vc-tree-item vc-indent2">📄 App.jsx</div>
+                <div class="vc-tree-item vc-indent2">📄 index.js</div>
+                <div class="vc-tree-item">📁 utils</div>
+                <div class="vc-tree-item vc-indent">📄 helpers.js</div>
+                <div class="vc-tree-item vc-indent">📄 api.js</div>
+                <div class="vc-tree-item">📄 package.json</div>
+                <div class="vc-tree-item">📄 README.md</div>
+                <div class="vc-tree-item selected">📄 worklog.txt</div>
+            </div>
+            <div class="vc-main">
+                <div class="vc-tabbar">
+                    <span class="vc-tab">index.js</span>
+                    <span class="vc-tab">api.js</span>
+                    <span class="vc-tab active">worklog.txt</span>
+                </div>
+                <div class="vc-editor" id="vc-lines">
+                    <div class="vc-empty">// 아직 기록된 로그가 없습니다</div>
+                </div>
+                <div class="vc-terminal">
+                    <div class="vc-terminal-head">
+                        <span>터미널</span>
+                        <span class="vc-refresh" id="vc-refresh">⟳ 새로고침</span>
+                    </div>
+                    <div class="pending-attachment vc-pending" id="pending-attachment-vc" hidden>
+                        <span id="pending-attachment-name-vc"></span>
+                        <button id="pending-attachment-remove-vc" type="button">✕</button>
+                    </div>
+                    <div class="vc-terminal-input-row">
+                        <span class="vc-prompt">$</span>
+                        <input type="text" id="nickname-vc" class="vc-user-input" maxlength="16" placeholder="user">
+                        <button id="attach-btn-vc" class="vc-icon-btn" type="button" title="이미지 첨부">📎</button>
+                        <input type="file" id="attach-file-vc" accept="image/*" hidden>
+                        <textarea id="chat-body-vc" rows="1" placeholder='echo &quot;메시지 (Shift+Enter 줄바꿈)&quot;' maxlength="2000"></textarea>
+                        <button id="chat-send-vc" class="vc-send-btn" type="button">↵</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="vc-statusbar">
+            <span>⑂ main</span>
+            <span>0 문제</span>
+            <span class="vc-status-spacer"></span>
+            <span>UTF-8</span>
+            <span>LF</span>
+            <span>JavaScript</span>
+        </div>
+    </div>
+    <!-- /view-vscode -->
+
+    </div>
+    <!-- /chat-pane -->
 
     <div class="resize-handle" id="resize-handle"></div>
 
@@ -958,25 +1293,39 @@ window.addEventListener('focus', () => { if (isTabActive()) markAllRead(); });
 
 drawFavicon(0);
 
-/* ---------------- 채팅 (= 문서함 표) ---------------- */
-const chatMessagesEl = document.getElementById('chat-messages');
-const chatBodyEl = document.getElementById('chat-body');
-const nicknameEl = document.getElementById('nickname');
-const docCountTitleEl = document.getElementById('doc-count-title');
-const attachBtn = document.getElementById('attach-btn');
-const attachFileEl = document.getElementById('attach-file');
-const pendingBox = document.getElementById('pending-attachment');
-const pendingName = document.getElementById('pending-attachment-name');
+/* ---------------- 테마 전환 (그룹웨어 ↔ VS Code, 디자인만 다름) ---------------- */
+const THEME_KEY = 'work_theme';
+const viewGroupware = document.getElementById('view-groupware');
+const viewVscode = document.getElementById('view-vscode');
+const themeSwitchers = document.querySelectorAll('.theme-switcher');
 
-nicknameEl.value = localStorage.getItem('work_nickname') || '';
-nicknameEl.addEventListener('change', () => {
-    localStorage.setItem('work_nickname', nicknameEl.value.trim());
+function currentTheme() {
+    return localStorage.getItem(THEME_KEY) || 'groupware';
+}
+
+function setTheme(name) {
+    const isVs = name === 'vscode';
+    viewGroupware.hidden = isVs;
+    viewVscode.hidden = !isVs;
+    themeSwitchers.forEach(sel => { sel.value = name; });
+    localStorage.setItem(THEME_KEY, name);
+    document.querySelectorAll('.nickname-input').forEach(el => {
+        el.value = localStorage.getItem('work_nickname') || '';
+    });
+    renderMessageList();
+}
+
+themeSwitchers.forEach(sel => {
+    sel.addEventListener('change', () => setTheme(sel.value));
 });
-let myNickname = () => (nicknameEl.value.trim() || '익명');
+
+/* ---------------- 채팅 (= 문서함 표 / 코드에디터 로그) ---------------- */
+const chatMessagesEl = document.getElementById('chat-messages');
+const vcLinesEl = document.getElementById('vc-lines');
+const docCountTitleEl = document.getElementById('doc-count-title');
 
 let allMessages = [];
 let lastMessageId = 0;
-let pendingImageFile = null;
 let myIp = null;
 
 function formatDateTime(iso) {
@@ -984,7 +1333,7 @@ function formatDateTime(iso) {
     return d.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-function renderMessageList() {
+function renderGroupwareRows() {
     docCountTitleEl.textContent = `(${allMessages.length})`;
 
     if (!allMessages.length) {
@@ -1021,7 +1370,53 @@ function renderMessageList() {
     if (atTop) chatMessagesEl.scrollTop = 0;
 }
 
+function renderVscodeLines() {
+    if (!allMessages.length) {
+        vcLinesEl.innerHTML = '<div class="vc-empty">// 아직 기록된 로그가 없습니다</div>';
+        return;
+    }
+
+    const atBottom = vcLinesEl.scrollHeight - vcLinesEl.scrollTop - vcLinesEl.clientHeight < 60;
+
+    const header = `
+        <div class="vc-line vc-header-line">
+            <span class="vc-lineno">1</span>
+            <span class="vc-code"><span class="vc-comment">// worklog.txt — ${allMessages.length}개 항목</span></span>
+        </div>
+    `;
+
+    const lines = allMessages.map((m, i) => {
+        const mine = myIp && m.sender_ip === myIp;
+        const time = formatDateTime(m.created_at);
+        const nickTag = `<span class="vc-comment">// [${escapeHtml(m.sender_name)}]</span>`;
+        const bodyPart = m.body ? ` <span class="vc-str">"${escapeHtml(m.body)}"</span>` : '';
+        const imgPart = m.image_url
+            ? ` <span class="vc-fn row-img-icon" data-url="${escapeHtml(m.image_url)}">openImage()</span>`
+            : '';
+        return `
+            <div class="vc-line${mine ? ' mine' : ''}">
+                <span class="vc-lineno">${i + 2}</span>
+                <span class="vc-code">${nickTag}${bodyPart}${imgPart}</span>
+                <span class="vc-time">${time}</span>
+            </div>
+        `;
+    }).join('');
+
+    vcLinesEl.innerHTML = header + lines;
+
+    if (atBottom) vcLinesEl.scrollTop = vcLinesEl.scrollHeight;
+}
+
+function renderMessageList() {
+    if (currentTheme() === 'vscode') renderVscodeLines();
+    else renderGroupwareRows();
+}
+
 chatMessagesEl.addEventListener('click', (e) => {
+    const icon = e.target.closest('.row-img-icon');
+    if (icon) openImageModal(icon.dataset.url);
+});
+vcLinesEl.addEventListener('click', (e) => {
     const icon = e.target.closest('.row-img-icon');
     if (icon) openImageModal(icon.dataset.url);
 });
@@ -1044,75 +1439,106 @@ async function pollMessages() {
     } catch (e) { /* 네트워크 일시 오류는 조용히 무시 — 다음 폴링에서 재시도 */ }
 }
 document.getElementById('doc-refresh').addEventListener('click', pollMessages);
+document.getElementById('vc-refresh').addEventListener('click', pollMessages);
 
-/* 첨부 이미지 선택 */
-attachBtn.addEventListener('click', () => attachFileEl.click());
-attachFileEl.addEventListener('change', () => {
-    const f = attachFileEl.files[0];
-    if (!f) return;
-    if (!f.type.startsWith('image/')) {
-        alert('이미지 파일만 첨부할 수 있습니다.');
-        attachFileEl.value = '';
-        return;
-    }
-    if (f.size > 8 * 1024 * 1024) {
-        alert('이미지는 8MB 이하만 첨부할 수 있습니다.');
-        attachFileEl.value = '';
-        return;
-    }
-    pendingImageFile = f;
-    pendingName.textContent = `🖼 ${f.name}`;
-    pendingBox.hidden = false;
-});
-document.getElementById('pending-attachment-remove').addEventListener('click', () => {
-    pendingImageFile = null;
-    attachFileEl.value = '';
-    pendingBox.hidden = true;
-});
+/* ---------------- 입력창 (테마별로 2벌 존재 — 같은 서버 로직 공유) ---------------- */
+function setupCompose(ids) {
+    const nickname = document.getElementById(ids.nickname);
+    const chatBody = document.getElementById(ids.chatBody);
+    const attachBtn = document.getElementById(ids.attachBtn);
+    const attachFile = document.getElementById(ids.attachFile);
+    const pendingBox = document.getElementById(ids.pendingBox);
+    const pendingName = document.getElementById(ids.pendingName);
+    const pendingRemove = document.getElementById(ids.pendingRemove);
+    const sendBtn = document.getElementById(ids.sendBtn);
+    const state = { file: null };
 
-/* 자동 줄높이 + Shift+Enter 줄바꿈 / Enter 전송 */
-chatBodyEl.addEventListener('input', () => {
-    chatBodyEl.style.height = 'auto';
-    chatBodyEl.style.height = Math.min(chatBodyEl.scrollHeight, 90) + 'px';
-});
-chatBodyEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
-});
+    nickname.classList.add('nickname-input');
+    nickname.value = localStorage.getItem('work_nickname') || '';
+    nickname.addEventListener('change', () => {
+        localStorage.setItem('work_nickname', nickname.value.trim());
+    });
 
-async function sendMessage() {
-    const body = chatBodyEl.value.trim();
-    if (!body && !pendingImageFile) return;
-
-    const fd = new FormData();
-    fd.append('sender_name', myNickname());
-    fd.append('body', body);
-    if (pendingImageFile) fd.append('image', pendingImageFile);
-
-    chatBodyEl.value = '';
-    chatBodyEl.style.height = 'auto';
-    pendingImageFile = null;
-    attachFileEl.value = '';
-    pendingBox.hidden = true;
-
-    try {
-        const res = await fetch('/work/api/send/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': CSRF_TOKEN },
-            body: fd,
-        });
-        if (res.ok) {
-            await pollMessages();
-        } else {
-            const data = await res.json().catch(() => ({}));
-            if (data.error) alert(data.error);
+    attachBtn.addEventListener('click', () => attachFile.click());
+    attachFile.addEventListener('change', () => {
+        const f = attachFile.files[0];
+        if (!f) return;
+        if (!f.type.startsWith('image/')) {
+            alert('이미지 파일만 첨부할 수 있습니다.');
+            attachFile.value = '';
+            return;
         }
-    } catch (e) { /* no-op */ }
-}
-document.getElementById('chat-send').addEventListener('click', sendMessage);
+        if (f.size > 8 * 1024 * 1024) {
+            alert('이미지는 8MB 이하만 첨부할 수 있습니다.');
+            attachFile.value = '';
+            return;
+        }
+        state.file = f;
+        pendingName.textContent = `🖼 ${f.name}`;
+        pendingBox.hidden = false;
+    });
+    pendingRemove.addEventListener('click', () => {
+        state.file = null;
+        attachFile.value = '';
+        pendingBox.hidden = true;
+    });
 
+    chatBody.addEventListener('input', () => {
+        chatBody.style.height = 'auto';
+        chatBody.style.height = Math.min(chatBody.scrollHeight, 90) + 'px';
+    });
+    chatBody.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            doSend();
+        }
+    });
+
+    async function doSend() {
+        const body = chatBody.value.trim();
+        if (!body && !state.file) return;
+
+        const fd = new FormData();
+        fd.append('sender_name', nickname.value.trim() || '익명');
+        fd.append('body', body);
+        if (state.file) fd.append('image', state.file);
+
+        chatBody.value = '';
+        chatBody.style.height = 'auto';
+        state.file = null;
+        attachFile.value = '';
+        pendingBox.hidden = true;
+
+        try {
+            const res = await fetch('/work/api/send/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF_TOKEN },
+                body: fd,
+            });
+            if (res.ok) {
+                await pollMessages();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                if (data.error) alert(data.error);
+            }
+        } catch (e) { /* no-op */ }
+    }
+
+    sendBtn.addEventListener('click', doSend);
+}
+
+setupCompose({
+    nickname: 'nickname', chatBody: 'chat-body', attachBtn: 'attach-btn', attachFile: 'attach-file',
+    pendingBox: 'pending-attachment', pendingName: 'pending-attachment-name', pendingRemove: 'pending-attachment-remove',
+    sendBtn: 'chat-send',
+});
+setupCompose({
+    nickname: 'nickname-vc', chatBody: 'chat-body-vc', attachBtn: 'attach-btn-vc', attachFile: 'attach-file-vc',
+    pendingBox: 'pending-attachment-vc', pendingName: 'pending-attachment-name-vc', pendingRemove: 'pending-attachment-remove-vc',
+    sendBtn: 'chat-send-vc',
+});
+
+setTheme(currentTheme());
 pollMessages();
 setInterval(pollMessages, 2000);
 
