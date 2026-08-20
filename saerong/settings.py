@@ -74,7 +74,6 @@ INSTALLED_APPS = [
     "api",
     "moscom",
     "tdm",
-    "trustcheck",
 ]
 
 if DEBUG:
