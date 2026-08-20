@@ -66,22 +66,18 @@ def tdm_predict_api(request):
         return JsonResponse({'error': '잘못된 JSON'}, status=400)
 
     try:
-        from . import predictor_v2 as tdm_predictor
+        from . import predictor as tdm_predictor
 
         patient = body.get('patient') or {}
-        cycle_seq = int(body.get('cycle_seq') or 1)
-        dose_interval_hr = body.get('dose_interval_hr')
-        doses_per_day = body.get('doses_per_day')
-        blood_collection_hour = body.get('blood_collection_hour')
-        hours_from_request_to_collection = body.get('hours_from_request_to_collection')
+        dose_mg = float(body.get('dose_mg') or 1000)
+        q_hr = float(body.get('q_hr') or 12)
         n_doses = int(body.get('n_doses') or 5)
+        n_doses = max(1, min(5, n_doses))
+        if dose_mg <= 0 or q_hr <= 0:
+            return JsonResponse({'error': '용량/간격은 0보다 커야 합니다.'}, status=400)
 
-        result = tdm_predictor.predict_tdm_v2(
-            patient=patient, cycle_seq=cycle_seq,
-            dose_interval_hr=float(dose_interval_hr) if dose_interval_hr not in (None, '') else None,
-            doses_per_day=float(doses_per_day) if doses_per_day not in (None, '') else None,
-            blood_collection_hour=float(blood_collection_hour) if blood_collection_hour not in (None, '') else None,
-            hours_from_request_to_collection=float(hours_from_request_to_collection) if hours_from_request_to_collection not in (None, '') else None,
+        result = tdm_predictor.predict_tdm(
+            patient=patient, dose_mg=dose_mg, q_hr=q_hr,
             n_doses=n_doses,
         )
 
@@ -91,8 +87,8 @@ def tdm_predict_api(request):
             PredictionLog.objects.create(
                 login_id=request.session.get('tdm_login_id', ''),
                 input_json=body, result_json=result,
-                ml_model=(result.get('model_meta') or {}).get('model', '') or '',
-                dl_model=(result.get('model_meta') or {}).get('group', '') or '',
+                ml_model=(result.get('model_meta') or {}).get('ml_model', '') or '',
+                dl_model=(result.get('model_meta') or {}).get('dl_model', '') or '',
             )
         except Exception:
             logger.exception('PredictionLog 저장 실패 (계속 진행)')
