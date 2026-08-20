@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "api",
     "moscom",
     "tdm",
+    "work",
 ]
 
 if DEBUG:
