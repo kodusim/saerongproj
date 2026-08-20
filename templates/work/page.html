@@ -8,9 +8,9 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-    font-family: 'Noto Sans KR', sans-serif;
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
     background: #f2f4f7;
-    color: #1a1a1a;
+    color: #333;
     height: 100vh;
     overflow: hidden;
 }
@@ -18,213 +18,371 @@ body {
     display: flex;
     height: 100vh;
 }
-/* ---------- 좌측 : 채팅 기록보관함 (전자문서함 스타일) ---------- */
+
+/* =======================================================================
+   좌측 : 채팅(그룹웨어 문서함 스타일 — 실제 동작은 표 본문 + 하단 등록창만)
+   ======================================================================= */
 .chat-pane {
     flex: 0 0 70%;
     max-width: 70%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     background: #fff;
-    min-width: 0;
-}
-.doc-topbar {
-    padding: 11px 18px;
-    background: linear-gradient(135deg, #16305a, #1B3A6B);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.doc-topbar .doc-title {
-    font-weight: 700;
-    font-size: 14.5px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.doc-topbar .doc-count {
-    font-weight: 400;
     font-size: 12px;
-    opacity: .75;
-    margin-left: 2px;
+    color: #333;
 }
-.doc-topbar .nickname-box {
+
+/* ---- 상단 내비게이션 (하드코딩) ---- */
+.gw-topnav {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 0 16px;
+    height: 46px;
+    background: #fff;
+    border-bottom: 1px solid #dfe3e8;
+}
+.gw-brand {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-weight: 400;
-    font-size: 12.5px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1B3A6B;
+    white-space: nowrap;
 }
-.doc-topbar input#nickname {
-    width: 96px;
-    padding: 4px 8px;
-    border-radius: 3px;
-    border: none;
-    font-size: 12.5px;
+.gw-tabs {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    overflow: hidden;
 }
-.doc-filter-row {
+.gw-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    color: #666;
+    white-space: nowrap;
+    padding: 4px 2px;
+    cursor: default;
+}
+.gw-tab .gw-tab-ic { font-size: 15px; }
+.gw-tab.active {
+    color: #1B3A6B;
+    font-weight: 700;
+    border-bottom: 2px solid #1B3A6B;
+}
+.gw-user {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 7px 18px;
-    background: #f5f7fa;
-    border-bottom: 1px solid #dde2e8;
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
 }
-.doc-filter-row input#msg-search {
-    flex: 0 1 240px;
-    padding: 6px 10px;
-    border: 1px solid #d3d8de;
-    border-radius: 3px;
-    font-size: 12px;
-    outline: none;
+.gw-user .gw-bell { font-size: 15px; color: #8a92a0; }
+.gw-user .gw-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #dde5f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
 }
-.doc-filter-row input#msg-search:focus { border-color: #1B3A6B; }
-.doc-filter-row .doc-refresh {
-    cursor: pointer;
-    color: #1B3A6B;
-    font-size: 12px;
-    font-weight: 700;
-    user-select: none;
-}
-.doc-filter-row .doc-refresh:hover { text-decoration: underline; }
+.gw-user .gw-user-info { line-height: 1.3; }
+.gw-user .gw-user-info b { display: block; color: #222; }
 
-.chat-messages {
+/* ---- 본문 3단 구성 ---- */
+.gw-body {
     flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+/* ---- 좌측 트리 사이드바 (하드코딩) ---- */
+.gw-side-left {
+    flex: 0 0 128px;
+    max-width: 128px;
     overflow-y: auto;
-    padding: 12px 16px;
+    background: #fafbfc;
+    border-right: 1px solid #e5e8ec;
+    padding: 8px 0;
+    font-size: 11px;
+    color: #555;
+}
+.gw-tree-group { margin-bottom: 4px; }
+.gw-tree-head {
+    padding: 4px 10px;
+    font-weight: 700;
+    color: #444;
+    cursor: default;
+}
+.gw-tree-item {
+    padding: 3px 10px 3px 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+}
+.gw-tree-item.selected {
+    background: #e8eefb;
+    color: #1B3A6B;
+    font-weight: 700;
+}
+.gw-tree-sub { padding-left: 12px; }
+
+/* ---- 중앙 문서함(=채팅) ---- */
+.gw-main {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    background: #eef1f5;
-}
-.chat-empty {
-    margin: auto;
-    color: #9aa1ab;
-    font-size: 13px;
-    text-align: center;
-}
-
-/* 문서 카드형 메시지 — 말풍선 대신 결재문서 카드 스타일 */
-.msg-card {
-    max-width: 76%;
-    align-self: flex-start;
     background: #fff;
-    border: 1px solid #d8dde3;
-    border-left: 3px solid #9aa5b1;
-    border-radius: 2px;
-    padding: 7px 12px 8px;
 }
-.msg-card.mine {
-    align-self: flex-end;
-    text-align: right;
-    border-left: 1px solid #d8dde3;
-    border-right: 3px solid #2f6fed;
-}
-.msg-card .msg-head {
+.gw-page-title {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-family: Consolas, 'Courier New', monospace;
-    font-size: 10.5px;
-    color: #8a92a0;
-    margin-bottom: 4px;
+    gap: 10px;
+    padding: 10px 14px 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #222;
 }
-.msg-card.mine .msg-head { justify-content: flex-end; }
-.msg-card .msg-head .doc-no { color: #1B3A6B; font-weight: 700; }
-.msg-card .msg-body {
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
-    color: #232427;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.msg-card .msg-image-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 5px;
-    padding: 4px 10px;
-    background: #eef1f5;
-    border: 1px solid #dde2e8;
-    border-radius: 3px;
-    font-size: 11.5px;
-    color: #1B3A6B;
-    cursor: pointer;
-}
-.msg-card .msg-image-chip:hover { background: #e4e9f0; }
+.gw-page-title .gw-fav { font-size: 11px; font-weight: 400; color: #888; }
 
-.chat-input-area {
-    border-top: 1px solid #e2e5ea;
-    background: #fafbfc;
-    padding: 8px 16px;
+.gw-filter-row {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 14px;
+    border-bottom: 1px solid #e5e8ec;
+    font-size: 11px;
+    color: #666;
 }
-.pending-attachment {
+.gw-filter-row .gw-f-item { display: flex; align-items: center; gap: 4px; }
+.gw-filter-row input[type=text], .gw-filter-row input[type=date] {
+    width: 84px;
+    padding: 3px 6px;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 11px;
+    color: #999;
+    background: #f8f9fb;
+}
+.gw-filter-row .gw-search-btn {
+    padding: 4px 12px;
+    background: #eef1f5;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 11px;
+    color: #555;
+    cursor: default;
+}
+
+.gw-toolbar-row {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 14px;
+    border-bottom: 1px solid #e5e8ec;
+}
+.gw-toolbar-row .gw-tb-left { display: flex; gap: 6px; }
+.gw-toolbar-row .gw-tb-btn {
+    padding: 4px 10px;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 11px;
+    color: #555;
+    background: #fff;
+    cursor: default;
+}
+.gw-toolbar-row .gw-tb-right {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 11px;
+    color: #888;
+}
+.gw-toolbar-row .gw-refresh { color: #1B3A6B; cursor: pointer; font-weight: 700; }
+.gw-toolbar-row .gw-refresh:hover { text-decoration: underline; }
+
+.gw-table-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.gw-table-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
     padding: 6px 10px;
-    margin-bottom: 6px;
-    background: #eef1f5;
-    border: 1px solid #dde2e8;
-    border-radius: 4px;
+    background: #f5f6f8;
+    border-bottom: 1px solid #dfe3e8;
+    font-size: 11px;
+    font-weight: 700;
+    color: #5b6472;
+}
+.gw-table-body {
+    flex: 1;
+    overflow-y: auto;
+}
+.gw-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-bottom: 1px solid #eef0f3;
+    font-size: 11.5px;
+    color: #333;
+}
+.gw-row:hover { background: #f5f8ff; }
+.col-chk { flex: 0 0 20px; }
+.col-chk input { pointer-events: none; }
+.col-status { flex: 0 0 34px; text-align: center; font-size: 13px; }
+.col-type { flex: 0 0 74px; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; }
+.col-no { flex: 0 0 118px; color: #7a8290; font-family: Consolas, 'Courier New', monospace; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; }
+.col-attach { flex: 0 0 54px; color: #999; text-align: center; }
+.col-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
+.gw-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #9aa1ab;
     font-size: 12px;
-    color: #1B3A6B;
 }
-.pending-attachment span { flex: 1; }
-.pending-attachment button {
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: #8a92a0;
-    font-size: 13px;
-}
-.chat-input-row {
+
+/* ---- 등록(=실제 전송) 입력줄 ---- */
+.gw-compose {
+    flex: 0 0 auto;
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: 6px;
+    padding: 8px 14px;
+    border-top: 1px solid #e5e8ec;
+    background: #fafbfc;
 }
-.chat-input-row .icon-btn {
+.gw-compose input#nickname {
+    flex: 0 0 84px;
+    padding: 7px 8px;
+    border: 1px solid #d7dbe2;
+    border-radius: 3px;
+    font-size: 11.5px;
+}
+.gw-compose .icon-btn {
     flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
+    width: 30px; height: 30px;
     border: 1px solid #d7dbe2;
     background: #fff;
-    border-radius: 8px;
-    font-size: 16px;
+    border-radius: 3px;
+    font-size: 14px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
 }
-.chat-input-row .icon-btn:hover { background: #f0f2f5; }
-.chat-input-row textarea#chat-body {
+.gw-compose .icon-btn:hover { background: #f0f2f5; }
+.gw-compose textarea#chat-body {
     flex: 1;
     resize: none;
-    max-height: 120px;
+    max-height: 90px;
     overflow-y: auto;
-    padding: 9px 14px;
+    padding: 7px 10px;
     border: 1px solid #d7dbe2;
-    border-radius: 18px;
-    font-size: 14px;
+    border-radius: 3px;
+    font-size: 12.5px;
     font-family: inherit;
     line-height: 1.4;
     outline: none;
 }
-.chat-input-row textarea#chat-body:focus { border-color: #1B3A6B; }
-.chat-input-row button#chat-send {
+.gw-compose textarea#chat-body:focus { border-color: #1B3A6B; }
+.gw-compose button#chat-send {
     flex: 0 0 auto;
-    height: 36px;
-    padding: 0 20px;
+    height: 30px;
+    padding: 0 16px;
     background: #1B3A6B;
     color: #fff;
     border: none;
-    border-radius: 18px;
+    border-radius: 3px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
 }
-.chat-input-row button#chat-send:hover { background: #16305a; }
+.gw-compose button#chat-send:hover { background: #16305a; }
+.pending-attachment {
+    flex: 1 0 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 9px;
+    margin-bottom: -3px;
+    background: #eef1f5;
+    border: 1px solid #dde2e8;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #1B3A6B;
+    order: -1;
+}
+.pending-attachment span { flex: 1; }
+.pending-attachment button { border: none; background: none; cursor: pointer; color: #8a92a0; font-size: 12px; }
+
+.gw-pagination {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 14px;
+    border-top: 1px solid #e5e8ec;
+    font-size: 11px;
+    color: #777;
+}
+.gw-pagination .gw-pg-btn {
+    padding: 2px 7px;
+    border: 1px solid #dfe3e8;
+    border-radius: 2px;
+    color: #666;
+    cursor: default;
+}
+.gw-pagination .gw-pg-btn.active { background: #1B3A6B; color: #fff; border-color: #1B3A6B; }
+
+/* ---- 우측 사이드바 (하드코딩) ---- */
+.gw-side-right {
+    flex: 0 0 156px;
+    max-width: 156px;
+    overflow-y: auto;
+    background: #fafbfc;
+    border-left: 1px solid #e5e8ec;
+    padding: 10px;
+    font-size: 11px;
+    color: #555;
+}
+.gw-side-right .gw-sr-title {
+    font-weight: 700;
+    color: #444;
+    margin: 10px 0 6px;
+}
+.gw-side-right .gw-sr-title:first-child { margin-top: 0; }
+.gw-avatar-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.gw-avatar-row .gw-mini-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #dde5f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: #5b6b8c;
+}
+.gw-sr-list-item { padding: 2px 0; color: #666; }
 
 /* ---------- 리사이즈 핸들 ---------- */
 .resize-handle {
@@ -276,7 +434,9 @@ body {
 }
 .img-modal-close:hover { background: rgba(255,255,255,.3); }
 
-/* ---------- 우측 : 구글 스칼라 검색 (실제 scholar.google.com 스타일) ---------- */
+/* =======================================================================
+   우측 : 구글 스칼라 검색 (실제 scholar.google.com 스타일)
+   ======================================================================= */
 .scholar-pane {
     flex: 0 0 30%;
     max-width: 30%;
@@ -450,6 +610,9 @@ body {
 }
 
 /* ---------- 모바일 ---------- */
+@media (max-width: 900px) {
+    .gw-side-left, .gw-side-right { display: none; }
+}
 @media (max-width: 768px) {
     body { overflow: auto; height: auto; }
     .work-wrap { flex-direction: column; height: auto; }
@@ -457,46 +620,174 @@ body {
         flex: 1 1 auto !important;
         max-width: 100% !important;
     }
-    .chat-pane { height: 70vh; }
+    .chat-pane { height: 72vh; }
     .scholar-pane { height: 70vh; border-top: 1px solid #e2e5ea; }
     .resize-handle { display: none; }
-}
-@media (max-width: 480px) {
-    .msg-card { max-width: 88%; }
-    .doc-topbar { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .gw-tabs { display: none; }
 }
 </style>
 </head>
 <body>
 <div class="work-wrap">
 
-    <!-- 좌측 : 채팅 기록보관함 -->
+    <!-- 좌측 : 채팅 (그룹웨어 문서함 스타일) -->
     <div class="chat-pane" id="chat-pane">
-        <div class="doc-topbar">
-            <span class="doc-title">📁 채팅 기록보관함<span class="doc-count" id="doc-count"></span></span>
-            <div class="nickname-box">
-                <label for="nickname">닉네임</label>
-                <input type="text" id="nickname" maxlength="16" placeholder="익명">
+
+        <!-- 상단 내비게이션 (하드코딩) -->
+        <div class="gw-topnav">
+            <div class="gw-brand">🌱 그룹웨어</div>
+            <div class="gw-tabs">
+                <span class="gw-tab"><span class="gw-tab-ic">🗒</span>결재</span>
+                <span class="gw-tab active"><span class="gw-tab-ic">📁</span>문서함</span>
+                <span class="gw-tab"><span class="gw-tab-ic">🔗</span>업무넷</span>
+                <span class="gw-tab"><span class="gw-tab-ic">📅</span>스케쥴</span>
+                <span class="gw-tab"><span class="gw-tab-ic">📋</span>게시판</span>
+                <span class="gw-tab"><span class="gw-tab-ic">🗓</span>일정</span>
+                <span class="gw-tab"><span class="gw-tab-ic">🏢</span>설비예약</span>
+                <span class="gw-tab"><span class="gw-tab-ic">👥</span>주소록</span>
+                <span class="gw-tab"><span class="gw-tab-ic">🗂</span>웹폴더</span>
+                <span class="gw-tab"><span class="gw-tab-ic">⏱</span>설문</span>
+            </div>
+            <div class="gw-user">
+                <span class="gw-bell">🔔</span>
+                <span class="gw-avatar">👤</span>
+                <span class="gw-user-info">사업관리팀<b>사용자 (관리자)</b></span>
             </div>
         </div>
-        <div class="doc-filter-row">
-            <input type="text" id="msg-search" placeholder="내용/작성자 검색">
-            <span class="doc-refresh" id="doc-refresh">⟳ 새로고침</span>
-        </div>
-        <div class="chat-messages" id="chat-messages">
-            <div class="chat-empty">아직 메시지가 없습니다. 첫 메시지를 남겨보세요.</div>
-        </div>
-        <div class="chat-input-area">
-            <div class="pending-attachment" id="pending-attachment" hidden>
-                <span id="pending-attachment-name"></span>
-                <button id="pending-attachment-remove" type="button">✕</button>
+
+        <div class="gw-body">
+
+            <!-- 좌측 트리 (하드코딩) -->
+            <div class="gw-side-left">
+                <div class="gw-tree-group">
+                    <div class="gw-tree-head">▾ 즐겨찾기</div>
+                </div>
+                <div class="gw-tree-group">
+                    <div class="gw-tree-head">▾ 대장</div>
+                    <div class="gw-tree-item">기록물철 등록부</div>
+                    <div class="gw-tree-item selected">기록물등록대장</div>
+                    <div class="gw-tree-item">기안완료함</div>
+                    <div class="gw-tree-item">수신완료함</div>
+                    <div class="gw-tree-item">발신완료함</div>
+                    <div class="gw-tree-item">배부문서</div>
+                    <div class="gw-tree-item">비공개문서</div>
+                    <div class="gw-tree-item">협조함</div>
+                </div>
+                <div class="gw-tree-group">
+                    <div class="gw-tree-head">▾ 기록물철</div>
+                    <div class="gw-tree-item">전략운영실</div>
+                    <div class="gw-tree-item gw-tree-sub">복무·출장</div>
+                    <div class="gw-tree-item gw-tree-sub">지출결의서 등</div>
+                    <div class="gw-tree-item">과제관리팀</div>
+                    <div class="gw-tree-item gw-tree-sub">정산연구비관리</div>
+                    <div class="gw-tree-item gw-tree-sub">평가관리</div>
+                </div>
+                <div class="gw-tree-group">
+                    <div class="gw-tree-head">단위업무코드</div>
+                </div>
             </div>
-            <div class="chat-input-row">
-                <button id="attach-btn" class="icon-btn" type="button" title="이미지 첨부">📷</button>
-                <input type="file" id="attach-file" accept="image/*" hidden>
-                <textarea id="chat-body" rows="1" placeholder="메시지를 입력하세요 (Shift+Enter 줄바꿈)" maxlength="2000"></textarea>
-                <button id="chat-send" type="button">전송</button>
+
+            <!-- 중앙 : 문서함 = 채팅 -->
+            <div class="gw-main">
+                <div class="gw-page-title">
+                    기록물등록대장 <span id="doc-count-title">(0)</span>
+                    <span class="gw-fav">☆ 즐겨찾기</span>
+                </div>
+
+                <div class="gw-filter-row">
+                    <span class="gw-f-item">제목 <input type="text" disabled placeholder=""></span>
+                    <span class="gw-f-item">기안(접수)자 <input type="text" disabled></span>
+                    <span class="gw-f-item">기안일자 <input type="date" disabled value="2026-01-01"> ~ <input type="date" disabled value="2026-08-20"></span>
+                    <span class="gw-search-btn">검색</span>
+                </div>
+
+                <div class="gw-toolbar-row">
+                    <div class="gw-tb-left">
+                        <span class="gw-tb-btn">문서정보</span>
+                        <span class="gw-tb-btn">첨부기안</span>
+                        <span class="gw-tb-btn">공람</span>
+                        <span class="gw-tb-btn">추가기능</span>
+                    </div>
+                    <div class="gw-tb-right">
+                        <span class="gw-refresh" id="doc-refresh" title="새로고침">⟳ 새로고침</span>
+                        <span>15 ▽</span>
+                    </div>
+                </div>
+
+                <div class="gw-table-wrap">
+                    <div class="gw-table-head">
+                        <span class="col-chk"><input type="checkbox" disabled></span>
+                        <span class="col-status">상태</span>
+                        <span class="col-type">등록구분</span>
+                        <span class="col-no">문서번호</span>
+                        <span class="col-attach">첨부번호</span>
+                        <span class="col-title">제목</span>
+                    </div>
+                    <div class="gw-table-body" id="chat-messages">
+                        <div class="gw-empty">아직 등록된 메시지가 없습니다.</div>
+                    </div>
+                </div>
+
+                <div class="gw-compose">
+                    <div class="pending-attachment" id="pending-attachment" hidden>
+                        <span id="pending-attachment-name"></span>
+                        <button id="pending-attachment-remove" type="button">✕</button>
+                    </div>
+                    <input type="text" id="nickname" maxlength="16" placeholder="작성자(닉네임)">
+                    <button id="attach-btn" class="icon-btn" type="button" title="이미지 첨부">📷</button>
+                    <input type="file" id="attach-file" accept="image/*" hidden>
+                    <textarea id="chat-body" rows="1" placeholder="메시지 입력 (Shift+Enter 줄바꿈)" maxlength="2000"></textarea>
+                    <button id="chat-send" type="button">등록</button>
+                </div>
+
+                <div class="gw-pagination">
+                    <span class="gw-pg-btn">|&lt;</span>
+                    <span class="gw-pg-btn">&lt;</span>
+                    <span class="gw-pg-btn active">1</span>
+                    <span class="gw-pg-btn">2</span>
+                    <span class="gw-pg-btn">3</span>
+                    <span class="gw-pg-btn">4</span>
+                    <span class="gw-pg-btn">5</span>
+                    <span class="gw-pg-btn">&gt;</span>
+                    <span class="gw-pg-btn">&gt;|</span>
+                </div>
             </div>
+
+            <!-- 우측 사이드바 (하드코딩) -->
+            <div class="gw-side-right">
+                <div class="gw-sr-title">최근 검색한 동료</div>
+                <div class="gw-avatar-row">
+                    <span class="gw-mini-avatar">김</span>
+                    <span class="gw-mini-avatar">이</span>
+                    <span class="gw-mini-avatar">박</span>
+                </div>
+                <div class="gw-sr-title">주소록</div>
+                <div class="gw-sr-list-item">☆ 즐겨찾기</div>
+                <div class="gw-sr-list-item">👥 그룹</div>
+                <div class="gw-sr-title">조직도</div>
+                <div class="gw-sr-list-item">🏢 (재)연구소</div>
+                <div class="gw-avatar-row">
+                    <span class="gw-mini-avatar">손</span>
+                    <span class="gw-mini-avatar">서</span>
+                </div>
+                <div class="gw-sr-list-item">└ 사무국</div>
+                <div class="gw-avatar-row">
+                    <span class="gw-mini-avatar">김</span>
+                    <span class="gw-mini-avatar">장</span>
+                    <span class="gw-mini-avatar">강</span>
+                </div>
+                <div class="gw-sr-list-item">└ 사업관리실</div>
+                <div class="gw-avatar-row">
+                    <span class="gw-mini-avatar">임</span>
+                </div>
+                <div class="gw-sr-list-item">└ 과제관리팀</div>
+                <div class="gw-avatar-row">
+                    <span class="gw-mini-avatar">김</span>
+                    <span class="gw-mini-avatar">최</span>
+                    <span class="gw-mini-avatar">임</span>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -587,12 +878,11 @@ document.getElementById('img-modal-close').addEventListener('click', closeImageM
 imgModal.addEventListener('click', (e) => { if (e.target === imgModal) closeImageModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeImageModal(); });
 
-/* ---------------- 채팅 ---------------- */
+/* ---------------- 채팅 (= 문서함 표) ---------------- */
 const chatMessagesEl = document.getElementById('chat-messages');
 const chatBodyEl = document.getElementById('chat-body');
 const nicknameEl = document.getElementById('nickname');
-const msgSearchEl = document.getElementById('msg-search');
-const docCountEl = document.getElementById('doc-count');
+const docCountTitleEl = document.getElementById('doc-count-title');
 const attachBtn = document.getElementById('attach-btn');
 const attachFileEl = document.getElementById('attach-file');
 const pendingBox = document.getElementById('pending-attachment');
@@ -608,53 +898,44 @@ let allMessages = [];
 let lastMessageId = 0;
 let pendingImageFile = null;
 
-function formatDate(iso) {
-    const d = new Date(iso);
-    return d.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
 function renderMessageList() {
-    const q = (msgSearchEl.value || '').trim().toLowerCase();
-    const filtered = q
-        ? allMessages.filter(m => (m.body || '').toLowerCase().includes(q) || m.sender_name.toLowerCase().includes(q))
-        : allMessages;
+    docCountTitleEl.textContent = `(${allMessages.length})`;
 
-    docCountEl.textContent = `(${allMessages.length})`;
-
-    const atBottom = chatMessagesEl.scrollHeight - chatMessagesEl.scrollTop - chatMessagesEl.clientHeight < 80;
-
-    if (!filtered.length) {
-        chatMessagesEl.innerHTML = `<div class="chat-empty">${q ? '검색 결과가 없습니다.' : '아직 메시지가 없습니다. 첫 메시지를 남겨보세요.'}</div>`;
+    if (!allMessages.length) {
+        chatMessagesEl.innerHTML = '<div class="gw-empty">아직 등록된 메시지가 없습니다.</div>';
         return;
     }
 
-    chatMessagesEl.innerHTML = filtered.map(m => {
-        const docNo = `WORK-${m.id}`;
-        const date = formatDate(m.created_at);
-        const metaParts = m.mine
-            ? [`<span>${date}</span>`, `<span>${escapeHtml(m.sender_name)}</span>`, `<span class="doc-no">${docNo}</span>`]
-            : [`<span class="doc-no">${docNo}</span>`, `<span>${escapeHtml(m.sender_name)}</span>`, `<span>${date}</span>`];
-        const bodyHtml = m.body ? `<div class="msg-body">${escapeHtml(m.body)}</div>` : '';
-        const imageChip = m.image_url
-            ? `<div class="msg-image-chip" data-url="${escapeHtml(m.image_url)}">🖼 첨부 이미지</div>`
+    const atTop = chatMessagesEl.scrollTop < 40;
+
+    // 문서번호 내림차순(최신이 위) — 실제 기록물등록대장과 동일한 정렬
+    const rows = allMessages.slice().reverse();
+
+    chatMessagesEl.innerHTML = rows.map(m => {
+        const statusIcon = m.image_url ? '🖼' : '📄';
+        const titleText = m.body ? escapeHtml(m.body) : '[이미지 첨부]';
+        const imgIcon = m.image_url
+            ? `<span class="row-img-icon" data-url="${escapeHtml(m.image_url)}">🖼</span>`
             : '';
         return `
-            <div class="msg-card${m.mine ? ' mine' : ''}">
-                <div class="msg-head">${metaParts.join('<span>·</span>')}</div>
-                ${bodyHtml}
-                ${imageChip}
+            <div class="gw-row">
+                <span class="col-chk"><input type="checkbox" disabled></span>
+                <span class="col-status">${statusIcon}</span>
+                <span class="col-type" title="${escapeHtml(m.sender_name)}">${escapeHtml(m.sender_name)}</span>
+                <span class="col-no" title="${escapeHtml(m.sender_ip || '')}">${escapeHtml(m.sender_ip || '-')}</span>
+                <span class="col-attach">0</span>
+                <span class="col-title" title="${titleText}">${titleText}${imgIcon}</span>
             </div>
         `;
     }).join('');
 
-    if (atBottom) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    if (atTop) chatMessagesEl.scrollTop = 0;
 }
 
 chatMessagesEl.addEventListener('click', (e) => {
-    const chip = e.target.closest('.msg-image-chip');
-    if (chip) openImageModal(chip.dataset.url);
+    const icon = e.target.closest('.row-img-icon');
+    if (icon) openImageModal(icon.dataset.url);
 });
-msgSearchEl.addEventListener('input', renderMessageList);
 
 async function pollMessages() {
     try {
@@ -698,7 +979,7 @@ document.getElementById('pending-attachment-remove').addEventListener('click', (
 /* 자동 줄높이 + Shift+Enter 줄바꿈 / Enter 전송 */
 chatBodyEl.addEventListener('input', () => {
     chatBodyEl.style.height = 'auto';
-    chatBodyEl.style.height = Math.min(chatBodyEl.scrollHeight, 120) + 'px';
+    chatBodyEl.style.height = Math.min(chatBodyEl.scrollHeight, 90) + 'px';
 });
 chatBodyEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

@@ -32,7 +32,6 @@ def api_messages(request):
         after_id = int(request.GET.get('after', 0))
     except (TypeError, ValueError):
         after_id = 0
-    my_ip = _client_ip(request)
     qs = WorkChatMessage.objects.filter(id__gt=after_id).order_by('id')[:200]
     return JsonResponse({
         'messages': [{
@@ -41,7 +40,7 @@ def api_messages(request):
             'body': m.body,
             'image_url': m.image.url if m.image else None,
             'created_at': m.created_at.isoformat(),
-            'mine': bool(my_ip) and m.sender_ip == my_ip,
+            'sender_ip': m.sender_ip or '',
         } for m in qs],
     })
 
