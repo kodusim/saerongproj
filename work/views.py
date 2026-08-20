@@ -55,9 +55,9 @@ def api_send(request):
 def api_scholar(request):
     q = (request.GET.get('q') or '').strip()
     if not q:
-        return JsonResponse({'results': []})
+        return JsonResponse({'results': [], 'stats': ''})
     try:
-        results = search_scholar(q)
+        data = search_scholar(q)
     except ScholarBlockedError:
         return JsonResponse({
             'error': '구글이 검색 요청을 일시적으로 차단했습니다. 잠시 후 다시 시도하거나 아래 링크로 직접 검색하세요.',
@@ -69,4 +69,4 @@ def api_scholar(request):
             'error': '검색 중 오류가 발생했습니다.',
             'fallback_url': f'https://scholar.google.com/scholar?q={q}',
         }, status=502)
-    return JsonResponse({'results': results})
+    return JsonResponse(data)

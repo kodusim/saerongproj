@@ -112,47 +112,87 @@ body {
 }
 .chat-input-row button:hover { background: #16305a; }
 
-/* ---------- 우측 30% : 구글 스칼라 검색 ---------- */
+/* ---------- 우측 30% : 구글 스칼라 검색 (실제 scholar.google.com 스타일) ---------- */
 .scholar-pane {
     flex: 0 0 30%;
     max-width: 30%;
     display: flex;
     flex-direction: column;
-    background: #f9fafb;
+    background: #fff;
+    font-family: Arial, 'Noto Sans KR', sans-serif;
 }
+.scholar-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e9eaed;
+    color: #5f6368;
+    font-size: 13px;
+}
+.scholar-topbar .s-menu-icon { font-size: 16px; color: #5f6368; }
+.scholar-logo {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+}
+.scholar-logo b { font-weight: 700; }
+.scholar-logo .g-blue { color: #4285F4; }
+.scholar-logo .g-red { color: #EA4335; }
+.scholar-logo .g-yellow { color: #FBBC05; }
+.scholar-logo .g-green { color: #34A853; }
+.scholar-logo .g-label { color: #5f6368; font-weight: 400; margin-left: 2px; }
+
 .scholar-search-row {
     display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    border-bottom: 1px solid #e2e5ea;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e9eaed;
     background: #fff;
 }
-.scholar-search-row input#scholar-q {
+.scholar-search-pill {
     flex: 1;
-    padding: 9px 12px;
-    border: 1px solid #d7dbe2;
-    border-radius: 8px;
-    font-size: 13px;
-    outline: none;
+    display: flex;
+    align-items: center;
+    border: 1px solid #dfe1e5;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-.scholar-search-row input#scholar-q:focus { border-color: #1B3A6B; }
-.scholar-search-row button {
-    padding: 0 14px;
-    background: #1B3A6B;
-    color: #fff;
+.scholar-search-pill input#scholar-q {
+    flex: 1;
     border: none;
-    border-radius: 8px;
+    outline: none;
+    padding: 9px 14px;
     font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
+    color: #202124;
 }
+.scholar-search-pill button {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 34px;
+    margin-right: 2px;
+    border: none;
+    border-radius: 18px;
+    background: #4285F4;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.scholar-search-pill button:hover { background: #3b78e0; }
+
 .scholar-results {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+}
+.scholar-stats {
+    padding: 10px 14px 6px;
+    font-size: 11.5px;
+    color: #70757a;
 }
 .scholar-empty {
     margin: auto;
@@ -160,38 +200,68 @@ body {
     font-size: 13px;
     text-align: center;
     line-height: 1.6;
+    padding: 40px 20px;
 }
 .scholar-item {
-    padding: 12px;
-    background: #fff;
-    border: 1px solid #e6e9ee;
-    border-radius: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f2f4;
 }
-.scholar-item a.s-title {
-    display: block;
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #1B3A6B;
+.scholar-item .s-main { flex: 1; min-width: 0; }
+.scholar-item a.s-title,
+.scholar-item a.s-title strong {
+    font-size: 14px;
+    font-weight: 400;
+    color: #1a0dab;
     text-decoration: none;
-    line-height: 1.4;
-    margin-bottom: 4px;
+    line-height: 1.35;
 }
+.scholar-item a.s-title:visited { color: #609; }
 .scholar-item a.s-title:hover { text-decoration: underline; }
 .scholar-item .s-meta {
-    font-size: 11.5px;
-    color: #6b7280;
-    margin-bottom: 6px;
+    font-size: 12px;
+    color: #4d5156;
+    margin: 3px 0 5px;
+    line-height: 1.4;
+}
+.scholar-item .s-meta a.s-author-link {
+    color: #4d5156;
+    text-decoration: underline;
 }
 .scholar-item .s-snippet {
     font-size: 12.5px;
-    color: #40474f;
+    color: #4d5156;
     line-height: 1.5;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
-.scholar-item .s-cited {
+.scholar-item .s-footer {
     font-size: 11px;
-    color: #1B3A6B;
+    color: #70757a;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
 }
+.scholar-item .s-footer a {
+    color: #1a0dab;
+    text-decoration: none;
+}
+.scholar-item .s-footer a:hover { text-decoration: underline; }
+.scholar-item .s-footer .s-sep { color: #c7c9cc; margin: 0 2px; }
+.scholar-item .s-source {
+    flex: 0 0 84px;
+    max-width: 84px;
+    text-align: right;
+    font-size: 11px;
+    color: #4d5156;
+    line-height: 1.35;
+    word-break: break-word;
+}
+.scholar-item .s-source a { color: inherit; text-decoration: none; }
+.scholar-item .s-source a:hover { text-decoration: underline; }
+.scholar-item .s-source-label { font-weight: 700; }
 .scholar-error {
     margin: auto;
     text-align: center;
@@ -203,13 +273,15 @@ body {
 .scholar-error a {
     display: inline-block;
     margin-top: 8px;
-    color: #1B3A6B;
+    color: #1a0dab;
     font-weight: 700;
 }
 .scholar-loading {
     margin: auto;
     color: #9aa1ab;
     font-size: 13px;
+    padding: 40px 20px;
+    text-align: center;
 }
 
 /* ---------- 모바일 ---------- */
@@ -252,12 +324,18 @@ body {
 
     <!-- 우측 30% : 구글 스칼라 검색 -->
     <div class="scholar-pane">
-        <div class="pane-header" style="background:#2c4a7c;">
-            <span>🎓 Google Scholar</span>
+        <div class="scholar-topbar">
+            <span class="s-menu-icon">☰</span>
+            <span class="scholar-logo">
+                <b><span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span></b>
+                <span class="g-label">학술검색</span>
+            </span>
         </div>
         <div class="scholar-search-row">
-            <input type="text" id="scholar-q" placeholder="논문/키워드 검색">
-            <button id="scholar-search">검색</button>
+            <div class="scholar-search-pill">
+                <input type="text" id="scholar-q" placeholder="논문/키워드 검색">
+                <button id="scholar-search" aria-label="검색">🔍</button>
+            </div>
         </div>
         <div class="scholar-results" id="scholar-results">
             <div class="scholar-empty">검색어를 입력하면<br>구글 스칼라 결과가 여기에 표시됩니다.</div>
@@ -359,19 +437,45 @@ function renderScholarResults(data) {
     }
 
     const results = data.results || [];
+
+    if (data.stats) {
+        const stats = document.createElement('div');
+        stats.className = 'scholar-stats';
+        stats.textContent = data.stats;
+        scholarResultsEl.appendChild(stats);
+    }
+
     if (!results.length) {
-        scholarResultsEl.innerHTML = '<div class="scholar-empty">검색 결과가 없습니다.</div>';
+        scholarResultsEl.insertAdjacentHTML('beforeend', '<div class="scholar-empty">검색 결과가 없습니다.</div>');
         return;
     }
 
     results.forEach(r => {
         const item = document.createElement('div');
         item.className = 'scholar-item';
+
+        const sourceBadge = r.source_site ? `
+            <div class="s-source">${
+                r.source_link ? `<a href="${r.source_link}" target="_blank" rel="noopener">` : ''
+            }${r.source_label ? `<span class="s-source-label">${escapeHtml(r.source_label)}</span> ` : ''}${escapeHtml(r.source_site)}${
+                r.source_link ? '</a>' : ''
+            }</div>` : '';
+
+        const footer = (r.footer_links || [])
+            .map(f => `<a href="${f.url}" target="_blank" rel="noopener">${escapeHtml(f.text)}</a>`)
+            .join('<span class="s-sep">·</span>');
+
         item.innerHTML = `
-            <a class="s-title" href="${r.link || '#'}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>
-            <div class="s-meta">${escapeHtml(r.meta || '')}</div>
-            <div class="s-snippet">${escapeHtml(r.snippet || '')}</div>
-            ${r.cited_by ? `<div class="s-cited">${escapeHtml(r.cited_by)}</div>` : ''}
+            <div class="s-main">
+                <a class="s-title" href="${r.link || '#'}" target="_blank" rel="noopener">${r.title_html}</a>
+                <div class="s-meta">${r.meta_html}</div>
+                <div class="s-snippet">${r.snippet_html}</div>
+                <div class="s-footer">
+                    <span>☆ 저장</span>
+                    ${footer ? `<span class="s-sep">·</span>${footer}` : ''}
+                </div>
+            </div>
+            ${sourceBadge}
         `;
         scholarResultsEl.appendChild(item);
     });
