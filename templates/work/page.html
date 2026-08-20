@@ -261,6 +261,7 @@ body {
 .col-attach { flex: 0 0 58px; color: #999; text-align: center; padding-right: 8px; }
 .col-title { flex: 1 1 0; text-overflow: ellipsis; }
 .col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
+.col-datetime { flex: 0 0 86px; color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
 .gw-empty {
     padding: 40px 20px;
     text-align: center;
@@ -732,6 +733,7 @@ body {
                         <span class="col-no">문서번호</span>
                         <span class="col-attach">첨부번호</span>
                         <span class="col-title">제목</span>
+                        <span class="col-datetime">일시</span>
                     </div>
                     <div class="gw-table-body" id="chat-messages">
                         <div class="gw-empty">아직 등록된 메시지가 없습니다.</div>
@@ -910,6 +912,11 @@ let lastMessageId = 0;
 let pendingImageFile = null;
 let myIp = null;
 
+function formatDateTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 function renderMessageList() {
     docCountTitleEl.textContent = `(${allMessages.length})`;
 
@@ -930,6 +937,7 @@ function renderMessageList() {
             ? `<span class="row-img-icon" data-url="${escapeHtml(m.image_url)}">🖼</span>`
             : '';
         const mine = myIp && m.sender_ip === myIp;
+        const dateText = formatDateTime(m.created_at);
         return `
             <div class="gw-row${mine ? ' mine' : ''}">
                 <span class="col-chk"><input type="checkbox" disabled></span>
@@ -938,6 +946,7 @@ function renderMessageList() {
                 <span class="col-no" title="${escapeHtml(m.sender_ip || '')}">${escapeHtml(m.sender_ip || '-')}</span>
                 <span class="col-attach">0</span>
                 <span class="col-title" title="${titleText}">${titleText}${imgIcon}</span>
+                <span class="col-datetime" title="${dateText}">${dateText}</span>
             </div>
         `;
     }).join('');
