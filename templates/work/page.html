@@ -267,6 +267,7 @@ body {
 .gw-compose {
     flex: 0 0 auto;
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     gap: 6px;
     padding: 8px 14px;
@@ -292,7 +293,8 @@ body {
 }
 .gw-compose .icon-btn:hover { background: #f0f2f5; }
 .gw-compose textarea#chat-body {
-    flex: 1;
+    flex: 1 1 140px;
+    min-width: 140px;
     resize: none;
     max-height: 90px;
     overflow-y: auto;
@@ -730,30 +732,6 @@ body {
                         <div class="gw-empty">아직 등록된 메시지가 없습니다.</div>
                     </div>
                 </div>
-
-                <div class="gw-compose">
-                    <div class="pending-attachment" id="pending-attachment" hidden>
-                        <span id="pending-attachment-name"></span>
-                        <button id="pending-attachment-remove" type="button">✕</button>
-                    </div>
-                    <input type="text" id="nickname" maxlength="16" placeholder="작성자(닉네임)">
-                    <button id="attach-btn" class="icon-btn" type="button" title="이미지 첨부">📷</button>
-                    <input type="file" id="attach-file" accept="image/*" hidden>
-                    <textarea id="chat-body" rows="1" placeholder="메시지 입력 (Shift+Enter 줄바꿈)" maxlength="2000"></textarea>
-                    <button id="chat-send" type="button">등록</button>
-                </div>
-
-                <div class="gw-pagination">
-                    <span class="gw-pg-btn">|&lt;</span>
-                    <span class="gw-pg-btn">&lt;</span>
-                    <span class="gw-pg-btn active">1</span>
-                    <span class="gw-pg-btn">2</span>
-                    <span class="gw-pg-btn">3</span>
-                    <span class="gw-pg-btn">4</span>
-                    <span class="gw-pg-btn">5</span>
-                    <span class="gw-pg-btn">&gt;</span>
-                    <span class="gw-pg-btn">&gt;|</span>
-                </div>
             </div>
 
             <!-- 우측 사이드바 (하드코딩) -->
@@ -791,6 +769,31 @@ body {
                 </div>
             </div>
 
+        </div>
+
+        <!-- 실제 채팅 입력줄 — chat-pane 전체 폭 사용 (스칼라 패널에 눌려 안 보이는 문제 방지) -->
+        <div class="gw-compose">
+            <div class="pending-attachment" id="pending-attachment" hidden>
+                <span id="pending-attachment-name"></span>
+                <button id="pending-attachment-remove" type="button">✕</button>
+            </div>
+            <input type="text" id="nickname" maxlength="16" placeholder="작성자(닉네임)">
+            <button id="attach-btn" class="icon-btn" type="button" title="이미지 첨부">📷</button>
+            <input type="file" id="attach-file" accept="image/*" hidden>
+            <textarea id="chat-body" rows="1" placeholder="메시지 입력 (Shift+Enter 줄바꿈)" maxlength="2000"></textarea>
+            <button id="chat-send" type="button">등록</button>
+        </div>
+
+        <div class="gw-pagination">
+            <span class="gw-pg-btn">|&lt;</span>
+            <span class="gw-pg-btn">&lt;</span>
+            <span class="gw-pg-btn active">1</span>
+            <span class="gw-pg-btn">2</span>
+            <span class="gw-pg-btn">3</span>
+            <span class="gw-pg-btn">4</span>
+            <span class="gw-pg-btn">5</span>
+            <span class="gw-pg-btn">&gt;</span>
+            <span class="gw-pg-btn">&gt;|</span>
         </div>
     </div>
 
@@ -853,7 +856,7 @@ document.addEventListener('mousemove', (e) => {
     if (!resizing) return;
     const rect = workWrap.getBoundingClientRect();
     let pct = ((e.clientX - rect.left) / rect.width) * 100;
-    pct = Math.min(80, Math.max(20, pct));
+    pct = Math.min(80, Math.max(32, pct));
     chatPane.style.flex = `0 0 ${pct}%`;
     chatPane.style.maxWidth = `${pct}%`;
     scholarPane.style.flex = `0 0 ${100 - pct}%`;
