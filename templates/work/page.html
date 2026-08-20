@@ -891,6 +891,73 @@ document.getElementById('img-modal-close').addEventListener('click', closeImageM
 imgModal.addEventListener('click', (e) => { if (e.target === imgModal) closeImageModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeImageModal(); });
 
+/* ---------------- 안 읽은 메시지 표시 (탭 벗어났을 때 파비콘/제목) ---------------- */
+const baseTitle = document.title;
+let unreadCount = 0;
+
+function isTabActive() {
+    return !document.hidden && document.hasFocus();
+}
+
+function getFavLink() {
+    let link = document.querySelector('link[rel="icon"]');
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+    return link;
+}
+const favLink = getFavLink();
+
+function drawFavicon(count) {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#1B3A6B';
+    ctx.fillRect(4, 4, size - 8, size - 8);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('W', size / 2, size / 2 + 2);
+
+    if (count > 0) {
+        const label = count > 9 ? '9+' : String(count);
+        ctx.beginPath();
+        ctx.arc(size - 16, 16, 16, 0, Math.PI * 2);
+        ctx.fillStyle = '#e0393e';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText(label, size - 16, 17);
+    }
+
+    favLink.href = canvas.toDataURL('image/png');
+}
+
+function updateUnreadUI() {
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
+    drawFavicon(unreadCount);
+}
+
+function markAllRead() {
+    if (unreadCount === 0) return;
+    unreadCount = 0;
+    updateUnreadUI();
+}
+
+document.addEventListener('visibilitychange', () => { if (isTabActive()) markAllRead(); });
+window.addEventListener('focus', () => { if (isTabActive()) markAllRead(); });
+
+drawFavicon(0);
+
 /* ---------------- 채팅 (= 문서함 표) ---------------- */
 const chatMessagesEl = document.getElementById('chat-messages');
 const chatBodyEl = document.getElementById('chat-body');
@@ -969,6 +1036,10 @@ async function pollMessages() {
         if (!msgs.length) return;
         allMessages = allMessages.concat(msgs);
         msgs.forEach(m => { lastMessageId = Math.max(lastMessageId, m.id); });
+        if (!isTabActive()) {
+            unreadCount += msgs.length;
+            updateUnreadUI();
+        }
         renderMessageList();
     } catch (e) { /* 네트워크 일시 오류는 조용히 무시 — 다음 폴링에서 재시도 */ }
 }
