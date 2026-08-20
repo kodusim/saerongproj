@@ -1,12 +1,13 @@
+import json
 import logging
 
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from PIL import Image, UnidentifiedImageError
 
-from .models import WorkChatMessage
+from .models import WorkChatMessage, WorkPost
 from .scholar import search_scholar, ScholarBlockedError
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,95 @@ def api_send(request):
         image=image,
     )
     return JsonResponse({'id': msg.id, 'created_at': msg.created_at.isoformat()})
+
+
+def _post_json(p, with_body=False):
+    data = {
+        'id': p.id,
+        'category': p.category,
+        'category_label': p.get_category_display(),
+        'title': p.title,
+        'author_name': p.author_name,
+        'author_ip': p.author_ip or '',
+        'views': p.views,
+        'created_at': p.created_at.isoformat(),
+        'updated_at': p.updated_at.isoformat(),
+    }
+    if with_body:
+        data['body'] = p.body
+    return data
+
+
+@require_GET
+def api_posts(request):
+    qs = WorkPost.objects.all()
+    category = (request.GET.get('category') or '').strip()
+    if category:
+        qs = qs.filter(category=category)
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(title__icontains=q)
+    return JsonResponse({
+        'my_ip': _client_ip(request),
+        'posts': [_post_json(p) for p in qs[:300]],
+    })
+
+
+@require_POST
+def api_post_create(request):
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
+
+    title = (data.get('title') or '').strip()[:200]
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+
+    category = data.get('category')
+    if category not in dict(WorkPost.CATEGORY_CHOICES):
+        category = 'novel'
+
+    p = WorkPost.objects.create(
+        category=category,
+        title=title,
+        author_name=(data.get('author_name') or '익명').strip()[:32] or '익명',
+        author_ip=_client_ip(request),
+        body=(data.get('body') or ''),
+    )
+    return JsonResponse(_post_json(p, with_body=True), status=201)
+
+
+@require_http_methods(['GET', 'POST', 'DELETE'])
+def api_post_detail(request, post_id):
+    p = get_object_or_404(WorkPost, pk=post_id)
+
+    if request.method == 'GET':
+        WorkPost.objects.filter(pk=p.pk).update(views=p.views + 1)
+        p.views += 1
+        return JsonResponse(_post_json(p, with_body=True))
+
+    if request.method == 'DELETE':
+        p.delete()
+        return JsonResponse({'deleted': True})
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
+
+    title = (data.get('title') or '').strip()[:200]
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+
+    category = data.get('category')
+    if category in dict(WorkPost.CATEGORY_CHOICES):
+        p.category = category
+    p.title = title
+    p.author_name = (data.get('author_name') or '익명').strip()[:32] or '익명'
+    p.body = data.get('body') or ''
+    p.save()
+    return JsonResponse(_post_json(p, with_body=True))
 
 
 @require_GET

@@ -395,6 +395,112 @@ body {
 }
 .gw-sr-list-item { padding: 2px 0; color: #666; }
 
+/* ---- 게시판 (문서함과 같은 톤) ---- */
+.bd-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.gw-tab.clickable { cursor: pointer; }
+.gw-tab.clickable:hover { color: #1B3A6B; }
+.bd-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-bottom: 1px solid #e5e8ec;
+    font-size: 11px;
+}
+.bd-toolbar select, .bd-toolbar input {
+    padding: 4px 8px;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 11px;
+    font-family: inherit;
+}
+.bd-toolbar input { flex: 0 1 200px; }
+.bd-btn {
+    padding: 4px 12px;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 11px;
+    color: #555;
+    background: #fff;
+    cursor: pointer;
+}
+.bd-btn:hover { background: #f0f2f5; }
+.bd-btn.primary { background: #1B3A6B; color: #fff; border-color: #1B3A6B; font-weight: 700; }
+.bd-btn.primary:hover { background: #16305a; }
+.bd-btn.danger { color: #c0392b; border-color: #e3b7b1; }
+.bd-btn.danger:hover { background: #fdf0ee; }
+.bd-spacer { flex: 1; }
+
+.col-bd-no { flex: 0 0 54px; color: #8a92a0; text-align: center; padding-right: 8px; }
+.col-bd-cat { flex: 0 0 62px; color: #1B3A6B; padding-right: 10px; }
+.col-bd-title { flex: 1 1 0; text-overflow: ellipsis; cursor: pointer; }
+.col-bd-title:hover { text-decoration: underline; color: #1B3A6B; }
+.col-bd-author { flex: 0 0 104px; color: #444; text-overflow: ellipsis; padding-right: 10px; }
+.col-bd-views { flex: 0 0 48px; color: #999; text-align: center; padding-right: 8px; }
+.col-bd-date { flex: 0 0 86px; color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+
+/* 게시판 글쓰기/보기 패널 */
+.bd-editor {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px;
+    gap: 8px;
+    overflow-y: auto;
+}
+.bd-editor-row { display: flex; gap: 8px; align-items: center; }
+.bd-editor-row select, .bd-editor-row input {
+    padding: 6px 10px;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 12px;
+    font-family: inherit;
+}
+.bd-editor-row input.bd-title-input { flex: 1; font-size: 13px; }
+.bd-editor-row input.bd-author-input { flex: 0 0 130px; }
+.bd-editor textarea {
+    flex: 1;
+    min-height: 220px;
+    resize: vertical;
+    padding: 12px;
+    border: 1px solid #d7dbe2;
+    border-radius: 2px;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.75;
+    outline: none;
+}
+.bd-editor textarea:focus { border-color: #1B3A6B; }
+.bd-editor-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.bd-viewer { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; }
+.bd-viewer .bd-v-cat { font-size: 11px; color: #1B3A6B; font-weight: 700; }
+.bd-viewer .bd-v-title { font-size: 18px; font-weight: 700; color: #222; margin: 4px 0 8px; line-height: 1.4; }
+.bd-viewer .bd-v-meta {
+    font-size: 11px;
+    color: #8a92a0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e8ec;
+    display: flex;
+    gap: 12px;
+}
+.bd-viewer .bd-v-body {
+    padding: 18px 0;
+    font-size: 14px;
+    line-height: 1.95;
+    color: #2c2c2c;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.bd-viewer .bd-v-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #e5e8ec; }
+
 /* =======================================================================
    테마 스위처 (그룹웨어 nav / VS Code 타이틀바 공용) + 테마 뷰 컨테이너
    ======================================================================= */
@@ -907,10 +1013,10 @@ body {
             <div class="gw-brand">🌱 그룹웨어</div>
             <div class="gw-tabs">
                 <span class="gw-tab"><span class="gw-tab-ic">🗒</span>결재</span>
-                <span class="gw-tab active"><span class="gw-tab-ic">📁</span>문서함</span>
+                <span class="gw-tab clickable active" id="nav-tab-docs"><span class="gw-tab-ic">📁</span>문서함</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🔗</span>업무넷</span>
                 <span class="gw-tab"><span class="gw-tab-ic">📅</span>스케쥴</span>
-                <span class="gw-tab"><span class="gw-tab-ic">📋</span>게시판</span>
+                <span class="gw-tab clickable" id="nav-tab-board"><span class="gw-tab-ic">📋</span>게시판</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🗓</span>일정</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🏢</span>설비예약</span>
                 <span class="gw-tab"><span class="gw-tab-ic">👥</span>주소록</span>
@@ -960,7 +1066,7 @@ body {
             </div>
 
             <!-- 중앙 : 문서함 = 채팅 -->
-            <div class="gw-main">
+            <div class="gw-main" id="gw-main-docs">
                 <div class="gw-page-title">
                     기록물등록대장 <span id="doc-count-title">(0)</span>
                     <span class="gw-fav">☆ 즐겨찾기</span>
@@ -998,6 +1104,75 @@ body {
                     </div>
                     <div class="gw-table-body" id="chat-messages">
                         <div class="gw-empty">아직 등록된 메시지가 없습니다.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 중앙 : 게시판 (소설 등 긴 글) -->
+            <div class="gw-main" id="gw-main-board" hidden>
+                <div class="gw-page-title">
+                    자료실 <span id="bd-count-title">(0)</span>
+                    <span class="gw-fav">☆ 즐겨찾기</span>
+                </div>
+
+                <!-- 목록 -->
+                <div class="bd-panel" id="bd-list-panel">
+                    <div class="bd-toolbar">
+                        <select id="bd-filter-cat">
+                            <option value="">전체 분류</option>
+                            <option value="novel">소설</option>
+                            <option value="essay">수필</option>
+                            <option value="etc">기타</option>
+                        </select>
+                        <input type="text" id="bd-search" placeholder="제목 검색">
+                        <span class="bd-spacer"></span>
+                        <button class="bd-btn" id="bd-refresh" type="button">⟳ 새로고침</button>
+                        <button class="bd-btn primary" id="bd-new" type="button">＋ 글쓰기</button>
+                    </div>
+                    <div class="gw-table-wrap">
+                        <div class="gw-table-head">
+                            <span class="col-bd-no">번호</span>
+                            <span class="col-bd-cat">분류</span>
+                            <span class="col-bd-title">제목</span>
+                            <span class="col-bd-author">작성자</span>
+                            <span class="col-bd-views">조회</span>
+                            <span class="col-bd-date">작성일</span>
+                        </div>
+                        <div class="gw-table-body" id="bd-rows">
+                            <div class="gw-empty">등록된 글이 없습니다.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 글쓰기/수정 -->
+                <div class="bd-editor" id="bd-edit-panel" hidden>
+                    <div class="bd-editor-row">
+                        <select id="bd-edit-cat">
+                            <option value="novel">소설</option>
+                            <option value="essay">수필</option>
+                            <option value="etc">기타</option>
+                        </select>
+                        <input type="text" class="bd-title-input" id="bd-edit-title" placeholder="제목" maxlength="200">
+                        <input type="text" class="bd-author-input" id="bd-edit-author" placeholder="작성자" maxlength="16">
+                    </div>
+                    <textarea id="bd-edit-body" placeholder="내용을 입력하세요"></textarea>
+                    <div class="bd-editor-actions">
+                        <button class="bd-btn" id="bd-edit-cancel" type="button">취소</button>
+                        <button class="bd-btn primary" id="bd-edit-save" type="button">저장</button>
+                    </div>
+                </div>
+
+                <!-- 글 보기 -->
+                <div class="bd-viewer" id="bd-view-panel" hidden>
+                    <div class="bd-v-cat" id="bd-v-cat"></div>
+                    <div class="bd-v-title" id="bd-v-title"></div>
+                    <div class="bd-v-meta" id="bd-v-meta"></div>
+                    <div class="bd-v-body" id="bd-v-body"></div>
+                    <div class="bd-v-actions">
+                        <button class="bd-btn" id="bd-v-back" type="button">← 목록</button>
+                        <span class="bd-spacer"></span>
+                        <button class="bd-btn" id="bd-v-edit" type="button">수정</button>
+                        <button class="bd-btn danger" id="bd-v-delete" type="button">삭제</button>
                     </div>
                 </div>
             </div>
@@ -1040,7 +1215,7 @@ body {
         </div>
 
         <!-- 실제 채팅 입력줄 — chat-pane 전체 폭 사용 (스칼라 패널에 눌려 안 보이는 문제 방지) -->
-        <div class="gw-compose">
+        <div class="gw-compose" id="gw-compose">
             <div class="pending-attachment" id="pending-attachment" hidden>
                 <span id="pending-attachment-name"></span>
                 <button id="pending-attachment-remove" type="button">✕</button>
@@ -1052,7 +1227,7 @@ body {
             <button id="chat-send" type="button">등록</button>
         </div>
 
-        <div class="gw-pagination">
+        <div class="gw-pagination" id="gw-pagination">
             <span class="gw-pg-btn">|&lt;</span>
             <span class="gw-pg-btn">&lt;</span>
             <span class="gw-pg-btn active">1</span>
@@ -1542,6 +1717,185 @@ setupCompose({
 setTheme(currentTheme());
 pollMessages();
 setInterval(pollMessages, 2000);
+
+/* ---------------- 게시판 (누구나 CRUD) ---------------- */
+const navTabDocs = document.getElementById('nav-tab-docs');
+const navTabBoard = document.getElementById('nav-tab-board');
+const gwMainDocs = document.getElementById('gw-main-docs');
+const gwMainBoard = document.getElementById('gw-main-board');
+const gwCompose = document.getElementById('gw-compose');
+const gwPagination = document.getElementById('gw-pagination');
+
+const bdListPanel = document.getElementById('bd-list-panel');
+const bdEditPanel = document.getElementById('bd-edit-panel');
+const bdViewPanel = document.getElementById('bd-view-panel');
+const bdRows = document.getElementById('bd-rows');
+const bdCountTitle = document.getElementById('bd-count-title');
+const bdFilterCat = document.getElementById('bd-filter-cat');
+const bdSearch = document.getElementById('bd-search');
+
+const bdEditCat = document.getElementById('bd-edit-cat');
+const bdEditTitle = document.getElementById('bd-edit-title');
+const bdEditAuthor = document.getElementById('bd-edit-author');
+const bdEditBody = document.getElementById('bd-edit-body');
+
+let editingPostId = null;
+let currentPost = null;
+
+function showNav(which) {
+    const board = which === 'board';
+    gwMainDocs.hidden = board;
+    gwMainBoard.hidden = !board;
+    gwCompose.hidden = board;
+    gwPagination.hidden = board;
+    navTabDocs.classList.toggle('active', !board);
+    navTabBoard.classList.toggle('active', board);
+    if (board) loadPosts();
+}
+navTabDocs.addEventListener('click', () => showNav('docs'));
+navTabBoard.addEventListener('click', () => showNav('board'));
+
+function showBoardPanel(which) {
+    bdListPanel.hidden = which !== 'list';
+    bdEditPanel.hidden = which !== 'edit';
+    bdViewPanel.hidden = which !== 'view';
+}
+
+async function loadPosts() {
+    const params = new URLSearchParams();
+    if (bdFilterCat.value) params.set('category', bdFilterCat.value);
+    if (bdSearch.value.trim()) params.set('q', bdSearch.value.trim());
+    try {
+        const res = await fetch(`/work/api/posts/?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.my_ip) myIp = data.my_ip;
+        renderPosts(data.posts || []);
+    } catch (e) { /* no-op */ }
+}
+
+function renderPosts(posts) {
+    bdCountTitle.textContent = `(${posts.length})`;
+    if (!posts.length) {
+        bdRows.innerHTML = '<div class="gw-empty">등록된 글이 없습니다.</div>';
+        return;
+    }
+    bdRows.innerHTML = posts.map(p => {
+        const mine = myIp && p.author_ip === myIp;
+        return `
+            <div class="gw-row${mine ? ' mine' : ''}">
+                <span class="col-bd-no">${p.id}</span>
+                <span class="col-bd-cat">${escapeHtml(p.category_label)}</span>
+                <span class="col-bd-title" data-id="${p.id}" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
+                <span class="col-bd-author" title="${escapeHtml(p.author_name)}">${escapeHtml(p.author_name)}</span>
+                <span class="col-bd-views">${p.views}</span>
+                <span class="col-bd-date">${formatDateTime(p.created_at)}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+bdRows.addEventListener('click', (e) => {
+    const t = e.target.closest('.col-bd-title');
+    if (t) openPost(t.dataset.id);
+});
+bdFilterCat.addEventListener('change', loadPosts);
+bdSearch.addEventListener('input', loadPosts);
+document.getElementById('bd-refresh').addEventListener('click', loadPosts);
+
+async function openPost(id) {
+    try {
+        const res = await fetch(`/work/api/posts/${id}/`);
+        if (!res.ok) return;
+        const p = await res.json();
+        currentPost = p;
+        document.getElementById('bd-v-cat').textContent = p.category_label;
+        document.getElementById('bd-v-title').textContent = p.title;
+        document.getElementById('bd-v-meta').innerHTML =
+            `<span>작성자 ${escapeHtml(p.author_name)}</span>` +
+            `<span>${formatDateTime(p.created_at)}</span>` +
+            `<span>조회 ${p.views}</span>`;
+        document.getElementById('bd-v-body').textContent = p.body || '(내용 없음)';
+        showBoardPanel('view');
+    } catch (e) { /* no-op */ }
+}
+
+document.getElementById('bd-new').addEventListener('click', () => {
+    editingPostId = null;
+    bdEditCat.value = 'novel';
+    bdEditTitle.value = '';
+    bdEditAuthor.value = localStorage.getItem('work_nickname') || '';
+    bdEditBody.value = '';
+    showBoardPanel('edit');
+    bdEditTitle.focus();
+});
+
+document.getElementById('bd-edit-cancel').addEventListener('click', () => {
+    showBoardPanel(editingPostId ? 'view' : 'list');
+});
+
+document.getElementById('bd-edit-save').addEventListener('click', async () => {
+    const title = bdEditTitle.value.trim();
+    if (!title) {
+        alert('제목을 입력하세요.');
+        return;
+    }
+    const payload = {
+        category: bdEditCat.value,
+        title,
+        author_name: bdEditAuthor.value.trim() || '익명',
+        body: bdEditBody.value,
+    };
+    const url = editingPostId ? `/work/api/posts/${editingPostId}/` : '/work/api/posts/create/';
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.error || '저장에 실패했습니다.');
+            return;
+        }
+        const p = await res.json();
+        await loadPosts();
+        openPost(p.id);
+    } catch (e) { /* no-op */ }
+});
+
+document.getElementById('bd-v-back').addEventListener('click', () => {
+    showBoardPanel('list');
+    loadPosts();
+});
+
+document.getElementById('bd-v-edit').addEventListener('click', () => {
+    if (!currentPost) return;
+    editingPostId = currentPost.id;
+    bdEditCat.value = currentPost.category;
+    bdEditTitle.value = currentPost.title;
+    bdEditAuthor.value = currentPost.author_name;
+    bdEditBody.value = currentPost.body || '';
+    showBoardPanel('edit');
+});
+
+document.getElementById('bd-v-delete').addEventListener('click', async () => {
+    if (!currentPost) return;
+    if (!confirm(`"${currentPost.title}" 글을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    try {
+        const res = await fetch(`/work/api/posts/${currentPost.id}/`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': CSRF_TOKEN },
+        });
+        if (!res.ok) {
+            alert('삭제에 실패했습니다.');
+            return;
+        }
+        currentPost = null;
+        showBoardPanel('list');
+        loadPosts();
+    } catch (e) { /* no-op */ }
+});
 
 /* ---------------- 구글 스칼라 검색 ---------------- */
 const scholarQEl = document.getElementById('scholar-q');
