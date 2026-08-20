@@ -247,13 +247,19 @@ body {
 .gw-row.mine .col-type,
 .gw-row.mine .col-no,
 .gw-row.mine .col-title { font-weight: 700; }
+.gw-table-head > span, .gw-row > span {
+    flex-shrink: 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
 .col-chk { flex: 0 0 24px; padding-right: 4px; }
 .col-chk input { pointer-events: none; }
 .col-status { flex: 0 0 40px; text-align: center; font-size: 13px; padding-right: 8px; }
-.col-type { flex: 0 0 104px; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; }
-.col-no { flex: 0 0 128px; color: #7a8290; font-family: Consolas, 'Courier New', monospace; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; }
+.col-type { flex: 0 0 104px; color: #444; text-overflow: ellipsis; padding-right: 12px; }
+.col-no { flex: 0 0 128px; color: #7a8290; font-family: Consolas, 'Courier New', monospace; font-size: 10.5px; text-overflow: ellipsis; padding-right: 12px; }
 .col-attach { flex: 0 0 58px; color: #999; text-align: center; padding-right: 8px; }
-.col-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-title { flex: 1 1 0; text-overflow: ellipsis; }
 .col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
 .gw-empty {
     padding: 40px 20px;
