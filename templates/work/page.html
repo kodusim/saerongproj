@@ -618,6 +618,9 @@ body {
     border-top: 2px solid #007acc;
     padding-top: 5px;
 }
+.vc-tab.clickable { cursor: pointer; }
+.vc-tab.clickable:hover { color: #ffffff; }
+#vc-tree-worklog, #vc-tree-posts { cursor: pointer; }
 .vc-editor {
     flex: 1;
     min-height: 0;
@@ -756,6 +759,131 @@ body {
     font-size: 10.5px;
 }
 .vc-status-spacer { flex: 1; }
+
+/* ---- VS Code 테마의 게시판 (그룹웨어 게시판과 기능 동일) ---- */
+.vc-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.vc-bd-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #252526;
+    border-bottom: 1px solid #3c3c3c;
+    font-size: 11px;
+}
+.vc-bd-toolbar select, .vc-bd-toolbar input {
+    background: #3c3c3c;
+    border: 1px solid #3c3c3c;
+    color: #cccccc;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    outline: none;
+}
+.vc-bd-toolbar input { flex: 0 1 200px; }
+.vc-bd-toolbar input:focus, .vc-bd-toolbar select:focus { border-color: #007acc; }
+.vc-bd-btn {
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid #3c3c3c;
+    color: #cccccc;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+.vc-bd-btn:hover { background: #2a2d2e; }
+.vc-bd-btn.primary { background: #0e639c; border-color: #0e639c; color: #fff; }
+.vc-bd-btn.primary:hover { background: #1177bb; }
+.vc-bd-btn.danger { color: #f48771; border-color: #5a3a35; }
+.vc-bd-btn.danger:hover { background: #3a2a28; }
+.vc-bd-spacer { flex: 1; }
+
+.vc-bd-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 0; }
+.vc-bd-line {
+    display: flex;
+    align-items: baseline;
+    padding: 2px 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.vc-bd-line:hover { background: #2a2d2e; }
+.vc-bd-line.mine .vc-bd-name { font-weight: 700; }
+.vc-bd-hash { flex: 0 0 auto; color: #569cd6; padding-right: 8px; }
+.vc-bd-cat-tag { flex: 0 0 auto; color: #4ec9b0; padding-right: 8px; }
+.vc-bd-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #ce9178; }
+.vc-bd-author-tag { flex: 0 0 auto; color: #6A9955; padding-left: 10px; }
+.vc-bd-meta-tag { flex: 0 0 auto; color: #5a5a5a; font-size: 10.5px; padding-left: 10px; }
+
+.vc-bd-editor {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    overflow-y: auto;
+}
+.vc-bd-editor-row { display: flex; gap: 8px; align-items: center; }
+.vc-bd-editor-row select, .vc-bd-editor-row input {
+    background: #3c3c3c;
+    border: 1px solid #3c3c3c;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    outline: none;
+}
+.vc-bd-editor-row input.vc-bd-title-input { flex: 1; }
+.vc-bd-editor-row input.vc-bd-author-input { flex: 0 0 130px; }
+.vc-bd-editor-row select:focus, .vc-bd-editor-row input:focus { border-color: #007acc; }
+.vc-bd-editor textarea {
+    flex: 1;
+    min-height: 200px;
+    resize: vertical;
+    background: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 10px 12px;
+    border-radius: 2px;
+    outline: none;
+}
+.vc-bd-editor textarea:focus { border-color: #007acc; }
+.vc-bd-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.vc-bd-viewer { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px; }
+.vc-bd-v-title { font-size: 17px; color: #569cd6; font-weight: 700; line-height: 1.4; }
+.vc-bd-v-title::before { content: '# '; color: #6A9955; }
+.vc-bd-v-meta {
+    font-size: 11px;
+    color: #6A9955;
+    padding: 6px 0 12px;
+    border-bottom: 1px solid #3c3c3c;
+    display: flex;
+    gap: 12px;
+}
+.vc-bd-v-body {
+    padding: 16px 0;
+    font-size: 13.5px;
+    line-height: 1.95;
+    color: #d4d4d4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.vc-bd-v-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #3c3c3c; }
 
 /* ---------- 리사이즈 핸들 ---------- */
 .resize-handle {
@@ -1270,33 +1398,91 @@ body {
                 <div class="vc-tree-item vc-indent">📄 api.js</div>
                 <div class="vc-tree-item">📄 package.json</div>
                 <div class="vc-tree-item">📄 README.md</div>
-                <div class="vc-tree-item selected">📄 worklog.txt</div>
+                <div class="vc-tree-item selected" id="vc-tree-worklog">📄 worklog.txt</div>
+                <div class="vc-tree-item" id="vc-tree-posts">📄 posts.md</div>
             </div>
             <div class="vc-main">
                 <div class="vc-tabbar">
                     <span class="vc-tab">index.js</span>
-                    <span class="vc-tab">api.js</span>
-                    <span class="vc-tab active">worklog.txt</span>
+                    <span class="vc-tab clickable active" id="vc-tab-worklog">worklog.txt</span>
+                    <span class="vc-tab clickable" id="vc-tab-posts">posts.md</span>
                 </div>
-                <div class="vc-editor" id="vc-lines">
-                    <div class="vc-empty">// 아직 기록된 로그가 없습니다</div>
+
+                <!-- 채팅 (worklog.txt) -->
+                <div class="vc-section" id="vc-chat-section">
+                    <div class="vc-editor" id="vc-lines">
+                        <div class="vc-empty">// 아직 기록된 로그가 없습니다</div>
+                    </div>
+                    <div class="vc-terminal">
+                        <div class="vc-terminal-head">
+                            <span>터미널</span>
+                            <span class="vc-refresh" id="vc-refresh">⟳ 새로고침</span>
+                        </div>
+                        <div class="pending-attachment vc-pending" id="pending-attachment-vc" hidden>
+                            <span id="pending-attachment-name-vc"></span>
+                            <button id="pending-attachment-remove-vc" type="button">✕</button>
+                        </div>
+                        <div class="vc-terminal-input-row">
+                            <span class="vc-prompt">$</span>
+                            <input type="text" id="nickname-vc" class="vc-user-input" maxlength="16" placeholder="user">
+                            <button id="attach-btn-vc" class="vc-icon-btn" type="button" title="이미지 첨부">📎</button>
+                            <input type="file" id="attach-file-vc" accept="image/*" hidden>
+                            <textarea id="chat-body-vc" rows="1" placeholder='echo &quot;메시지 (Shift+Enter 줄바꿈)&quot;' maxlength="2000"></textarea>
+                            <button id="chat-send-vc" class="vc-send-btn" type="button">↵</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="vc-terminal">
-                    <div class="vc-terminal-head">
-                        <span>터미널</span>
-                        <span class="vc-refresh" id="vc-refresh">⟳ 새로고침</span>
+
+                <!-- 게시판 (posts.md) — 그룹웨어 게시판과 동일 기능 -->
+                <div class="vc-section" id="vc-board-section" hidden>
+                    <!-- 목록 -->
+                    <div class="vc-section" id="vc-bd-list-panel">
+                        <div class="vc-bd-toolbar">
+                            <select id="vc-bd-filter-cat">
+                                <option value="">전체 분류</option>
+                                <option value="novel">소설</option>
+                                <option value="essay">수필</option>
+                                <option value="etc">기타</option>
+                            </select>
+                            <input type="text" id="vc-bd-search" placeholder="제목 검색">
+                            <span class="vc-bd-spacer"></span>
+                            <button class="vc-bd-btn" id="vc-bd-refresh" type="button">⟳ 새로고침</button>
+                            <button class="vc-bd-btn primary" id="vc-bd-new" type="button">＋ 새 글</button>
+                        </div>
+                        <div class="vc-bd-list" id="vc-bd-rows">
+                            <div class="vc-empty">// 등록된 글이 없습니다</div>
+                        </div>
                     </div>
-                    <div class="pending-attachment vc-pending" id="pending-attachment-vc" hidden>
-                        <span id="pending-attachment-name-vc"></span>
-                        <button id="pending-attachment-remove-vc" type="button">✕</button>
+
+                    <!-- 글쓰기/수정 -->
+                    <div class="vc-bd-editor" id="vc-bd-edit-panel" hidden>
+                        <div class="vc-bd-editor-row">
+                            <select id="vc-bd-edit-cat">
+                                <option value="novel">소설</option>
+                                <option value="essay">수필</option>
+                                <option value="etc">기타</option>
+                            </select>
+                            <input type="text" class="vc-bd-title-input" id="vc-bd-edit-title" placeholder="제목" maxlength="200">
+                            <input type="text" class="vc-bd-author-input" id="vc-bd-edit-author" placeholder="작성자" maxlength="16">
+                        </div>
+                        <textarea id="vc-bd-edit-body" placeholder="내용을 입력하세요"></textarea>
+                        <div class="vc-bd-actions">
+                            <button class="vc-bd-btn" id="vc-bd-edit-cancel" type="button">취소</button>
+                            <button class="vc-bd-btn primary" id="vc-bd-edit-save" type="button">저장</button>
+                        </div>
                     </div>
-                    <div class="vc-terminal-input-row">
-                        <span class="vc-prompt">$</span>
-                        <input type="text" id="nickname-vc" class="vc-user-input" maxlength="16" placeholder="user">
-                        <button id="attach-btn-vc" class="vc-icon-btn" type="button" title="이미지 첨부">📎</button>
-                        <input type="file" id="attach-file-vc" accept="image/*" hidden>
-                        <textarea id="chat-body-vc" rows="1" placeholder='echo &quot;메시지 (Shift+Enter 줄바꿈)&quot;' maxlength="2000"></textarea>
-                        <button id="chat-send-vc" class="vc-send-btn" type="button">↵</button>
+
+                    <!-- 글 보기 -->
+                    <div class="vc-bd-viewer" id="vc-bd-view-panel" hidden>
+                        <div class="vc-bd-v-title" id="vc-bd-v-title"></div>
+                        <div class="vc-bd-v-meta" id="vc-bd-v-meta"></div>
+                        <div class="vc-bd-v-body" id="vc-bd-v-body"></div>
+                        <div class="vc-bd-v-actions">
+                            <button class="vc-bd-btn" id="vc-bd-v-back" type="button">← 목록</button>
+                            <span class="vc-bd-spacer"></span>
+                            <button class="vc-bd-btn" id="vc-bd-v-edit" type="button">수정</button>
+                            <button class="vc-bd-btn danger" id="vc-bd-v-delete" type="button">삭제</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1488,7 +1674,11 @@ function setTheme(name) {
     document.querySelectorAll('.nickname-input').forEach(el => {
         el.value = localStorage.getItem('work_nickname') || '';
     });
+    // 테마는 외형만 바꾼다 — 채팅/게시판의 내용과 화면 상태는 그대로 유지
     renderMessageList();
+    renderPostList();
+    applyNav();
+    showBoardPanel(boardPanel);
 }
 
 themeSwitchers.forEach(sel => {
@@ -1714,137 +1904,242 @@ setupCompose({
     sendBtn: 'chat-send-vc',
 });
 
-setTheme(currentTheme());
 pollMessages();
 setInterval(pollMessages, 2000);
 
-/* ---------------- 게시판 (누구나 CRUD) ---------------- */
-const navTabDocs = document.getElementById('nav-tab-docs');
-const navTabBoard = document.getElementById('nav-tab-board');
-const gwMainDocs = document.getElementById('gw-main-docs');
-const gwMainBoard = document.getElementById('gw-main-board');
-const gwCompose = document.getElementById('gw-compose');
-const gwPagination = document.getElementById('gw-pagination');
+/* ---------------- 게시판 (누구나 CRUD) ----------------
+   상태(currentNav / 목록 / 편집중인 글)는 한 벌만 두고,
+   테마별 DOM 2벌에 같은 내용을 렌더링한다. 테마는 외형만 바꾼다. */
+const $ = (id) => document.getElementById(id);
 
-const bdListPanel = document.getElementById('bd-list-panel');
-const bdEditPanel = document.getElementById('bd-edit-panel');
-const bdViewPanel = document.getElementById('bd-view-panel');
-const bdRows = document.getElementById('bd-rows');
-const bdCountTitle = document.getElementById('bd-count-title');
-const bdFilterCat = document.getElementById('bd-filter-cat');
-const bdSearch = document.getElementById('bd-search');
+// 테마별 DOM 묶음 — 구조는 같고 스킨만 다르다
+const BOARD_UI = {
+    groupware: {
+        listPanel: 'bd-list-panel', editPanel: 'bd-edit-panel', viewPanel: 'bd-view-panel',
+        rows: 'bd-rows', filterCat: 'bd-filter-cat', search: 'bd-search',
+        refresh: 'bd-refresh', newBtn: 'bd-new',
+        editCat: 'bd-edit-cat', editTitle: 'bd-edit-title', editAuthor: 'bd-edit-author',
+        editBody: 'bd-edit-body', editCancel: 'bd-edit-cancel', editSave: 'bd-edit-save',
+        vTitle: 'bd-v-title', vMeta: 'bd-v-meta', vBody: 'bd-v-body',
+        vBack: 'bd-v-back', vEdit: 'bd-v-edit', vDelete: 'bd-v-delete',
+        vCat: 'bd-v-cat',
+    },
+    vscode: {
+        listPanel: 'vc-bd-list-panel', editPanel: 'vc-bd-edit-panel', viewPanel: 'vc-bd-view-panel',
+        rows: 'vc-bd-rows', filterCat: 'vc-bd-filter-cat', search: 'vc-bd-search',
+        refresh: 'vc-bd-refresh', newBtn: 'vc-bd-new',
+        editCat: 'vc-bd-edit-cat', editTitle: 'vc-bd-edit-title', editAuthor: 'vc-bd-edit-author',
+        editBody: 'vc-bd-edit-body', editCancel: 'vc-bd-edit-cancel', editSave: 'vc-bd-edit-save',
+        vTitle: 'vc-bd-v-title', vMeta: 'vc-bd-v-meta', vBody: 'vc-bd-v-body',
+        vBack: 'vc-bd-v-back', vEdit: 'vc-bd-v-edit', vDelete: 'vc-bd-v-delete',
+        vCat: null,
+    },
+};
 
-const bdEditCat = document.getElementById('bd-edit-cat');
-const bdEditTitle = document.getElementById('bd-edit-title');
-const bdEditAuthor = document.getElementById('bd-edit-author');
-const bdEditBody = document.getElementById('bd-edit-body');
-
+let currentNav = 'docs';      // 'docs'(채팅) | 'board'(게시판)
+let boardPanel = 'list';      // 'list' | 'edit' | 'view'
+let allPosts = [];
 let editingPostId = null;
 let currentPost = null;
 
-function showNav(which) {
-    const board = which === 'board';
-    gwMainDocs.hidden = board;
-    gwMainBoard.hidden = !board;
-    gwCompose.hidden = board;
-    gwPagination.hidden = board;
-    navTabDocs.classList.toggle('active', !board);
-    navTabBoard.classList.toggle('active', board);
+/* ---- 화면 전환 (양쪽 테마 동시 적용) ---- */
+function applyNav() {
+    const board = currentNav === 'board';
+
+    // 그룹웨어 테마
+    $('gw-main-docs').hidden = board;
+    $('gw-main-board').hidden = !board;
+    $('gw-compose').hidden = board;
+    $('gw-pagination').hidden = board;
+    $('nav-tab-docs').classList.toggle('active', !board);
+    $('nav-tab-board').classList.toggle('active', board);
+
+    // VS Code 테마
+    $('vc-chat-section').hidden = board;
+    $('vc-board-section').hidden = !board;
+    $('vc-tab-worklog').classList.toggle('active', !board);
+    $('vc-tab-posts').classList.toggle('active', board);
+    $('vc-tree-worklog').classList.toggle('selected', !board);
+    $('vc-tree-posts').classList.toggle('selected', board);
+
     if (board) loadPosts();
 }
-navTabDocs.addEventListener('click', () => showNav('docs'));
-navTabBoard.addEventListener('click', () => showNav('board'));
+
+function setNav(which) {
+    currentNav = which;
+    applyNav();
+}
+['nav-tab-docs', 'vc-tab-worklog', 'vc-tree-worklog'].forEach(id =>
+    $(id).addEventListener('click', () => setNav('docs')));
+['nav-tab-board', 'vc-tab-posts', 'vc-tree-posts'].forEach(id =>
+    $(id).addEventListener('click', () => setNav('board')));
 
 function showBoardPanel(which) {
-    bdListPanel.hidden = which !== 'list';
-    bdEditPanel.hidden = which !== 'edit';
-    bdViewPanel.hidden = which !== 'view';
+    boardPanel = which;
+    Object.values(BOARD_UI).forEach(ui => {
+        $(ui.listPanel).hidden = which !== 'list';
+        $(ui.editPanel).hidden = which !== 'edit';
+        $(ui.viewPanel).hidden = which !== 'view';
+    });
+}
+
+/* ---- 목록 ---- */
+function activeBoardUI() {
+    return BOARD_UI[currentTheme() === 'vscode' ? 'vscode' : 'groupware'];
 }
 
 async function loadPosts() {
+    const ui = activeBoardUI();
     const params = new URLSearchParams();
-    if (bdFilterCat.value) params.set('category', bdFilterCat.value);
-    if (bdSearch.value.trim()) params.set('q', bdSearch.value.trim());
+    const cat = $(ui.filterCat).value;
+    const q = $(ui.search).value.trim();
+    if (cat) params.set('category', cat);
+    if (q) params.set('q', q);
     try {
         const res = await fetch(`/work/api/posts/?${params}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.my_ip) myIp = data.my_ip;
-        renderPosts(data.posts || []);
+        allPosts = data.posts || [];
+        renderPostList();
     } catch (e) { /* no-op */ }
 }
 
-function renderPosts(posts) {
-    bdCountTitle.textContent = `(${posts.length})`;
-    if (!posts.length) {
-        bdRows.innerHTML = '<div class="gw-empty">등록된 글이 없습니다.</div>';
-        return;
-    }
-    bdRows.innerHTML = posts.map(p => {
-        const mine = myIp && p.author_ip === myIp;
-        return `
-            <div class="gw-row${mine ? ' mine' : ''}">
-                <span class="col-bd-no">${p.id}</span>
-                <span class="col-bd-cat">${escapeHtml(p.category_label)}</span>
-                <span class="col-bd-title" data-id="${p.id}" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
-                <span class="col-bd-author" title="${escapeHtml(p.author_name)}">${escapeHtml(p.author_name)}</span>
-                <span class="col-bd-views">${p.views}</span>
-                <span class="col-bd-date">${formatDateTime(p.created_at)}</span>
-            </div>
-        `;
-    }).join('');
+function renderPostList() {
+    $('bd-count-title').textContent = `(${allPosts.length})`;
+
+    // 그룹웨어 스킨 — 문서함 표와 같은 행
+    const gwRows = $('bd-rows');
+    gwRows.innerHTML = !allPosts.length
+        ? '<div class="gw-empty">등록된 글이 없습니다.</div>'
+        : allPosts.map(p => {
+            const mine = myIp && p.author_ip === myIp;
+            return `
+                <div class="gw-row${mine ? ' mine' : ''}">
+                    <span class="col-bd-no">${p.id}</span>
+                    <span class="col-bd-cat">${escapeHtml(p.category_label)}</span>
+                    <span class="col-bd-title" data-id="${p.id}" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
+                    <span class="col-bd-author" title="${escapeHtml(p.author_name)}">${escapeHtml(p.author_name)}</span>
+                    <span class="col-bd-views">${p.views}</span>
+                    <span class="col-bd-date">${formatDateTime(p.created_at)}</span>
+                </div>
+            `;
+        }).join('');
+
+    // VS Code 스킨 — 마크다운 목록처럼
+    const vcRows = $('vc-bd-rows');
+    vcRows.innerHTML = !allPosts.length
+        ? '<div class="vc-empty">// 등록된 글이 없습니다</div>'
+        : allPosts.map(p => {
+            const mine = myIp && p.author_ip === myIp;
+            return `
+                <div class="vc-bd-line${mine ? ' mine' : ''}" data-id="${p.id}">
+                    <span class="vc-bd-hash">##</span>
+                    <span class="vc-bd-cat-tag">[${escapeHtml(p.category_label)}]</span>
+                    <span class="vc-bd-name" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
+                    <span class="vc-bd-author-tag">@${escapeHtml(p.author_name)}</span>
+                    <span class="vc-bd-meta-tag">${formatDateTime(p.created_at)} · ${p.views}</span>
+                </div>
+            `;
+        }).join('');
 }
 
-bdRows.addEventListener('click', (e) => {
+$('bd-rows').addEventListener('click', (e) => {
     const t = e.target.closest('.col-bd-title');
     if (t) openPost(t.dataset.id);
 });
-bdFilterCat.addEventListener('change', loadPosts);
-bdSearch.addEventListener('input', loadPosts);
-document.getElementById('bd-refresh').addEventListener('click', loadPosts);
+$('vc-bd-rows').addEventListener('click', (e) => {
+    const t = e.target.closest('.vc-bd-line');
+    if (t) openPost(t.dataset.id);
+});
 
+// 필터/검색은 양쪽 테마에서 값이 동기화되도록
+Object.values(BOARD_UI).forEach(ui => {
+    $(ui.filterCat).addEventListener('change', () => {
+        const v = $(ui.filterCat).value;
+        Object.values(BOARD_UI).forEach(o => { $(o.filterCat).value = v; });
+        loadPosts();
+    });
+    $(ui.search).addEventListener('input', () => {
+        const v = $(ui.search).value;
+        Object.values(BOARD_UI).forEach(o => { $(o.search).value = v; });
+        loadPosts();
+    });
+    $(ui.refresh).addEventListener('click', loadPosts);
+    $(ui.newBtn).addEventListener('click', startNewPost);
+    $(ui.editCancel).addEventListener('click', () => showBoardPanel(editingPostId ? 'view' : 'list'));
+    $(ui.editSave).addEventListener('click', savePost);
+    $(ui.vBack).addEventListener('click', () => { showBoardPanel('list'); loadPosts(); });
+    $(ui.vEdit).addEventListener('click', startEditPost);
+    $(ui.vDelete).addEventListener('click', deletePost);
+});
+
+/* ---- 보기 ---- */
 async function openPost(id) {
     try {
         const res = await fetch(`/work/api/posts/${id}/`);
         if (!res.ok) return;
         const p = await res.json();
         currentPost = p;
-        document.getElementById('bd-v-cat').textContent = p.category_label;
-        document.getElementById('bd-v-title').textContent = p.title;
-        document.getElementById('bd-v-meta').innerHTML =
-            `<span>작성자 ${escapeHtml(p.author_name)}</span>` +
-            `<span>${formatDateTime(p.created_at)}</span>` +
-            `<span>조회 ${p.views}</span>`;
-        document.getElementById('bd-v-body').textContent = p.body || '(내용 없음)';
+
+        Object.values(BOARD_UI).forEach(ui => {
+            if (ui.vCat) $(ui.vCat).textContent = p.category_label;
+            $(ui.vTitle).textContent = p.title;
+            $(ui.vMeta).innerHTML =
+                `<span>작성자 ${escapeHtml(p.author_name)}</span>` +
+                `<span>${formatDateTime(p.created_at)}</span>` +
+                `<span>조회 ${p.views}</span>`;
+            $(ui.vBody).textContent = p.body || '(내용 없음)';
+        });
         showBoardPanel('view');
     } catch (e) { /* no-op */ }
 }
 
-document.getElementById('bd-new').addEventListener('click', () => {
+/* ---- 작성 / 수정 ---- */
+function fillEditor(values) {
+    Object.values(BOARD_UI).forEach(ui => {
+        $(ui.editCat).value = values.category;
+        $(ui.editTitle).value = values.title;
+        $(ui.editAuthor).value = values.author_name;
+        $(ui.editBody).value = values.body;
+    });
+}
+
+function startNewPost() {
     editingPostId = null;
-    bdEditCat.value = 'novel';
-    bdEditTitle.value = '';
-    bdEditAuthor.value = localStorage.getItem('work_nickname') || '';
-    bdEditBody.value = '';
+    fillEditor({
+        category: 'novel', title: '',
+        author_name: localStorage.getItem('work_nickname') || '',
+        body: '',
+    });
     showBoardPanel('edit');
-    bdEditTitle.focus();
-});
+    $(activeBoardUI().editTitle).focus();
+}
 
-document.getElementById('bd-edit-cancel').addEventListener('click', () => {
-    showBoardPanel(editingPostId ? 'view' : 'list');
-});
+function startEditPost() {
+    if (!currentPost) return;
+    editingPostId = currentPost.id;
+    fillEditor({
+        category: currentPost.category,
+        title: currentPost.title,
+        author_name: currentPost.author_name,
+        body: currentPost.body || '',
+    });
+    showBoardPanel('edit');
+}
 
-document.getElementById('bd-edit-save').addEventListener('click', async () => {
-    const title = bdEditTitle.value.trim();
+async function savePost() {
+    const ui = activeBoardUI();
+    const title = $(ui.editTitle).value.trim();
     if (!title) {
         alert('제목을 입력하세요.');
         return;
     }
     const payload = {
-        category: bdEditCat.value,
+        category: $(ui.editCat).value,
         title,
-        author_name: bdEditAuthor.value.trim() || '익명',
-        body: bdEditBody.value,
+        author_name: $(ui.editAuthor).value.trim() || '익명',
+        body: $(ui.editBody).value,
     };
     const url = editingPostId ? `/work/api/posts/${editingPostId}/` : '/work/api/posts/create/';
     try {
@@ -1862,24 +2157,9 @@ document.getElementById('bd-edit-save').addEventListener('click', async () => {
         await loadPosts();
         openPost(p.id);
     } catch (e) { /* no-op */ }
-});
+}
 
-document.getElementById('bd-v-back').addEventListener('click', () => {
-    showBoardPanel('list');
-    loadPosts();
-});
-
-document.getElementById('bd-v-edit').addEventListener('click', () => {
-    if (!currentPost) return;
-    editingPostId = currentPost.id;
-    bdEditCat.value = currentPost.category;
-    bdEditTitle.value = currentPost.title;
-    bdEditAuthor.value = currentPost.author_name;
-    bdEditBody.value = currentPost.body || '';
-    showBoardPanel('edit');
-});
-
-document.getElementById('bd-v-delete').addEventListener('click', async () => {
+async function deletePost() {
     if (!currentPost) return;
     if (!confirm(`"${currentPost.title}" 글을 삭제할까요? 되돌릴 수 없습니다.`)) return;
     try {
@@ -1895,7 +2175,10 @@ document.getElementById('bd-v-delete').addEventListener('click', async () => {
         showBoardPanel('list');
         loadPosts();
     } catch (e) { /* no-op */ }
-});
+}
+
+/* ---- 초기화 (모든 정의가 끝난 뒤 실행) ---- */
+setTheme(currentTheme());
 
 /* ---------------- 구글 스칼라 검색 ---------------- */
 const scholarQEl = document.getElementById('scholar-q');
