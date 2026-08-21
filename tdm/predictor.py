@@ -115,6 +115,59 @@ def _load_dl():
     return model, stats, feature_cols or DL_FEATURES
 
 
+def _build_landmark_curve(dose_times, q_hr_default, ns_peaks, ns_troughs,
+                           steady_peak, steady_trough, infusion_h=1.0):
+    """ML NS peak/trough(1~5번째 투여) + DL steady endpoint(6번째~)를 랜드마크로 삼아
+    투여 후 상승(선형)+지수형 감쇠로 잇는 재구성 곡선.
+
+    Hybrid_model_2cm_bs_pipet_수정/model/deep_learning/visualize_hybrid.py의
+    build_landmark_curve()를 그대로 이식 (원본 시각화 스크립트와 동일한 방식).
+    이 곡선은 LSTM이 직접 낸 값이 아니라 "모델 출력값을 잇는" 시각화 재구성이며,
+    LSTM이 실제로 낸 값은 dl_direct로 별도 제공한다.
+    """
+    import math
+
+    xs, ys = [], []
+    prev_trough = 0.0
+    n = len(dose_times)
+    for i, dose_t in enumerate(dose_times):
+        if i < 5:
+            peak = ns_peaks[i] if i < len(ns_peaks) else float('nan')
+            trough = ns_troughs[i] if i < len(ns_troughs) else float('nan')
+        else:
+            peak = steady_peak
+            trough = steady_trough
+
+        if peak != peak:  # NaN 체크
+            peak = prev_trough
+        if trough != trough:
+            trough = prev_trough
+
+        peak = max(float(peak), 0.0)
+        trough = max(float(trough), 0.0)
+        next_dose_t = dose_times[i + 1] if i + 1 < n else dose_t + q_hr_default
+        peak_t = min(dose_t + infusion_h, next_dose_t)
+        trough_t = next_dose_t
+
+        rise_steps = 8
+        rise_t = [dose_t + (peak_t - dose_t) * k / (rise_steps - 1) for k in range(rise_steps)]
+        rise_y = [prev_trough + (peak - prev_trough) * k / (rise_steps - 1) for k in range(rise_steps)]
+
+        decay_steps = 24
+        decay_t = [peak_t + (trough_t - peak_t) * k / (decay_steps - 1) for k in range(decay_steps)]
+        frac = [k / (decay_steps - 1) for k in range(decay_steps)]
+        decay_y = [trough + (peak - trough) * math.exp(-3.2 * f) for f in frac]
+        decay_y[-1] = trough
+
+        xs.extend(rise_t)
+        ys.extend(rise_y)
+        xs.extend(decay_t[1:])
+        ys.extend(decay_y[1:])
+        prev_trough = trough
+
+    return xs, ys
+
+
 def _calc_bmi(weight_kg, height_cm):
     if not weight_kg or not height_cm:
         return None
@@ -132,7 +185,7 @@ def _crcl_cockcroft_gault(age, sex, weight_kg, scr_mgdl):
     return round(crcl, 1)
 
 
-def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
+def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
                 model_choice: str = 'auto', dose_dur_hr: float = 1.0) -> dict:
     """하이브리드 예측 실행.
 
@@ -140,12 +193,15 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
               AST, ALT, WBC, Platelet, hs_CRP, CrCL_mL_per_min?} — CrCL 빠지면 CG 자동 계산
     dose_mg: 1회 투여량 (mg)
     q_hr: 투여 간격 (hr)
-    n_doses: 평가 사이클 수 (1~5)
-    dose_dur_hr: 1회 infusion 길이 (기본 1시간)
+    n_doses: 이 사이클 내 총 투여 횟수 (실제 임상 데이터 기준 평균 18.5회, 중앙값 12회 —
+             "사이클 개수"가 아니라 "한 사이클 안에서 몇 번째 투여까지 왔는지"에 해당)
+    dose_dur_hr: 1회 infusion 길이 (기본 1시간, 현재 곡선 생성 로직에서는 미사용 —
+                 이벤트 시퀀스 자체는 dose 즉시 반영이라 실사용 안 함)
 
     반환: {
       ml_predictions: {ns_peak_1..5, ns_trough_1..5},
-      dl_curve: [{t_hr, conc}],            # 시간별 농도 곡선
+      dl_curve: [{t_hr, conc}],  # ML NS+DL steady 랜드마크 재구성 곡선 (시각화용, 톱니 모양)
+      dl_direct: [{t_hr, conc}], # LSTM이 각 이벤트에서 직접 낸 값 (완만한 원본 출력)
       dl_endpoint: {steady_peak, steady_trough, steady_auc24},
       summary: {target_trough_ok, mic_warning, ...},
       model_meta: {ml_model, dl_model}
@@ -190,8 +246,10 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
     ml_out = ml_model.predict(X_ml)[0]
     ml_predictions = {t: float(round(v, 2)) for t, v in zip(ml_targ_cols, ml_out)}
 
-    # 3) Event sequence 구성 (1회당 dose + 24시간 후 trough 측정 가정)
-    #    cycle = n_doses 회 투여 + 마지막 trough 측정 1점
+    # 3) Event sequence 구성 — 학습 데이터(hybrid_event_data.csv) 구조를 그대로 재현.
+    #    실제 사이클 = 이 사이클 내 총 투여(dose) N회 연속 + 그 뒤 TDM 채혈 1회.
+    #    (ns_peak_i/ns_trough_i는 "사이클 내 i번째 투여 직후"의 non-steady 값이며,
+    #     사이클을 나누는 단위가 아니다 — 5회 투여마다 리셋하는 것은 학습 분포와 다름)
     events = []
     t = 0.0
     last_dose_t = 0.0
@@ -203,23 +261,16 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
             'delta_hours': 0.0 if i == 1 else q_hr,
         })
         last_dose_t = t
-        # peak 측정 (dose 종료 후 30분)
-        peak_t = t + dose_dur_hr + 0.5
-        events.append({
-            'time': peak_t, 'is_dose': 0, 'is_tdm': 1,
-            'dose_mg': 0.0, 'q_hr': q_hr,
-            'hours_since_last_dose': peak_t - last_dose_t,
-            'delta_hours': dose_dur_hr + 0.5,
-        })
-        # trough 측정 (다음 dose 직전)
-        trough_t = t + q_hr - 0.5
-        events.append({
-            'time': trough_t, 'is_dose': 0, 'is_tdm': 1,
-            'dose_mg': 0.0, 'q_hr': q_hr,
-            'hours_since_last_dose': trough_t - last_dose_t,
-            'delta_hours': (q_hr - 0.5) - (dose_dur_hr + 0.5),
-        })
         t += q_hr
+
+    # 마지막 투여 직후 TDM 채혈 1회 (trough 측정 시점 — 다음 투여 직전)
+    tdm_t = last_dose_t + q_hr - 0.5
+    events.append({
+        'time': tdm_t, 'is_dose': 0, 'is_tdm': 1,
+        'dose_mg': 0.0, 'q_hr': q_hr,
+        'hours_since_last_dose': tdm_t - last_dose_t,
+        'delta_hours': q_hr - 0.5,
+    })
 
     # 누적 hours_since_cycle_start
     for ev in events:
@@ -227,7 +278,8 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
 
     # 4) DL 2단계 (있으면)
     dl_model, dl_stats, dl_feat_cols = _load_dl()
-    dl_curve = []
+    dl_curve = []       # ML NS + DL steady 랜드마크 기반 재구성 곡선 (시각화용)
+    dl_direct = []      # LSTM conc_head가 각 이벤트에서 직접 낸 값 (완만한 원본 출력)
     dl_endpoint = None
 
     if dl_model is not None:
@@ -278,20 +330,41 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
             conc_arr = conc.squeeze(0).cpu().numpy()
             ep_arr = endpoint.squeeze(0).cpu().numpy()
 
-            for ev, c in zip(events, conc_arr):
-                dl_curve.append({
-                    't_hr': round(ev['time'], 2),
-                    'conc': round(float(c), 3),
-                    'is_dose': bool(ev['is_dose']),
-                    'is_tdm': bool(ev['is_tdm']),
-                })
+            dl_direct = [
+                {'t_hr': round(ev['time'], 2), 'conc': round(float(c), 3),
+                 'is_dose': bool(ev['is_dose']), 'is_tdm': bool(ev['is_tdm'])}
+                for ev, c in zip(events, conc_arr)
+            ]
             dl_endpoint = {
                 'steady_peak': round(float(ep_arr[0]), 2),
                 'steady_trough': round(float(ep_arr[1]), 2),
                 'steady_auc24': round(float(ep_arr[2]), 1),
             }
+
+            # 재구성 곡선: ML NS peak/trough(1~5번째 투여) + DL steady endpoint(6번째~)
+            # 랜드마크를 상승+감쇠로 잇는다 (시각화용 — LSTM이 직접 낸 값 아님).
+            dose_times = [ev['time'] for ev in events if ev['is_dose']]
+            ns_peaks = [ml_predictions.get(f'ns_peak_{i}', float('nan')) for i in range(1, 6)]
+            ns_troughs = [ml_predictions.get(f'ns_trough_{i}', float('nan')) for i in range(1, 6)]
+            curve_t, curve_y = _build_landmark_curve(
+                dose_times, q_hr, ns_peaks, ns_troughs,
+                dl_endpoint['steady_peak'], dl_endpoint['steady_trough'],
+            )
+            tdm_time = next((ev['time'] for ev in events if ev['is_tdm']), None)
+            dl_curve = [
+                {'t_hr': round(t, 2), 'conc': round(c, 3),
+                 'is_dose': False, 'is_tdm': False}
+                for t, c in zip(curve_t, curve_y)
+            ]
+            for pt in dl_curve:
+                if any(abs(pt['t_hr'] - dt) < 1e-6 for dt in dose_times):
+                    pt['is_dose'] = True
+            if tdm_time is not None and dl_curve:
+                nearest = min(dl_curve, key=lambda pt: abs(pt['t_hr'] - tdm_time))
+                nearest['is_tdm'] = True
         except Exception as e:
             logger.exception('DL inference failed: %s', e)
+            dl_direct = []
 
     # 5) Summary
     target_trough_lo, target_trough_hi = 15.0, 20.0     # MRSA 표적 (예시)
@@ -328,6 +401,7 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 5,
     return {
         'ml_predictions': ml_predictions,
         'dl_curve': dl_curve,
+        'dl_direct': dl_direct,
         'dl_endpoint': dl_endpoint,
         'summary': summary,
         'model_meta': {

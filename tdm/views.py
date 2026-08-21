@@ -71,8 +71,8 @@ def tdm_predict_api(request):
         patient = body.get('patient') or {}
         dose_mg = float(body.get('dose_mg') or 1000)
         q_hr = float(body.get('q_hr') or 12)
-        n_doses = int(body.get('n_doses') or 5)
-        n_doses = max(1, min(5, n_doses))
+        n_doses = int(body.get('n_doses') or 10)
+        n_doses = max(1, min(40, n_doses))
         if dose_mg <= 0 or q_hr <= 0:
             return JsonResponse({'error': '용량/간격은 0보다 커야 합니다.'}, status=400)
 

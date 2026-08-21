@@ -146,7 +146,7 @@ table.data tr:hover { background:var(--gray1); }
         <div><label>투여 간격 (시간)</label><select id="f-q"><option value="6">q6h</option><option value="8">q8h</option><option value="12" selected>q12h</option><option value="24">q24h</option></select></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div><label>사이클 수 (회)</label><select id="f-n"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+        <div><label>총 투여 횟수 (회) <span style="color:var(--gray4);font-weight:400">— 이번 TDM 채혈까지</span></label><input type="number" id="f-n" value="10" min="1" max="40" step="1"></div>
         <div></div>
       </div>
       <div class="btn-row">
@@ -157,7 +157,7 @@ table.data tr:hover { background:var(--gray1); }
     <div class="card" style="font-size:10.5px;color:var(--gray5);line-height:1.6">
       <h2>모델 정보</h2>
       <div><strong>1단계 (ML)</strong> — 17개 covariate → 사이클 1~5 peak/trough 10개 (Extra Trees / RF)</div>
-      <div style="margin-top:6px"><strong>2단계 (DL)</strong> — Event sequence + ML 예측 → 시간별 농도 곡선 + 정상상태 endpoint (LSTM)</div>
+      <div style="margin-top:6px"><strong>2단계 (DL)</strong> — Event sequence + ML 예측 → 정상상태 endpoint (LSTM). 농도 곡선은 ML NS peak/trough(1~5회차) + DL steady endpoint(6회차~)를 랜드마크로 삼은 재구성이며, LSTM 원출력(완만한 곡선)도 함께 표시</div>
       <div style="margin-top:6px"><strong>특허</strong> — Hybrid ML+DL TDM 예측 (출원 진행)</div>
     </div>
   </div>
@@ -191,10 +191,10 @@ table.data tr:hover { background:var(--gray1); }
 
       <!-- ML 표 -->
       <div class="card">
-        <h2>ML 예측 — 사이클별 Peak / Trough (1~5회차)</h2>
+        <h2>ML 예측 — N번째 투여 직후 Peak / Trough (1~5회차, non-steady)</h2>
         <table class="data">
           <thead>
-            <tr><th>사이클</th><th>Peak (mg/L)</th><th>Trough (mg/L)</th></tr>
+            <tr><th>투여 회차</th><th>Peak (mg/L)</th><th>Trough (mg/L)</th></tr>
           </thead>
           <tbody id="ml-tbody"></tbody>
         </table>
@@ -285,7 +285,8 @@ function render(j) {
 
   // 곡선
   const curve = j.dl_curve || [];
-  drawChart(curve, j.summary);
+  const direct = j.dl_direct || [];
+  drawChart(curve, direct, j.summary);
 
   // ML 표
   const ml = j.ml_predictions || {};
@@ -294,7 +295,7 @@ function render(j) {
     const peak = ml['ns_peak_' + i];
     const trough = ml['ns_trough_' + i];
     if (peak === undefined && trough === undefined) continue;
-    mlHtml += '<tr><td>' + i + '회차</td><td>' + (peak ?? '-') + '</td><td>' + (trough ?? '-') + '</td></tr>';
+    mlHtml += '<tr><td>' + i + '번째 투여</td><td>' + (peak ?? '-') + '</td><td>' + (trough ?? '-') + '</td></tr>';
   }
   document.getElementById('ml-tbody').innerHTML = mlHtml;
 
@@ -317,55 +318,67 @@ function render(j) {
   ).join('');
 }
 
-function drawChart(curve, summary) {
+function drawChart(curve, direct, summary) {
   const ctx = document.getElementById('conc-chart');
   if (CHART) CHART.destroy();
-  const labels = curve.map(p => p.t_hr + 'h');
-  const data = curve.map(p => p.conc);
-  const tdmPts = curve.map(p => p.is_tdm ? p.conc : null);
-  const dosePts = curve.map(p => p.is_dose ? p.conc : null);
 
-  // 목표 영역 표시용 어노테이션 (Chart.js 라인 위에 fill 영역)
+  const reconPts = curve.map(p => ({ x: p.t_hr, y: p.conc }));
+  const tdmPts = curve.filter(p => p.is_tdm).map(p => ({ x: p.t_hr, y: p.conc }));
+  const dosePts = curve.filter(p => p.is_dose).map(p => ({ x: p.t_hr, y: p.conc }));
+  const directPts = direct.map(p => ({ x: p.t_hr, y: p.conc }));
+
+  const maxT = Math.max(
+    curve.length ? curve[curve.length - 1].t_hr : 0,
+    direct.length ? direct[direct.length - 1].t_hr : 0,
+  );
+
+  // 목표 영역 표시용 어노테이션
   const lo = summary.target_trough_range_mg_L[0];
   const hi = summary.target_trough_range_mg_L[1];
 
   CHART = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
       datasets: [
         {
-          label: '목표 상한 (' + hi + ')', data: labels.map(_ => hi),
+          label: '목표 상한 (' + hi + ')', data: [{x:0,y:hi},{x:maxT,y:hi}],
           borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:'-1',
           backgroundColor: 'rgba(26,92,53,.08)',
         },
         {
-          label: '목표 하한 (' + lo + ')', data: labels.map(_ => lo),
+          label: '목표 하한 (' + lo + ')', data: [{x:0,y:lo},{x:maxT,y:lo}],
           borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:false,
         },
         {
-          label: '예측 농도', data, borderColor:'#1B3A6B', backgroundColor:'#1B3A6B22',
-          borderWidth:2.5, tension:0.3, pointRadius:3, fill:false,
+          label: '재구성 곡선 (ML NS + DL steady)', data: reconPts,
+          borderColor:'#1B3A6B', backgroundColor:'#1B3A6B22',
+          borderWidth:2.2, tension:0, pointRadius:0, fill:false,
+        },
+        {
+          label: 'LSTM 직접 출력', data: directPts,
+          borderColor:'#C05000', backgroundColor:'transparent',
+          borderWidth:1.8, borderDash:[5,3], tension:0.3, pointRadius:0, fill:false,
         },
         {
           label: 'TDM 측정시점', data: tdmPts, borderColor:'transparent',
-          backgroundColor:'#A32D2D', pointRadius:5, pointStyle:'rect', showLine:false,
+          backgroundColor:'#A32D2D', pointRadius:6, pointStyle:'rect', showLine:false,
         },
         {
           label: 'Dose 시점', data: dosePts, borderColor:'transparent',
-          backgroundColor:'#0F5E6E', pointRadius:5, pointStyle:'triangle', showLine:false,
+          backgroundColor:'#0F5E6E', pointRadius:4, pointStyle:'triangle', showLine:false,
         },
       ],
     },
     options: {
       responsive:true, maintainAspectRatio:false,
+      parsing:false,
       plugins: {
         legend: { position:'bottom', labels:{ font:{size:10}, boxWidth:10, usePointStyle:true } },
-        tooltip: { mode:'index', intersect:false },
+        tooltip: { mode:'nearest', intersect:false },
       },
       scales: {
         y: { beginAtZero:true, title:{display:true,text:'혈중 농도 (mg/L)'}, grid:{color:'rgba(0,0,0,.05)'} },
-        x: { title:{display:true,text:'시간 (시간)'}, grid:{display:false} },
+        x: { type:'linear', title:{display:true,text:'시간 (시간)'}, grid:{display:false} },
       },
     },
   });
