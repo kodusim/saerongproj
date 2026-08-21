@@ -184,9 +184,8 @@ table.data tr:hover { background:var(--gray1); }
 
       <!-- 곡선 -->
       <div class="card">
-        <h2>예측 농도 곡선 (DL · Hybrid)</h2>
+        <h2>예측 농도 곡선</h2>
         <div id="chart-wrap"><canvas id="conc-chart"></canvas></div>
-        <div class="note" id="chart-note">DL 곡선 + 목표 trough 15~20 mg/L 음영 표시</div>
       </div>
 
       <!-- ML 표 -->
@@ -323,49 +322,15 @@ function drawChart(curve, direct, summary) {
   if (CHART) CHART.destroy();
 
   const reconPts = curve.map(p => ({ x: p.t_hr, y: p.conc }));
-  const tdmPts = curve.filter(p => p.is_tdm).map(p => ({ x: p.t_hr, y: p.conc }));
-  const dosePts = curve.filter(p => p.is_dose).map(p => ({ x: p.t_hr, y: p.conc }));
-  const directPts = direct.map(p => ({ x: p.t_hr, y: p.conc }));
-
-  const maxT = Math.max(
-    curve.length ? curve[curve.length - 1].t_hr : 0,
-    direct.length ? direct[direct.length - 1].t_hr : 0,
-  );
-
-  // 목표 영역 표시용 어노테이션
-  const lo = summary.target_trough_range_mg_L[0];
-  const hi = summary.target_trough_range_mg_L[1];
 
   CHART = new Chart(ctx, {
     type: 'line',
     data: {
       datasets: [
         {
-          label: '목표 상한 (' + hi + ')', data: [{x:0,y:hi},{x:maxT,y:hi}],
-          borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:'-1',
-          backgroundColor: 'rgba(26,92,53,.08)',
-        },
-        {
-          label: '목표 하한 (' + lo + ')', data: [{x:0,y:lo},{x:maxT,y:lo}],
-          borderColor: 'rgba(192,80,0,.5)', borderDash:[6,4], pointRadius:0, fill:false,
-        },
-        {
-          label: '재구성 곡선 (ML NS + DL steady)', data: reconPts,
+          label: '예측 농도', data: reconPts,
           borderColor:'#1B3A6B', backgroundColor:'#1B3A6B22',
           borderWidth:2.2, tension:0, pointRadius:0, fill:false,
-        },
-        {
-          label: 'LSTM 직접 출력', data: directPts,
-          borderColor:'#C05000', backgroundColor:'transparent',
-          borderWidth:1.8, borderDash:[5,3], tension:0.3, pointRadius:0, fill:false,
-        },
-        {
-          label: 'TDM 측정시점', data: tdmPts, borderColor:'transparent',
-          backgroundColor:'#A32D2D', pointRadius:6, pointStyle:'rect', showLine:false,
-        },
-        {
-          label: 'Dose 시점', data: dosePts, borderColor:'transparent',
-          backgroundColor:'#0F5E6E', pointRadius:4, pointStyle:'triangle', showLine:false,
         },
       ],
     },
@@ -373,7 +338,7 @@ function drawChart(curve, direct, summary) {
       responsive:true, maintainAspectRatio:false,
       parsing:false,
       plugins: {
-        legend: { position:'bottom', labels:{ font:{size:10}, boxWidth:10, usePointStyle:true } },
+        legend: { display:false },
         tooltip: { mode:'nearest', intersect:false },
       },
       scales: {
