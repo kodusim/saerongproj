@@ -188,17 +188,6 @@ table.data tr:hover { background:var(--gray1); }
         <div id="chart-wrap"><canvas id="conc-chart"></canvas></div>
       </div>
 
-      <!-- ML 표 -->
-      <div class="card">
-        <h2>ML 예측 — N번째 투여 직후 Peak / Trough (1~5회차, non-steady)</h2>
-        <table class="data">
-          <thead>
-            <tr><th>투여 회차</th><th>Peak (mg/L)</th><th>Trough (mg/L)</th></tr>
-          </thead>
-          <tbody id="ml-tbody"></tbody>
-        </table>
-      </div>
-
       <!-- 요약 -->
       <div class="card">
         <h2>요약 · 권고</h2>
@@ -286,17 +275,6 @@ function render(j) {
   const curve = j.dl_curve || [];
   const direct = j.dl_direct || [];
   drawChart(curve, direct, j.summary);
-
-  // ML 표
-  const ml = j.ml_predictions || {};
-  let mlHtml = '';
-  for (let i = 1; i <= 5; i++) {
-    const peak = ml['ns_peak_' + i];
-    const trough = ml['ns_trough_' + i];
-    if (peak === undefined && trough === undefined) continue;
-    mlHtml += '<tr><td>' + i + '번째 투여</td><td>' + (peak ?? '-') + '</td><td>' + (trough ?? '-') + '</td></tr>';
-  }
-  document.getElementById('ml-tbody').innerHTML = mlHtml;
 
   // 요약
   const s = j.summary || {};
