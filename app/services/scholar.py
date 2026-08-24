@@ -16,8 +16,9 @@ ScholarBlockedError 를 던져 호출부에서 폴백 링크를 보여주게 한
 from html import escape
 from urllib.parse import urljoin
 
-import httpx
+import requests
 from bs4 import BeautifulSoup, NavigableString
+from fastapi.concurrency import run_in_threadpool
 
 SCHOLAR_BASE = 'https://scholar.google.com'
 SCHOLAR_URL = f'{SCHOLAR_BASE}/scholar'
@@ -78,13 +79,30 @@ def _footer_links(ri):
 
 
 async def search_scholar(query, num=10):
-    """구글 스칼라 검색. 외부 I/O 라 async — 대기 중 워커를 점유하지 않는다."""
-    async with httpx.AsyncClient(
-        headers=HEADERS, timeout=TIMEOUT, follow_redirects=True
-    ) as client:
-        resp = await client.get(SCHOLAR_URL, params={'q': query, 'hl': 'ko'})
-    resp.raise_for_status()
+    """구글 스칼라 검색.
 
+    `requests` 를 스레드로 보내서 실행한다 — 이벤트 루프를 막지 않으면서
+    httpx 로 바꿀 수 없는 이유를 피한다: httpx 의 TLS 지문(cipher suite 순서)이
+    구글 봇 탐지에 걸려 429 /sorry/ 로 리다이렉트된다. 같은 헤더로도 재현되며
+    requests 는 200 을 받는다 (2026-08 확인).
+    """
+    return await run_in_threadpool(_search_scholar_sync, query, num)
+
+
+def _search_scholar_sync(query, num=10):
+    resp = requests.get(
+        SCHOLAR_URL,
+        params={'q': query, 'hl': 'ko'},
+        headers=HEADERS,
+        timeout=TIMEOUT,
+    )
+
+    # 봇 탐지에 걸리면 429 로 /sorry/ 캡차 페이지로 보낸다 — 폴백 링크를
+    # 보여줄 수 있도록 일반 오류와 구분한다.
+    if resp.status_code == 429 or '/sorry/' in resp.url:
+        raise ScholarBlockedError('구글이 요청을 차단했습니다 (429 / 캡차)')
+
+    resp.raise_for_status()
     return _parse_scholar_html(resp.text, num=num)
 
 
