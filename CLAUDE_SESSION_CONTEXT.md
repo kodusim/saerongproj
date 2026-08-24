@@ -31,14 +31,29 @@
 
 ## 3. Django 앱 구조
 
-- **`core`**: 메인 대시보드 (홈/카테고리/게임공지/베타) — ~200줄 views.py
-- **`tdm`**: **반코마이신 TDM 하이브리드 예측 (최신 작업)**
-- **`animal`**: ❌ **삭제됨** (앱·템플릿·DB 테이블 11개 전부 drop, 2026-06-08)
-- **`moscom`**: ❌ **삭제됨** (2026-08-24) — moscom.ai 를 별도 서버/저장소로 분리했기 때문.
-  앱 전체 + `core` 의 `/mosquito-test/` 뷰 집합·moscom_client·predictor·prediction_log·user_store·remedy_store·report_store·kakao_client·core/ml,
-  `saerong/host_routing.py`, celery beat 2건, `templates/core/mosquito_*.html` 제거.
-  **DB 테이블(`moscom_*` 6개)은 유지** — drop 하지 않음. 복구는 `git revert` 로 가능.
-- 기타: `api`, `analytics`, `collector`, `sources`, `work`
+**2026-08-24 대청소 이후 `tdm` 과 `work` 두 앱만 남았다.** 둘은 서로도, 다른 무엇도 참조하지 않는다.
+
+| 경로 | 앱 | 내용 |
+|---|---|---|
+| `/` | — | 랜딩 (`saerong/views.py:landing` + `templates/landing.html`) |
+| `/tdmprediction/` | `tdm` | 반코마이신 TDM 하이브리드 예측 |
+| `/work/` | `work` | 실시간 채팅 · 구글 스칼라 검색 · 게시판 |
+| `/admin/` | — | Django 관리자 |
+
+### 삭제된 앱 (전부 DB 테이블은 유지 — drop 하지 않음, `git revert` 로 복구 가능)
+
+- **`animal`** (2026-06-08) — 유일하게 DB 테이블 11개까지 drop 했음
+- **`moscom`** + `core` 의 `/mosquito-test/` 뷰 집합 (2026-08-24) — moscom.ai 를 별도 서버(43.201.131.25)/별도 저장소로 분리
+- **`common`, `core`, `sources`, `collector`, `analytics`, `api`** (2026-08-24) — 서로 연계 없는 독립 프로젝트라 일괄 정리
+- **`game_honey_alarm/`** (토스 미니앱 프론트), **`app_in_toss_guide/`**, 각종 `*_GUIDE.md` / `api_guide.md` / `*.sh` 스크립트
+
+### 같이 걷어낸 것
+
+- **Celery 전체** — `saerong/celery.py`, `saerong/__init__.py` 의 celery_app, `CELERY_*` 설정, `django_celery_beat`.
+  크롤러(`collector`)용이었고 남은 앱은 쓰지 않는다. 서버 celery/celerybeat 서비스는 원래 inactive 였다.
+- `rest_framework`, `corsheaders`, `django_filters`, `django_summernote` (전부 `api` 전용이었음)
+- `REST_FRAMEWORK` / `CORS_*` / `TOSS_*` / `JWT_*` / `OPENAI_API_KEY` / `KAMIS_*` / `NAVER_*` / `SUMMERNOTE_CONFIG` 설정
+- `static/`, `templates/base.html`, `templates/core/`, `STATICFILES_DIRS`
 
 ## 4. ~~/mosquito-test/ (모기 감시)~~ — 제거됨 (2026-08-24)
 
@@ -74,7 +89,6 @@
 - **허락 없이 작업 진행** — 매번 "이렇게 할까요?" 묻지 말고 바로 실행. 큰 결정만 `AskUserQuestion`.
 - **다음 단계 짧은 요약**으로 마무리. 장황한 설명/광고문 금지.
 - **한국어로 답변**, 코드 주석은 한국어 또는 영어 자유.
-- 권역 코드 (KH, GH서, HA, HY, BD, GS, SY, YS, 베트남 등) — 같은 시라도 권역 다르면 다른 그룹.
 - 마이그레이션 / DB 변경 시 사용자에게 알릴 것.
 - 보안/접근 차단 작업은 `AskUserQuestion` 로 명시 확인 (animal 삭제 시 했던 패턴).
 - 모바일 반응형 중요 — 768px / 480px 분기.
@@ -82,9 +96,8 @@
 
 ## 7. 외부 시스템 / 자격증명
 
-- OpenAI: `OPENAI_API_KEY` (Django settings, gpt-4o-mini 사용)
-- Toss: 별도 서비스 (game_honey_alarm — saerongproj 안 하위, 이번 컨텍스트와 분리)
-- Open-Meteo: 기상 (no key)
+남은 앱이 쓰는 외부 시스템은 **구글 스칼라 스크래핑(`work/scholar.py`, no key)** 뿐이다.
+OpenAI / Toss / Kakao / KAMIS / 네이버 / Open-Meteo 연동은 2026-08-24 대청소 때 해당 앱과 함께 전부 제거됐다.
 
 ## 8. 자주 쓰는 SSH/Bash 패턴 모음
 
@@ -139,23 +152,23 @@ curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/...
   - `[draft] 발명제안서_특허, 실용신안, 디자인_260602.docx` — 특허 제안서 초안
   - `특허도면_하이브리드TDM예측_4종.pptx` — 도면
 
-## 11. 가장 최근 수정 (2026-06-08~10)
+## 11. 가장 최근 수정
 
+- **저장소 대청소 — tdm/work 만 남기고 전부 삭제 (2026-08-24)**
+- moscom 관련 코드 전체 제거 (a41a220, 2026-08-24)
+- tdm ML 표 제거 / 농도 곡선 단순화 (cef371c, b5e3c4c)
+- 사이클→투여횟수 개념 수정 + 랜드마크 재구성 곡선 복원 (842629e)
 - TDM 입력 폼에서 진단 ID 제거 (8bc8f49)
 - TDM 예측기 joblib/pt 번들 구조 처리 (2205d6a)
 - /tdmprediction 페이지 최초 구현 (1dad51f)
-- 모바일 일별 추세 차트 레이아웃 수정 (62f2872)
-- AI 예측 모기지수 손실 버그 수정 (77eb71f)
-- 동물의왕국 (animal) 앱 전체 삭제 (0c6bac3)
-- AI 행정 판단 기준일을 어제로 + 예측을 핵심 관측점 중심 (e150ba7)
-- 보고서 생성 강화 (51 임계·권역·매개체·기상생리학) (941c446)
 
 ## 12. 미해결 / 후속 가능 작업 (사용자 요청 시)
 
 - TDM 페이지에 PDF 출력 / 배치 xlsx 업로드 (v2)
 - extra_trees.joblib (103MB, 더 정확) 서버 추가 업로드
-- TDM 예측 결과 → 카카오톡 전송 통합
-- 매개체 위험 평가 GPT 신뢰도 향상
+- 서버 정리: 삭제된 앱들의 DB 테이블(`moscom_*`, `core_*`, `collector_*`, `sources_*`, `api_*` 등)이 남아 있음.
+  코드는 없으니 무해하지만, 확실해지면 drop 할 수 있음.
+- 서버 정리: celery / celerybeat systemd 유닛, redis 가 아직 설치돼 있을 수 있음 (현재 inactive).
 
 ## 13. 코드 스타일 / 컨벤션
 

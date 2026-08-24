@@ -55,19 +55,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # third party apps
-    "rest_framework",
-    "corsheaders",
     "django_extensions",
-    "django_celery_beat",
-    "django_filters",
-    "django_summernote",
     # local apps
-    "common",
-    "core",
-    "sources",
-    "collector",
-    "analytics",
-    "api",
     "tdm",
     "work",
 ]
@@ -80,7 +69,6 @@ if DEBUG:
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -164,10 +152,6 @@ USE_TZ = True
 STATIC_URL = env.str("STATIC_URL", default="static/")
 STATIC_ROOT = env.str("STATIC_ROOT", default=BASE_DIR / "staticfiles")
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-
 
 # Media files
 
@@ -180,65 +164,6 @@ MEDIA_ROOT = env.str("MEDIA_ROOT", default=BASE_DIR / "mediafiles")
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# Django REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    'DEFAULT_FILTER_BACKENDS': [
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
-    ],
-    'DEFAULT_RENDERER_CLASSES': [
-        'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'api.authentication.JWTAuthentication',  # JWT 토큰 인증 (우선순위 높음)
-        'rest_framework.authentication.SessionAuthentication',  # 관리자 페이지용
-    ],
-}
-
-# CORS Settings
-# 프로덕션에서도 모든 Origin 허용 (토스 앱 WebView의 Origin을 파악하기 어려움)
-CORS_ALLOW_ALL_ORIGINS = True
-
-# 토스 관련 도메인 (콘솔 테스트용 + 실제 앱인토스 도메인)
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
-    'https://apps-in-toss.toss.im',             # 토스 콘솔 테스트
-    'https://developers-apps-in-toss.toss.im',  # 토스 개발자 콘솔
-    'https://console.toss.im',                  # 토스 콘솔
-    'https://business.toss.im',                 # 토스 비즈니스
-])
-
-# 앱인토스 도메인 패턴 허용
-CORS_ALLOWED_ORIGIN_REGEXES = env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[
-    r"^https://.*\.private-apps\.tossmini\.com$",  # 앱인토스 서브도메인
-    r"^https://.*\.apps-in-toss\.com$",            # 앱인토스 대체 도메인
-    r"^https://.*\.toss\.im$",                     # 모든 토스 서브도메인
-    r"^https://.*\.toss\.co\.kr$",                 # 토스 한국 도메인
-])
-
-# CORS credentials 허용 (Basic Auth 등)
-CORS_ALLOW_CREDENTIALS = True
-
-# Celery Configuration
-CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Seoul'
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-
-# Celery Beat Schedule
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Logging
 LOGGING = {
@@ -254,76 +179,14 @@ LOGGING = {
             'handlers': ['console'],
             'level': env.str('DJANGO_LOG_LEVEL', default='INFO'),
         },
-        'celery': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
     },
 }
 
 # Debug Toolbar
 INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
 
-# Toss Disconnect Callback Authentication
-TOSS_DISCONNECT_CALLBACK_USERNAME = env.str('TOSS_DISCONNECT_CALLBACK_USERNAME', default='gamehoney')
-TOSS_DISCONNECT_CALLBACK_PASSWORD = env.str('TOSS_DISCONNECT_CALLBACK_PASSWORD', default='')
-
 # TDM 예측 페이지 (saerong.com/tdmprediction) 단일 ID/PW
 TDM_AUTH_USER = env.str('TDM_AUTH_USER', default='tdm')
 TDM_AUTH_PASSWORD = env.str('TDM_AUTH_PASSWORD', default='tdm1234')
 
-# Toss Login API
-TOSS_LOGIN_BASE_URL = env.str('TOSS_LOGIN_BASE_URL', default='https://apps-in-toss-api.toss.im')
-TOSS_DECRYPT_KEY = env.str('TOSS_DECRYPT_KEY', default='')
-TOSS_DECRYPT_AAD = env.str('TOSS_DECRYPT_AAD', default='TOSS')
-
-# Toss mTLS 인증서 경로
-TOSS_MTLS_CERT_PATH = env.str('TOSS_MTLS_CERT_PATH', default='')
-TOSS_MTLS_KEY_PATH = env.str('TOSS_MTLS_KEY_PATH', default='')
-
-# mTLS 인증서 경로 (push_notifications.py에서 사용)
-TOSS_CERT_PATH = env.str('TOSS_CERT_PATH', default='')
-TOSS_KEY_PATH = env.str('TOSS_KEY_PATH', default='')
-
-# JWT Authentication
-JWT_SECRET_KEY = env.str('JWT_SECRET_KEY', default=SECRET_KEY)
-JWT_ALGORITHM = env.str('JWT_ALGORITHM', default='HS256')
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = env.int('JWT_ACCESS_TOKEN_EXPIRE_MINUTES', default=60)
-JWT_REFRESH_TOKEN_EXPIRE_DAYS = env.int('JWT_REFRESH_TOKEN_EXPIRE_DAYS', default=30)
-
-# OpenAI API (냉장고요리사용)
-OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')
-
-# KAMIS API (요즘농가용)
-KAMIS_API_KEY = env.str('KAMIS_API_KEY', default='')
-KAMIS_API_ID = env.str('KAMIS_API_ID', default='nowfarm')
-
-# 네이버 데이터랩 API (트렌드 모아용)
-NAVER_CLIENT_ID = env.str('NAVER_CLIENT_ID', default='')
-NAVER_CLIENT_SECRET = env.str('NAVER_CLIENT_SECRET', default='')
-
-# Summernote 에디터 설정 (이슈모아용)
-SUMMERNOTE_CONFIG = {
-    'summernote': {
-        'width': '100%',
-        'height': '400',
-        'toolbar': [
-            ['style', ['style']],
-            ['font', ['bold', 'italic', 'underline', 'clear']],
-            ['fontname', ['fontname']],
-            ['fontsize', ['fontsize']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['table', ['table']],
-            ['insert', ['link', 'picture', 'video']],
-            ['view', ['fullscreen', 'codeview', 'help']],
-        ],
-        'fontNames': ['맑은 고딕', 'Noto Sans KR', 'Arial', 'Helvetica'],
-        'fontSizes': ['8', '9', '10', '11', '12', '14', '16', '18', '24', '36'],
-        'lang': 'ko-KR',
-    },
-    'attachment_require_authentication': True,
-    'attachment_filesize_limit': 5 * 1024 * 1024,  # 5MB
-}
-
-X_FRAME_OPTIONS = 'SAMEORIGIN'  # Summernote iframe 허용
+X_FRAME_OPTIONS = 'SAMEORIGIN'

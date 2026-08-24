@@ -3,40 +3,20 @@ django==4.2.11
 django-extensions==3.2.3
 django-environ==0.11.2
 
-# Django REST Framework
-djangorestframework==3.15.1
-djangorestframework-camel-case==1.4.2
-django-cors-headers==4.3.1
-django-filter==24.2
-
-# Task Queue
-celery==5.3.4
-redis==5.0.1
-django-celery-beat==2.5.0
-
-# Web Scraping
+# Web Scraping (work — 구글 스칼라 검색)
 requests==2.32.2
 beautifulsoup4==4.12.3
 lxml==5.1.0
-selenium==4.38.0
-webdriver-manager==4.0.2
 
-# Data Analysis
-pandas==2.2.2
-
-# Machine Learning (AI 예측 모델)
+# Machine Learning (tdm — 1단계 ML)
 scikit-learn==1.6.1
 joblib==1.4.2
+numpy==2.2.4
 
-# Testing
-pytest==8.2.0
-pytest-django==4.8.0
-factory-boy==3.3.0
-
-# Authentication
-PyJWT==2.10.1
-cryptography==46.0.3
+# Deep Learning (tdm — 2단계 LSTM)
+# CPU 빌드로 설치할 것:
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch==2.7.0
+torch==2.7.0
 
 # Utilities
 pillow==10.2.0
-python-dateutil==2.8.2
