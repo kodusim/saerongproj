@@ -16,6 +16,8 @@ saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 두 개의 독립�
 - SQLAlchemy 2.0 (async, asyncpg) + Alembic, PostgreSQL 14
 - 세션: 서명된 쿠키 (Starlette `SessionMiddleware`)
 - CSRF: `csrftoken` 쿠키 + `X-CSRFToken` 헤더 double-submit
+- 프런트: 빌드 도구 없음 — 순수 ES 모듈 + CSS 를 nginx 가 그대로 서빙
+- 채팅: WebSocket (`/work/ws`), 끊기면 폴링으로 자동 강등
 - 운영: nginx → uvicorn 127.0.0.1:8000, `/srv/course-repo`, venv `/srv/venv`
 
 ```
@@ -31,11 +33,25 @@ app/
   services/predictor.py  TDM 추론 (ML joblib + LSTM .pt)
   services/scholar.py    구글 스칼라 스크래핑 (async httpx)
   services/storage.py    업로드 이미지 저장
+  ws.py                  채팅 WebSocket 허브 (프로세스 내 브로드캐스트)
 migrations/            Alembic
-templates/, static/
+templates/             마크업만 (CSS/JS 는 static/)
+static/css/            work-base · groupware · vscode · scholar · tdm-*
+static/js/lib/         dom.js (헬퍼) · api.js (CSRF 붙이는 fetch 래퍼)
+static/js/work/        main(엔트리) · state(공유 상태+구독) · chat · board
+                       scholar · theme · nav · unread · resize · lightbox
+static/js/tdm/         predict.js
 ml_artifacts/          모델 가중치 (git 제외 — 서버에 직접 업로드)
-deploy/                systemd 유닛 + 배포 메모
+deploy/                systemd 유닛 · nginx 설정 · 배포 메모
 ```
+
+프런트는 빌드 단계가 없다. `<script type="module">` 로 바로 불러오므로 **인라인
+`onclick` 을 쓸 수 없다** (모듈 스코프는 전역에 노출되지 않는다) — 이벤트는 모듈
+안에서 `addEventListener` 로 바인딩한다.
+
+`/work` 은 그룹웨어 / VS Code 두 테마의 DOM 을 모두 문서에 두고 한쪽만 보여준다.
+상태는 `static/js/work/state.js` 에 한 벌만 있고 테마별 DOM 두 벌에 같은 내용을
+렌더링한다 — 그래서 테마를 바꿔도 보고 있던 화면과 내용이 유지된다.
 
 DB 테이블은 Django 시절 이름(`tdm_predictionlog`, `work_workchatmessage`,
 `work_workpost`)을 그대로 쓴다 — 데이터를 그대로 이어받기 위해 바꾸지 않았다.

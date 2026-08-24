@@ -54,8 +54,27 @@
   double-submit — Django 와 호환되게 만들어서 기존 JS 를 안 고쳤다 (`app/security.py`).
 - DB 테이블 이름은 Django 것 그대로 (`tdm_predictionlog`, `work_workchatmessage`, `work_workpost`).
   Alembic baseline `0001` 은 **stamp 만** 했다 (테이블이 이미 있으므로).
-- **`work/scholar.py` 를 httpx 로 바꾸면 안 된다** — TLS 지문이 구글 봇 탐지에 걸려 429 가 된다
+- **`app/services/scholar.py` 를 httpx 로 바꾸면 안 된다** — TLS 지문이 구글 봇 탐지에 걸려 429 가 된다
   (검증: requests 200/174KB vs httpx 429/1.6KB, 헤더를 맞춰도 동일). `requests` + threadpool 로 둔다.
+
+### 프런트 (빌드 도구 없음)
+
+템플릿은 마크업만, CSS/JS 는 `static/` 에서 nginx 가 그대로 서빙한다.
+
+- `static/js/work/` — `main.js`(엔트리) · `state.js`(공유 상태 + 테마/내비 구독) ·
+  `chat.js` · `board.js` · `scholar.js` · `theme.js` · `nav.js` · `unread.js` ·
+  `resize.js` · `lightbox.js`, 공용은 `static/js/lib/{dom,api}.js`
+- **인라인 `onclick` 금지** — `type="module"` 은 함수를 전역에 노출하지 않는다.
+  이벤트는 모듈 안에서 `addEventListener` 로 바인딩할 것 (tdm predict 에서 실제로 깨졌던 부분).
+- **초기화 순서 주의** — `main.js` 에서 구독자(chat/board/nav)를 모두 등록한 뒤
+  마지막에 `initTheme()` 이 첫 렌더를 트리거한다.
+- `/work` 은 그룹웨어 / VS Code 두 테마 DOM 을 둘 다 문서에 두고 한쪽만 보여준다.
+  상태는 한 벌, 렌더는 두 벌 — 테마를 바꿔도 화면 상태가 유지되는 이유.
+- 채팅은 **WebSocket** (`/work/ws`). 끊기면 2초 폴링으로 강등되고 재연결 시 HTTP 로
+  놓친 구간을 따라잡는다. 전송은 이미지 multipart 때문에 HTTP POST 유지.
+- `/static` 은 `Cache-Control: no-cache` — ES 모듈이라 옛/새 모듈이 섞이면 깨진다.
+- **로컬·서버에 JS 런타임이 없다** (node 없음). JS 는 구문 검사를 못 돌리므로
+  import 경로·named export·element ID 존재 여부를 grep 으로 확인하고 브라우저에서 눈으로 볼 것.
 
 ### 삭제된 앱 (전부 DB 테이블은 유지 — drop 하지 않음, `git revert` 로 복구 가능)
 
