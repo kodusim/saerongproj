@@ -98,7 +98,7 @@ table.data tr:hover { background:var(--gray1); }
 
 <div class="topbar">
   <h1>Vancomycin TDM <span class="sub">하이브리드 ML+DL 예측</span></h1>
-  <div class="right">{{ login_id }} · <a href="{% url 'tdm_logout' %}">로그아웃</a></div>
+  <div class="right">{{ login_id }} · <a href="/tdmprediction/logs/">예측 로그</a> · <a href="/tdmprediction/logout/">로그아웃</a></div>
 </div>
 
 <div class="layout">
@@ -227,7 +227,7 @@ async function runPredict() {
   };
 
   try {
-    const res = await fetch('{% url "tdm_predict_api" %}', {
+    const res = await fetch('/tdmprediction/api/predict/', {
       method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body),

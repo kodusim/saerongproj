@@ -38,7 +38,7 @@ button:hover { background:#2a5298; }
     <h1>Vancomycin TDM</h1>
     <div class="sub">하이브리드 ML+DL 농도 예측 · 특허 출원 알고리즘</div>
     <form method="post">
-      {% csrf_token %}
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token(request) }}">
       <label for="username">아이디</label>
       <input type="text" id="username" name="username" autocomplete="username" required autofocus>
       <label for="password">비밀번호</label>

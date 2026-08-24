@@ -16,7 +16,7 @@ ScholarBlockedError 를 던져 호출부에서 폴백 링크를 보여주게 한
 from html import escape
 from urllib.parse import urljoin
 
-import requests
+import httpx
 from bs4 import BeautifulSoup, NavigableString
 
 SCHOLAR_BASE = 'https://scholar.google.com'
@@ -77,19 +77,22 @@ def _footer_links(ri):
     return links
 
 
-def search_scholar(query, num=10):
-    resp = requests.get(
-        SCHOLAR_URL,
-        params={'q': query, 'hl': 'ko'},
-        headers=HEADERS,
-        timeout=TIMEOUT,
-    )
+async def search_scholar(query, num=10):
+    """구글 스칼라 검색. 외부 I/O 라 async — 대기 중 워커를 점유하지 않는다."""
+    async with httpx.AsyncClient(
+        headers=HEADERS, timeout=TIMEOUT, follow_redirects=True
+    ) as client:
+        resp = await client.get(SCHOLAR_URL, params={'q': query, 'hl': 'ko'})
     resp.raise_for_status()
 
-    if 'systems have detected unusual traffic' in resp.text.lower() or 'id="gs_captcha_f"' in resp.text:
+    return _parse_scholar_html(resp.text, num=num)
+
+
+def _parse_scholar_html(html, num=10):
+    if 'systems have detected unusual traffic' in html.lower() or 'id="gs_captcha_f"' in html:
         raise ScholarBlockedError('구글이 요청을 차단했습니다 (캡차)')
 
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = BeautifulSoup(html, 'lxml')
 
     stats_tag = soup.select_one('#gs_ab_md .gs_ab_mdw') or soup.select_one('#gs_ab_md')
     stats = stats_tag.get_text(' ', strip=True) if stats_tag else ''

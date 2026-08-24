@@ -1,7 +1,4 @@
 -r common.txt
 
-# PostgreSQL
-psycopg2-binary==2.9.9
-
-# Production Server
-gunicorn==21.2.0
+# ASGI 서버 — uvicorn 은 common.txt 에 포함 (uvicorn[standard])
+# DB 드라이버는 asyncpg (common.txt) 하나로 충분하다.

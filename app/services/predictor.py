@@ -14,9 +14,11 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Optional
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
 
-ART_DIR = os.path.join(os.path.dirname(__file__), 'ml_artifacts')
+ART_DIR = str(settings.ml_artifacts_dir)
 
 # ML 17 covariate (학습 시 순서와 동일)
 ML_FEATURES = [

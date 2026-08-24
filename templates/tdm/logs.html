@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>예측 로그 — Vancomycin TDM</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --navy:#1B3A6B; --navy-l:#D6E0F0; --gray3:#D0D3DC; --gray4:#8A8FA0; --gray5:#4A4E5C; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Noto Sans KR',sans-serif; background:#f0f2f7; color:#111; font-size:13px; }
+
+.topbar {
+  background:var(--navy); color:#fff; padding:12px 24px;
+  display:flex; justify-content:space-between; align-items:center;
+  position:sticky; top:0; z-index:50; box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+.topbar h1 { font-size:16px; font-weight:700; letter-spacing:1px; }
+.topbar .right { font-size:11px; opacity:.85; }
+.topbar a { color:#fff; text-decoration:underline; margin-left:10px; }
+
+.wrap { max-width:1280px; margin:0 auto; padding:18px; }
+.card { background:#fff; border-radius:8px; padding:16px 18px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+.card h2 { font-size:13px; color:var(--navy); border-left:4px solid var(--navy); padding:2px 8px; margin-bottom:12px;
+           background:linear-gradient(90deg,var(--navy-l) 0%,transparent 100%); }
+
+.scroll { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th, td { padding:7px 9px; border-bottom:1px solid var(--gray3); text-align:left; vertical-align:top; white-space:nowrap; }
+th { background:#f7f8fa; color:var(--gray5); font-weight:600; font-size:11px; }
+tbody tr:hover { background:#fafbfd; }
+td.num { text-align:right; color:var(--gray4); }
+details { max-width:520px; white-space:normal; }
+details summary { cursor:pointer; color:var(--navy); font-size:11px; }
+details pre {
+  margin-top:6px; padding:8px; background:#f7f8fa; border:1px solid var(--gray3); border-radius:4px;
+  font-size:11px; line-height:1.45; max-height:260px; overflow:auto; white-space:pre-wrap; word-break:break-all;
+}
+.empty { padding:28px; text-align:center; color:var(--gray4); }
+.note { margin-top:10px; font-size:11px; color:var(--gray4); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>예측 로그</h1>
+  <div class="right">{{ login_id }} · <a href="/tdmprediction/">예측 페이지</a> · <a href="/tdmprediction/logout/">로그아웃</a></div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <h2>TDM 예측 감사 로그 (최근 {{ rows|length }}건)</h2>
+
+    {% if rows %}
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>시각 (UTC)</th><th>로그인</th>
+            <th>ML 모델</th><th>DL 모델</th><th>입력</th><th>결과</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td class="num">{{ r.id }}</td>
+            <td>{{ r.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ r.login_id or '—' }}</td>
+            <td>{{ r.ml_model or '—' }}</td>
+            <td>{{ r.dl_model or '—' }}</td>
+            <td><details><summary>보기</summary><pre>{{ r.input_json | tojson(indent=2) }}</pre></details></td>
+            <td><details><summary>보기</summary><pre>{{ r.result_json | tojson(indent=2) }}</pre></details></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="note">읽기 전용입니다. 최대 200건까지 최신순으로 표시합니다.</div>
+    {% else %}
+    <div class="empty">기록된 예측이 없습니다.</div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>
