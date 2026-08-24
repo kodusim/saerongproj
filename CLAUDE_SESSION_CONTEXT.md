@@ -7,7 +7,7 @@
 
 - 사용자: **전상기 (sangki1298@gmail.com)** — saerong.com 단독 운영자
 - 작업 디렉토리: `c:\workspace\saerongproj` (Windows 11, PowerShell)
-- 가상환경: `./venv/Scripts/python.exe` (로컬, sklearn/openai 없음 — AST 파싱 수준 검증만)
+- 로컬 가상환경 없음 — 로컬 검증은 AST 파싱 수준까지만. 실제 검증은 서버에서 한다 (9장 참고).
 - Git: `origin = https://github.com/kodusim/saerongproj.git` (push 시 redirect 안내)
 - 사용자 스타일: 한국어, 짧고 직설적, 허락 받지 않고 바로 작업 진행 선호 (`"내가 ok 계속 누르기 귀찮은데 허락없이 그냥 다해주면안돼?"`)
 
@@ -20,25 +20,42 @@
 - 가상환경: **`/srv/venv/bin/python`** (sklearn 1.6.1, joblib 1.4.2, numpy 2.2.4, torch 2.7.0+cpu 설치됨)
 - DB: PostgreSQL, **`saerong`** DB, user `saerong_user`
   - 접근: `sudo -u postgres psql -d saerong`
-- 웹서버: gunicorn (systemd `gunicorn` 서비스) + nginx
+- 웹서버: **uvicorn (systemd `saerong` 서비스, 워커 1개) + nginx**
+  - `gunicorn` 서비스는 disable 됨 (Django 시절 유물)
+  - nginx 설정은 저장소에서 관리: `deploy/nginx-saerong.conf`, `deploy/nginx-websocket.conf`
+  - `sites-enabled/default` 는 이제 `sites-available/default` 심볼릭 링크 (전에는 실제 파일이라
+    sites-available 만 고쳐도 반영이 안 됐다 — 함정)
 - **배포 패턴** (사용자가 별도 지시 없으면 매번 이 흐름):
   ```bash
   git add ... && git commit -m "..." && git push origin main
-  ssh saerong-instance "cd /srv/course-repo && sudo git pull && sudo systemctl restart gunicorn && sleep 2 && sudo systemctl is-active gunicorn"
-  curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/...
+  ssh saerong-instance "cd /srv/course-repo && sudo git pull \
+    && sudo /srv/venv/bin/python -c 'import app.main' \
+    && sudo systemctl restart saerong && sleep 2 && systemctl is-active saerong"
+  curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/healthz
   ```
+- **워커는 1개로 고정.** TDM 모델이 워커당 약 470MB (측정값: django 45 → +ML 330 → +torch 95)
+  이고, 채팅 WebSocket 브로드캐스트가 프로세스 내부에서 일어난다. 늘리려면 Redis pub/sub 필요.
 - 호스트 라우팅: 없음. **`moscom.ai` 는 별도 서버(43.201.131.25) / 별도 저장소로 분리됨** — 이 저장소와 무관.
 
-## 3. Django 앱 구조
+## 3. 구조 (FastAPI)
 
-**2026-08-24 대청소 이후 `tdm` 과 `work` 두 앱만 남았다.** 둘은 서로도, 다른 무엇도 참조하지 않는다.
+**2026-08-24: Django → FastAPI 이전 완료.** 남은 기능은 TDM 과 Work 둘뿐이고 서로 독립적이다.
 
-| 경로 | 앱 | 내용 |
+| 경로 | 라우터 | 내용 |
 |---|---|---|
-| `/` | — | 랜딩 (`saerong/views.py:landing` + `templates/landing.html`) |
-| `/tdmprediction/` | `tdm` | 반코마이신 TDM 하이브리드 예측 |
-| `/work/` | `work` | 실시간 채팅 · 구글 스칼라 검색 · 게시판 |
-| `/admin/` | — | Django 관리자 |
+| `/` | `app/main.py` | 랜딩 (`templates/landing.html`) |
+| `/tdmprediction/` | `app/routers/tdm.py` | 반코마이신 TDM 하이브리드 예측 |
+| `/tdmprediction/logs/` | 〃 | 예측 감사 로그 (Django admin 대체, 읽기전용) |
+| `/work/` | `app/routers/work.py` | 실시간 채팅 · 구글 스칼라 검색 · 게시판 |
+| `/healthz` | `app/main.py` | 헬스체크 |
+
+- **Django admin 은 없다.** `/admin/` 은 404. PredictionLog 는 `/tdmprediction/logs/` 에서 본다.
+- 세션: Starlette `SessionMiddleware` (서명 쿠키). CSRF: `csrftoken` 쿠키 + `X-CSRFToken` 헤더
+  double-submit — Django 와 호환되게 만들어서 기존 JS 를 안 고쳤다 (`app/security.py`).
+- DB 테이블 이름은 Django 것 그대로 (`tdm_predictionlog`, `work_workchatmessage`, `work_workpost`).
+  Alembic baseline `0001` 은 **stamp 만** 했다 (테이블이 이미 있으므로).
+- **`work/scholar.py` 를 httpx 로 바꾸면 안 된다** — TLS 지문이 구글 봇 탐지에 걸려 429 가 된다
+  (검증: requests 200/174KB vs httpx 429/1.6KB, 헤더를 맞춰도 동일). `requests` + threadpool 로 둔다.
 
 ### 삭제된 앱 (전부 DB 테이블은 유지 — drop 하지 않음, `git revert` 로 복구 가능)
 
@@ -123,22 +140,30 @@ ssh saerong-instance "cd /srv/course-repo && sudo /srv/venv/bin/python manage.py
 
 ## 9. 검증 패턴
 
+로컬에는 패키지가 없다 (venv 없음). 실제 검증은 서버에서 한다.
+
 ```bash
-# AST 파싱만 (로컬 venv 패키지 부족 — sklearn/openai 등 없음)
-./venv/Scripts/python.exe -c "import ast; ast.parse(open('FILE.py', encoding='utf-8').read()); print('OK')"
+# 로컬: AST 파싱만
+python -c "import ast; ast.parse(open('FILE.py', encoding='utf-8').read()); print('OK')"
 
-# Django 템플릿 컴파일
-./venv/Scripts/python.exe -c "
-import django, os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saerong.settings')
-django.setup()
-from django.template.loader import get_template
-get_template('PATH.html')
-"
+# 서버: import 검증 (배포 전 필수 — restart 전에 돌릴 것)
+ssh saerong-instance "cd /srv/course-repo && sudo /srv/venv/bin/python -c 'import app.main'"
 
-# 운영 사이트 스모크 (curl)
-curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/...
+# 서버: 8001 포트로 띄워서 확인 후 전환 (운영 건드리지 않음)
+ssh saerong-instance "cd /srv/course-repo && sudo nohup /srv/venv/bin/uvicorn app.main:app \
+  --host 127.0.0.1 --port 8001 > /tmp/uv8001.log 2>&1 &"
+
+# CSRF 가 필요한 POST 검증 (쿠키 → 헤더로 되돌려줘야 한다)
+curl -sS -c cj.txt -o /dev/null https://saerong.com/work/
+TOK=$(awk '/csrftoken/{print $7}' cj.txt)
+curl -sS -b cj.txt -H "X-CSRFToken: $TOK" -X POST -F 'body=test' https://saerong.com/work/api/send/
+
+# 운영 사이트 스모크
+curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/healthz
 ```
+
+**주의**: Git Bash 의 curl 은 URL 의 한글을 CP949 로 인코딩한다. 한글 파일명 미디어를
+테스트할 때는 UTF-8 퍼센트 인코딩을 직접 넣어야 한다 (안 그러면 멀쩡한데 404 로 보인다).
 
 ## 10. OneDrive 작업 폴더 (특허 관련)
 
