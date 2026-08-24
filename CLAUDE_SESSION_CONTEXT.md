@@ -27,31 +27,23 @@
   ssh saerong-instance "cd /srv/course-repo && sudo git pull && sudo systemctl restart gunicorn && sleep 2 && sudo systemctl is-active gunicorn"
   curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/...
   ```
-- 호스트 라우팅: **`moscom.ai`** 도 같은 서버 — `saerong/host_routing.py` 가 `/mosquito-test/*`만 허용, 나머지는 404. `/tdmprediction/*` 등은 `moscom.ai` 에서 차단됨 (의도된 동작).
+- 호스트 라우팅: 없음. **`moscom.ai` 는 별도 서버(43.201.131.25) / 별도 저장소로 분리됨** — 이 저장소와 무관.
 
 ## 3. Django 앱 구조
 
-- **`core`**: 메인 대시보드 / `/mosquito-test/` 전체 view 집합 (~3300줄 views.py)
-- **`moscom`**: MOSCOM API 동기화 + 로컬 DB 모델 (Device, Collection, Region 등)
+- **`core`**: 메인 대시보드 (홈/카테고리/게임공지/베타) — ~200줄 views.py
 - **`tdm`**: **반코마이신 TDM 하이브리드 예측 (최신 작업)**
 - **`animal`**: ❌ **삭제됨** (앱·템플릿·DB 테이블 11개 전부 drop, 2026-06-08)
-- 기타: `api`, `analytics`, `collector`, `sources`
+- **`moscom`**: ❌ **삭제됨** (2026-08-24) — moscom.ai 를 별도 서버/저장소로 분리했기 때문.
+  앱 전체 + `core` 의 `/mosquito-test/` 뷰 집합·moscom_client·predictor·prediction_log·user_store·remedy_store·report_store·kakao_client·core/ml,
+  `saerong/host_routing.py`, celery beat 2건, `templates/core/mosquito_*.html` 제거.
+  **DB 테이블(`moscom_*` 6개)은 유지** — drop 하지 않음. 복구는 `git revert` 로 가능.
+- 기타: `api`, `analytics`, `collector`, `sources`, `work`
 
-## 4. /mosquito-test/ (모기 감시)
+## 4. ~~/mosquito-test/ (모기 감시)~~ — 제거됨 (2026-08-24)
 
-- 인증: 세션 기반 `mosquito_admin` (별도 사용자 관리 — `moscom_users.json`)
-- 외부 API: `https://api.moscom.co.kr` (JWT)
-- 핵심 기능: 종합현황, 시간별 히트맵, 포집량 이상감지, 7일 추세, 방역 관리, AI 모기 예측, AI 위험도 예보, AI 행정 판단, 보고서 생성
-- 주요 상수:
-  - **51마리/일** = 전역 이상감지 임계값
-  - **배터리 30% 미만** = 점검 대상
-  - **새벽 5시 KST** = 영업일 경계 (`moscom.timeutil.business_today()`)
-- AI 모델:
-  - `core/predictor.py` + `moscom/ml/best_model_RandomForest.joblib` (+ MosquitoIndex)
-  - 매일 새벽 5:10 자동 재학습 (Celery beat)
-  - 4축 모기지수 = 0.5×count + 0.2×trend + 0.2×weather + 0.1×habitat
-  - 등급: 쾌적/관심/주의/불쾌 (4단계, 모기지수 기준) — 마릿수 5단계와 다름
-- 최근 수정: AI 행정 판단 기준일을 어제(측정완료)로, AI 예측 분석을 핵심 관측점 중심으로
+이 저장소에서 완전히 삭제. moscom.ai 서비스는 **별도 서버(43.201.131.25) / 별도 git 저장소**에서
+계속 운영 중이며, 그쪽 작업은 이 저장소가 아니라 해당 저장소에서 진행할 것.
 
 ## 5. /tdmprediction/ (반코마이신 TDM — 최신 작업)
 
@@ -86,12 +78,11 @@
 - 마이그레이션 / DB 변경 시 사용자에게 알릴 것.
 - 보안/접근 차단 작업은 `AskUserQuestion` 로 명시 확인 (animal 삭제 시 했던 패턴).
 - 모바일 반응형 중요 — 768px / 480px 분기.
-- 이미 mosquito_test.html 에 한 패턴 (햄버거 메뉴, KPI 2열, 표 가로스크롤) 그대로 따라가기.
+- 대시보드 UI 패턴 (햄버거 메뉴, KPI 2열, 표 가로스크롤) 유지 — 현재는 `templates/tdm/`, `templates/work/` 참고.
 
 ## 7. 외부 시스템 / 자격증명
 
 - OpenAI: `OPENAI_API_KEY` (Django settings, gpt-4o-mini 사용)
-- Kakao OAuth: 카카오톡 메시지 전송 통합 (`/mosquito-test/api/kakao/...`)
 - Toss: 별도 서비스 (game_honey_alarm — saerongproj 안 하위, 이번 컨텍스트와 분리)
 - Open-Meteo: 기상 (no key)
 
@@ -134,7 +125,6 @@ get_template('PATH.html')
 
 # 운영 사이트 스모크 (curl)
 curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/...
-curl -sS -o /dev/null -w "%{http_code}\n" https://moscom.ai/...   # /mosquito-test/* 만 200, 나머지 404
 ```
 
 ## 10. OneDrive 작업 폴더 (특허 관련)

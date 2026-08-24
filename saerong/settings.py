@@ -37,12 +37,8 @@ ALLOWED_HOSTS = [
     '15.164.130.99',  # 서버 IP
     'saerong.com',
     'www.saerong.com',  # www 도메인 추가
-    'moscom.ai',
-    'www.moscom.ai',
 ]
 
-# moscom.ai 호스트로 들어왔을 때 mosquito-test 페이지를 루트(/)로 보여주기 위한 설정
-MOSCOM_HOSTS = {'moscom.ai', 'www.moscom.ai'}
 COMPONENTS = {
      # 0.67 미만 버전과 동일한 동작을 맞추기 위한 설정 (강의에서는 0.61 버전)
      "slot_context_behavior": "allow_override",  # 디폴트: "prefer_root"
@@ -72,7 +68,6 @@ INSTALLED_APPS = [
     "collector",
     "analytics",
     "api",
-    "moscom",
     "tdm",
     "work",
 ]
@@ -87,7 +82,6 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "saerong.host_routing.MoscomHostMiddleware",  # moscom.ai 호스트 가상 라우팅
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -299,10 +293,6 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS = env.int('JWT_REFRESH_TOKEN_EXPIRE_DAYS', default
 
 # OpenAI API (냉장고요리사용)
 OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')
-
-# 카카오톡 메시지 API (모스콤 관리자 알림)
-KAKAO_REST_API_KEY = env.str('KAKAO_REST_API_KEY', default='')
-KAKAO_REDIRECT_URI = env.str('KAKAO_REDIRECT_URI', default='https://saerong.com/mosquito-test/kakao/callback/')
 
 # KAMIS API (요즘농가용)
 KAMIS_API_KEY = env.str('KAMIS_API_KEY', default='')

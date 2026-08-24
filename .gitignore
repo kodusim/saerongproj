@@ -13,10 +13,6 @@ game_honey_alarm/mtls/
 *.key
 *.crt
 *.pem
-core/mosquito_users.json
-core/remedy_plans.json
-core/reports.json
-core/kakao_tokens.json
 
 # TDM 모델 가중치 (large, 서버에 별도 배포)
 tdm/ml_artifacts/*.joblib
