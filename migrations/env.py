@@ -11,7 +11,9 @@ from app.db import Base
 from app import models  # noqa: F401  — 모델 등록용 import
 
 config = context.config
-config.set_main_option('sqlalchemy.url', settings.async_database_url)
+# alembic.ini 는 configparser 라 '%' 를 보간 문법으로 읽는다. 비밀번호에 퍼센트
+# 인코딩(%21 등)이 들어있으면 깨지므로 이스케이프해서 넘긴다.
+config.set_main_option('sqlalchemy.url', settings.async_database_url.replace('%', '%%'))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
