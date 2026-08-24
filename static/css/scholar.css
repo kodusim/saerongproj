@@ -1,0 +1,175 @@
+/* =======================================================================
+   우측 : 구글 스칼라 검색 (실제 scholar.google.com 스타일)
+   ======================================================================= */
+.scholar-pane {
+    flex: 0 0 30%;
+    max-width: 30%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    font-family: '맑은 고딕', 'Malgun Gothic', Arial, sans-serif;
+}
+.scholar-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e9eaed;
+    color: #5f6368;
+    font-size: 13px;
+}
+.scholar-topbar .s-menu-icon { font-size: 16px; color: #5f6368; }
+.scholar-logo {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+}
+.scholar-logo b { font-weight: 700; }
+.scholar-logo .g-blue { color: #4285F4; }
+.scholar-logo .g-red { color: #EA4335; }
+.scholar-logo .g-yellow { color: #FBBC05; }
+.scholar-logo .g-green { color: #34A853; }
+.scholar-logo .g-label { color: #5f6368; font-weight: 400; margin-left: 2px; }
+
+.scholar-search-row {
+    display: flex;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e9eaed;
+    background: #fff;
+}
+.scholar-search-pill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 1px solid #dfe1e5;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.scholar-search-pill input#scholar-q {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 9px 14px;
+    font-size: 13px;
+    color: #202124;
+}
+.scholar-search-pill button {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 34px;
+    margin-right: 2px;
+    border: none;
+    border-radius: 18px;
+    background: #4285F4;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.scholar-search-pill button:hover { background: #3b78e0; }
+
+.scholar-results {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.scholar-stats {
+    padding: 10px 14px 6px;
+    font-size: 11.5px;
+    color: #70757a;
+}
+.scholar-empty {
+    margin: auto;
+    color: #9aa1ab;
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.6;
+    padding: 40px 20px;
+}
+.scholar-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f2f4;
+}
+.scholar-item .s-main { flex: 1; min-width: 0; }
+.scholar-item a.s-title,
+.scholar-item a.s-title strong {
+    font-size: 14px;
+    font-weight: 400;
+    color: #1a0dab;
+    text-decoration: none;
+    line-height: 1.35;
+}
+.scholar-item a.s-title:visited { color: #609; }
+.scholar-item a.s-title:hover { text-decoration: underline; }
+.scholar-item .s-meta {
+    font-size: 12px;
+    color: #4d5156;
+    margin: 3px 0 5px;
+    line-height: 1.4;
+}
+.scholar-item .s-meta a.s-author-link {
+    color: #4d5156;
+    text-decoration: underline;
+}
+.scholar-item .s-snippet {
+    font-size: 12.5px;
+    color: #4d5156;
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+.scholar-item .s-footer {
+    font-size: 11px;
+    color: #70757a;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+.scholar-item .s-footer a {
+    color: #1a0dab;
+    text-decoration: none;
+}
+.scholar-item .s-footer a:hover { text-decoration: underline; }
+.scholar-item .s-footer .s-sep { color: #c7c9cc; margin: 0 2px; }
+.scholar-item .s-source {
+    flex: 0 0 84px;
+    max-width: 84px;
+    text-align: right;
+    font-size: 11px;
+    color: #4d5156;
+    line-height: 1.35;
+    word-break: break-word;
+}
+.scholar-item .s-source a { color: inherit; text-decoration: none; }
+.scholar-item .s-source a:hover { text-decoration: underline; }
+.scholar-item .s-source-label { font-weight: 700; }
+.scholar-error {
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+    color: #b3452c;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.scholar-error a {
+    display: inline-block;
+    margin-top: 8px;
+    color: #1a0dab;
+    font-weight: 700;
+}
+.scholar-loading {
+    margin: auto;
+    color: #9aa1ab;
+    font-size: 13px;
+    padding: 40px 20px;
+    text-align: center;
+}
+

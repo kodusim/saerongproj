@@ -5,10 +5,11 @@ JSON 응답 형태는 Django 판과 완전히 동일하다 (프런트를 손대�
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.websockets import WebSocketDisconnect
 
 from app.config import settings
 from app.db import get_session
@@ -17,6 +18,7 @@ from app.security import client_ip
 from app.services import storage
 from app.services.scholar import ScholarBlockedError, search_scholar
 from app.templating import templates
+from app.ws import hub
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +125,34 @@ async def api_send(
     await session.commit()
     await session.refresh(msg)
 
+    # 접속 중인 모든 클라이언트에게 밀어준다 (실패해도 저장은 성공이므로 무시)
+    try:
+        await hub.broadcast({'type': 'messages', 'messages': [_message_json(msg)]})
+    except Exception:
+        logger.exception('WebSocket 브로드캐스트 실패 (계속 진행)')
+
     return JSONResponse({'id': msg.id, 'created_at': msg.created_at.isoformat()})
+
+
+@router.websocket('/ws')
+async def chat_ws(ws: WebSocket):
+    """채팅 실시간 수신 전용 채널.
+
+    클라이언트는 이 소켓으로 보내지 않는다 — 전송은 HTTP POST /api/send/ 다.
+    여기서 receive 를 계속 기다리는 건 연결 종료를 감지하기 위해서다.
+    """
+    await hub.connect(ws)
+    try:
+        await ws.send_json({'type': 'hello', 'my_ip': client_ip(ws)})
+        while True:
+            # ping 등 클라이언트가 보내는 건 버린다
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        logger.debug('WebSocket 종료', exc_info=True)
+    finally:
+        await hub.disconnect(ws)
 
 
 # ---------------------------------------------------------------- 게시판

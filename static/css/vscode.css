@@ -1,0 +1,365 @@
+/* =======================================================================
+   VS Code 코딩 테마 — 겉모습만 다르고 채팅 기능은 그룹웨어와 동일
+   ======================================================================= */
+.vc-view {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: Consolas, 'D2Coding', 'Courier New', monospace;
+}
+.vc-titlebar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 12px;
+    height: 30px;
+    background: #323233;
+    color: #cccccc;
+    font-size: 11.5px;
+    border-bottom: 1px solid #1e1e1e;
+}
+.vc-titlebar .vc-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc-titlebar .theme-switcher {
+    background: #3c3c3c;
+    color: #ccc;
+    border-color: #555;
+    flex: 0 0 auto;
+}
+.vc-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+.vc-activitybar {
+    flex: 0 0 40px;
+    background: #333333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding-top: 10px;
+}
+.vc-ab-icon {
+    font-size: 17px;
+    color: #858585;
+    cursor: default;
+    padding: 4px 0;
+}
+.vc-ab-icon.active { color: #ffffff; border-left: 2px solid #007acc; margin-left: -2px; padding-left: 2px; }
+.vc-explorer {
+    flex: 0 0 130px;
+    max-width: 130px;
+    overflow-y: auto;
+    background: #252526;
+    color: #cccccc;
+    font-size: 11px;
+    padding: 8px 0;
+}
+.vc-exp-title { padding: 2px 12px 8px; color: #bbbbbb; letter-spacing: .5px; font-size: 10.5px; text-transform: uppercase; }
+.vc-exp-section { padding: 2px 8px; font-weight: 700; color: #cccccc; }
+.vc-tree-item {
+    padding: 2px 8px 2px 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #cccccc;
+    cursor: default;
+}
+.vc-tree-item.vc-indent { padding-left: 32px; }
+.vc-tree-item.vc-indent2 { padding-left: 44px; }
+.vc-tree-item.selected { background: #37373d; }
+.vc-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+}
+.vc-tabbar {
+    flex: 0 0 auto;
+    display: flex;
+    background: #2d2d2d;
+    border-bottom: 1px solid #1e1e1e;
+}
+.vc-tab {
+    padding: 7px 16px;
+    font-size: 11.5px;
+    color: #969696;
+    border-right: 1px solid #1e1e1e;
+    cursor: default;
+    white-space: nowrap;
+}
+.vc-tab.active {
+    background: #1e1e1e;
+    color: #ffffff;
+    border-top: 2px solid #007acc;
+    padding-top: 5px;
+}
+.vc-tab.clickable { cursor: pointer; }
+.vc-tab.clickable:hover { color: #ffffff; }
+#vc-tree-worklog, #vc-tree-posts { cursor: pointer; }
+.vc-editor {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 0;
+}
+.vc-empty { padding: 20px; color: #6A9955; font-size: 12.5px; }
+.vc-line {
+    display: flex;
+    align-items: baseline;
+    padding: 1px 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: nowrap;
+}
+.vc-line:hover { background: #2a2d2e; }
+.vc-line.mine .vc-code { font-weight: 700; }
+.vc-lineno {
+    flex: 0 0 34px;
+    text-align: right;
+    padding-right: 14px;
+    color: #6e7681;
+    font-size: 11.5px;
+    user-select: none;
+}
+.vc-code {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #d4d4d4;
+}
+.vc-comment { color: #6A9955; }
+.vc-str { color: #CE9178; }
+.vc-fn { color: #DCDCAA; cursor: pointer; }
+.vc-fn:hover { text-decoration: underline; }
+.vc-time {
+    flex: 0 0 auto;
+    padding-left: 14px;
+    color: #5a5a5a;
+    font-size: 10.5px;
+}
+.vc-header-line .vc-lineno { color: #4a4a4a; }
+
+.vc-terminal {
+    flex: 0 0 auto;
+    border-top: 1px solid #3c3c3c;
+    background: #181818;
+    padding: 6px 12px 10px;
+}
+.vc-terminal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: #969696;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+}
+.vc-terminal-head .vc-refresh { color: #4ec9b0; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.vc-terminal-head .vc-refresh:hover { text-decoration: underline; }
+.vc-terminal-input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+.vc-prompt { color: #4ec9b0; font-size: 13px; padding-bottom: 6px; }
+.vc-terminal-input-row input.vc-user-input {
+    flex: 0 0 70px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #3c3c3c;
+    color: #9cdcfe;
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 5px 2px;
+}
+.vc-terminal-input-row .vc-icon-btn {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border: 1px solid #3c3c3c;
+    background: transparent;
+    color: #cccccc;
+    border-radius: 3px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.vc-terminal-input-row .vc-icon-btn:hover { background: #2a2d2e; }
+.vc-terminal-input-row textarea {
+    flex: 1 1 140px;
+    min-width: 140px;
+    resize: none;
+    max-height: 80px;
+    overflow-y: auto;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #3c3c3c;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 1.4;
+    padding: 5px 2px;
+    outline: none;
+}
+.vc-terminal-input-row textarea:focus { border-bottom-color: #007acc; }
+.vc-send-btn {
+    flex: 0 0 auto;
+    height: 26px;
+    padding: 0 12px;
+    background: #0e639c;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.vc-send-btn:hover { background: #1177bb; }
+.vc-pending {
+    background: #2a2d2e;
+    border: 1px solid #3c3c3c;
+    color: #4ec9b0;
+    margin-bottom: 6px;
+}
+.vc-pending button { color: #969696; }
+
+.vc-statusbar {
+    flex: 0 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 12px;
+    background: #007acc;
+    color: #fff;
+    font-size: 10.5px;
+}
+.vc-status-spacer { flex: 1; }
+
+/* ---- VS Code 테마의 게시판 (그룹웨어 게시판과 기능 동일) ---- */
+.vc-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.vc-bd-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #252526;
+    border-bottom: 1px solid #3c3c3c;
+    font-size: 11px;
+}
+.vc-bd-toolbar select, .vc-bd-toolbar input {
+    background: #3c3c3c;
+    border: 1px solid #3c3c3c;
+    color: #cccccc;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    outline: none;
+}
+.vc-bd-toolbar input { flex: 0 1 200px; }
+.vc-bd-toolbar input:focus, .vc-bd-toolbar select:focus { border-color: #007acc; }
+.vc-bd-btn {
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid #3c3c3c;
+    color: #cccccc;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+.vc-bd-btn:hover { background: #2a2d2e; }
+.vc-bd-btn.primary { background: #0e639c; border-color: #0e639c; color: #fff; }
+.vc-bd-btn.primary:hover { background: #1177bb; }
+.vc-bd-btn.danger { color: #f48771; border-color: #5a3a35; }
+.vc-bd-btn.danger:hover { background: #3a2a28; }
+.vc-bd-spacer { flex: 1; }
+
+.vc-bd-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 0; }
+.vc-bd-line {
+    display: flex;
+    align-items: baseline;
+    padding: 2px 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.vc-bd-line:hover { background: #2a2d2e; }
+.vc-bd-line.mine .vc-bd-name { font-weight: 700; }
+.vc-bd-hash { flex: 0 0 auto; color: #569cd6; padding-right: 8px; }
+.vc-bd-cat-tag { flex: 0 0 auto; color: #4ec9b0; padding-right: 8px; }
+.vc-bd-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #ce9178; }
+.vc-bd-author-tag { flex: 0 0 auto; color: #6A9955; padding-left: 10px; }
+.vc-bd-meta-tag { flex: 0 0 auto; color: #5a5a5a; font-size: 10.5px; padding-left: 10px; }
+
+.vc-bd-editor {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    overflow-y: auto;
+}
+.vc-bd-editor-row { display: flex; gap: 8px; align-items: center; }
+.vc-bd-editor-row select, .vc-bd-editor-row input {
+    background: #3c3c3c;
+    border: 1px solid #3c3c3c;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    outline: none;
+}
+.vc-bd-editor-row input.vc-bd-title-input { flex: 1; }
+.vc-bd-editor-row input.vc-bd-author-input { flex: 0 0 130px; }
+.vc-bd-editor-row select:focus, .vc-bd-editor-row input:focus { border-color: #007acc; }
+.vc-bd-editor textarea {
+    flex: 1;
+    min-height: 200px;
+    resize: vertical;
+    background: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 10px 12px;
+    border-radius: 2px;
+    outline: none;
+}
+.vc-bd-editor textarea:focus { border-color: #007acc; }
+.vc-bd-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.vc-bd-viewer { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px; }
+.vc-bd-v-title { font-size: 17px; color: #569cd6; font-weight: 700; line-height: 1.4; }
+.vc-bd-v-title::before { content: '# '; color: #6A9955; }
+.vc-bd-v-meta {
+    font-size: 11px;
+    color: #6A9955;
+    padding: 6px 0 12px;
+    border-bottom: 1px solid #3c3c3c;
+    display: flex;
+    gap: 12px;
+}
+.vc-bd-v-body {
+    padding: 16px 0;
+    font-size: 13.5px;
+    line-height: 1.95;
+    color: #d4d4d4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.vc-bd-v-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #3c3c3c; }
+
