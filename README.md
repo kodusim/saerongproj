@@ -7,7 +7,7 @@ saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 두 개의 독립�
 | `/` | 랜딩 |
 | `/tdmprediction/` | 반코마이신 혈중 농도 하이브리드(ML + DL) 예측 |
 | `/tdmprediction/logs/` | 예측 감사 로그 (읽기 전용) |
-| `/work/` | 실시간 채팅 · 자료실 · 공지사항 · 일정 달력 · 구글 스칼라 검색 |
+| `/work/` | 실시간 채팅 · 자료실 · 공지사항 · 일정 달력 · 미니게임 · 구글 스칼라 검색 |
 | `/healthz` | 헬스체크 |
 
 ## 구성
@@ -36,11 +36,11 @@ app/
   ws.py                  채팅 WebSocket 허브 (프로세스 내 브로드캐스트)
 migrations/            Alembic
 templates/             마크업만 (CSS/JS 는 static/)
-static/css/            work-base · groupware · vscode · scholar · tdm-*
+static/css/            work-base · groupware · vscode · scholar · games · tdm-*
 static/js/lib/         dom.js (헬퍼) · api.js (CSRF 붙이는 fetch 래퍼)
 static/js/work/        main(엔트리) · state(공유 상태+구독) · chat
                        board(자료실·공지 공용 팩토리) · schedule(월 달력)
-                       columns(열 너비 조절)
+                       columns(열 너비 조절) · games/(미니게임 4종)
                        scholar · theme · nav · unread · resize · lightbox
 static/js/tdm/         predict.js
 ml_artifacts/          모델 가중치 (git 제외 — 서버에 직접 업로드)

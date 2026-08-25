@@ -77,6 +77,13 @@
   DOM id 는 접두사 규칙(`bd-*` / `nt-*`, VS Code 는 `vc-` 붙임)으로 생성하므로,
   새 게시판을 늘리려면 같은 규칙의 DOM 을 만들고 `createBoard()` 를 한 번 더 부르면 된다.
   서버도 테이블을 나누지 않고 `work_workpost.board` 값으로만 가른다.
+- **미니게임은 테마별 DOM 을 두 벌 만들지 않는다.** 상태와 타이머를 들고 돌아서
+  두 벌에 동시에 그리면 낭비가 크다. `games/index.js` 가 **지금 보이는 테마의 root**
+  (`gm-root` / `vc-gm-root`)에만 그리고, 테마가 바뀌면 그쪽으로 remount 한다.
+  게임 화면을 떠날 때 `nav.js` 가 `suspendGames()` 로 타이머를 정리한다 —
+  안 하면 다른 탭에 가 있어도 게임이 계속 돈다.
+  게임을 추가하려면 `games/` 에 `{id, name, icon, desc, create(ctx)}` 를 default export
+  하는 파일을 만들고 `index.js` 의 `GAMES` 에 넣으면 된다.
 - **일정은 월 달력**이다. 두 테마가 **같은 마크업**을 쓰고 CSS 로만 스킨을 바꾼다
   (`.sc-cal-*`, VS Code 는 `.vc-calendar` 가 감싸서 덮어쓴다). 달력은 구조가 같아도
   어색하지 않아서 게시판처럼 마크업을 두 벌 만들지 않았다.
