@@ -367,23 +367,39 @@
 
 .vc-bd-v-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #3c3c3c; }
 
-/* ---- 일정 (schedule.md) ---- */
-.vc-sc-line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 14px;
-    border-bottom: 1px solid #2a2a2a;
-    cursor: pointer;
-    white-space: nowrap;
+/* ---- 일정 달력 (schedule.md) — 마크업은 그룹웨어와 같고 스킨만 다르다 ---- */
+.vc-calendar { padding: 8px 14px 14px; }
+.vc-calendar .sc-cal-grid {
+    border-top: 1px solid #3c3c3c;
+    border-left: 1px solid #3c3c3c;
 }
-.vc-sc-line:hover { background: #2a2d2e; }
-.vc-sc-line.mine .vc-sc-name { color: #ce9178; }
-.vc-sc-line.past { opacity: .55; }
-.vc-sc-key { color: #569cd6; flex: 0 0 auto; }
-.vc-sc-date { color: #b5cea8; flex: 0 0 auto; }
-.vc-sc-name { color: #d4d4d4; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; }
-.vc-sc-meta { color: #6a9955; flex: 0 0 auto; font-size: 11px; }
+.vc-calendar .sc-cal-dow {
+    background: #252526;
+    color: #858585;
+    border-right: 1px solid #3c3c3c;
+    border-bottom: 1px solid #3c3c3c;
+}
+.vc-calendar .sc-cal-dow.sun { color: #f48771; }
+.vc-calendar .sc-cal-dow.sat { color: #569cd6; }
+.vc-calendar .sc-cal-cell {
+    background: #1e1e1e;
+    border-right: 1px solid #3c3c3c;
+    border-bottom: 1px solid #3c3c3c;
+}
+.vc-calendar .sc-cal-cell:hover { background: #2a2d2e; }
+.vc-calendar .sc-cal-cell.empty { background: #232323; }
+.vc-calendar .sc-cal-cell.empty:hover { background: #232323; }
+.vc-calendar .sc-cal-cell.today { background: #2d2d1f; }
+.vc-calendar .sc-cal-cell.today .sc-cal-daynum { background: #569cd6; color: #1e1e1e; }
+.vc-calendar .sc-cal-daynum { color: #d4d4d4; }
+.vc-calendar .sc-cal-daynum.sun { color: #f48771; }
+.vc-calendar .sc-cal-daynum.sat { color: #569cd6; }
+.vc-calendar .sc-chip { background: #37373d; color: #9cdcfe; }
+.vc-calendar .sc-chip:hover { background: #45454d; }
+.vc-calendar .sc-chip.mine { background: #3a3a2a; color: #ce9178; }
+.vc-calendar .sc-chip.mine:hover { background: #494935; }
+.vc-calendar .sc-more { color: #6a9955; }
+.vc-bd-toolbar .sc-month-label { color: #9cdcfe; }
 
 .vc-sc-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
 .vc-sc-editor .vc-sc-row { display: flex; gap: 8px; margin-bottom: 8px; }

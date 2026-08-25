@@ -50,15 +50,27 @@ class WorkChatMessage(Base):
 
 
 class WorkPost(Base):
+    """자료실과 공지사항이 같은 테이블을 쓴다 — `board` 로만 갈린다.
+
+    글의 생김새(제목/작성자/본문/조회수)가 똑같아서 테이블과 API 를 나눌 이유가
+    없었다. 프런트도 `board.js` 하나를 인스턴스 두 개로 돌린다.
+    """
+
     __tablename__ = 'work_workpost'
+
+    BOARDS = ('archive', 'notice')
 
     CATEGORY_LABELS = {
         'novel': '소설',
         'essay': '수필',
         'etc': '기타',
+        # 공지사항용
+        'notice': '공지',
+        'event': '행사',
     }
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    board: Mapped[str] = mapped_column(String(16), default='archive', nullable=False)
     category: Mapped[str] = mapped_column(String(16), default='novel', nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     author_name: Mapped[str] = mapped_column(String(32), default='익명', nullable=False)

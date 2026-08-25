@@ -199,12 +199,12 @@
     --w-bd-views: 48px;
     --w-bd-date: 96px;
 
-    --w-sc-date: 96px;
-    --w-sc-time: 64px;
-    --w-sc-title: 260px;
-    --w-sc-place: 130px;
-    --w-sc-att: 150px;
-    --w-sc-author: 90px;
+    --w-nt-no: 54px;
+    --w-nt-cat: 62px;
+    --w-nt-title: 320px;
+    --w-nt-author: 104px;
+    --w-nt-views: 48px;
+    --w-nt-date: 96px;
 
     flex: 1;
     min-height: 0;
@@ -435,16 +435,98 @@
 .col-bd-views { flex: 0 0 var(--w-bd-views); color: #999; text-align: center; padding-right: 8px; }
 .col-bd-date { flex: 0 0 var(--w-bd-date); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
 
-/* ---- 일정 (설비예약 탭) ---- */
-.col-sc-date { flex: 0 0 var(--w-sc-date); color: #1B3A6B; font-weight: 700; padding-right: 8px; }
-.col-sc-time { flex: 0 0 var(--w-sc-time); color: #7a8290; padding-right: 8px; }
-.col-sc-title { flex: 1 1 var(--w-sc-title); text-overflow: ellipsis; cursor: pointer; }
-.col-sc-title:hover { text-decoration: underline; color: #1B3A6B; }
-.col-sc-place { flex: 0 0 var(--w-sc-place); color: #444; text-overflow: ellipsis; padding-right: 10px; }
-.col-sc-att { flex: 0 0 var(--w-sc-att); color: #666; text-overflow: ellipsis; padding-right: 10px; }
-.col-sc-author { flex: 0 0 var(--w-sc-author); color: #8a92a0; text-overflow: ellipsis; }
-.gw-row.past .col-sc-date,
-.gw-row.past .col-sc-title { color: #a8b0bb; }
+/* ---- 공지사항 (결재 탭) — 자료실과 같은 표, 열 너비만 따로 기억한다 ---- */
+.col-nt-no { flex: 0 0 var(--w-nt-no); color: #8a92a0; text-align: center; padding-right: 8px; }
+.col-nt-cat { flex: 0 0 var(--w-nt-cat); color: #c0392b; font-weight: 700; padding-right: 10px; }
+.col-nt-title { flex: 1 1 var(--w-nt-title); text-overflow: ellipsis; cursor: pointer; }
+.col-nt-title:hover { text-decoration: underline; color: #1B3A6B; }
+.col-nt-author { flex: 0 0 var(--w-nt-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
+.col-nt-views { flex: 0 0 var(--w-nt-views); color: #999; text-align: center; padding-right: 8px; }
+.col-nt-date { flex: 0 0 var(--w-nt-date); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+
+/* ---- 일정 달력 (설비예약 탭) ---- */
+.sc-cal-toolbar { align-items: center; }
+.sc-month-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1B3A6B;
+    min-width: 96px;
+    text-align: center;
+}
+.sc-calendar { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 0 10px; }
+.sc-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border-top: 1px solid #dfe3e8;
+    border-left: 1px solid #dfe3e8;
+}
+.sc-cal-dow {
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #5b6472;
+    background: #f5f6f8;
+    border-right: 1px solid #dfe3e8;
+    border-bottom: 1px solid #dfe3e8;
+}
+.sc-cal-dow.sun { color: #c0392b; }
+.sc-cal-dow.sat { color: #1a5fb4; }
+
+.sc-cal-cell {
+    min-height: 92px;
+    padding: 4px 5px 6px;
+    border-right: 1px solid #dfe3e8;
+    border-bottom: 1px solid #dfe3e8;
+    background: #fff;
+    cursor: pointer;
+    overflow: hidden;
+}
+.sc-cal-cell:hover { background: #f5f8ff; }
+.sc-cal-cell.empty { background: #fafbfc; cursor: default; }
+.sc-cal-cell.empty:hover { background: #fafbfc; }
+.sc-cal-cell.today { background: #fffdf0; }
+.sc-cal-cell.today .sc-cal-daynum {
+    background: #1B3A6B;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0 6px;
+}
+.sc-cal-daynum {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #444;
+    margin-bottom: 3px;
+}
+.sc-cal-daynum.sun { color: #c0392b; }
+.sc-cal-daynum.sat { color: #1a5fb4; }
+
+.sc-cal-items { display: flex; flex-direction: column; gap: 2px; }
+.sc-chip {
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: #e8eefb;
+    color: #1B3A6B;
+    font-size: 10.5px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.sc-chip:hover { background: #d4e0f7; }
+.sc-chip.mine { background: #dcf0e2; color: #1e6b3a; }
+.sc-chip.mine:hover { background: #c7e6d1; }
+.sc-chip b { font-weight: 700; }
+.sc-more { font-size: 10px; color: #8a92a0; padding-left: 4px; }
+
+.sc-cal-hint {
+    flex: 0 0 auto;
+    padding: 8px 2px 0;
+    font-size: 10.5px;
+    color: #8a92a0;
+}
 
 .sc-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 4px; }
 .sc-editor .sc-row { display: flex; gap: 8px; margin-bottom: 8px; }

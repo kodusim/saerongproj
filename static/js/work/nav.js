@@ -1,11 +1,10 @@
-/* 화면 전환 — 채팅(문서함 / worklog.txt) · 게시판(자료실 / posts.md) ·
-   일정(설비예약 / schedule.md).
+/* 화면 전환 — 채팅 · 게시판(자료실) · 일정(설비예약) · 공지사항(결재).
 
    양쪽 테마의 DOM 을 동시에 토글한다 — 테마를 바꿔도 어느 화면을 보고 있었는지가
    유지되도록. */
 import { $ } from '../lib/dom.js';
 import { currentNav, onNavChange, onThemeChange, setNav } from './state.js';
-import { loadPosts } from './board.js';
+import { archiveBoard, noticeBoard } from './board.js';
 import { loadSchedules } from './schedule.js';
 
 // nav 값 → [그룹웨어 본문, VS Code 섹션, 그룹웨어 탭, VS Code 탭, VS Code 트리]
@@ -13,6 +12,14 @@ const TARGETS = {
     docs: ['gw-main-docs', 'vc-chat-section', 'nav-tab-docs', 'vc-tab-worklog', 'vc-tree-worklog'],
     board: ['gw-main-board', 'vc-board-section', 'nav-tab-board', 'vc-tab-posts', 'vc-tree-posts'],
     schedule: ['gw-main-schedule', 'vc-schedule-section', 'nav-tab-schedule', 'vc-tab-schedule', 'vc-tree-schedule'],
+    notice: ['gw-main-notice', 'vc-notice-section', 'nav-tab-notice', 'vc-tab-notice', 'vc-tree-notice'],
+};
+
+// 화면에 들어갈 때 새로 불러올 것
+const ON_ENTER = {
+    board: () => archiveBoard.load(),
+    notice: () => noticeBoard.load(),
+    schedule: () => loadSchedules(),
 };
 
 function applyNav(nav) {
@@ -30,8 +37,8 @@ function applyNav(nav) {
     $('gw-compose').hidden = !isDocs;
     $('gw-pagination').hidden = !isDocs;
 
-    if (nav === 'board') loadPosts();
-    if (nav === 'schedule') loadSchedules();
+    const enter = ON_ENTER[nav];
+    if (enter) enter();
 }
 
 export function initNav() {

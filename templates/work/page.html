@@ -20,7 +20,7 @@
         <div class="gw-topnav">
             <div class="gw-brand">🌱 그룹웨어</div>
             <div class="gw-tabs">
-                <span class="gw-tab"><span class="gw-tab-ic">🗒</span>결재</span>
+                <span class="gw-tab clickable" id="nav-tab-notice"><span class="gw-tab-ic">🗒</span>결재</span>
                 <span class="gw-tab clickable active" id="nav-tab-docs"><span class="gw-tab-ic">📁</span>문서함</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🔗</span>업무넷</span>
                 <span class="gw-tab"><span class="gw-tab-ic">📅</span>스케쥴</span>
@@ -189,31 +189,22 @@
             <!-- 중앙 : 설비예약 = 만남 일정 -->
             <div class="gw-main" id="gw-main-schedule" hidden>
                 <div class="gw-page-title">
-                    설비예약 <span id="sc-count-title">(0)</span>
+                    설비예약
                     <span class="gw-fav">☆ 즐겨찾기</span>
                 </div>
 
-                <!-- 목록 -->
+                <!-- 달력 -->
                 <div class="bd-panel" id="sc-list-panel">
-                    <div class="bd-toolbar">
-                        <input type="text" id="sc-search" placeholder="일정 검색 (제목·장소·참석자)">
+                    <div class="bd-toolbar sc-cal-toolbar">
+                        <button class="bd-btn" id="sc-prev" type="button" title="이전 달">‹</button>
+                        <span class="sc-month-label" id="sc-month-label"></span>
+                        <button class="bd-btn" id="sc-next" type="button" title="다음 달">›</button>
+                        <button class="bd-btn" id="sc-today" type="button">오늘</button>
                         <span class="bd-spacer"></span>
-                        <button class="bd-btn" id="sc-refresh" type="button">⟳ 새로고침</button>
                         <button class="bd-btn primary" id="sc-new" type="button">＋ 일정 등록</button>
                     </div>
-                    <div class="gw-table-wrap">
-                        <div class="gw-table-head" id="sc-table-head">
-                            <span class="col-sc-date">날짜</span>
-                            <span class="col-sc-time">시간</span>
-                            <span class="col-sc-title">일정</span>
-                            <span class="col-sc-place">장소</span>
-                            <span class="col-sc-att">참석자</span>
-                            <span class="col-sc-author">등록자</span>
-                        </div>
-                        <div class="gw-table-body" id="sc-rows">
-                            <div class="gw-empty">등록된 일정이 없습니다.</div>
-                        </div>
-                    </div>
+                    <div class="sc-calendar" id="sc-calendar"></div>
+                    <div class="sc-cal-hint">날짜 칸을 누르면 그 날짜로 등록됩니다. 일정을 누르면 수정·삭제할 수 있습니다.</div>
                 </div>
 
                 <!-- 등록/수정 -->
@@ -242,6 +233,74 @@
                         <button class="bd-btn primary" id="sc-edit-save" type="button">저장</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- 중앙 : 결재 = 공지사항 -->
+            <div class="gw-main" id="gw-main-notice" hidden>
+                <div class="gw-page-title">
+                    공지사항 <span id="nt-count-title">(0)</span>
+                    <span class="gw-fav">☆ 즐겨찾기</span>
+                </div>
+
+                <!-- 목록 -->
+                <div class="bd-panel" id="nt-list-panel">
+                    <div class="bd-toolbar">
+                        <select id="nt-filter-cat">
+                            <option value="">전체</option>
+                            <option value="notice">공지</option>
+                            <option value="event">행사</option>
+                        </select>
+                        <input type="text" id="nt-search" placeholder="제목 검색">
+                        <span class="bd-spacer"></span>
+                        <button class="bd-btn" id="nt-refresh" type="button">⟳ 새로고침</button>
+                        <button class="bd-btn primary" id="nt-new" type="button">＋ 공지 작성</button>
+                    </div>
+                    <div class="gw-table-wrap">
+                        <div class="gw-table-head" id="nt-table-head">
+                            <span class="col-nt-no">번호</span>
+                            <span class="col-nt-cat">분류</span>
+                            <span class="col-nt-title">제목</span>
+                            <span class="col-nt-author">작성자</span>
+                            <span class="col-nt-views">조회</span>
+                            <span class="col-nt-date">작성일</span>
+                        </div>
+                        <div class="gw-table-body" id="nt-rows">
+                            <div class="gw-empty">등록된 글이 없습니다.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 작성/수정 -->
+                <div class="bd-editor" id="nt-edit-panel" hidden>
+                    <div class="bd-editor-row">
+                        <select id="nt-edit-cat">
+                            <option value="notice">공지</option>
+                            <option value="event">행사</option>
+                        </select>
+                        <input type="text" class="bd-title-input" id="nt-edit-title" placeholder="제목" maxlength="200">
+                        <input type="text" class="bd-author-input" id="nt-edit-author" placeholder="작성자" maxlength="16">
+                    </div>
+                    <textarea id="nt-edit-body" placeholder="공지 내용을 입력하세요"></textarea>
+                    <div class="bd-editor-actions">
+                        <button class="bd-btn" id="nt-edit-cancel" type="button">취소</button>
+                        <button class="bd-btn primary" id="nt-edit-save" type="button">저장</button>
+                    </div>
+                </div>
+
+                <!-- 글 보기 -->
+                <div class="bd-viewer" id="nt-view-panel" hidden>
+                    <div class="bd-v-cat" id="nt-v-cat"></div>
+                    <div class="bd-v-title" id="nt-v-title"></div>
+                    <div class="bd-v-meta" id="nt-v-meta"></div>
+                    <div class="bd-v-body" id="nt-v-body"></div>
+                    <div class="bd-v-actions">
+                        <button class="bd-btn" id="nt-v-back" type="button">← 목록</button>
+                        <span class="bd-spacer"></span>
+                        <button class="bd-btn" id="nt-v-edit" type="button">수정</button>
+                        <button class="bd-btn danger" id="nt-v-delete" type="button">삭제</button>
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -305,6 +364,7 @@
                 <div class="vc-tree-item selected" id="vc-tree-worklog">📄 worklog.txt</div>
                 <div class="vc-tree-item" id="vc-tree-posts">📄 posts.md</div>
                 <div class="vc-tree-item" id="vc-tree-schedule">📄 schedule.md</div>
+                <div class="vc-tree-item" id="vc-tree-notice">📄 NOTICE.md</div>
             </div>
             <div class="vc-main">
                 <div class="vc-tabbar">
@@ -312,6 +372,7 @@
                     <span class="vc-tab clickable active" id="vc-tab-worklog">worklog.txt</span>
                     <span class="vc-tab clickable" id="vc-tab-posts">posts.md</span>
                     <span class="vc-tab clickable" id="vc-tab-schedule">schedule.md</span>
+                    <span class="vc-tab clickable" id="vc-tab-notice">NOTICE.md</span>
                 </div>
 
                 <!-- 채팅 (worklog.txt) -->
@@ -396,14 +457,14 @@
                 <div class="vc-section" id="vc-schedule-section" hidden>
                     <div class="vc-section" id="vc-sc-list-panel">
                         <div class="vc-bd-toolbar">
-                            <input type="text" id="vc-sc-search" placeholder="일정 검색">
+                            <button class="vc-bd-btn" id="vc-sc-prev" type="button" title="이전 달">‹</button>
+                            <span class="sc-month-label" id="vc-sc-month-label"></span>
+                            <button class="vc-bd-btn" id="vc-sc-next" type="button" title="다음 달">›</button>
+                            <button class="vc-bd-btn" id="vc-sc-today" type="button">오늘</button>
                             <span class="vc-bd-spacer"></span>
-                            <button class="vc-bd-btn" id="vc-sc-refresh" type="button">⟳ 새로고침</button>
                             <button class="vc-bd-btn primary" id="vc-sc-new" type="button">＋ 새 일정</button>
                         </div>
-                        <div class="vc-bd-list" id="vc-sc-rows">
-                            <div class="vc-empty">// 등록된 일정이 없습니다</div>
-                        </div>
+                        <div class="sc-calendar vc-calendar" id="vc-sc-calendar"></div>
                     </div>
 
                     <div class="vc-sc-editor" id="vc-sc-edit-panel" hidden>
@@ -429,6 +490,54 @@
                             <span class="vc-bd-spacer"></span>
                             <button class="vc-bd-btn danger" id="vc-sc-edit-delete" type="button" hidden>삭제</button>
                             <button class="vc-bd-btn primary" id="vc-sc-edit-save" type="button">저장</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 공지사항 (NOTICE.md) -->
+                <div class="vc-section" id="vc-notice-section" hidden>
+                    <div class="vc-section" id="vc-nt-list-panel">
+                        <div class="vc-bd-toolbar">
+                            <select id="vc-nt-filter-cat">
+                                <option value="">전체</option>
+                                <option value="notice">공지</option>
+                                <option value="event">행사</option>
+                            </select>
+                            <input type="text" id="vc-nt-search" placeholder="제목 검색">
+                            <span class="vc-bd-spacer"></span>
+                            <button class="vc-bd-btn" id="vc-nt-refresh" type="button">⟳ 새로고침</button>
+                            <button class="vc-bd-btn primary" id="vc-nt-new" type="button">＋ 새 공지</button>
+                        </div>
+                        <div class="vc-bd-list" id="vc-nt-rows">
+                            <div class="vc-empty">// 등록된 글이 없습니다</div>
+                        </div>
+                    </div>
+
+                    <div class="vc-bd-editor" id="vc-nt-edit-panel" hidden>
+                        <div class="vc-bd-editor-row">
+                            <select id="vc-nt-edit-cat">
+                                <option value="notice">공지</option>
+                                <option value="event">행사</option>
+                            </select>
+                            <input type="text" class="vc-bd-title-input" id="vc-nt-edit-title" placeholder="제목" maxlength="200">
+                            <input type="text" class="vc-bd-author-input" id="vc-nt-edit-author" placeholder="작성자" maxlength="16">
+                        </div>
+                        <textarea id="vc-nt-edit-body" placeholder="공지 내용을 입력하세요"></textarea>
+                        <div class="vc-bd-actions">
+                            <button class="vc-bd-btn" id="vc-nt-edit-cancel" type="button">취소</button>
+                            <button class="vc-bd-btn primary" id="vc-nt-edit-save" type="button">저장</button>
+                        </div>
+                    </div>
+
+                    <div class="vc-bd-viewer" id="vc-nt-view-panel" hidden>
+                        <div class="vc-bd-v-title" id="vc-nt-v-title"></div>
+                        <div class="vc-bd-v-meta" id="vc-nt-v-meta"></div>
+                        <div class="vc-bd-v-body" id="vc-nt-v-body"></div>
+                        <div class="vc-bd-v-actions">
+                            <button class="vc-bd-btn" id="vc-nt-v-back" type="button">← 목록</button>
+                            <span class="vc-bd-spacer"></span>
+                            <button class="vc-bd-btn" id="vc-nt-v-edit" type="button">수정</button>
+                            <button class="vc-bd-btn danger" id="vc-nt-v-delete" type="button">삭제</button>
                         </div>
                     </div>
                 </div>

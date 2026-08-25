@@ -42,9 +42,15 @@ def _message_json(m: WorkChatMessage) -> dict:
     }
 
 
+def _board_or_default(value: str) -> str:
+    value = (value or '').strip()
+    return value if value in WorkPost.BOARDS else 'archive'
+
+
 def _post_json(p: WorkPost, with_body: bool = False) -> dict:
     data = {
         'id': p.id,
+        'board': p.board,
         'category': p.category,
         'category_label': p.category_label,
         'title': p.title,
@@ -158,11 +164,13 @@ async def chat_ws(ws: WebSocket):
 @router.get('/api/posts/')
 async def api_posts(
     request: Request,
+    board: str = 'archive',
     category: str = '',
     q: str = '',
     session: AsyncSession = Depends(get_session),
 ):
     stmt = select(WorkPost).order_by(desc(WorkPost.created_at))
+    stmt = stmt.where(WorkPost.board == _board_or_default(board))
     category = (category or '').strip()
     if category:
         stmt = stmt.where(WorkPost.category == category)
@@ -190,11 +198,13 @@ async def api_post_create(request: Request, session: AsyncSession = Depends(get_
     if not title:
         return JSONResponse({'error': '제목을 입력하세요.'}, status_code=400)
 
+    board = _board_or_default(data.get('board') or '')
     category = data.get('category')
     if category not in WorkPost.CATEGORY_LABELS:
-        category = 'novel'
+        category = 'notice' if board == 'notice' else 'novel'
 
     post = WorkPost(
+        board=board,
         category=category,
         title=title,
         author_name=(data.get('author_name') or '익명').strip()[:32] or '익명',
