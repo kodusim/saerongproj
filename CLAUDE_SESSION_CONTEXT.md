@@ -70,6 +70,14 @@
   마지막에 `initTheme()` 이 첫 렌더를 트리거한다.
 - `/work` 은 그룹웨어 / VS Code 두 테마 DOM 을 둘 다 문서에 두고 한쪽만 보여준다.
   상태는 한 벌, 렌더는 두 벌 — 테마를 바꿔도 화면 상태가 유지되는 이유.
+  화면은 셋: `docs`(채팅) · `board`(게시판) · `schedule`(일정). `nav.js` 의 `TARGETS` 에
+  [그룹웨어 본문, VS Code 섹션, 그룹웨어 탭, VS Code 탭, VS Code 트리] 다섯 쌍으로 묶여 있다.
+- **표 열 너비는 `.gw-table-wrap` 의 CSS 변수(`--w-*`)** 다. 행마다 인라인 스타일을 주면
+  재렌더링에 날아가므로 이렇게 했다. `columns.js` 가 헤더에 손잡이를 붙이고 변수만 바꾼다.
+  새 열을 추가할 땐 ① CSS 에 변수 정의 ② `.col-x { flex: 0 0 var(--w-x) }` ③ 헤더 span
+  ④ 행 렌더 ⑤ `initColumnResize` 의 `cols` 다섯 곳을 모두 손봐야 한다.
+- **문서번호는 저장하지 않는다.** `사업기록-00001` 은 messages 배열의 인덱스로 그때그때
+  만든다(하단=가장 오래된 글=1번). 메시지를 지우면 번호가 밀린다 — 표시용 일련번호다.
 - 채팅은 **WebSocket** (`/work/ws`). 끊기면 2초 폴링으로 강등되고 재연결 시 HTTP 로
   놓친 구간을 따라잡는다. 전송은 이미지 multipart 때문에 HTTP POST 유지.
 - `/static` 은 `Cache-Control: no-cache` — ES 모듈이라 옛/새 모듈이 섞이면 깨진다.
