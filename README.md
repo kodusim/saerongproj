@@ -30,6 +30,7 @@ app/
   templating.py        Jinja2
   routers/tdm.py       /tdmprediction
   routers/work.py      /work
+  routers/farm.py      /work/api/farm (농사 게임)
   services/predictor.py  TDM 추론 (ML joblib + LSTM .pt)
   services/scholar.py    구글 스칼라 스크래핑 (requests + threadpool — httpx 금지)
   services/storage.py    업로드 이미지 저장
