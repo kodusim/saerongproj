@@ -13,8 +13,9 @@ import numbers from './numbers.js';
 import memory from './memory.js';
 import quiz from './quiz.js';
 import pop from './pop.js';
+import farm from './farm.js';
 
-const GAMES = [numbers, memory, quiz, pop];
+const GAMES = [farm, numbers, memory, quiz, pop];
 const BEST_KEY = 'work_game_best';
 
 let current = null;      // { def, instance }
@@ -64,7 +65,7 @@ function renderList() {
                     <span class="gm-card-ic">${g.icon}</span>
                     <span class="gm-card-name">${g.name}</span>
                     <span class="gm-card-desc">${g.desc}</span>
-                    <span class="gm-card-best">최고 ${bestOf(g.id).toLocaleString()}점</span>
+                    <span class="gm-card-best">${g.persistent ? '이어서 하기' : `최고 ${bestOf(g.id).toLocaleString()}점`}</span>
                 </button>
             `).join('')}
         </div>
@@ -72,14 +73,20 @@ function renderList() {
 }
 
 function renderFrame(def) {
+    // 저장되는 게임(농장)은 '최고 점수'와 '다시 하기'가 의미가 없다 —
+    // 다시 누르면 진행이 날아가는 줄 알기 쉬워서 아예 내보내지 않는다.
+    const scoreBar = def.persistent
+        ? '<span class="gm-stat">자산 <b id="gm-score">0</b>원</span>'
+        : `<span class="gm-stat">점수 <b id="gm-score">0</b></span>
+           <span class="gm-stat">최고 <b id="gm-best">${bestOf(def.id).toLocaleString()}</b></span>
+           <button class="gm-btn" type="button" data-act="restart">다시</button>`;
+
     root.innerHTML = `
         <div class="gm-bar">
             <button class="gm-btn" type="button" data-act="back">← 목록</button>
             <span class="gm-bar-name">${def.name}</span>
             <span class="gm-spacer"></span>
-            <span class="gm-stat">점수 <b id="gm-score">0</b></span>
-            <span class="gm-stat">최고 <b id="gm-best">${bestOf(def.id).toLocaleString()}</b></span>
-            <button class="gm-btn" type="button" data-act="restart">다시</button>
+            ${scoreBar}
         </div>
         <div class="gm-info" id="gm-info"></div>
         <div class="gm-stage" id="gm-stage"></div>

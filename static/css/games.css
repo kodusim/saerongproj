@@ -201,6 +201,128 @@
 .gm-pop-cell.c-b { background: #5e93e0; }
 .gm-pop-cell.c-p { background: #b07fd4; }
 
+/* ---------------- 농장 ---------------- */
+
+/* 농장은 가로를 꽉 쓴다 — .gm-stage 가 가운데 정렬이라 래퍼로 폭을 되찾는다 */
+.fm-wrap { width: 100%; align-self: stretch; }
+
+.fm-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.fm-money { font-size: 15px; font-weight: 700; color: #1e6b3a; }
+.fm-worth { font-size: 11px; color: #7a8290; }
+.fm-flash { font-size: 12px; font-weight: 700; color: #1B3A6B; }
+.fm-owner { font-size: 11.5px; color: #444; }
+
+.fm-tabs { display: flex; gap: 4px; border-bottom: 1px solid #e5e8ec; margin-bottom: 10px; }
+.fm-tab {
+    padding: 6px 14px;
+    font-size: 11.5px;
+    font-family: inherit;
+    border: none;
+    background: none;
+    color: #7a8290;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+.fm-tab.on { color: #1B3A6B; font-weight: 700; border-bottom-color: #1B3A6B; }
+
+.fm-seeds { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.fm-seed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 6px 9px;
+    font-family: inherit;
+    border: 1px solid #dfe3e8;
+    border-radius: 5px;
+    background: #fff;
+    cursor: pointer;
+}
+.fm-seed.on { border-color: #1B3A6B; background: #eef3fd; }
+.fm-seed.poor { opacity: .45; }
+.fm-seed-ic { font-size: 17px; }
+.fm-seed-n { font-size: 10.5px; color: #444; }
+.fm-seed-c { font-size: 10px; color: #8a92a0; }
+
+.fm-tractor { display: flex; gap: 6px; margin-bottom: 10px; }
+
+.fm-plots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 7px;
+}
+.fm-plot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 76px;
+    padding: 8px 4px;
+    font-family: inherit;
+    border: 1px solid #dfe3e8;
+    border-radius: 6px;
+    background: #faf8f3;
+    cursor: pointer;
+}
+.fm-plot.empty:hover { border-color: #1B3A6B; background: #f2f5fb; }
+.fm-plot.growing { background: #f3f8f1; cursor: default; }
+.fm-plot.ready { background: #e6f6ea; border-color: #6bbd82; }
+.fm-plot.ready:hover { background: #d5efdc; }
+.fm-plot-ic { font-size: 24px; line-height: 1; }
+.fm-plot-t { font-size: 10.5px; color: #5b6472; }
+.fm-plot.ready .fm-plot-t { color: #1e6b3a; font-weight: 700; }
+.fm-plot-bar { width: 80%; height: 3px; background: #dfe3e8; border-radius: 2px; overflow: hidden; }
+.fm-plot-bar i { display: block; height: 100%; background: #6bbd82; }
+
+.fm-hint { font-size: 10.5px; color: #8a92a0; margin-top: 10px; line-height: 1.6; }
+
+.fm-shop-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1B3A6B;
+    margin: 14px 0 6px;
+}
+.fm-shop-title:first-child { margin-top: 0; }
+.fm-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border: 1px solid #e5e8ec;
+    border-radius: 5px;
+    margin-bottom: 6px;
+    background: #fff;
+}
+.fm-item-ic { font-size: 20px; }
+.fm-item-main { flex: 1; min-width: 0; font-size: 11.5px; color: #333; }
+.fm-item-main i { font-style: normal; color: #8a92a0; font-size: 10.5px; }
+.fm-item-desc { display: block; font-size: 10.5px; color: #7a8290; margin-top: 2px; }
+
+.fm-price-head, .fm-price {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.2fr 1fr .8fr;
+    gap: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+}
+.fm-price-head { font-weight: 700; color: #5b6472; background: #f5f6f8; border-radius: 4px; }
+.fm-price { color: #444; border-bottom: 1px solid #f0f2f5; }
+.fm-rate { color: #1e6b3a; }
+
+.fm-rank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-bottom: 1px solid #f0f2f5;
+    font-size: 11.5px;
+}
+.fm-rank-row.mine { background: #eef3fd; font-weight: 700; }
+.fm-rank-no { flex: 0 0 24px; color: #8a92a0; text-align: center; }
+.fm-rank-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fm-rank-w { color: #1e6b3a; }
+
 /* =======================================================================
    VS Code 스킨 — 마크업은 같고 색만 다르다
    ======================================================================= */
@@ -252,6 +374,37 @@
 .vc-gm .gm-quiz-c.wrong { background: #5a2d2d; border-color: #f48771; }
 
 .vc-gm .gm-pop-grid { background: #252526; }
+
+.vc-gm .fm-money { color: #6bbd82; }
+.vc-gm .fm-worth, .vc-gm .fm-hint { color: #858585; }
+.vc-gm .fm-flash { color: #9cdcfe; }
+.vc-gm .fm-owner { color: #d4d4d4; }
+.vc-gm .fm-tabs { border-bottom-color: #3c3c3c; }
+.vc-gm .fm-tab { color: #858585; }
+.vc-gm .fm-tab.on { color: #9cdcfe; border-bottom-color: #569cd6; }
+.vc-gm .fm-seed { background: #2d2d30; border-color: #3c3c3c; }
+.vc-gm .fm-seed.on { background: #24405e; border-color: #569cd6; }
+.vc-gm .fm-seed-n { color: #d4d4d4; }
+.vc-gm .fm-seed-c { color: #858585; }
+.vc-gm .fm-plot { background: #2d2d30; border-color: #3c3c3c; }
+.vc-gm .fm-plot.empty:hover { background: #37373d; border-color: #569cd6; }
+.vc-gm .fm-plot.growing { background: #26302a; }
+.vc-gm .fm-plot.ready { background: #2d4a34; border-color: #6bbd82; }
+.vc-gm .fm-plot.ready:hover { background: #375c40; }
+.vc-gm .fm-plot-t { color: #9d9d9d; }
+.vc-gm .fm-plot.ready .fm-plot-t { color: #8fd6a3; }
+.vc-gm .fm-plot-bar { background: #3c3c3c; }
+.vc-gm .fm-shop-title { color: #9cdcfe; }
+.vc-gm .fm-item { background: #2d2d30; border-color: #3c3c3c; }
+.vc-gm .fm-item-main { color: #d4d4d4; }
+.vc-gm .fm-item-desc, .vc-gm .fm-item-main i { color: #858585; }
+.vc-gm .fm-price-head { background: #252526; color: #858585; }
+.vc-gm .fm-price { color: #d4d4d4; border-bottom-color: #2a2a2a; }
+.vc-gm .fm-rate { color: #6bbd82; }
+.vc-gm .fm-rank-row { border-bottom-color: #2a2a2a; color: #d4d4d4; }
+.vc-gm .fm-rank-row.mine { background: #24405e; }
+.vc-gm .fm-rank-no { color: #858585; }
+.vc-gm .fm-rank-w { color: #6bbd82; }
 
 /* ---------------- 모바일 ---------------- */
 

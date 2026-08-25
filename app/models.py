@@ -89,6 +89,31 @@ class WorkPost(Base):
         return self.CATEGORY_LABELS.get(self.category, self.category)
 
 
+class WorkFarm(Base):
+    """농장 게임 저장 — 로그인이 없어서 IP 로 사람을 가른다.
+
+    채팅·게시판이 이미 IP 로 '내 글' 을 가리고 있어서 같은 기준을 쓴다.
+    (같은 공유기를 쓰면 농장을 공유하게 되지만, 몇 명 쓰는 사내 도구라 충분하다.)
+    """
+
+    __tablename__ = 'work_workfarm'
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    owner_ip: Mapped[Any] = mapped_column(INET, unique=True, nullable=False)
+    owner_name: Mapped[str] = mapped_column(String(32), default='익명 농부', nullable=False)
+    money: Mapped[int] = mapped_column(BigInteger, default=50, nullable=False)
+    # [{'crop': 'radish', 'planted_at': ISO} | null, ...] — 심은 시각만 두고
+    # 다 자랐는지는 그때그때 계산한다 (배치 작업이 필요 없다)
+    plots: Mapped[Any] = mapped_column(JSONB, default=list, nullable=False)
+    buildings: Mapped[Any] = mapped_column(JSONB, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+
 class WorkSchedule(Base):
     """만남 일정 — 그룹웨어의 '설비예약' 탭으로 보인다.
 
