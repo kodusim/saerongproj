@@ -7,7 +7,8 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import desc, select
+from sqlalchemy import cast, desc, select
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,9 +24,15 @@ router = APIRouter(prefix='/work/api/farm', tags=['farm'])
 RANKING_LIMIT = 20
 
 
+def _by_ip(ip: str):
+    """`inet = varchar` 연산자가 없어서 명시적으로 캐스팅해야 한다.
+    (기존 코드는 INET 에 넣기만 했지 비교한 적이 없어 안 드러났던 부분)"""
+    return WorkFarm.owner_ip == cast(ip, INET)
+
+
 async def _get_or_create(request: Request, session: AsyncSession) -> WorkFarm:
     ip = client_ip(request)
-    found = await session.scalar(select(WorkFarm).where(WorkFarm.owner_ip == ip))
+    found = await session.scalar(select(WorkFarm).where(_by_ip(ip)))
     if found:
         return found
 
@@ -42,7 +49,7 @@ async def _get_or_create(request: Request, session: AsyncSession) -> WorkFarm:
     except IntegrityError:
         # 탭 두 개를 동시에 열면 여기로 온다 — 먼저 만들어진 걸 쓴다
         await session.rollback()
-        return await session.scalar(select(WorkFarm).where(WorkFarm.owner_ip == ip))
+        return await session.scalar(select(WorkFarm).where(_by_ip(ip)))
     await session.refresh(created)
     return created
 
@@ -137,13 +144,15 @@ async def api_ranking(request: Request, session: AsyncSession = Depends(get_sess
         select(WorkFarm).order_by(desc(WorkFarm.money)).limit(200)
     )).all()
 
+    # asyncpg 는 inet 을 ipaddress 객체로 돌려주므로 문자열과 직접 비교하면 안 된다
+    me = client_ip(request)
     ranked = sorted(
         (
             {
                 'name': f.owner_name,
                 'net_worth': rules.net_worth(f.money, f.buildings or {}),
                 'money': f.money,
-                'mine': f.owner_ip == client_ip(request),
+                'mine': str(f.owner_ip) == str(me),
             }
             for f in rows
         ),
