@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/static/css/groupware.css">
 <link rel="stylesheet" href="/static/css/vscode.css">
 <link rel="stylesheet" href="/static/css/scholar.css">
+<link rel="stylesheet" href="/static/css/games.css">
 </head>
 <body>
 <div class="work-wrap">
@@ -27,7 +28,7 @@
                 <span class="gw-tab clickable" id="nav-tab-board"><span class="gw-tab-ic">📋</span>게시판</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🗓</span>일정</span>
                 <span class="gw-tab clickable" id="nav-tab-schedule"><span class="gw-tab-ic">🏢</span>설비예약</span>
-                <span class="gw-tab"><span class="gw-tab-ic">👥</span>주소록</span>
+                <span class="gw-tab clickable" id="nav-tab-games"><span class="gw-tab-ic">👥</span>주소록</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🗂</span>웹폴더</span>
                 <span class="gw-tab"><span class="gw-tab-ic">⏱</span>설문</span>
             </div>
@@ -300,6 +301,15 @@
                         <button class="bd-btn danger" id="nt-v-delete" type="button">삭제</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- 중앙 : 주소록 = 미니게임 -->
+            <div class="gw-main" id="gw-main-games" hidden>
+                <div class="gw-page-title">
+                    주소록
+                    <span class="gw-fav">☆ 즐겨찾기</span>
+                </div>
+                <div class="gm-root" id="gm-root"></div>
 
             </div>
 
@@ -365,6 +375,7 @@
                 <div class="vc-tree-item" id="vc-tree-posts">📄 posts.md</div>
                 <div class="vc-tree-item" id="vc-tree-schedule">📄 schedule.md</div>
                 <div class="vc-tree-item" id="vc-tree-notice">📄 NOTICE.md</div>
+                <div class="vc-tree-item" id="vc-tree-games">📄 games.md</div>
             </div>
             <div class="vc-main">
                 <div class="vc-tabbar">
@@ -373,6 +384,7 @@
                     <span class="vc-tab clickable" id="vc-tab-posts">posts.md</span>
                     <span class="vc-tab clickable" id="vc-tab-schedule">schedule.md</span>
                     <span class="vc-tab clickable" id="vc-tab-notice">NOTICE.md</span>
+                    <span class="vc-tab clickable" id="vc-tab-games">games.md</span>
                 </div>
 
                 <!-- 채팅 (worklog.txt) -->
@@ -540,6 +552,11 @@
                             <button class="vc-bd-btn danger" id="vc-nt-v-delete" type="button">삭제</button>
                         </div>
                     </div>
+                </div>
+
+                <!-- 미니게임 (games.md) -->
+                <div class="vc-section" id="vc-games-section" hidden>
+                    <div class="gm-root vc-gm" id="vc-gm-root"></div>
                 </div>
             </div>
         </div>

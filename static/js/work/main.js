@@ -8,6 +8,7 @@ import { initUnread } from './unread.js';
 import { initScholar } from './scholar.js';
 import { archiveBoard, noticeBoard } from './board.js';
 import { initSchedule } from './schedule.js';
+import { initGames } from './games/index.js';
 import { initChat } from './chat.js';
 import { initNav } from './nav.js';
 import { initTheme } from './theme.js';
@@ -20,6 +21,7 @@ initScholar();
 archiveBoard.init();
 noticeBoard.init();
 initSchedule();
+initGames();
 initNav();
 
 // 첫 렌더 — 구독자가 모두 등록된 뒤에 실행한다
