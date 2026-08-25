@@ -14,8 +14,9 @@ import memory from './memory.js';
 import quiz from './quiz.js';
 import pop from './pop.js';
 import farm from './farm.js';
+import stardew from './stardew/index.js';
 
-const GAMES = [farm, numbers, memory, quiz, pop];
+const GAMES = [stardew, farm, numbers, memory, quiz, pop];
 const BEST_KEY = 'work_game_best';
 
 let current = null;      // { def, instance }

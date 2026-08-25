@@ -114,6 +114,26 @@ class WorkFarm(Base):
     )
 
 
+class WorkGameSave(Base):
+    """게임 저장 슬롯 — 게임마다 테이블을 만들지 않으려고 하나로 쓴다.
+
+    `data` 안의 내용은 게임이 알아서 정한다. 서버는 크기만 본다.
+    시뮬레이션(이동·타일·하루 넘김)을 서버에서 돌리는 건 현실적이지 않아서
+    이 저장은 **클라이언트를 믿는다**. 혼자 하는 게임이라 조작해도 자기 손해고,
+    순위가 걸린 `work_workfarm` 쪽은 서버가 계산하므로 영향이 없다.
+    """
+
+    __tablename__ = 'work_gamesave'
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    owner_ip: Mapped[Any] = mapped_column(INET, nullable=False)
+    game: Mapped[str] = mapped_column(String(32), nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, default=dict, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+
 class WorkSchedule(Base):
     """만남 일정 — 그룹웨어의 '설비예약' 탭으로 보인다.
 

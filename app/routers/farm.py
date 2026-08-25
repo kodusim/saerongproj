@@ -3,6 +3,7 @@
 규칙과 시간 계산은 전부 `app/services/farm.py` 에 있다. 여기서는 요청을 받아
 농장을 찾아오고, 행동을 시키고, 새 상태를 돌려주는 것만 한다.
 """
+import json
 import logging
 
 from fastapi import APIRouter, Depends, Request
@@ -13,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models import WorkFarm
+from app.models import WorkFarm, WorkGameSave
 from app.security import client_ip
 from app.services import farm as rules
 
@@ -134,6 +135,67 @@ async def api_buy(request: Request, session: AsyncSession = Depends(get_session)
     except rules.FarmError as e:
         return JSONResponse({'error': str(e)}, status_code=400)
     return await _respond(session, farm, spent=cost)
+
+
+# ---------------------------------------------------------------- 공용 저장 슬롯
+
+MAX_SAVE_BYTES = 64 * 1024
+SAVE_GAMES = {'stardew'}
+
+
+@router.get('/save/{game}/')
+async def api_save_load(game: str, request: Request, session: AsyncSession = Depends(get_session)):
+    if game not in SAVE_GAMES:
+        return JSONResponse({'error': '그런 게임이 없습니다.'}, status_code=404)
+
+    row = await session.scalar(
+        select(WorkGameSave).where(
+            WorkGameSave.owner_ip == cast(client_ip(request), INET),
+            WorkGameSave.game == game,
+        )
+    )
+    return JSONResponse({'data': row.data if row else None})
+
+
+@router.post('/save/{game}/')
+async def api_save_store(game: str, request: Request, session: AsyncSession = Depends(get_session)):
+    if game not in SAVE_GAMES:
+        return JSONResponse({'error': '그런 게임이 없습니다.'}, status_code=404)
+
+    body = await _body(request)
+    data = body.get('data')
+    if not isinstance(data, dict):
+        return JSONResponse({'error': '잘못된 저장 데이터입니다.'}, status_code=400)
+    if len(json.dumps(data)) > MAX_SAVE_BYTES:
+        return JSONResponse({'error': '저장 데이터가 너무 큽니다.'}, status_code=400)
+
+    ip = client_ip(request)
+    row = await session.scalar(
+        select(WorkGameSave).where(
+            WorkGameSave.owner_ip == cast(ip, INET),
+            WorkGameSave.game == game,
+        )
+    )
+    if row:
+        row.data = data
+    else:
+        session.add(WorkGameSave(owner_ip=ip, game=game, data=data))
+
+    try:
+        await session.commit()
+    except IntegrityError:
+        # 탭을 두 개 열어 동시에 저장하면 여기로 온다 — 한 번 더 시도한다
+        await session.rollback()
+        again = await session.scalar(
+            select(WorkGameSave).where(
+                WorkGameSave.owner_ip == cast(ip, INET),
+                WorkGameSave.game == game,
+            )
+        )
+        if again:
+            again.data = data
+            await session.commit()
+    return JSONResponse({'saved': True})
 
 
 @router.get('/ranking/')

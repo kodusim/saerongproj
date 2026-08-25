@@ -323,6 +323,31 @@
 .fm-rank-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fm-rank-w { color: #1e6b3a; }
 
+/* ---------------- 우리집 농장 2 (타일 게임) ---------------- */
+
+.sd-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sd-canvas {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #dfe3e8;
+    border-radius: 4px;
+    background: #5c9e3f;
+    /* 확대해도 픽셀이 뭉개지지 않게 */
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+.sd-help {
+    font-size: 10.5px;
+    color: #7a8290;
+    line-height: 1.7;
+    text-align: center;
+}
+.sd-help b { color: #1B3A6B; }
+
+.vc-gm .sd-canvas { border-color: #3c3c3c; }
+.vc-gm .sd-help { color: #858585; }
+.vc-gm .sd-help b { color: #9cdcfe; }
+
 /* =======================================================================
    VS Code 스킨 — 마크업은 같고 색만 다르다
    ======================================================================= */
