@@ -13,7 +13,9 @@ const NICK_KEY = 'work_nickname';
 const themeSubs = [];
 const navSubs = [];
 
-let nav = 'docs';   // 'docs'(채팅) | 'board'(게시판)
+const NAVS = ['docs', 'board', 'schedule'];
+
+let nav = 'docs';   // 'docs'(채팅) | 'board'(게시판) | 'schedule'(일정)
 let myIp = null;
 
 /* ---------------- 내 IP (내가 쓴 글 강조용) ---------------- */
@@ -73,6 +75,6 @@ export function onNavChange(cb) {
 }
 
 export function setNav(which) {
-    nav = which === 'board' ? 'board' : 'docs';
+    nav = NAVS.includes(which) ? which : 'docs';
     navSubs.forEach((cb) => cb(nav));
 }

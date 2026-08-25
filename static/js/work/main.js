@@ -7,6 +7,7 @@ import { initResize } from './resize.js';
 import { initUnread } from './unread.js';
 import { initScholar } from './scholar.js';
 import { initBoard, showPanel } from './board.js';
+import { initSchedule, showPanel as showSchedulePanel } from './schedule.js';
 import { initChat } from './chat.js';
 import { initNav } from './nav.js';
 import { initTheme } from './theme.js';
@@ -18,6 +19,8 @@ initScholar();
 
 initBoard();
 showPanel('list');
+initSchedule();
+showSchedulePanel('list');
 initNav();
 
 // 첫 렌더 — 구독자가 모두 등록된 뒤에 실행한다

@@ -9,6 +9,7 @@ import { api } from '../lib/api.js';
 import { getNickname, isMine, onThemeChange, setMyIp, setNickname, isVscode } from './state.js';
 import { bindImageIcons } from './lightbox.js';
 import { addUnread } from './unread.js';
+import { initColumnResize } from './columns.js';
 
 const POLL_MS = 2000;
 const RECONNECT_MIN_MS = 1000;
@@ -43,25 +44,30 @@ function renderGroupware() {
 
     const atTop = rowsEl.scrollTop < 40;
 
-    // 문서번호 내림차순(최신이 위) — 실제 기록물등록대장과 같은 정렬
-    rowsEl.innerHTML = messages.slice().reverse().map((m) => {
+    // 문서번호는 작성자와 무관하게 하단(가장 오래된 글)부터 1번으로 순차 부여한다.
+    // messages 는 시간순 오름차순이므로 배열 인덱스가 곧 문서번호다.
+    // 표시는 최신이 위 — 실제 기록물등록대장과 같은 정렬이라 뒤집어 그린다.
+    rowsEl.innerHTML = messages.map((m, i) => {
         const titleText = m.body ? escapeHtml(m.body) : '[이미지 첨부]';
         const imgIcon = m.image_url
             ? `<span class="row-img-icon" data-url="${escapeHtml(m.image_url)}">🖼</span>`
             : '';
         const dateText = formatDateTime(m.created_at);
+        const docNo = `사업기록-${String(i + 1).padStart(5, '0')}`;
+        const author = escapeHtml(m.sender_name);
         return `
             <div class="gw-row${isMine(m.sender_ip) ? ' mine' : ''}">
                 <span class="col-chk"><input type="checkbox" disabled></span>
                 <span class="col-status">${m.image_url ? '🖼' : '📄'}</span>
-                <span class="col-type" title="${escapeHtml(m.sender_name)}">${escapeHtml(m.sender_name)}</span>
-                <span class="col-no" title="${escapeHtml(m.sender_ip || '')}">${escapeHtml(m.sender_ip || '-')}</span>
-                <span class="col-attach">0</span>
+                <span class="col-type">등록</span>
+                <span class="col-no" title="${docNo}">${docNo}</span>
+                <span class="col-attach">${m.image_url ? 1 : 0}</span>
                 <span class="col-title" title="${titleText}">${titleText}${imgIcon}</span>
+                <span class="col-author" title="${author}">${author}</span>
                 <span class="col-datetime" title="${dateText}">${dateText}</span>
             </div>
         `;
-    }).join('');
+    }).reverse().join('');
 
     if (atTop) rowsEl.scrollTop = 0;
 }
@@ -275,6 +281,22 @@ export async function initChat() {
 
     bindImageIcons(rowsEl);
     bindImageIcons(linesEl);
+
+    const head = $('chat-table-head');
+    initColumnResize({
+        wrap: head.closest('.gw-table-wrap'),
+        head,
+        storageKey: 'work_cols_chat',
+        cols: [
+            { cls: 'col-status', varName: '--w-status' },
+            { cls: 'col-type', varName: '--w-type' },
+            { cls: 'col-no', varName: '--w-no' },
+            { cls: 'col-attach', varName: '--w-attach' },
+            { cls: 'col-title', varName: '--w-title' },
+            { cls: 'col-author', varName: '--w-author' },
+            { cls: 'col-datetime', varName: '--w-datetime' },
+        ],
+    });
 
     $('doc-refresh').addEventListener('click', catchUp);
     $('vc-refresh').addEventListener('click', catchUp);

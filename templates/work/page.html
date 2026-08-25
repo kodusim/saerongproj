@@ -26,7 +26,7 @@
                 <span class="gw-tab"><span class="gw-tab-ic">📅</span>스케쥴</span>
                 <span class="gw-tab clickable" id="nav-tab-board"><span class="gw-tab-ic">📋</span>게시판</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🗓</span>일정</span>
-                <span class="gw-tab"><span class="gw-tab-ic">🏢</span>설비예약</span>
+                <span class="gw-tab clickable" id="nav-tab-schedule"><span class="gw-tab-ic">🏢</span>설비예약</span>
                 <span class="gw-tab"><span class="gw-tab-ic">👥</span>주소록</span>
                 <span class="gw-tab"><span class="gw-tab-ic">🗂</span>웹폴더</span>
                 <span class="gw-tab"><span class="gw-tab-ic">⏱</span>설문</span>
@@ -101,13 +101,14 @@
                 </div>
 
                 <div class="gw-table-wrap">
-                    <div class="gw-table-head">
+                    <div class="gw-table-head" id="chat-table-head">
                         <span class="col-chk"><input type="checkbox" disabled></span>
                         <span class="col-status">상태</span>
                         <span class="col-type">등록구분</span>
                         <span class="col-no">문서번호</span>
                         <span class="col-attach">첨부번호</span>
                         <span class="col-title">제목</span>
+                        <span class="col-author">작성자</span>
                         <span class="col-datetime">일시</span>
                     </div>
                     <div class="gw-table-body" id="chat-messages">
@@ -138,7 +139,7 @@
                         <button class="bd-btn primary" id="bd-new" type="button">＋ 글쓰기</button>
                     </div>
                     <div class="gw-table-wrap">
-                        <div class="gw-table-head">
+                        <div class="gw-table-head" id="bd-table-head">
                             <span class="col-bd-no">번호</span>
                             <span class="col-bd-cat">분류</span>
                             <span class="col-bd-title">제목</span>
@@ -185,38 +186,61 @@
                 </div>
             </div>
 
-            <!-- 우측 사이드바 (하드코딩) -->
-            <div class="gw-side-right">
-                <div class="gw-sr-title">최근 검색한 동료</div>
-                <div class="gw-avatar-row">
-                    <span class="gw-mini-avatar">김</span>
-                    <span class="gw-mini-avatar">이</span>
-                    <span class="gw-mini-avatar">박</span>
+            <!-- 중앙 : 설비예약 = 만남 일정 -->
+            <div class="gw-main" id="gw-main-schedule" hidden>
+                <div class="gw-page-title">
+                    설비예약 <span id="sc-count-title">(0)</span>
+                    <span class="gw-fav">☆ 즐겨찾기</span>
                 </div>
-                <div class="gw-sr-title">주소록</div>
-                <div class="gw-sr-list-item">☆ 즐겨찾기</div>
-                <div class="gw-sr-list-item">👥 그룹</div>
-                <div class="gw-sr-title">조직도</div>
-                <div class="gw-sr-list-item">🏢 (재)연구소</div>
-                <div class="gw-avatar-row">
-                    <span class="gw-mini-avatar">손</span>
-                    <span class="gw-mini-avatar">서</span>
+
+                <!-- 목록 -->
+                <div class="bd-panel" id="sc-list-panel">
+                    <div class="bd-toolbar">
+                        <input type="text" id="sc-search" placeholder="일정 검색 (제목·장소·참석자)">
+                        <span class="bd-spacer"></span>
+                        <button class="bd-btn" id="sc-refresh" type="button">⟳ 새로고침</button>
+                        <button class="bd-btn primary" id="sc-new" type="button">＋ 일정 등록</button>
+                    </div>
+                    <div class="gw-table-wrap">
+                        <div class="gw-table-head" id="sc-table-head">
+                            <span class="col-sc-date">날짜</span>
+                            <span class="col-sc-time">시간</span>
+                            <span class="col-sc-title">일정</span>
+                            <span class="col-sc-place">장소</span>
+                            <span class="col-sc-att">참석자</span>
+                            <span class="col-sc-author">등록자</span>
+                        </div>
+                        <div class="gw-table-body" id="sc-rows">
+                            <div class="gw-empty">등록된 일정이 없습니다.</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="gw-sr-list-item">└ 사무국</div>
-                <div class="gw-avatar-row">
-                    <span class="gw-mini-avatar">김</span>
-                    <span class="gw-mini-avatar">장</span>
-                    <span class="gw-mini-avatar">강</span>
-                </div>
-                <div class="gw-sr-list-item">└ 사업관리실</div>
-                <div class="gw-avatar-row">
-                    <span class="gw-mini-avatar">임</span>
-                </div>
-                <div class="gw-sr-list-item">└ 과제관리팀</div>
-                <div class="gw-avatar-row">
-                    <span class="gw-mini-avatar">김</span>
-                    <span class="gw-mini-avatar">최</span>
-                    <span class="gw-mini-avatar">임</span>
+
+                <!-- 등록/수정 -->
+                <div class="sc-editor" id="sc-edit-panel" hidden>
+                    <div class="sc-row">
+                        <div><label for="sc-edit-date">날짜</label><input type="date" id="sc-edit-date"></div>
+                        <div><label for="sc-edit-time">시간</label><input type="time" id="sc-edit-time"></div>
+                    </div>
+                    <div class="sc-row">
+                        <div><label for="sc-edit-title">일정 제목</label><input type="text" id="sc-edit-title" maxlength="200" placeholder="예: 논문 진행 회의"></div>
+                    </div>
+                    <div class="sc-row">
+                        <div><label for="sc-edit-place">장소</label><input type="text" id="sc-edit-place" maxlength="120" placeholder="예: 대전 스타벅스 궁동점"></div>
+                        <div><label for="sc-edit-att">참석자</label><input type="text" id="sc-edit-att" maxlength="200" placeholder="쉼표로 구분"></div>
+                    </div>
+                    <div class="sc-row">
+                        <div><label for="sc-edit-author">등록자</label><input type="text" id="sc-edit-author" maxlength="16" placeholder="작성자"></div>
+                    </div>
+                    <div class="sc-row">
+                        <div><label for="sc-edit-memo">메모</label><textarea id="sc-edit-memo" placeholder="안건, 준비물 등"></textarea></div>
+                    </div>
+                    <div class="sc-actions">
+                        <button class="bd-btn" id="sc-edit-cancel" type="button">취소</button>
+                        <span class="bd-spacer"></span>
+                        <button class="bd-btn danger" id="sc-edit-delete" type="button" hidden>삭제</button>
+                        <button class="bd-btn primary" id="sc-edit-save" type="button">저장</button>
+                    </div>
                 </div>
             </div>
 
@@ -280,12 +304,14 @@
                 <div class="vc-tree-item">📄 README.md</div>
                 <div class="vc-tree-item selected" id="vc-tree-worklog">📄 worklog.txt</div>
                 <div class="vc-tree-item" id="vc-tree-posts">📄 posts.md</div>
+                <div class="vc-tree-item" id="vc-tree-schedule">📄 schedule.md</div>
             </div>
             <div class="vc-main">
                 <div class="vc-tabbar">
                     <span class="vc-tab">index.js</span>
                     <span class="vc-tab clickable active" id="vc-tab-worklog">worklog.txt</span>
                     <span class="vc-tab clickable" id="vc-tab-posts">posts.md</span>
+                    <span class="vc-tab clickable" id="vc-tab-schedule">schedule.md</span>
                 </div>
 
                 <!-- 채팅 (worklog.txt) -->
@@ -362,6 +388,47 @@
                             <span class="vc-bd-spacer"></span>
                             <button class="vc-bd-btn" id="vc-bd-v-edit" type="button">수정</button>
                             <button class="vc-bd-btn danger" id="vc-bd-v-delete" type="button">삭제</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 일정 (schedule.md) -->
+                <div class="vc-section" id="vc-schedule-section" hidden>
+                    <div class="vc-section" id="vc-sc-list-panel">
+                        <div class="vc-bd-toolbar">
+                            <input type="text" id="vc-sc-search" placeholder="일정 검색">
+                            <span class="vc-bd-spacer"></span>
+                            <button class="vc-bd-btn" id="vc-sc-refresh" type="button">⟳ 새로고침</button>
+                            <button class="vc-bd-btn primary" id="vc-sc-new" type="button">＋ 새 일정</button>
+                        </div>
+                        <div class="vc-bd-list" id="vc-sc-rows">
+                            <div class="vc-empty">// 등록된 일정이 없습니다</div>
+                        </div>
+                    </div>
+
+                    <div class="vc-sc-editor" id="vc-sc-edit-panel" hidden>
+                        <div class="vc-sc-row">
+                            <div><label for="vc-sc-edit-date">date</label><input type="date" id="vc-sc-edit-date"></div>
+                            <div><label for="vc-sc-edit-time">time</label><input type="time" id="vc-sc-edit-time"></div>
+                        </div>
+                        <div class="vc-sc-row">
+                            <div><label for="vc-sc-edit-title">title</label><input type="text" id="vc-sc-edit-title" maxlength="200"></div>
+                        </div>
+                        <div class="vc-sc-row">
+                            <div><label for="vc-sc-edit-place">place</label><input type="text" id="vc-sc-edit-place" maxlength="120"></div>
+                            <div><label for="vc-sc-edit-att">attendees</label><input type="text" id="vc-sc-edit-att" maxlength="200"></div>
+                        </div>
+                        <div class="vc-sc-row">
+                            <div><label for="vc-sc-edit-author">author</label><input type="text" id="vc-sc-edit-author" maxlength="16"></div>
+                        </div>
+                        <div class="vc-sc-row">
+                            <div><label for="vc-sc-edit-memo">memo</label><textarea id="vc-sc-edit-memo"></textarea></div>
+                        </div>
+                        <div class="vc-sc-actions">
+                            <button class="vc-bd-btn" id="vc-sc-edit-cancel" type="button">취소</button>
+                            <span class="vc-bd-spacer"></span>
+                            <button class="vc-bd-btn danger" id="vc-sc-edit-delete" type="button" hidden>삭제</button>
+                            <button class="vc-bd-btn primary" id="vc-sc-edit-save" type="button">저장</button>
                         </div>
                     </div>
                 </div>

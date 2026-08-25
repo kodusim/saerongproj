@@ -103,7 +103,7 @@ body {
 
 /* ---------- 모바일 ---------- */
 @media (max-width: 900px) {
-    .gw-side-left, .gw-side-right { display: none; }
+    .gw-side-left { display: none; }
     .vc-activitybar, .vc-explorer { display: none; }
 }
 @media (max-width: 768px) {

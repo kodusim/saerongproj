@@ -1,8 +1,6 @@
-"""/work — 실시간 채팅 + 게시판 + 구글 스칼라 검색.
-
-JSON 응답 형태는 Django 판과 완전히 동일하다 (프런트를 손대지 않기 위해).
-"""
+"""/work — 실시간 채팅 + 게시판 + 일정 + 구글 스칼라 검색."""
 import logging
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, WebSocket
@@ -13,7 +11,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.config import settings
 from app.db import get_session
-from app.models import WorkChatMessage, WorkPost
+from app.models import WorkChatMessage, WorkPost, WorkSchedule
 from app.security import client_ip
 from app.services import storage
 from app.services.scholar import ScholarBlockedError, search_scholar
@@ -267,6 +265,122 @@ async def api_post_delete(post_id: int, session: AsyncSession = Depends(get_sess
     if post is None:
         return JSONResponse({'error': '게시글을 찾을 수 없습니다.'}, status_code=404)
     await session.delete(post)
+    await session.commit()
+    return JSONResponse({'deleted': True})
+
+
+# ------------------------------------------------------------------- 일정
+
+def _schedule_json(s: WorkSchedule) -> dict:
+    return {
+        'id': s.id,
+        'title': s.title,
+        'meet_date': s.meet_date.date().isoformat(),
+        'meet_time': s.meet_time,
+        'place': s.place,
+        'attendees': s.attendees,
+        'memo': s.memo,
+        'author_name': s.author_name,
+        'author_ip': _ip_str(s.author_ip),
+        'created_at': s.created_at.isoformat(),
+    }
+
+
+def _parse_meet_date(raw: str) -> datetime | None:
+    """`YYYY-MM-DD` 만 받는다 (input[type=date] 값)."""
+    try:
+        d = date.fromisoformat((raw or '').strip())
+    except ValueError:
+        return None
+    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
+
+
+def _schedule_fields(data: dict) -> tuple[dict | None, str]:
+    """폼 값 검증 → (필드 dict, 에러메시지)."""
+    title = (data.get('title') or '').strip()[:200]
+    if not title:
+        return None, '일정 제목을 입력하세요.'
+
+    meet_date = _parse_meet_date(data.get('meet_date') or '')
+    if meet_date is None:
+        return None, '날짜를 YYYY-MM-DD 형식으로 입력하세요.'
+
+    return {
+        'title': title,
+        'meet_date': meet_date,
+        'meet_time': (data.get('meet_time') or '').strip()[:16],
+        'place': (data.get('place') or '').strip()[:120],
+        'attendees': (data.get('attendees') or '').strip()[:200],
+        'memo': data.get('memo') or '',
+        'author_name': (data.get('author_name') or '익명').strip()[:32] or '익명',
+    }, ''
+
+
+@router.get('/api/schedules/')
+async def api_schedules(request: Request, session: AsyncSession = Depends(get_session)):
+    """가까운 날짜부터. 지난 일정도 그대로 보여준다 (기록이므로)."""
+    rows = (await session.scalars(
+        select(WorkSchedule).order_by(WorkSchedule.meet_date, WorkSchedule.meet_time)
+    )).all()
+    return JSONResponse({
+        'my_ip': client_ip(request),
+        'schedules': [_schedule_json(s) for s in rows],
+    })
+
+
+@router.post('/api/schedules/create/')
+async def api_schedule_create(request: Request, session: AsyncSession = Depends(get_session)):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse({'error': '잘못된 요청입니다.'}, status_code=400)
+    if not isinstance(data, dict):
+        return JSONResponse({'error': '잘못된 요청입니다.'}, status_code=400)
+
+    fields, err = _schedule_fields(data)
+    if fields is None:
+        return JSONResponse({'error': err}, status_code=400)
+
+    item = WorkSchedule(**fields, author_ip=client_ip(request))
+    session.add(item)
+    await session.commit()
+    await session.refresh(item)
+    return JSONResponse(_schedule_json(item), status_code=201)
+
+
+@router.post('/api/schedules/{schedule_id}/')
+async def api_schedule_update(
+    schedule_id: int, request: Request, session: AsyncSession = Depends(get_session)
+):
+    item = await session.get(WorkSchedule, schedule_id)
+    if item is None:
+        return JSONResponse({'error': '일정을 찾을 수 없습니다.'}, status_code=404)
+
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse({'error': '잘못된 요청입니다.'}, status_code=400)
+    if not isinstance(data, dict):
+        return JSONResponse({'error': '잘못된 요청입니다.'}, status_code=400)
+
+    fields, err = _schedule_fields(data)
+    if fields is None:
+        return JSONResponse({'error': err}, status_code=400)
+
+    for key, value in fields.items():
+        setattr(item, key, value)
+
+    await session.commit()
+    await session.refresh(item)
+    return JSONResponse(_schedule_json(item))
+
+
+@router.delete('/api/schedules/{schedule_id}/')
+async def api_schedule_delete(schedule_id: int, session: AsyncSession = Depends(get_session)):
+    item = await session.get(WorkSchedule, schedule_id)
+    if item is None:
+        return JSONResponse({'error': '일정을 찾을 수 없습니다.'}, status_code=404)
+    await session.delete(item)
     await session.commit()
     return JSONResponse({'deleted': True})
 

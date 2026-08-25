@@ -361,5 +361,55 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
+/* 본문에 쓴 URL 은 자동으로 링크가 된다 (board.js 의 linkify) */
+.vc-bd-v-body a { color: #4daafc; text-decoration: underline; }
+.vc-bd-v-body a:hover { color: #7cc1ff; }
+
 .vc-bd-v-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #3c3c3c; }
+
+/* ---- 일정 (schedule.md) ---- */
+.vc-sc-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-bottom: 1px solid #2a2a2a;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.vc-sc-line:hover { background: #2a2d2e; }
+.vc-sc-line.mine .vc-sc-name { color: #ce9178; }
+.vc-sc-line.past { opacity: .55; }
+.vc-sc-key { color: #569cd6; flex: 0 0 auto; }
+.vc-sc-date { color: #b5cea8; flex: 0 0 auto; }
+.vc-sc-name { color: #d4d4d4; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; }
+.vc-sc-meta { color: #6a9955; flex: 0 0 auto; font-size: 11px; }
+
+.vc-sc-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
+.vc-sc-editor .vc-sc-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.vc-sc-editor .vc-sc-row > div { flex: 1; min-width: 0; }
+.vc-sc-editor label {
+    display: block;
+    font-size: 10.5px;
+    color: #858585;
+    margin-bottom: 3px;
+}
+.vc-sc-editor input, .vc-sc-editor textarea {
+    width: 100%;
+    padding: 6px 8px;
+    background: #3c3c3c;
+    border: 1px solid #4a4a4a;
+    border-radius: 2px;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 12px;
+}
+.vc-sc-editor textarea { min-height: 90px; resize: vertical; }
+.vc-sc-editor .vc-sc-actions {
+    display: flex;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid #3c3c3c;
+    margin-top: 6px;
+}
 

@@ -70,8 +70,9 @@
 
 /* ---- 좌측 트리 사이드바 (하드코딩) ---- */
 .gw-side-left {
-    flex: 0 0 128px;
-    max-width: 128px;
+    /* 항목 이름(예: '기록물철 등록부', '정산연구비관리')이 잘리지 않을 만큼 */
+    flex: 0 0 176px;
+    max-width: 176px;
     overflow-y: auto;
     background: #fafbfc;
     border-right: 1px solid #e5e8ec;
@@ -178,12 +179,39 @@
 .gw-toolbar-row .gw-refresh { color: #1B3A6B; cursor: pointer; font-weight: 700; }
 .gw-toolbar-row .gw-refresh:hover { text-decoration: underline; }
 
+/* 열 너비는 wrap 의 CSS 변수로 잡는다 — 헤더와 모든 행이 같은 값을 보므로
+   행을 다시 그려도 사용자가 조정한 너비가 그대로 유지된다.
+   합계가 넓어지면 wrap 이 가로로 스크롤되고 헤더와 본문이 같이 움직인다. */
 .gw-table-wrap {
+    --w-chk: 24px;
+    --w-status: 40px;
+    --w-type: 64px;
+    --w-no: 116px;
+    --w-attach: 58px;
+    --w-title: 320px;
+    --w-author: 104px;
+    --w-datetime: 96px;
+
+    --w-bd-no: 54px;
+    --w-bd-cat: 62px;
+    --w-bd-title: 320px;
+    --w-bd-author: 104px;
+    --w-bd-views: 48px;
+    --w-bd-date: 96px;
+
+    --w-sc-date: 96px;
+    --w-sc-time: 64px;
+    --w-sc-title: 260px;
+    --w-sc-place: 130px;
+    --w-sc-att: 150px;
+    --w-sc-author: 90px;
+
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 .gw-table-head {
     flex: 0 0 auto;
@@ -195,11 +223,37 @@
     font-size: 11px;
     font-weight: 700;
     color: #5b6472;
+    min-width: max-content;
 }
 .gw-table-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-width: max-content;
 }
+
+/* ---- 열 너비 조절 손잡이 ---- */
+.gw-table-head > span { position: relative; }
+.col-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+}
+.col-resizer::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    right: 2px;
+    width: 1px;
+    background: #cfd5dd;
+}
+.col-resizer:hover::after,
+.col-resizer.dragging::after { background: #1B3A6B; width: 2px; }
 .gw-row {
     display: flex;
     align-items: center;
@@ -209,7 +263,7 @@
     color: #333;
 }
 .gw-row:hover { background: #f5f8ff; }
-.gw-row.mine .col-type,
+.gw-row.mine .col-author,
 .gw-row.mine .col-no,
 .gw-row.mine .col-title { font-weight: 700; }
 .gw-table-head > span, .gw-row > span {
@@ -218,15 +272,16 @@
     overflow: hidden;
     white-space: nowrap;
 }
-.col-chk { flex: 0 0 24px; padding-right: 4px; }
+.col-chk { flex: 0 0 var(--w-chk); padding-right: 4px; }
 .col-chk input { pointer-events: none; }
-.col-status { flex: 0 0 40px; text-align: center; font-size: 13px; padding-right: 8px; }
-.col-type { flex: 0 0 104px; color: #444; text-overflow: ellipsis; padding-right: 12px; }
-.col-no { flex: 0 0 128px; color: #7a8290; font-family: Consolas, 'Courier New', monospace; font-size: 10.5px; text-overflow: ellipsis; padding-right: 12px; }
-.col-attach { flex: 0 0 58px; color: #999; text-align: center; padding-right: 8px; }
-.col-title { flex: 1 1 0; text-overflow: ellipsis; }
+.col-status { flex: 0 0 var(--w-status); text-align: center; font-size: 13px; padding-right: 8px; }
+.col-type { flex: 0 0 var(--w-type); color: #444; text-overflow: ellipsis; padding-right: 12px; }
+.col-no { flex: 0 0 var(--w-no); color: #7a8290; font-family: Consolas, 'Courier New', monospace; font-size: 10.5px; text-overflow: ellipsis; padding-right: 12px; }
+.col-attach { flex: 0 0 var(--w-attach); color: #999; text-align: center; padding-right: 8px; }
+.col-title { flex: 1 1 var(--w-title); text-overflow: ellipsis; }
 .col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
-.col-datetime { flex: 0 0 86px; color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+.col-author { flex: 0 0 var(--w-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
+.col-datetime { flex: 0 0 var(--w-datetime); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
 .gw-empty {
     padding: 40px 20px;
     text-align: center;
@@ -328,37 +383,7 @@
 }
 .gw-pagination .gw-pg-btn.active { background: #1B3A6B; color: #fff; border-color: #1B3A6B; }
 
-/* ---- 우측 사이드바 (하드코딩) ---- */
-.gw-side-right {
-    flex: 0 0 156px;
-    max-width: 156px;
-    overflow-y: auto;
-    background: #fafbfc;
-    border-left: 1px solid #e5e8ec;
-    padding: 10px;
-    font-size: 11px;
-    color: #555;
-}
-.gw-side-right .gw-sr-title {
-    font-weight: 700;
-    color: #444;
-    margin: 10px 0 6px;
-}
-.gw-side-right .gw-sr-title:first-child { margin-top: 0; }
-.gw-avatar-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
-}
-.gw-avatar-row .gw-mini-avatar {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: #dde5f0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    color: #5b6b8c;
-}
-.gw-sr-list-item { padding: 2px 0; color: #666; }
+/* 우측 사이드바(사용자·조직도)는 제거됨 — 본문이 그만큼 넓어진다. */
 
 /* ---- 게시판 (문서함과 같은 톤) ---- */
 .bd-panel {
@@ -402,13 +427,51 @@
 .bd-btn.danger:hover { background: #fdf0ee; }
 .bd-spacer { flex: 1; }
 
-.col-bd-no { flex: 0 0 54px; color: #8a92a0; text-align: center; padding-right: 8px; }
-.col-bd-cat { flex: 0 0 62px; color: #1B3A6B; padding-right: 10px; }
-.col-bd-title { flex: 1 1 0; text-overflow: ellipsis; cursor: pointer; }
+.col-bd-no { flex: 0 0 var(--w-bd-no); color: #8a92a0; text-align: center; padding-right: 8px; }
+.col-bd-cat { flex: 0 0 var(--w-bd-cat); color: #1B3A6B; padding-right: 10px; }
+.col-bd-title { flex: 1 1 var(--w-bd-title); text-overflow: ellipsis; cursor: pointer; }
 .col-bd-title:hover { text-decoration: underline; color: #1B3A6B; }
-.col-bd-author { flex: 0 0 104px; color: #444; text-overflow: ellipsis; padding-right: 10px; }
-.col-bd-views { flex: 0 0 48px; color: #999; text-align: center; padding-right: 8px; }
-.col-bd-date { flex: 0 0 86px; color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+.col-bd-author { flex: 0 0 var(--w-bd-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
+.col-bd-views { flex: 0 0 var(--w-bd-views); color: #999; text-align: center; padding-right: 8px; }
+.col-bd-date { flex: 0 0 var(--w-bd-date); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+
+/* ---- 일정 (설비예약 탭) ---- */
+.col-sc-date { flex: 0 0 var(--w-sc-date); color: #1B3A6B; font-weight: 700; padding-right: 8px; }
+.col-sc-time { flex: 0 0 var(--w-sc-time); color: #7a8290; padding-right: 8px; }
+.col-sc-title { flex: 1 1 var(--w-sc-title); text-overflow: ellipsis; cursor: pointer; }
+.col-sc-title:hover { text-decoration: underline; color: #1B3A6B; }
+.col-sc-place { flex: 0 0 var(--w-sc-place); color: #444; text-overflow: ellipsis; padding-right: 10px; }
+.col-sc-att { flex: 0 0 var(--w-sc-att); color: #666; text-overflow: ellipsis; padding-right: 10px; }
+.col-sc-author { flex: 0 0 var(--w-sc-author); color: #8a92a0; text-overflow: ellipsis; }
+.gw-row.past .col-sc-date,
+.gw-row.past .col-sc-title { color: #a8b0bb; }
+
+.sc-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 4px; }
+.sc-editor .sc-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.sc-editor .sc-row > div { flex: 1; min-width: 0; }
+.sc-editor label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #5b6472;
+    margin-bottom: 3px;
+}
+.sc-editor input, .sc-editor textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #d7dbe2;
+    border-radius: 3px;
+    font-size: 11.5px;
+    font-family: inherit;
+}
+.sc-editor textarea { min-height: 90px; resize: vertical; }
+.sc-editor .sc-actions {
+    display: flex;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e8ec;
+    margin-top: 6px;
+}
 
 /* 게시판 글쓰기/보기 패널 */
 .bd-editor {
@@ -464,5 +527,8 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
+/* 본문에 쓴 URL 은 자동으로 링크가 된다 (board.js 의 linkify) */
+.bd-viewer .bd-v-body a { color: #1a5fb4; text-decoration: underline; }
+.bd-viewer .bd-v-body a:hover { color: #12417d; }
 .bd-viewer .bd-v-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #e5e8ec; }
 

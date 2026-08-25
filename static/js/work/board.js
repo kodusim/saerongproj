@@ -2,9 +2,10 @@
 
    테마별 DOM 이 두 벌(그룹웨어 표 / VS Code 마크다운 목록) 있고, 상태는 한 벌이다.
    두 벌에 같은 내용을 렌더링하므로 테마를 바꿔도 화면 상태가 유지된다. */
-import { $, escapeHtml, formatDateTime } from '../lib/dom.js';
+import { $, escapeHtml, formatDateTime, linkify } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { getNickname, isMine, isVscode, onThemeChange, setMyIp } from './state.js';
+import { initColumnResize } from './columns.js';
 
 const UI = {
     groupware: {
@@ -114,7 +115,8 @@ async function openPost(id) {
             `<span>작성자 ${escapeHtml(p.author_name)}</span>`
             + `<span>${formatDateTime(p.created_at)}</span>`
             + `<span>조회 ${p.views}</span>`;
-        $(ui.vBody).textContent = p.body || '(내용 없음)';
+        // linkify 가 escape 까지 하므로 innerHTML 로 넣어도 안전하다
+        $(ui.vBody).innerHTML = p.body ? linkify(p.body) : '(내용 없음)';
     });
     showPanel('view');
 }
@@ -219,6 +221,21 @@ export function initBoard() {
         $(ui.vBack).addEventListener('click', () => { showPanel('list'); loadPosts(); });
         $(ui.vEdit).addEventListener('click', startEdit);
         $(ui.vDelete).addEventListener('click', deletePost);
+    });
+
+    const head = $('bd-table-head');
+    initColumnResize({
+        wrap: head.closest('.gw-table-wrap'),
+        head,
+        storageKey: 'work_cols_board',
+        cols: [
+            { cls: 'col-bd-no', varName: '--w-bd-no' },
+            { cls: 'col-bd-cat', varName: '--w-bd-cat' },
+            { cls: 'col-bd-title', varName: '--w-bd-title' },
+            { cls: 'col-bd-author', varName: '--w-bd-author' },
+            { cls: 'col-bd-views', varName: '--w-bd-views' },
+            { cls: 'col-bd-date', varName: '--w-bd-date' },
+        ],
     });
 
     onThemeChange(() => {

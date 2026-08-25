@@ -75,3 +75,30 @@ class WorkPost(Base):
     @property
     def category_label(self) -> str:
         return self.CATEGORY_LABELS.get(self.category, self.category)
+
+
+class WorkSchedule(Base):
+    """만남 일정 — 그룹웨어의 '설비예약' 탭으로 보인다.
+
+    FastAPI 로 넘어온 뒤 처음 새로 만든 테이블이라 Django 흔적이 없다.
+    다만 이름 규칙(`work_<model>`)은 나머지와 맞춘다.
+    """
+
+    __tablename__ = 'work_workschedule'
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    # 날짜만 잡고 시간은 미정일 수 있어서 분리해 둔다 (시간은 빈 문자열 허용)
+    meet_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    meet_time: Mapped[str] = mapped_column(String(16), default='', nullable=False)
+    place: Mapped[str] = mapped_column(String(120), default='', nullable=False)
+    attendees: Mapped[str] = mapped_column(String(200), default='', nullable=False)
+    memo: Mapped[str] = mapped_column(Text, default='', nullable=False)
+    author_name: Mapped[str] = mapped_column(String(32), default='익명', nullable=False)
+    author_ip: Mapped[Optional[Any]] = mapped_column(INET, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
