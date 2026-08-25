@@ -33,6 +33,7 @@ app/
   services/predictor.py  TDM 추론 (ML joblib + LSTM .pt)
   services/scholar.py    구글 스칼라 스크래핑 (requests + threadpool — httpx 금지)
   services/storage.py    업로드 이미지 저장
+  services/farm.py       농사 게임 규칙 (작물·건물·성장 판정)
   ws.py                  채팅 WebSocket 허브 (프로세스 내 브로드캐스트)
 migrations/            Alembic
 templates/             마크업만 (CSS/JS 는 static/)
@@ -40,7 +41,7 @@ static/css/            work-base · groupware · vscode · scholar · games · t
 static/js/lib/         dom.js (헬퍼) · api.js (CSRF 붙이는 fetch 래퍼)
 static/js/work/        main(엔트리) · state(공유 상태+구독) · chat
                        board(자료실·공지 공용 팩토리) · schedule(월 달력)
-                       columns(열 너비 조절) · games/(미니게임 4종)
+                       columns(열 너비 조절) · games/(미니게임 5종)
                        scholar · theme · nav · unread · resize · lightbox
 static/js/tdm/         predict.js
 ml_artifacts/          모델 가중치 (git 제외 — 서버에 직접 업로드)
