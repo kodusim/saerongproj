@@ -3,7 +3,7 @@
    양쪽 테마의 DOM 을 동시에 토글한다 — 테마를 바꿔도 어느 화면을 보고 있었는지가
    유지되도록. */
 import { $ } from '../lib/dom.js';
-import { currentNav, onNavChange, onThemeChange, setNav } from './state.js';
+import { currentNav, onNavChange, onThemeChange, setNav, setValidNavs } from './state.js';
 import { archiveBoard, noticeBoard } from './board.js';
 import { loadSchedules } from './schedule.js';
 
@@ -42,6 +42,8 @@ function applyNav(nav) {
 }
 
 export function initNav() {
+    setValidNavs(Object.keys(TARGETS));
+
     Object.entries(TARGETS).forEach(([key, [, , gwTab, vcTab, vcTree]]) => {
         [gwTab, vcTab, vcTree].forEach((id) =>
             $(id).addEventListener('click', () => setNav(key)));

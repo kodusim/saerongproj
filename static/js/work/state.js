@@ -13,9 +13,12 @@ const NICK_KEY = 'work_nickname';
 const themeSubs = [];
 const navSubs = [];
 
-const NAVS = ['docs', 'board', 'schedule'];
+/* 유효한 화면 목록은 nav.js 의 TARGETS 가 단 하나의 출처다.
+   여기에 목록을 또 두면 화면을 추가할 때 한쪽만 고쳐서 조용히 무시되는 일이
+   생긴다 (실제로 '결재' 탭이 그렇게 죽어 있었다). initNav() 가 등록해 준다. */
+let validNavs = ['docs'];
 
-let nav = 'docs';   // 'docs'(채팅) | 'board'(게시판) | 'schedule'(일정)
+let nav = 'docs';   // 'docs'(채팅) | 'board'(자료실) | 'schedule'(일정) | 'notice'(공지)
 let myIp = null;
 
 /* ---------------- 내 IP (내가 쓴 글 강조용) ---------------- */
@@ -74,7 +77,12 @@ export function onNavChange(cb) {
     navSubs.push(cb);
 }
 
+/** nav.js 가 자기 TARGETS 의 키를 등록한다. */
+export function setValidNavs(keys) {
+    validNavs = keys;
+}
+
 export function setNav(which) {
-    nav = NAVS.includes(which) ? which : 'docs';
+    nav = validNavs.includes(which) ? which : 'docs';
     navSubs.forEach((cb) => cb(nav));
 }
