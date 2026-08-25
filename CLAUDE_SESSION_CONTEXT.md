@@ -70,8 +70,16 @@
   마지막에 `initTheme()` 이 첫 렌더를 트리거한다.
 - `/work` 은 그룹웨어 / VS Code 두 테마 DOM 을 둘 다 문서에 두고 한쪽만 보여준다.
   상태는 한 벌, 렌더는 두 벌 — 테마를 바꿔도 화면 상태가 유지되는 이유.
-  화면은 셋: `docs`(채팅) · `board`(게시판) · `schedule`(일정). `nav.js` 의 `TARGETS` 에
-  [그룹웨어 본문, VS Code 섹션, 그룹웨어 탭, VS Code 탭, VS Code 트리] 다섯 쌍으로 묶여 있다.
+  화면은 넷: `docs`(채팅) · `board`(자료실) · `schedule`(일정 달력) · `notice`(공지사항).
+  `nav.js` 의 `TARGETS` 에 [그룹웨어 본문, VS Code 섹션, 그룹웨어 탭, VS Code 탭, VS Code 트리]
+  다섯 쌍으로 묶여 있다 — 화면을 추가하려면 여기 한 줄과 DOM 두 벌만 만들면 된다.
+- **게시판은 `board.js` 하나를 인스턴스 두 개로 돌린다** (`archiveBoard` / `noticeBoard`).
+  DOM id 는 접두사 규칙(`bd-*` / `nt-*`, VS Code 는 `vc-` 붙임)으로 생성하므로,
+  새 게시판을 늘리려면 같은 규칙의 DOM 을 만들고 `createBoard()` 를 한 번 더 부르면 된다.
+  서버도 테이블을 나누지 않고 `work_workpost.board` 값으로만 가른다.
+- **일정은 월 달력**이다. 두 테마가 **같은 마크업**을 쓰고 CSS 로만 스킨을 바꾼다
+  (`.sc-cal-*`, VS Code 는 `.vc-calendar` 가 감싸서 덮어쓴다). 달력은 구조가 같아도
+  어색하지 않아서 게시판처럼 마크업을 두 벌 만들지 않았다.
 - **표 열 너비는 `.gw-table-wrap` 의 CSS 변수(`--w-*`)** 다. 행마다 인라인 스타일을 주면
   재렌더링에 날아가므로 이렇게 했다. `columns.js` 가 헤더에 손잡이를 붙이고 변수만 바꾼다.
   새 열을 추가할 땐 ① CSS 에 변수 정의 ② `.col-x { flex: 0 0 var(--w-x) }` ③ 헤더 span
