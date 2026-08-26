@@ -3,7 +3,7 @@
 라우트
   /                     랜딩
   /tdmprediction/*      반코마이신 TDM 하이브리드 예측
-  /work/*               채팅 · 게시판 · 스칼라 검색
+  /work/*               채팅 · 게시판
   /healthz              헬스체크
 
 정적/미디어 파일은 운영에서 nginx 가 직접 서빙한다 (`/static`, `/media`).

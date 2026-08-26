@@ -292,9 +292,9 @@ export async function initChat() {
             { cls: 'col-type', varName: '--w-type' },
             { cls: 'col-no', varName: '--w-no' },
             { cls: 'col-attach', varName: '--w-attach' },
-            { cls: 'col-title', varName: '--w-title' },
-            { cls: 'col-author', varName: '--w-author' },
-            { cls: 'col-datetime', varName: '--w-datetime' },
+            { cls: 'col-title', varName: '--w-title', group: 'title' },
+            { cls: 'col-author', varName: '--w-author', group: 'author' },
+            { cls: 'col-datetime', varName: '--w-datetime', group: 'date' },
         ],
     });
 

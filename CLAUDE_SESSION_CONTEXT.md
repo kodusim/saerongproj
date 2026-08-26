@@ -46,7 +46,7 @@
 | `/` | `app/main.py` | 랜딩 (`templates/landing.html`) |
 | `/tdmprediction/` | `app/routers/tdm.py` | 반코마이신 TDM 하이브리드 예측 |
 | `/tdmprediction/logs/` | 〃 | 예측 감사 로그 (Django admin 대체, 읽기전용) |
-| `/work/` | `app/routers/work.py` | 실시간 채팅 · 구글 스칼라 검색 · 게시판 |
+| `/work/` | `app/routers/work.py` | 실시간 채팅 · 게시판 |
 | `/healthz` | `app/main.py` | 헬스체크 |
 
 - **Django admin 은 없다.** `/admin/` 은 404. PredictionLog 는 `/tdmprediction/logs/` 에서 본다.
@@ -54,16 +54,17 @@
   double-submit — Django 와 호환되게 만들어서 기존 JS 를 안 고쳤다 (`app/security.py`).
 - DB 테이블 이름은 Django 것 그대로 (`tdm_predictionlog`, `work_workchatmessage`, `work_workpost`).
   Alembic baseline `0001` 은 **stamp 만** 했다 (테이블이 이미 있으므로).
-- **`app/services/scholar.py` 를 httpx 로 바꾸면 안 된다** — TLS 지문이 구글 봇 탐지에 걸려 429 가 된다
-  (검증: requests 200/174KB vs httpx 429/1.6KB, 헤더를 맞춰도 동일). `requests` + threadpool 로 둔다.
+- **2026-08-26: 구글 스칼라 검색 기능을 통째로 제거했다** (`app/services/scholar.py`,
+  `static/js/work/scholar.js`, `static/css/scholar.css`, `/work/api/scholar/`, 좌우 분할
+  리사이즈(`resize.js`)까지 함께). `chat-pane` 이 이제 `work-wrap` 전체 폭을 쓴다.
 
 ### 프런트 (빌드 도구 없음)
 
 템플릿은 마크업만, CSS/JS 는 `static/` 에서 nginx 가 그대로 서빙한다.
 
 - `static/js/work/` — `main.js`(엔트리) · `state.js`(공유 상태 + 테마/내비 구독) ·
-  `chat.js` · `board.js` · `scholar.js` · `theme.js` · `nav.js` · `unread.js` ·
-  `resize.js` · `lightbox.js`, 공용은 `static/js/lib/{dom,api}.js`
+  `chat.js` · `board.js` · `theme.js` · `nav.js` · `unread.js` · `lightbox.js`,
+  공용은 `static/js/lib/{dom,api}.js`
 - **인라인 `onclick` 금지** — `type="module"` 은 함수를 전역에 노출하지 않는다.
   이벤트는 모듈 안에서 `addEventListener` 로 바인딩할 것 (tdm predict 에서 실제로 깨졌던 부분).
 - **초기화 순서 주의** — `main.js` 에서 구독자(chat/board/nav)를 모두 등록한 뒤
@@ -169,8 +170,9 @@
 
 ## 7. 외부 시스템 / 자격증명
 
-남은 앱이 쓰는 외부 시스템은 **구글 스칼라 스크래핑(`work/scholar.py`, no key)** 뿐이다.
-OpenAI / Toss / Kakao / KAMIS / 네이버 / Open-Meteo 연동은 2026-08-24 대청소 때 해당 앱과 함께 전부 제거됐다.
+남은 앱이 쓰는 외부 시스템은 없다.
+OpenAI / Toss / Kakao / KAMIS / 네이버 / Open-Meteo 연동은 2026-08-24 대청소 때 해당 앱과 함께 전부 제거됐고,
+구글 스칼라 스크래핑(`work/scholar.py`)도 2026-08-26 에 기능째 제거됐다.
 
 ## 8. 자주 쓰는 SSH/Bash 패턴 모음
 

@@ -11,13 +11,6 @@ sqlalchemy[asyncio]==2.0.37
 asyncpg==0.30.0
 alembic==1.14.1
 
-# HTTP / scraping (work — 구글 스칼라 검색)
-# httpx 로 바꾸면 안 된다: TLS 지문이 구글 봇 탐지에 걸려 429 가 된다.
-# app/services/scholar.py 주석 참고.
-requests==2.32.2
-beautifulsoup4==4.12.3
-lxml==5.1.0
-
 # Machine Learning (tdm — 1단계 ML)
 scikit-learn==1.6.1
 joblib==1.4.2

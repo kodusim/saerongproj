@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="/static/css/work-base.css">
 <link rel="stylesheet" href="/static/css/groupware.css">
 <link rel="stylesheet" href="/static/css/vscode.css">
-<link rel="stylesheet" href="/static/css/scholar.css">
 <link rel="stylesheet" href="/static/css/games.css">
 </head>
 <body>
@@ -315,7 +314,7 @@
 
         </div>
 
-        <!-- 실제 채팅 입력줄 — chat-pane 전체 폭 사용 (스칼라 패널에 눌려 안 보이는 문제 방지) -->
+        <!-- 실제 채팅 입력줄 — chat-pane 전체 폭 사용 -->
         <div class="gw-compose" id="gw-compose">
             <div class="pending-attachment" id="pending-attachment" hidden>
                 <span id="pending-attachment-name"></span>
@@ -573,28 +572,6 @@
 
     </div>
     <!-- /chat-pane -->
-
-    <div class="resize-handle" id="resize-handle"></div>
-
-    <!-- 우측 : 구글 스칼라 검색 -->
-    <div class="scholar-pane" id="scholar-pane">
-        <div class="scholar-topbar">
-            <span class="s-menu-icon">☰</span>
-            <span class="scholar-logo">
-                <b><span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span></b>
-                <span class="g-label">학술검색</span>
-            </span>
-        </div>
-        <div class="scholar-search-row">
-            <div class="scholar-search-pill">
-                <input type="text" id="scholar-q" placeholder="논문/키워드 검색">
-                <button id="scholar-search" aria-label="검색">🔍</button>
-            </div>
-        </div>
-        <div class="scholar-results" id="scholar-results">
-            <div class="scholar-empty">검색어를 입력하면<br>구글 스칼라 결과가 여기에 표시됩니다.</div>
-        </div>
-    </div>
 
 </div>
 

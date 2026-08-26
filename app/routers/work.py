@@ -1,4 +1,4 @@
-"""/work — 실시간 채팅 + 게시판 + 일정 + 구글 스칼라 검색."""
+"""/work — 실시간 채팅 + 게시판 + 일정."""
 import logging
 from datetime import date, datetime, timezone
 from typing import Any, Optional
@@ -14,7 +14,6 @@ from app.db import get_session
 from app.models import WorkChatMessage, WorkPost, WorkSchedule
 from app.security import client_ip
 from app.services import storage
-from app.services.scholar import ScholarBlockedError, search_scholar
 from app.templating import templates
 from app.ws import hub
 
@@ -393,28 +392,3 @@ async def api_schedule_delete(schedule_id: int, session: AsyncSession = Depends(
     await session.delete(item)
     await session.commit()
     return JSONResponse({'deleted': True})
-
-
-# ---------------------------------------------------------------- 스칼라 검색
-
-@router.get('/api/scholar/')
-async def api_scholar(q: str = ''):
-    q = (q or '').strip()
-    if not q:
-        return JSONResponse({'results': [], 'stats': ''})
-
-    fallback = f'https://scholar.google.com/scholar?q={q}'
-    try:
-        data = await search_scholar(q)
-    except ScholarBlockedError:
-        return JSONResponse({
-            'error': '구글이 검색 요청을 일시적으로 차단했습니다. 잠시 후 다시 시도하거나 아래 링크로 직접 검색하세요.',
-            'fallback_url': fallback,
-        }, status_code=502)
-    except Exception:
-        logger.exception('scholar search failed: %s', q)
-        return JSONResponse({
-            'error': '검색 중 오류가 발생했습니다.',
-            'fallback_url': fallback,
-        }, status_code=502)
-    return JSONResponse(data)

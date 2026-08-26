@@ -255,6 +255,12 @@ export function createBoard(cfg) {
             $(ui.vDelete).addEventListener('click', deletePost);
         });
 
+        // 자료실 · 공지사항은 같은 모양의 표라 no/cat/views 도 서로 동기화한다.
+        // title/author/date 는 문서함 표와도 뜻이 같으므로 그쪽과도 맞춘다.
+        const GROUPS = {
+            no: 'post-no', cat: 'post-cat', title: 'title',
+            author: 'author', views: 'post-views', date: 'date',
+        };
         const head = $(cfg.headId);
         initColumnResize({
             wrap: head.closest('.gw-table-wrap'),
@@ -263,6 +269,7 @@ export function createBoard(cfg) {
             cols: ['no', 'cat', 'title', 'author', 'views', 'date'].map((k) => ({
                 cls: `${C}-${k}`,
                 varName: `--w-${C.replace('col-', '')}-${k}`,
+                group: GROUPS[k],
             })),
         });
 

@@ -1,5 +1,5 @@
-/* work 페이지 공통 — 리셋 · 레이아웃 · 테마 컨테이너 · 리사이즈 핸들 · 라이트박스 · 모바일
-   테마별 스킨은 groupware.css / vscode.css, 우측 검색은 scholar.css */
+/* work 페이지 공통 — 리셋 · 레이아웃 · 테마 컨테이너 · 라이트박스 · 모바일
+   테마별 스킨은 groupware.css / vscode.css */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -19,8 +19,7 @@ body {
    좌측 : 채팅(그룹웨어 문서함 스타일 — 실제 동작은 표 본문 + 하단 등록창만)
    ======================================================================= */
 .chat-pane {
-    flex: 0 0 70%;
-    max-width: 70%;
+    flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -49,24 +48,6 @@ body {
     flex-direction: column;
 }
 
-
-/* ---------- 리사이즈 핸들 ---------- */
-.resize-handle {
-    flex: 0 0 6px;
-    background: #e2e5ea;
-    cursor: col-resize;
-    position: relative;
-}
-.resize-handle:hover, .resize-handle.dragging { background: #9fb3d9; }
-.resize-handle::after {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 2px; height: 28px;
-    background: #c3c9d1;
-    border-radius: 2px;
-}
 
 /* ---------- 이미지 라이트박스 ---------- */
 .img-modal {
@@ -109,12 +90,9 @@ body {
 @media (max-width: 768px) {
     body { overflow: auto; height: auto; }
     .work-wrap { flex-direction: column; height: auto; }
-    .chat-pane, .scholar-pane {
+    .chat-pane {
         flex: 1 1 auto !important;
         max-width: 100% !important;
     }
-    .chat-pane { height: 72vh; }
-    .scholar-pane { height: 70vh; border-top: 1px solid #e2e5ea; }
-    .resize-handle { display: none; }
     .gw-tabs { display: none; }
 }
