@@ -8,7 +8,6 @@
 import { $, escapeHtml, formatDateTime, linkify } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { getNickname, isMine, isVscode, onThemeChange, setMyIp } from './state.js';
-import { initColumnResize } from './columns.js';
 
 /** 접두사로 DOM id 한 벌을 만든다 — 두 게시판이 같은 이름 규칙을 쓴다. */
 function idsFor(prefix) {
@@ -44,9 +43,7 @@ function idsFor(prefix) {
  * @param {string} cfg.vcPrefix     VS Code DOM id 접두사 (예: 'vc-bd')
  * @param {string} cfg.countId      제목 옆 (n) 요소 id
  * @param {string} cfg.colPrefix    그룹웨어 열 클래스 접두사 (예: 'col-bd')
- * @param {string} cfg.headId       그룹웨어 표 헤더 id
  * @param {string} cfg.defaultCat   새 글 기본 분류
- * @param {string} cfg.storageKey   열 너비 저장 키
  */
 export function createBoard(cfg) {
     const UI = {
@@ -255,24 +252,6 @@ export function createBoard(cfg) {
             $(ui.vDelete).addEventListener('click', deletePost);
         });
 
-        // 자료실 · 공지사항은 같은 모양의 표라 no/cat/views 도 서로 동기화한다.
-        // title/author/date 는 문서함 표와도 뜻이 같으므로 그쪽과도 맞춘다.
-        const GROUPS = {
-            no: 'post-no', cat: 'post-cat', title: 'title',
-            author: 'author', views: 'post-views', date: 'date',
-        };
-        const head = $(cfg.headId);
-        initColumnResize({
-            wrap: head.closest('.gw-table-wrap'),
-            head,
-            storageKey: cfg.storageKey,
-            cols: ['no', 'cat', 'title', 'author', 'views', 'date'].map((k) => ({
-                cls: `${C}-${k}`,
-                varName: `--w-${C.replace('col-', '')}-${k}`,
-                group: GROUPS[k],
-            })),
-        });
-
         onThemeChange(() => {
             renderPosts();
             showPanel(panel);
@@ -290,9 +269,7 @@ export const archiveBoard = createBoard({
     gwPrefix: 'bd', vcPrefix: 'vc-bd',
     countId: 'bd-count-title',
     colPrefix: 'col-bd',
-    headId: 'bd-table-head',
     defaultCat: 'novel',
-    storageKey: 'work_cols_board',
 });
 
 /* 공지사항 — 결재 탭 */
@@ -301,7 +278,5 @@ export const noticeBoard = createBoard({
     gwPrefix: 'nt', vcPrefix: 'vc-nt',
     countId: 'nt-count-title',
     colPrefix: 'col-nt',
-    headId: 'nt-table-head',
     defaultCat: 'notice',
-    storageKey: 'work_cols_notice',
 });

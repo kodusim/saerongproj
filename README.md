@@ -41,7 +41,7 @@ static/css/            work-base · groupware · vscode · games · tdm-*
 static/js/lib/         dom.js (헬퍼) · api.js (CSRF 붙이는 fetch 래퍼)
 static/js/work/        main(엔트리) · state(공유 상태+구독) · chat
                        board(자료실·공지 공용 팩토리) · schedule(월 달력)
-                       columns(열 너비 조절) · games/(미니게임 6종, stardew 는 캔버스)
+                       games/(미니게임 6종, stardew 는 캔버스)
                        theme · nav · unread · lightbox
 static/js/tdm/         predict.js
 ml_artifacts/          모델 가중치 (git 제외 — 서버에 직접 업로드)

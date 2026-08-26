@@ -9,7 +9,6 @@ import { api } from '../lib/api.js';
 import { getNickname, isMine, onThemeChange, setMyIp, setNickname, isVscode } from './state.js';
 import { bindImageIcons } from './lightbox.js';
 import { addUnread } from './unread.js';
-import { initColumnResize } from './columns.js';
 
 const POLL_MS = 2000;
 const RECONNECT_MIN_MS = 1000;
@@ -281,22 +280,6 @@ export async function initChat() {
 
     bindImageIcons(rowsEl);
     bindImageIcons(linesEl);
-
-    const head = $('chat-table-head');
-    initColumnResize({
-        wrap: head.closest('.gw-table-wrap'),
-        head,
-        storageKey: 'work_cols_chat',
-        cols: [
-            { cls: 'col-status', varName: '--w-status' },
-            { cls: 'col-type', varName: '--w-type' },
-            { cls: 'col-no', varName: '--w-no' },
-            { cls: 'col-attach', varName: '--w-attach' },
-            { cls: 'col-title', varName: '--w-title', group: 'title' },
-            { cls: 'col-author', varName: '--w-author', group: 'author' },
-            { cls: 'col-datetime', varName: '--w-datetime', group: 'date' },
-        ],
-    });
 
     $('doc-refresh').addEventListener('click', catchUp);
     $('vc-refresh').addEventListener('click', catchUp);
