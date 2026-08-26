@@ -43,7 +43,6 @@ const STORY = {
             &ldquo;회관에도 몇 부 돌리고, 옆 마을 이장한테도 자랑 좀 해야겄다. 사진
             잘 나왔다고 소문나면 다음엔 표지 모델도 시켜준다드라. 좀 도와줄랑가?&rdquo;`,
         choices: [
-            { label: '부끄럽지만 일단 거들어본다', next: 'storm_prep' },
             {
                 label: '창피해서 잡지를 뺏어 도망친다',
                 gameover: `정 씨는 잡지를 통째로 들고 논두렁을 따라 전력 질주했다.
@@ -51,6 +50,7 @@ const STORY = {
                     마을 어귀부터 정미소까지, 정 씨의 러닝셔츠 사진이 도배됐다.
                     <span class="gm-vn-why">도망친다고 없던 일이 되지는 않는다.</span>`,
             },
+            { label: '부끄럽지만 일단 거들어본다', next: 'storm_prep' },
             {
                 label: '잡지를 그 자리에서 찢어버린다',
                 gameover: `삼촌이 애써 인쇄해온 잡지를 찢은 죄로, 정 씨는 그날부로
@@ -69,7 +69,6 @@ const STORY = {
             &ldquo;춘식아, 이거 마저 세우고 갈랑가, 아니면 밤새 버틸 만큼만 대충
             묶고 얼른 대피할랑가?&rdquo;`,
         choices: [
-            { label: '남은 지지대를 끝까지, 야무지게 세운다', next: 'night_watch' },
             {
                 label: '대충 몇 개만 묶고 서둘러 몸을 피한다',
                 gameover: `대충 묶은 지지대는 태풍의 첫 돌풍에 우수수 쓰러졌다.
@@ -83,6 +82,7 @@ const STORY = {
                     태풍은 기다려주지 않았다.
                     <span class="gm-vn-why">반쯤 한 일은 안 한 것과 같다.</span>`,
             },
+            { label: '남은 지지대를 끝까지, 야무지게 세운다', next: 'night_watch' },
         ],
     },
 
@@ -94,15 +94,15 @@ const STORY = {
             잠이 오지 않는 정 씨. 이대로 잘지, 나가서 한 번 더 살펴볼지 고민된다.`,
         choices: [
             {
-                label: '우비를 걸치고 나가 비닐하우스 문단속을 한 번 더 확인한다',
-                next: 'morning_check',
-            },
-            {
                 label: '무섭지만 그냥 이불을 뒤집어쓰고 잔다',
                 gameover: `펄럭이던 소리는 열려 있던 비닐하우스 문이었다. 바람이
                     들이쳐 하우스가 통째로 뒤집혔다.<br><br>
                     아침에 정 씨가 본 건 밭이 아니라 비닐 뭉치였다.
                     <span class="gm-vn-why">불안한 소리는 이유가 있어서 난다.</span>`,
+            },
+            {
+                label: '우비를 걸치고 나가 비닐하우스 문단속을 한 번 더 확인한다',
+                next: 'morning_check',
             },
         ],
     },
@@ -114,7 +114,6 @@ const STORY = {
             어지럽고, 저 멀리 콩밭이 보인다.<br><br>
             가장 먼저 뭘 확인해야 할까.`,
         choices: [
-            { label: '세워둔 지지대와 콩부터 살핀다', next: 'village_thanks' },
             {
                 label: '잡지와 사진부터 젖지 않았는지 챙긴다',
                 gameover: `정 씨가 잡지 상자를 끌어안고 감격하는 사이, 물꼬가 터진
@@ -122,6 +121,7 @@ const STORY = {
                     <span class="gm-vn-why">순서를 잘못 정하면 지킬 수 있던 것도
                     잃는다.</span>`,
             },
+            { label: '세워둔 지지대와 콩부터 살핀다', next: 'village_thanks' },
         ],
     },
 
@@ -133,13 +133,13 @@ const STORY = {
             영석 삼촌이 흙탕물을 첨벙거리며 뛰어와 정 씨의 등을 두드린다.<br><br>
             &ldquo;역시 춘식이여! 이 정도면 게임 엔딩도 하나로 딱 정해지겄다!&rdquo;`,
         choices: [
-            { label: '겸연쩍게 웃으며 다시 일하러 간다', next: 'ending' },
             {
                 label: '잡지 표지처럼 포즈를 잡아본다',
                 gameover: `미끄덩! 진흙탕에 넘어진 정 씨의 모습이 그대로 다음 호
                     표지에 실렸다. 태풍도 이겨낸 청년이 진흙에는 못 이겼다.
                     <span class="gm-vn-why">승리에 취해 방심하면 꼭 사달이 난다.</span>`,
             },
+            { label: '겸연쩍게 웃으며 다시 일하러 간다', next: 'ending' },
         ],
     },
 
