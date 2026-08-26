@@ -15,8 +15,9 @@ import quiz from './quiz.js';
 import pop from './pop.js';
 import farm from './farm.js';
 import stardew from './stardew/index.js';
+import chunsik from './chunsik.js';
 
-const GAMES = [stardew, farm, numbers, memory, quiz, pop];
+const GAMES = [stardew, farm, chunsik, numbers, memory, quiz, pop];
 const BEST_KEY = 'work_game_best';
 
 let current = null;      // { def, instance }

@@ -175,6 +175,49 @@
 .gm-quiz-c.right { background: #e3f6e8; border-color: #6bbd82; }
 .gm-quiz-c.wrong { background: #fdeceb; border-color: #e0393e; }
 
+/* ---------------- 자네 이름은 이쟈부터 춘식이여! ---------------- */
+
+.gm-vn { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 460px; }
+.gm-vn-text {
+    font-size: 12.5px;
+    line-height: 1.9;
+    color: #333;
+    background: #faf8f3;
+    border: 1px solid #e5e8ec;
+    border-radius: 6px;
+    padding: 16px 18px;
+}
+.gm-vn-why { display: block; margin-top: 8px; font-size: 11px; font-weight: 700; color: #c0392b; }
+.gm-vn-choices { display: flex; flex-direction: column; gap: 8px; }
+.gm-vn-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    border: 1px solid #dfe3e8;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+}
+.gm-vn-choice:hover { border-color: #1B3A6B; background: #eef3fd; }
+.gm-vn-num {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #fff;
+    background: #1B3A6B;
+    border-radius: 50%;
+}
+.gm-vn-label { flex: 1; color: #333; }
+
 /* ---------------- 뽁뽁뽁뽁 ---------------- */
 
 .gm-pop-grid {
@@ -398,6 +441,13 @@
 .vc-gm .gm-quiz-c.right { background: #2d4a34; border-color: #6bbd82; }
 .vc-gm .gm-quiz-c.wrong { background: #5a2d2d; border-color: #f48771; }
 
+.vc-gm .gm-vn-text { background: #252526; border-color: #3c3c3c; color: #d4d4d4; }
+.vc-gm .gm-vn-why { color: #f48771; }
+.vc-gm .gm-vn-choice { background: #2d2d30; border-color: #3c3c3c; }
+.vc-gm .gm-vn-choice:hover { border-color: #569cd6; background: #24405e; }
+.vc-gm .gm-vn-num { background: #0e639c; }
+.vc-gm .gm-vn-label { color: #d4d4d4; }
+
 .vc-gm .gm-pop-grid { background: #252526; }
 
 .vc-gm .fm-money { color: #6bbd82; }
@@ -438,4 +488,5 @@
     .gm-mem { width: 54px; height: 54px; font-size: 21px; }
     .gm-pop-cell { width: 26px; height: 26px; }
     .gm-quiz-q { font-size: 23px; }
+    .gm-vn-text { font-size: 11.5px; padding: 12px 14px; }
 }
