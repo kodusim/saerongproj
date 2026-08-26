@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>작가 서재 — bltest</title>
+<link rel="stylesheet" href="/static/css/bl.css">
+</head>
+<body>
+<div class="bl-wrap">
+
+    <div class="bl-head">
+        <a class="bl-logo" href="/bltest/">bl<span>test</span></a>
+        <span class="bl-spacer"></span>
+        <a class="bl-btn" href="/bltest/">둘러보기</a>
+    </div>
+
+    <!-- 작가 키 -->
+    <div class="bl-panel">
+        <h2>작가 키</h2>
+        <p class="bl-help">
+            계정 기능이 아직 없어서, 이 키가 <b>작품의 유일한 소유 증명</b>입니다.
+            브라우저에 저장되므로 <b>키를 잃으면 작품을 수정·삭제할 수 없습니다.</b>
+            반드시 따로 복사해 보관하세요. 다른 기기에서는 이 키를 넣으면 이어서 쓸 수 있습니다.
+        </p>
+        <div class="bl-keybox">
+            <code id="key-view">—</code>
+            <button class="bl-btn small" type="button" data-act="copy-key">복사</button>
+            <button class="bl-btn small" type="button" data-act="change-key">키 넣기</button>
+        </div>
+    </div>
+
+    <!-- 운영 정책 -->
+    <div class="bl-notice warn">
+        <b>등록 금지 콘텐츠</b> — 미성년자(또는 미성년으로 보이는 인물)에 대한 성적 묘사,
+        실존 인물을 특정한 성적 묘사, 타인 저작물의 무단 게시. 발견 시 통보 없이 삭제됩니다.<br>
+        연령 확인 기능이 준비되기 전까지는 <b>전체이용가 · 15세</b> 작품만 등록할 수 있습니다.
+        범죄를 소재로 다루는 작품은 등급과 키워드 경고 태그를 반드시 달아주세요.
+    </div>
+
+    <!-- 내 작품 -->
+    <div class="bl-sec-title">
+        내 작품 <span id="count" class="bl-badge">0</span>
+        <span class="bl-spacer"></span>
+        <button class="bl-btn primary small" type="button" data-act="new-series">＋ 새 작품</button>
+    </div>
+    <div class="bl-list" id="list"></div>
+
+</div>
+
+<!-- 작품 정보 -->
+<div class="bl-modal" id="series-modal">
+    <div class="bl-modal-box">
+        <h2 id="series-modal-title">새 작품</h2>
+        <div class="bl-field">
+            <label class="bl-label" for="s-title">작품 제목</label>
+            <input type="text" class="bl-input" id="s-title" maxlength="200">
+        </div>
+        <div class="bl-field">
+            <label class="bl-label" for="s-author">필명</label>
+            <input type="text" class="bl-input" id="s-author" maxlength="32" placeholder="익명">
+        </div>
+        <div class="bl-field">
+            <label class="bl-label" for="s-summary">작품 소개</label>
+            <textarea class="bl-textarea" id="s-summary" maxlength="2000"></textarea>
+        </div>
+        <div class="bl-field">
+            <label class="bl-label" for="s-tags">태그 (쉼표로 구분, 최대 8개)</label>
+            <input type="text" class="bl-input" id="s-tags" placeholder="현대물, 해피엔딩">
+            <p class="bl-help">독자가 지뢰를 피할 수 있도록 키워드 경고도 태그로 달아주세요.</p>
+        </div>
+        <div class="bl-field">
+            <label class="bl-label" for="s-rating">이용 등급</label>
+            <select class="bl-select" id="s-rating">
+                <option value="all">전체이용가</option>
+                <option value="teen">15세 이용가</option>
+            </select>
+            <p class="bl-help">성인 등급은 연령 확인 기능이 준비된 뒤 열립니다.</p>
+        </div>
+        <div class="bl-field">
+            <label class="bl-label" for="s-status">연재 상태</label>
+            <select class="bl-select" id="s-status">
+                <option value="ongoing">연재중</option>
+                <option value="done">완결</option>
+                <option value="hiatus">휴재</option>
+            </select>
+        </div>
+        <div class="bl-modal-actions">
+            <button class="bl-btn" type="button" data-act="series-cancel">취소</button>
+            <button class="bl-btn primary" type="button" data-act="series-save">저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- 회차 편집 -->
+<div class="bl-modal" id="ep-modal">
+    <div class="bl-modal-box">
+        <h2 id="ep-modal-title">새 회차</h2>
+        <div class="bl-field">
+            <label class="bl-label" for="e-title">회차 제목</label>
+            <input type="text" class="bl-input" id="e-title" maxlength="200">
+        </div>
+        <div class="bl-field">
+            <label class="bl-label" for="e-body">본문</label>
+            <textarea class="bl-textarea" id="e-body" rows="16" style="min-height:280px"></textarea>
+        </div>
+        <div class="bl-modal-actions">
+            <button class="bl-btn" type="button" data-act="ep-cancel">취소</button>
+            <button class="bl-btn" type="button" data-act="ep-draft">임시저장</button>
+            <button class="bl-btn primary" type="button" data-act="ep-publish">공개</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/static/js/bl/write.js"></script>
+</body>
+</html>

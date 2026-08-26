@@ -4,6 +4,7 @@
   /                     랜딩
   /tdmprediction/*      반코마이신 TDM 하이브리드 예측
   /work/*               채팅 · 게시판
+  /bltest/*             소설 연재 플랫폼 (프로토타입)
   /healthz              헬스체크
 
 정적/미디어 파일은 운영에서 nginx 가 직접 서빙한다 (`/static`, `/media`).
@@ -18,7 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, settings
-from app.routers import farm, tdm, work
+from app.routers import bl, farm, tdm, work
 from app.security import CsrfMiddleware
 from app.templating import templates
 
@@ -49,6 +50,7 @@ app.add_middleware(
 app.include_router(tdm.router)
 app.include_router(work.router)
 app.include_router(farm.router)
+app.include_router(bl.router)
 
 
 @app.get('/', response_class=HTMLResponse)

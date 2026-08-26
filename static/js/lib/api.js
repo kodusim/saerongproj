@@ -6,8 +6,8 @@ import { getCookie } from './dom.js';
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-async function request(url, { method = 'GET', body, json } = {}) {
-    const headers = {};
+async function request(url, { method = 'GET', body, json, headers: extra } = {}) {
+    const headers = { ...(extra || {}) };
     if (UNSAFE.has(method)) headers['X-CSRFToken'] = getCookie('csrftoken');
     if (json !== undefined) headers['Content-Type'] = 'application/json';
 
