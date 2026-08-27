@@ -1,10 +1,14 @@
-/* 작가 서재 — 작가 키 관리 + 내 작품/회차 CRUD.
+/* 작가 서재 — 내 작품/회차 CRUD.
 
    작품 카드를 펼치면 그 안에 회차 목록이 들어온다 (작품마다 상세를 따로
-   부르지 않고, 펼칠 때 한 번만 가져온다). */
+   부르지 않고, 펼칠 때 한 번만 가져온다).
+
+   공개 테스트 중이라 작가 키를 묻지 않는다 — 서버가 방문자 모두를 같은
+   작가로 취급하므로 이 화면에는 모든 작품이 뜬다 (app/routers/bl.py 의
+   OPEN_TEST 참고). */
 import { $, escapeHtml, formatDateTime } from '../lib/dom.js';
 import { api } from '../lib/api.js';
-import { authorHeaders, ensureKey, peekKey, setKey } from './key.js';
+import { authorHeaders } from './key.js';
 
 let series = [];
 let openId = null;        // 펼쳐 놓은 작품 id
@@ -12,50 +16,9 @@ let episodes = [];        // 그 작품의 회차
 let editingSeries = null; // 작품 모달이 수정 중인 작품 (null = 새 작품)
 let editingEp = null;     // 회차 모달이 수정 중인 회차 (null = 새 회차)
 
-/* ---------------- 작가 키 ---------------- */
-
-function paintKey() {
-    const k = peekKey();
-    $('key-view').textContent = k || '(아직 없음 — 첫 작품을 만들면 발급됩니다)';
-}
-
-async function copyKey() {
-    const k = peekKey();
-    if (!k) {
-        alert('아직 작가 키가 없습니다. 새 작품을 만들면 발급됩니다.');
-        return;
-    }
-    try {
-        await navigator.clipboard.writeText(k);
-        alert('작가 키를 복사했습니다. 안전한 곳에 보관하세요.');
-    } catch {
-        // clipboard 가 막힌 환경 — 직접 선택하도록 안내
-        prompt('아래 키를 복사해 보관하세요.', k);
-    }
-}
-
-function changeKey() {
-    const raw = prompt(
-        '다른 기기에서 쓰던 작가 키를 넣으면 그 작품들을 이어서 관리할 수 있습니다.\n'
-        + '(현재 키는 덮어써집니다 — 먼저 복사해 두세요.)'
-    );
-    if (raw === null) return;
-    if (!setKey(raw)) {
-        alert('키 형식이 올바르지 않습니다.');
-        return;
-    }
-    paintKey();
-    load();
-}
-
 /* ---------------- 목록 ---------------- */
 
 async function load() {
-    if (!peekKey()) {
-        series = [];
-        paintList();
-        return;
-    }
     const { ok, data } = await api.get('/bltest/api/series/?mine=1', {
         headers: authorHeaders(),
     });
@@ -177,10 +140,6 @@ async function saveSeries() {
         return;
     }
 
-    // 첫 작품이면 여기서 작가 키가 발급된다
-    ensureKey();
-    paintKey();
-
     const payload = {
         title,
         author_name: $('s-author').value.trim() || '익명',
@@ -290,9 +249,6 @@ document.addEventListener('click', (e) => {
     const id = Number(btn.dataset.id);
     const no = Number(btn.dataset.no);
 
-    if (act === 'copy-key') copyKey();
-    if (act === 'change-key') changeKey();
-
     if (act === 'new-series') openSeriesModal(null);
     if (act === 'series-edit') openSeriesModal(series.find((s) => s.id === id));
     if (act === 'series-delete') deleteSeries(id);
@@ -308,5 +264,4 @@ document.addEventListener('click', (e) => {
     if (act === 'ep-publish') saveEp(true);
 });
 
-paintKey();
 load();

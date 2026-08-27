@@ -4,6 +4,10 @@
 IP 로 가르면 공유기 재접속만으로 작가가 작품 수정 권한을 잃기 때문이다.
 키는 클라이언트가 만들어 `X-Author-Key` 헤더로 보낸다.
 
+**지금은 공개 테스트라 키를 요구하지 않는다** (`OPEN_TEST`). 방문자 모두가
+같은 공용 키를 쓰므로 누구나 글을 쓰고 아무 작품이나 고칠 수 있다. 테스트가
+끝나면 `OPEN_TEST = False` 로 돌리면 원래의 키 소유 모델로 돌아간다.
+
 **1차는 성인 등급(`adult`)을 받지 않는다.** 계정이 없어 연령을 확인할 방법이
 없기 때문이다. 2차에서 계정 + 생년 확인이 붙은 뒤에 개방한다 (LB기획.md 참고).
 """
@@ -34,11 +38,35 @@ ALLOWED_RATINGS = ('all', 'teen')
 
 AUTHOR_KEY_RE = re.compile(r'^[A-Za-z0-9_-]{16,64}$')
 
+# 공개 테스트 — 키 없이도 글을 쓸 수 있게 모두를 같은 작가로 취급한다.
+OPEN_TEST = True
+OPEN_TEST_KEY = 'bltest-open-shared-key'   # AUTHOR_KEY_RE 를 통과하는 고정 키
+
 
 def author_key(request: Request) -> str:
-    """작가 키 — 형식이 맞지 않으면 빈 문자열(= 권한 없음)."""
+    """작가 키 — 형식이 맞지 않으면 빈 문자열(= 권한 없음).
+
+    테스트 중에는 헤더를 보지 않고 공용 키를 준다. 그래야 예전에 만들어 둔
+    localStorage 키가 남아 있는 브라우저에서도 남의 작품을 고칠 수 있다.
+    """
+    if OPEN_TEST:
+        return OPEN_TEST_KEY
     key = (request.headers.get('x-author-key') or '').strip()
     return key if AUTHOR_KEY_RE.match(key) else ''
+
+
+def owns(series, key: str) -> bool:
+    """이 작품을 고칠 수 있는가. 테스트 중에는 (예전 키로 만든 작품까지)
+    누구나 고칠 수 있다."""
+    if OPEN_TEST:
+        return True
+    return bool(key) and series.author_key == key
+
+
+def mine_badge(series, key: str) -> bool:
+    """'내 작품' 배지를 달지 — 테스트 중에는 모두가 모두의 작가라 달지 않는다.
+    (권한 판정은 owns() 로 따로 한다.)"""
+    return False if OPEN_TEST else owns(series, key)
 
 
 def _publish_now(flag) -> datetime | None:
@@ -133,7 +161,7 @@ async def api_series_list(
     key = author_key(request)
 
     stmt = select(BlSeries)
-    if mine:
+    if mine and not OPEN_TEST:
         if not key:
             return JSONResponse({'series': [], 'my_key': ''})
         stmt = stmt.where(BlSeries.author_key == key)
@@ -166,8 +194,7 @@ async def api_series_list(
 
     return JSONResponse({
         'series': [
-            _series_json(s, mine=bool(key) and s.author_key == key,
-                         episodes=counts.get(s.id, 0))
+            _series_json(s, mine=mine_badge(s, key), episodes=counts.get(s.id, 0))
             for s in rows
         ],
     })
@@ -225,7 +252,7 @@ async def api_series_detail(
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
 
     key = author_key(request)
-    mine = bool(key) and s.author_key == key
+    mine = owns(s, key)
 
     stmt = select(BlEpisode).where(BlEpisode.series_id == series_id)
     if not mine:
@@ -235,7 +262,7 @@ async def api_series_detail(
 
     published = sum(1 for e in eps if e.published_at is not None)
     return JSONResponse({
-        'series': _series_json(s, mine=mine, episodes=published),
+        'series': _series_json(s, mine=mine_badge(s, key), episodes=published),
         'episodes': [_episode_json(e) for e in eps],
     })
 
@@ -248,7 +275,7 @@ async def api_series_update(
     s = await session.get(BlSeries, series_id)
     if s is None:
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
-    if not key or s.author_key != key:
+    if not owns(s, key):
         return JSONResponse({'error': '이 작품을 수정할 권한이 없습니다.'}, status_code=403)
 
     try:
@@ -293,7 +320,7 @@ async def api_series_delete(
     s = await session.get(BlSeries, series_id)
     if s is None:
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
-    if not key or s.author_key != key:
+    if not owns(s, key):
         return JSONResponse({'error': '이 작품을 삭제할 권한이 없습니다.'}, status_code=403)
 
     # 회차는 FK ondelete=CASCADE 로 같이 지워진다
@@ -314,7 +341,7 @@ async def api_episode_detail(
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
 
     key = author_key(request)
-    mine = bool(key) and s.author_key == key
+    mine = owns(s, key)
 
     e = (await session.scalars(
         select(BlEpisode).where(
@@ -324,8 +351,9 @@ async def api_episode_detail(
     if e is None or (e.published_at is None and not mine):
         return JSONResponse({'error': '회차를 찾을 수 없습니다.'}, status_code=404)
 
-    # 조회수는 경합을 피해 DB 에서 직접 증가시킨다 (작가 본인은 세지 않는다)
-    if not mine and e.published_at is not None:
+    # 조회수는 경합을 피해 DB 에서 직접 증가시킨다 (작가 본인은 세지 않는다).
+    # 테스트 중에는 모두가 작가라서, 그대로 두면 조회수가 아예 늘지 않는다.
+    if (OPEN_TEST or not mine) and e.published_at is not None:
         await session.execute(
             update(BlEpisode).where(BlEpisode.id == e.id)
             .values(views=BlEpisode.views + 1)
@@ -341,7 +369,7 @@ async def api_episode_detail(
     idx = nos.index(e.no) if e.no in nos else -1
 
     return JSONResponse({
-        'series': _series_json(s, mine=mine),
+        'series': _series_json(s, mine=mine_badge(s, key)),
         'episode': _episode_json(e, with_body=True),
         'prev': nos[idx - 1] if idx > 0 else None,
         'next': nos[idx + 1] if 0 <= idx < len(nos) - 1 else None,
@@ -356,7 +384,7 @@ async def api_episode_create(
     s = await session.get(BlSeries, series_id)
     if s is None:
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
-    if not key or s.author_key != key:
+    if not owns(s, key):
         return JSONResponse({'error': '이 작품에 회차를 쓸 권한이 없습니다.'}, status_code=403)
 
     try:
@@ -399,7 +427,7 @@ async def api_episode_update(
     s = await session.get(BlSeries, series_id)
     if s is None:
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
-    if not key or s.author_key != key:
+    if not owns(s, key):
         return JSONResponse({'error': '이 회차를 수정할 권한이 없습니다.'}, status_code=403)
 
     e = (await session.scalars(
@@ -446,7 +474,7 @@ async def api_episode_delete(
     s = await session.get(BlSeries, series_id)
     if s is None:
         return JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
-    if not key or s.author_key != key:
+    if not owns(s, key):
         return JSONResponse({'error': '이 회차를 삭제할 권한이 없습니다.'}, status_code=403)
 
     e = (await session.scalars(
