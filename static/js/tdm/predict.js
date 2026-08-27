@@ -91,7 +91,6 @@ function render(j) {
     ['목표 AUC₂₄', s.target_auc24_range.join(' ~ ') + ' mg·hr/L'],
     ['Trough 상태', s.trough_status || '-'],
     ['AUC 상태', s.auc_status || '-'],
-    ['ML 모델', meta.ml_model || '-'],
     ['DL 모델', meta.dl_model || '(미적용)'],
   ];
   document.getElementById('summary-tbody').innerHTML = rows.map(r =>
