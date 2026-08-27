@@ -63,16 +63,27 @@
         <div><label>총 투여 횟수 (회) <span style="color:var(--gray4);font-weight:400">— 이번 TDM 채혈까지</span></label><input type="number" id="f-n" value="10" min="1" max="40" step="1"></div>
         <div></div>
       </div>
-      <div class="btn-row">
-        <button class="primary" id="run-btn" type="button">하이브리드 예측 실행</button>
-      </div>
     </div>
 
-    <div class="card" style="font-size:10.5px;color:var(--gray5);line-height:1.6">
-      <h2>모델 정보</h2>
-      <div><strong>1단계 (ML)</strong> — 17개 covariate → 사이클 1~5 peak/trough 10개 (Extra Trees / RF)</div>
-      <div style="margin-top:6px"><strong>2단계 (DL)</strong> — Event sequence + ML 예측 → 정상상태 endpoint (LSTM). 농도 곡선은 ML NS peak/trough(1~5회차) + DL steady endpoint(6회차~)를 랜드마크로 삼은 재구성이며, LSTM 원출력(완만한 곡선)도 함께 표시</div>
-      <div style="margin-top:6px"><strong>특허</strong> — Hybrid ML+DL TDM 예측 (출원 진행)</div>
+    <div class="card">
+      <h2>모델 선택</h2>
+      <div class="model-pick" role="radiogroup" aria-label="DL 모델 선택">
+        <label class="model-opt">
+          <input type="radio" name="dl-model" value="gru">
+          <span class="model-box"><b>GRU</b><em>경량 순환 신경망</em></span>
+        </label>
+        <label class="model-opt">
+          <input type="radio" name="dl-model" value="lstm" checked>
+          <span class="model-box"><b>LSTM</b><em>기본 순환 신경망</em></span>
+        </label>
+        <label class="model-opt">
+          <input type="radio" name="dl-model" value="transformer">
+          <span class="model-box"><b>Transformer</b><em>어텐션 기반</em></span>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="primary" id="run-btn" type="button">예측 실행</button>
+      </div>
     </div>
   </div>
 

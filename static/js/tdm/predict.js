@@ -14,7 +14,10 @@ async function runPredict() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>예측 중…';
 
+  const picked = document.querySelector('input[name="dl-model"]:checked');
+
   const body = {
+    dl_model: picked ? picked.value : 'lstm',
     patient: {
       age: val('f-age'), sex: parseInt(document.getElementById('f-sex').value, 10),
       height: val('f-height'), weight: val('f-weight'),
@@ -40,7 +43,7 @@ async function runPredict() {
     alert('예측 실패: ' + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '하이브리드 예측 실행';
+    btn.textContent = '예측 실행';
   }
 }
 

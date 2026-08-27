@@ -27,6 +27,14 @@ LOGIN_URL = '/tdmprediction/login/'
 PREDICT_URL = '/tdmprediction/'
 
 
+def _dl_log_label(meta: dict) -> str:
+    """감사 로그용 DL 모델 표기. 폴백이면 '실제(요청:선택값)' 형태로 남긴다."""
+    actual = meta.get('dl_model') or ''
+    if meta.get('dl_fallback') and meta.get('dl_model_requested'):
+        return f"{actual}(요청:{meta['dl_model_requested']})"
+    return actual
+
+
 @router.get('/login/', response_class=HTMLResponse)
 async def login_page(request: Request):
     if is_tdm_authed(request):
@@ -95,6 +103,10 @@ async def predict_api(request: Request, session: AsyncSession = Depends(get_sess
 
     from app.services import predictor as tdm_predictor
 
+    dl_model = str(body.get('dl_model') or 'lstm').strip().lower()
+    if dl_model not in tdm_predictor.DL_MODEL_KINDS:
+        dl_model = tdm_predictor.DL_FALLBACK_KIND
+
     try:
         # 추론은 CPU 바운드(sklearn + torch) — 이벤트 루프를 막지 않도록 스레드로 보낸다.
         result = await run_in_threadpool(
@@ -103,6 +115,7 @@ async def predict_api(request: Request, session: AsyncSession = Depends(get_sess
             dose_mg=dose_mg,
             q_hr=q_hr,
             n_doses=n_doses,
+            dl_model=dl_model,
         )
     except FileNotFoundError as exc:
         return JSONResponse({'error': f'모델 파일 누락: {exc}'}, status_code=500)
@@ -119,7 +132,7 @@ async def predict_api(request: Request, session: AsyncSession = Depends(get_sess
                 input_json=body,
                 result_json=result,
                 ml_model=meta.get('ml_model') or '',
-                dl_model=meta.get('dl_model') or '',
+                dl_model=_dl_log_label(meta),
             )
         )
         await session.commit()

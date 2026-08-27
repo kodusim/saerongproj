@@ -65,12 +65,40 @@ def _load_ml():
     raise FileNotFoundError('TDM ML 모델 파일이 없습니다 (tdm/ml_artifacts/*.joblib)')
 
 
-@lru_cache(maxsize=1)
-def _load_dl():
-    """PyTorch LSTM 가중치 로드. 없으면 None 반환 (DL 단계 건너뜀)."""
-    pt_path = os.path.join(ART_DIR, 'best_lstm_ml-extra_trees.pt')
+DL_MODEL_KINDS = ('gru', 'lstm', 'transformer')
+DL_FALLBACK_KIND = 'lstm'
+
+
+def _dl_weight_path(kind: str) -> str:
+    return os.path.join(ART_DIR, f'best_{kind}_ml-extra_trees.pt')
+
+
+def resolve_dl_kind(requested: str) -> tuple[str, bool]:
+    """요청한 DL 모델의 가중치가 있으면 그대로, 없으면 LSTM으로 폴백.
+
+    TODO(임시): GRU/Transformer 가중치가 서버에 배포되면 폴백이 자동으로 풀린다.
+    반환: (실제 사용할 kind, 폴백 여부)
+    """
+    kind = (requested or DL_FALLBACK_KIND).strip().lower()
+    if kind not in DL_MODEL_KINDS:
+        kind = DL_FALLBACK_KIND
+    if os.path.exists(_dl_weight_path(kind)):
+        return kind, False
+    if kind != DL_FALLBACK_KIND:
+        logger.warning('TDM DL 가중치 없음(%s) — %s 로 폴백', kind, DL_FALLBACK_KIND)
+    return DL_FALLBACK_KIND, kind != DL_FALLBACK_KIND
+
+
+@lru_cache(maxsize=len(DL_MODEL_KINDS))
+def _load_dl(kind: str = DL_FALLBACK_KIND):
+    """PyTorch DL 가중치 로드. 없으면 None 반환 (DL 단계 건너뜀).
+
+    현재 backbone 구현은 LSTM 하나뿐 — GRU/Transformer 는 가중치가 배포되면
+    HybridDLModel 을 kind 별로 분기해야 한다.
+    """
+    pt_path = _dl_weight_path(kind)
     if not os.path.exists(pt_path):
-        logger.warning('TDM DL 모델 파일이 없습니다 (LSTM 단계 비활성)')
+        logger.warning('TDM DL 모델 파일이 없습니다 (%s 단계 비활성)', kind)
         return None, None, None
     try:
         import torch
@@ -113,7 +141,7 @@ def _load_dl():
     model = HybridDLModel(input_dim=input_dim, hidden_size=64)
     model.load_state_dict(sd, strict=False)
     model.eval()
-    logger.info('TDM DL 모델(LSTM) 로드 완료 (input_dim=%d)', input_dim)
+    logger.info('TDM DL 모델(%s) 로드 완료 (input_dim=%d)', kind.upper(), input_dim)
     return model, stats, feature_cols or DL_FEATURES
 
 
@@ -188,7 +216,7 @@ def _crcl_cockcroft_gault(age, sex, weight_kg, scr_mgdl):
 
 
 def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
-                model_choice: str = 'auto', dose_dur_hr: float = 1.0) -> dict:
+                dl_model: str = 'lstm', dose_dur_hr: float = 1.0) -> dict:
     """하이브리드 예측 실행.
 
     patient: {age, sex (0/1), height, weight, diagnosis_id, Serum_Cr, Albumin,
@@ -197,6 +225,9 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
     q_hr: 투여 간격 (hr)
     n_doses: 이 사이클 내 총 투여 횟수 (실제 임상 데이터 기준 평균 18.5회, 중앙값 12회 —
              "사이클 개수"가 아니라 "한 사이클 안에서 몇 번째 투여까지 왔는지"에 해당)
+    dl_model: 2단계 DL backbone 선택 ('gru' | 'lstm' | 'transformer').
+              해당 가중치가 아직 없으면 LSTM 으로 폴백하고, model_meta 에
+              dl_model_requested / dl_fallback 으로 그 사실을 남긴다.
     dose_dur_hr: 1회 infusion 길이 (기본 1시간, 현재 곡선 생성 로직에서는 미사용 —
                  이벤트 시퀀스 자체는 dose 즉시 반영이라 실사용 안 함)
 
@@ -206,7 +237,7 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
       dl_direct: [{t_hr, conc}], # LSTM이 각 이벤트에서 직접 낸 값 (완만한 원본 출력)
       dl_endpoint: {steady_peak, steady_trough, steady_auc24},
       summary: {target_trough_ok, mic_warning, ...},
-      model_meta: {ml_model, dl_model}
+      model_meta: {ml_model, dl_model, dl_model_requested, dl_fallback}
     }
     """
     import numpy as np
@@ -279,12 +310,13 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
         ev['hours_since_cycle_start'] = ev['time']
 
     # 4) DL 2단계 (있으면)
-    dl_model, dl_stats, dl_feat_cols = _load_dl()
+    dl_kind, dl_fallback = resolve_dl_kind(dl_model)
+    dl_net, dl_stats, dl_feat_cols = _load_dl(dl_kind)
     dl_curve = []       # ML NS + DL steady 랜드마크 기반 재구성 곡선 (시각화용)
     dl_direct = []      # LSTM conc_head가 각 이벤트에서 직접 낸 값 (완만한 원본 출력)
     dl_endpoint = None
 
-    if dl_model is not None:
+    if dl_net is not None:
         try:
             import torch
             import numpy as np
@@ -328,7 +360,7 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
 
             pad_mask = torch.ones((1, len(events)), dtype=torch.float32)
             with torch.no_grad():
-                conc, endpoint = dl_model(torch.from_numpy(X), pad_mask)
+                conc, endpoint = dl_net(torch.from_numpy(X), pad_mask)
             conc_arr = conc.squeeze(0).cpu().numpy()
             ep_arr = endpoint.squeeze(0).cpu().numpy()
 
@@ -408,7 +440,9 @@ def predict_tdm(patient: dict, dose_mg: float, q_hr: float, n_doses: int = 10,
         'summary': summary,
         'model_meta': {
             'ml_model': ml_name,
-            'dl_model': 'lstm' if dl_model is not None else None,
+            'dl_model': dl_kind if dl_net is not None else None,
+            'dl_model_requested': (dl_model or DL_FALLBACK_KIND).strip().lower(),
+            'dl_fallback': dl_fallback,
             'n_doses': n_doses, 'q_hr': q_hr,
         },
     }
