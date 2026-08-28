@@ -252,12 +252,12 @@ body[data-theme='sepia'] { --bg: …; --panel: …; --fg: …; --line: …; --mu
 .bl-list  .bl-card  .bl-badge .bl-tag  .bl-empty
 .bl-hero  .bl-sec-title .bl-eps .bl-ep
 .bl-reader .bl-body .bl-reader-bar
-.bl-panel .bl-keybox .bl-notice
+.bl-panel .bl-keybox .bl-notice .bl-draft-note
 .bl-modal .bl-modal-box .bl-modal-actions
 ```
 
 변형은 **접두사 없는 수식 클래스**를 덧붙인다:
-`.bl-btn.primary` · `.bl-btn.danger` · `.bl-btn.small` · `.bl-badge.teen|mine|draft` · `.bl-notice.warn`
+`.bl-btn.primary` · `.bl-btn.danger` · `.bl-btn.small` · `.bl-badge.teen|mine|draft|wip` · `.bl-notice.warn`
 
 새 부품을 만들기 전에 위 목록에 쓸 게 있는지 먼저 본다. **부품을 늘리는 것보다 재사용이 우선.**
 
