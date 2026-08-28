@@ -8,7 +8,7 @@ saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 두 개의 독립�
 | `/tdmprediction/` | 반코마이신 혈중 농도 하이브리드(ML + DL) 예측 |
 | `/tdmprediction/logs/` | 예측 감사 로그 (읽기 전용) |
 | `/work/` | 실시간 채팅 · 자료실 · 공지사항 · 일정 달력 · 미니게임 |
-| `/bltest/` | 소설 연재 플랫폼 (프로토타입) — [기획](LB기획.md) |
+| `/bltest/` | **알카포스트** — BL 소설 연재 플랫폼 (프로토타입) — [기획](LB기획.md) · [디자인 규약](DESIGN.md) |
 | `/healthz` | 헬스체크 |
 
 ## 구성
