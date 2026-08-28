@@ -1,29 +1,32 @@
 /* /bltest — BL 소설 플랫폼 공통 스킨.
-   랜딩(landing.html)과 같은 톤. 다크모드는 prefers-color-scheme 로만 따라간다
-   (뷰어는 예외 — 독자가 직접 고른다). */
+   흑백 모노톤 — 유일한 컬러는 --danger(삭제·경고·비공개) 뿐이다.
+   다크모드는 prefers-color-scheme 로만 따라간다 (뷰어는 예외 — 독자가 직접 고른다).
+   색을 바꿀 땐 아래 :root 만 고친다 — DESIGN.md 8장. */
 
 :root {
-    --bg: #f6f7f9;
-    --panel: #fff;
-    --line: #e5e7eb;
-    --line-strong: #9ca3af;
-    --fg: #1a1d21;
-    --muted: #6b7280;
-    --accent: #7c3aed;
-    --accent-fg: #fff;
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --tint: #f5f5f5;
+    --line: #e5e5e5;
+    --line-strong: #111111;
+    --fg: #111111;
+    --muted: #737373;
+    --accent: #111111;
+    --accent-fg: #ffffff;
     --danger: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #16181d;
-        --panel: #1f2228;
-        --line: #333840;
-        --line-strong: #565d68;
-        --fg: #e5e7eb;
-        --muted: #9ca3af;
-        --accent: #a78bfa;
-        --accent-fg: #16181d;
+        --bg: #0d0d0d;
+        --panel: #0d0d0d;
+        --tint: #1a1a1a;
+        --line: #2e2e2e;
+        --line-strong: #ededed;
+        --fg: #ededed;
+        --muted: #8f8f8f;
+        --accent: #ededed;
+        --accent-fg: #0d0d0d;
         --danger: #f87171;
     }
 }
@@ -59,7 +62,7 @@ body {
     text-decoration: none;
     color: var(--fg);
 }
-.bl-logo span { color: var(--accent); }
+.bl-logo span { color: var(--muted); }
 .bl-spacer { flex: 1; }
 
 /* ---------------- 버튼 · 입력 ---------------- */
@@ -159,7 +162,7 @@ body {
     color: var(--muted);
     white-space: nowrap;
 }
-.bl-badge.teen { color: #d97706; border-color: #d9770655; }
+.bl-badge.teen { color: var(--fg); border-color: var(--line-strong); }
 .bl-badge.mine { color: var(--accent); border-color: var(--accent); }
 .bl-badge.draft { color: var(--danger); border-color: var(--danger); }
 
@@ -168,7 +171,7 @@ body {
     font-size: 11.5px;
     padding: 2px 8px;
     border-radius: 999px;
-    background: var(--bg);
+    background: var(--tint);
     border: 1px solid var(--line);
     color: var(--muted);
 }
@@ -229,7 +232,7 @@ body {
     color: inherit;
 }
 .bl-ep:last-child { border-bottom: none; }
-.bl-ep:hover { background: var(--bg); }
+.bl-ep:hover { background: var(--tint); }
 .bl-ep-no {
     flex: 0 0 auto;
     font-size: 12px;
@@ -242,9 +245,10 @@ body {
 /* ---------------- 뷰어 ---------------- */
 
 /* 뷰어만 독자가 배경을 고른다 — data-theme 을 body 에 건다 */
-body[data-theme='sepia'] { --bg: #f4ecd8; --panel: #f9f3e5; --fg: #433422; --line: #e0d5bd; --muted: #8a7a5f; }
-body[data-theme='dark'] { --bg: #16181d; --panel: #1f2228; --fg: #e5e7eb; --line: #333840; --muted: #9ca3af; }
-body[data-theme='light'] { --bg: #f6f7f9; --panel: #fff; --fg: #1a1d21; --line: #e5e7eb; --muted: #6b7280; }
+body[data-theme='light'] { --bg: #ffffff; --panel: #ffffff; --tint: #f5f5f5; --fg: #111111; --line: #e5e5e5; --line-strong: #111111; --muted: #737373; --accent: #111111; --accent-fg: #ffffff; }
+body[data-theme='dark']  { --bg: #0d0d0d; --panel: #0d0d0d; --tint: #1a1a1a; --fg: #ededed; --line: #2e2e2e; --line-strong: #ededed; --muted: #8f8f8f; --accent: #ededed; --accent-fg: #0d0d0d; }
+/* 세피아만 유색 — 브랜드 색이 아니라 장시간 읽기용 눈 보호 옵션이라 남긴다 */
+body[data-theme='sepia'] { --bg: #f4ecd8; --panel: #f4ecd8; --tint: #eae0c8; --fg: #433422; --line: #ddd0b4; --line-strong: #433422; --muted: #8a7a5f; --accent: #433422; --accent-fg: #f4ecd8; }
 
 .bl-reader {
     max-width: 720px;
@@ -308,7 +312,7 @@ body[data-theme='light'] { --bg: #f6f7f9; --panel: #fff; --fg: #1a1d21; --line: 
     padding: 8px 10px;
     font-size: 12px;
     font-family: Consolas, 'Courier New', monospace;
-    background: var(--bg);
+    background: var(--tint);
     border: 1px solid var(--line);
     border-radius: 7px;
     word-break: break-all;
@@ -320,7 +324,7 @@ body[data-theme='light'] { --bg: #f6f7f9; --panel: #fff; --fg: #1a1d21; --line: 
     font-size: 12.5px;
     line-height: 1.75;
     border: 1px solid var(--line);
-    background: var(--bg);
+    background: var(--tint);
     color: var(--muted);
     margin-bottom: 16px;
 }
