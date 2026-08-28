@@ -1,7 +1,6 @@
 /* 작품 상세 — 소개 + 회차 목록 + 신고. */
 import { $, escapeHtml, formatDateTime } from '../lib/dom.js';
 import { api } from '../lib/api.js';
-import { authorHeaders } from './key.js';
 
 const seriesId = Number(document.body.dataset.seriesId);
 let current = null;
@@ -57,9 +56,7 @@ function render(series, episodes) {
 }
 
 async function load() {
-    const { ok, data } = await api.get(`/bltest/api/series/${seriesId}/`, {
-        headers: authorHeaders(),
-    });
+    const { ok, data } = await api.get(`/bltest/api/series/${seriesId}/`);
     if (!ok || !data) {
         $('content').innerHTML = '<div class="bl-empty">작품을 찾을 수 없습니다.</div>';
         return;

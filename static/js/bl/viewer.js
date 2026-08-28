@@ -1,7 +1,6 @@
 /* 뷰어 — 읽는 화면. 글자 크기·배경·읽던 위치를 localStorage 에 남긴다. */
 import { $, escapeHtml, formatDateTime } from '../lib/dom.js';
 import { api } from '../lib/api.js';
-import { authorHeaders } from './key.js';
 
 const seriesId = Number(document.body.dataset.seriesId);
 const no = Number(document.body.dataset.no);
@@ -71,9 +70,7 @@ function restoreScroll() {
 /* ---------------- 본문 ---------------- */
 
 async function load() {
-    const { ok, data } = await api.get(`/bltest/api/series/${seriesId}/ep/${no}/`, {
-        headers: authorHeaders(),
-    });
+    const { ok, data } = await api.get(`/bltest/api/series/${seriesId}/ep/${no}/`);
     if (!ok || !data) {
         $('content').innerHTML = '<div class="bl-empty">회차를 찾을 수 없습니다.</div>';
         return;

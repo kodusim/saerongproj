@@ -1,7 +1,6 @@
 /* /bltest 홈 — 작품 목록. */
 import { $, escapeHtml } from '../lib/dom.js';
 import { api } from '../lib/api.js';
-import { authorHeaders } from './key.js';
 import { seriesCard } from './card.js';
 
 let timer = null;
@@ -12,9 +11,7 @@ async function load() {
     if (q) params.set('q', q);
     params.set('sort', $('sort').value);
 
-    const { ok, data } = await api.get(`/bltest/api/series/?${params}`, {
-        headers: authorHeaders(),
-    });
+    const { ok, data } = await api.get(`/bltest/api/series/?${params}`);
     if (!ok || !data) return;
 
     const list = data.series || [];

@@ -22,11 +22,12 @@ from typing import NamedTuple
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import desc, func, select, update
+from sqlalchemy import delete, desc, func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models import BlEpisode, BlReport, BlSeries
+from app.models import BlDraft, BlEpisode, BlReport, BlSeries
 from app.security import BL_SESSION_KEY, client_ip, verify_form_csrf
 from app.templating import templates
 
@@ -381,10 +382,21 @@ async def api_series_detail(
     eps = (await session.scalars(stmt.order_by(BlEpisode.no))).all()
 
     published = sum(1 for e in eps if e.published_at is not None)
-    return JSONResponse({
+    out = {
         'series': _series_json(s, mine=mine_badge(s, key), episodes=published),
         'episodes': [_episode_json(e) for e in eps],
-    })
+    }
+    if mine:
+        # 서재에서 '작성중' 배지를 달 수 있게 연성이 걸린 회차 번호를 함께 준다.
+        out['drafts'] = [
+            {'episode_no': d.episode_no, 'updated_at': d.updated_at.isoformat()}
+            for d in await session.scalars(
+                select(BlDraft).where(
+                    BlDraft.author_key == key, BlDraft.series_id == series_id
+                )
+            )
+        ]
+    return JSONResponse(out)
 
 
 @router.post('/api/series/{series_id}/')
@@ -531,6 +543,8 @@ async def api_episode_create(
         published_at=_publish_now(data.get('publish')),
     )
     session.add(e)
+    # 회차가 생겼으니 '새 회차' 연성은 역할이 끝났다.
+    await _drop_draft(session, key, series_id, BlDraft.NEW_EPISODE)
     # 작품 목록 정렬(최신 갱신순)을 위해 작품도 건드린다
     s.updated_at = datetime.now(timezone.utc)
     await session.commit()
@@ -579,6 +593,8 @@ async def api_episode_update(
         else:
             e.published_at = None
 
+    # 본문이 회차에 들어갔으니 이 회차의 연성은 역할이 끝났다.
+    await _drop_draft(session, key, series_id, no)
     s.updated_at = datetime.now(timezone.utc)
     await session.commit()
     await session.refresh(e)
@@ -606,6 +622,120 @@ async def api_episode_delete(
         return JSONResponse({'error': '회차를 찾을 수 없습니다.'}, status_code=404)
 
     await session.delete(e)
+    await _drop_draft(session, key, series_id, no)
+    await session.commit()
+    return JSONResponse({'deleted': True})
+
+
+# ------------------------------------------------------------------ 연성
+#
+# 쓰다 만 회차를 서버에 담아 둔다. 작가가 로그아웃하거나 창을 닫아도, 다른
+# 기기에서 로그인하면 그대로 이어 쓸 수 있게 하는 게 목적이다.
+#
+# 회차(`bl_episode`)에 바로 쓰지 않는 이유는 BlDraft docstring 참고 — 공개된
+# 회차를 고치는 중에 자동 저장이 돌면 고치다 만 글이 독자에게 보인다.
+
+async def _drop_draft(session: AsyncSession, key: str, series_id: int, no: int) -> None:
+    """연성을 지운다 (commit 은 호출한 쪽에서)."""
+    await session.execute(
+        delete(BlDraft).where(
+            BlDraft.author_key == key,
+            BlDraft.series_id == series_id,
+            BlDraft.episode_no == no,
+        )
+    )
+
+
+async def _guard_series(request: Request, series_id: int, session: AsyncSession):
+    """(key, series) 를 돌려주거나, 권한이 없으면 에러 응답을 돌려준다."""
+    key = author_key(request)
+    if not key:
+        return None, JSONResponse({'error': '로그인이 필요합니다.'}, status_code=401)
+    s = await session.get(BlSeries, series_id)
+    if s is None:
+        return None, JSONResponse({'error': '작품을 찾을 수 없습니다.'}, status_code=404)
+    if not owns(s, key):
+        return None, JSONResponse({'error': '권한이 없습니다.'}, status_code=403)
+    return key, None
+
+
+@router.get('/api/series/{series_id}/draft/{no}/')
+async def api_draft_get(
+    request: Request, series_id: int, no: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """연성 읽기. 없으면 `{'draft': None}` — 404 가 아니다 (없는 게 정상이다)."""
+    key, err = await _guard_series(request, series_id, session)
+    if err is not None:
+        return err
+
+    d = (await session.scalars(
+        select(BlDraft).where(
+            BlDraft.author_key == key,
+            BlDraft.series_id == series_id,
+            BlDraft.episode_no == no,
+        )
+    )).one_or_none()
+    if d is None:
+        return JSONResponse({'draft': None})
+    return JSONResponse({'draft': {
+        'episode_no': d.episode_no,
+        'title': d.title,
+        'body': d.body,
+        'updated_at': d.updated_at.isoformat(),
+    }})
+
+
+@router.post('/api/series/{series_id}/draft/{no}/')
+async def api_draft_save(
+    request: Request, series_id: int, no: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """연성 저장 (upsert). 자동 저장이라 자주 불린다 — 제목이 비어도 받는다."""
+    key, err = await _guard_series(request, series_id, session)
+    if err is not None:
+        return err
+
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse({'error': '잘못된 요청입니다.'}, status_code=400)
+    if not isinstance(data, dict):
+        return JSONResponse({'error': '잘못된 요청입니다.'}, status_code=400)
+
+    title = (data.get('title') or '')[:200]
+    body = (data.get('body') or '')[:MAX_BODY]
+
+    # 내용이 다 비었으면 굳이 남겨 두지 않는다 (지우고 끝낸 경우).
+    if not title.strip() and not body.strip():
+        await _drop_draft(session, key, series_id, no)
+        await session.commit()
+        return JSONResponse({'draft': None})
+
+    now = datetime.now(timezone.utc)
+    # 같은 작가가 두 기기에서 동시에 쓸 수 있으므로 upsert 로 경합을 피한다.
+    stmt = pg_insert(BlDraft).values(
+        author_key=key, series_id=series_id, episode_no=no,
+        title=title, body=body, updated_at=now,
+    ).on_conflict_do_update(
+        constraint='uq_bl_draft_author_series_ep',
+        set_={'title': title, 'body': body, 'updated_at': now},
+    )
+    await session.execute(stmt)
+    await session.commit()
+    return JSONResponse({'saved_at': now.isoformat()})
+
+
+@router.delete('/api/series/{series_id}/draft/{no}/')
+async def api_draft_delete(
+    request: Request, series_id: int, no: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """연성 버리기."""
+    key, err = await _guard_series(request, series_id, session)
+    if err is not None:
+        return err
+    await _drop_draft(session, key, series_id, no)
     await session.commit()
     return JSONResponse({'deleted': True})
 

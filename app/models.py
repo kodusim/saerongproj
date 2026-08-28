@@ -248,6 +248,39 @@ class BlReport(Base):
         return self.REASONS.get(self.reason, self.reason)
 
 
+class BlDraft(Base):
+    """연성 — 쓰다 만 회차를 자동으로 담아 두는 칸.
+
+    브라우저(localStorage)가 아니라 서버에 둔다. 그래야 작가가 다른 기기에서
+    이어 쓸 수 있다 — 그게 이 테이블의 존재 이유다.
+
+    **`bl_episode` 와 분리한 이유**: 이미 공개된 회차를 고치는 중에도 자동
+    저장이 돌아야 하는데, 회차 본문에 바로 쓰면 고치다 만 글이 독자에게
+    그대로 보인다. 작가가 '임시저장'/'공개'를 누를 때까지 여기서만 산다.
+
+    `episode_no = 0` 은 **아직 만들지 않은 새 회차**를 뜻한다. NULL 로 두면
+    PostgreSQL 14 가 NULL 끼리 서로 다르다고 봐서 유니크 제약이 안 걸린다.
+    """
+
+    __tablename__ = 'bl_draft'
+
+    NEW_EPISODE = 0
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    # 계정의 고정 키 (app/routers/bl.py 의 BL_USERS)
+    author_key: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    series_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey('bl_series.id', ondelete='CASCADE'), index=True,
+        nullable=False,
+    )
+    episode_no: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    title: Mapped[str] = mapped_column(String(200), default='', nullable=False)
+    body: Mapped[str] = mapped_column(Text, default='', nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+
 class WorkSchedule(Base):
     """만남 일정 — 그룹웨어의 '설비예약' 탭으로 보인다.
 
