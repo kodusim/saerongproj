@@ -16,6 +16,7 @@ import hashlib
 import logging
 import re
 import secrets
+import unicodedata
 from datetime import datetime, timezone
 from typing import NamedTuple
 
@@ -97,12 +98,21 @@ def _pw_ok(raw: str, acct: _Acct) -> bool:
     return secrets.compare_digest(got, acct.pw_hash)
 
 
+def normalize_id(raw: str) -> str:
+    """아이디 정규화.
+
+    아이디가 한글이라 NFC 로 합쳐 준다 — macOS 는 한글을 자모로 분해(NFD)해서
+    보내는 경우가 있어, 눈에 똑같이 보여도 사전 키와 안 맞는다.
+    """
+    return unicodedata.normalize('NFC', (raw or '').strip())
+
+
 def current_user(request: Request) -> str:
     """로그인한 아이디. 비로그인이면 빈 문자열.
 
     세션에 남아 있어도 `BL_USERS` 에서 지운 계정이면 로그아웃된 것으로 본다.
     """
-    name = request.session.get(BL_SESSION_KEY) or ''
+    name = normalize_id(request.session.get(BL_SESSION_KEY) or '')
     return name if name in BL_USERS else ''
 
 
@@ -198,14 +208,15 @@ async def bl_login_submit(
     # 이 경로는 CSRF 미들웨어가 건너뛴다 (폼은 헤더를 못 붙인다) — 여기서 직접 본다.
     verify_form_csrf(request, csrfmiddlewaretoken)
 
-    acct = BL_USERS.get(username.strip())
+    name = normalize_id(username)
+    acct = BL_USERS.get(name)
     if acct is not None and _pw_ok(password, acct):
         # 세션 쿠키는 TDM 과 공유한다 — clear() 하면 TDM 로그인까지 풀린다.
-        request.session[BL_SESSION_KEY] = username.strip()
-        logger.info('bl login ok user=%s ip=%s', username.strip(), client_ip(request))
+        request.session[BL_SESSION_KEY] = name
+        logger.info('bl login ok user=%s ip=%s', name, client_ip(request))
         return RedirectResponse(WRITE_URL, status_code=302)
 
-    logger.warning('bl login fail user=%r ip=%s', username.strip()[:32], client_ip(request))
+    logger.warning('bl login fail user=%r ip=%s', name[:32], client_ip(request))
     return templates.TemplateResponse(
         request,
         'bl/login.html',
