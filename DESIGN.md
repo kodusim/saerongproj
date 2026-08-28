@@ -86,7 +86,11 @@
 |---|---|---|---|
 | 일반 | `.bl-wrap` | 홈 목록 · 작품 상세 · 작가 서재 | `900px` |
 | 읽기 | `.bl-reader` | 뷰어 — 긴 본문을 읽는 화면 | `720px` |
-| 좁게 | `.bl-modal-box` | 모달 · 단일 폼 | `460px` |
+| 좁게 | `.bl-narrow` | 폼 하나로 끝나는 **페이지** (로그인) | `460px` |
+| 좁게 | `.bl-modal-box` | **모달** 안쪽 상자 | `460px` |
+
+좁게 등급이 둘인 건 폭이 달라서가 아니라 **페이지냐 모달이냐**가 달라서다.
+모달 클래스를 페이지에 얹지 않는다.
 
 뷰어를 더 좁게 잡는 건 취향이 아니라 **한 줄 글자 수를 줄여 가독성을 확보**하기 위한 것이다.
 새 화면은 셋 중 하나를 고른다. 새 등급이 필요하면 이 표를 먼저 고친다.
@@ -243,7 +247,7 @@ body[data-theme='sepia'] { --bg: …; --panel: …; --fg: …; --line: …; --mu
 다른 서비스 CSS와 충돌하지 않게 하기 위한 것이다. 전역 이름(`.card`, `.btn`, `.wrap`) 금지.
 
 ```
-.bl-wrap  .bl-head  .bl-logo  .bl-spacer
+.bl-wrap  .bl-narrow  .bl-head  .bl-logo  .bl-spacer  .bl-user
 .bl-btn   .bl-input .bl-textarea .bl-select .bl-field .bl-label .bl-help
 .bl-list  .bl-card  .bl-badge .bl-tag  .bl-empty
 .bl-hero  .bl-sec-title .bl-eps .bl-ep

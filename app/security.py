@@ -28,10 +28,14 @@ SAFE_METHODS = frozenset({'GET', 'HEAD', 'OPTIONS', 'TRACE'})
 CSRF_EXEMPT_PATHS = frozenset({
     '/tdmprediction/login/',       # 폼 전송 — 라우트에서 직접 검증
     '/tdmprediction/api/predict/',  # Django 에서도 csrf_exempt
+    '/bltest/login',               # 폼 전송 — 라우트에서 직접 검증
 })
 
 TDM_SESSION_KEY = 'tdm_authed'
 TDM_LOGIN_ID_KEY = 'tdm_login_id'
+
+# /bltest — 로그인한 계정 아이디를 담는다 (TDM 세션과 서로 독립이다)
+BL_SESSION_KEY = 'bl_login_id'
 
 
 def new_csrf_token() -> str:

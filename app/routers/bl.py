@@ -1,28 +1,32 @@
-"""/bltest — BL 소설 플랫폼 1차 (인증 없는 프로토타입).
+"""/bltest — 알카포스트 (BL 소설 연재 플랫폼) 프로토타입.
 
-작가 구분은 `author_key` 로 한다 — 브라우저 localStorage 에 둔 랜덤 토큰이다.
-IP 로 가르면 공유기 재접속만으로 작가가 작품 수정 권한을 잃기 때문이다.
-키는 클라이언트가 만들어 `X-Author-Key` 헤더로 보낸다.
+**작가는 계정으로 가른다.** 회원가입은 없다 — 운영자가 `BL_USERS` 에 직접
+넣어 아이디/비밀번호를 부여한다. 로그인하면 세션에 아이디가 남고, 계정마다
+고정된 `author_key` 가 작품 소유를 판정한다.
 
-**지금은 공개 테스트라 키를 요구하지 않는다** (`OPEN_TEST`). 방문자 모두가
-같은 공용 키를 쓰므로 누구나 글을 쓰고 아무 작품이나 고칠 수 있다. 테스트가
-끝나면 `OPEN_TEST = False` 로 돌리면 원래의 키 소유 모델로 돌아간다.
+읽기는 로그인 없이 누구나 한다. **글쓰기·수정·삭제만 로그인을 요구한다.**
 
-**1차는 성인 등급(`adult`)을 받지 않는다.** 계정이 없어 연령을 확인할 방법이
-없기 때문이다. 2차에서 계정 + 생년 확인이 붙은 뒤에 개방한다 (LB기획.md 참고).
+공개 테스트 시절(`LEGACY_OPEN_KEY`)에 방문자들이 공용 키로 쓴 작품이 남아
+있다. 그 키를 가진 계정이 없으므로 지금은 아무도 고칠 수 없다 — 읽기 전용이다.
+
+**성인 등급(`adult`)은 아직 받지 않는다.** 생년 확인 절차가 없기 때문이다.
+계정이 생겼으니 2차에서 생년을 받으면 열 수 있다 (LB기획.md 참고).
 """
+import hashlib
 import logging
 import re
+import secrets
 from datetime import datetime, timezone
+from typing import NamedTuple
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.models import BlEpisode, BlReport, BlSeries
-from app.security import client_ip
+from app.security import BL_SESSION_KEY, client_ip, verify_form_csrf
 from app.templating import templates
 
 logger = logging.getLogger(__name__)
@@ -38,35 +42,88 @@ ALLOWED_RATINGS = ('all', 'teen')
 
 AUTHOR_KEY_RE = re.compile(r'^[A-Za-z0-9_-]{16,64}$')
 
-# 공개 테스트 — 키 없이도 글을 쓸 수 있게 모두를 같은 작가로 취급한다.
-OPEN_TEST = True
-OPEN_TEST_KEY = 'bltest-open-shared-key'   # AUTHOR_KEY_RE 를 통과하는 고정 키
+# 공개 테스트 시절 방문자 모두가 공유하던 키. 이 키로 쓰인 작품은 주인이 없다.
+LEGACY_OPEN_KEY = 'bltest-open-shared-key'
+
+LOGIN_URL = '/bltest/login'
+HOME_URL = '/bltest/'
+WRITE_URL = '/bltest/write'
+
+# ------------------------------------------------------------------ 계정
+#
+# 회원가입은 없다. 운영자가 아래 표에 직접 넣어 아이디/비밀번호를 부여한다.
+# 비밀번호는 평문으로 두지 않고 pbkdf2-sha256 해시만 둔다. 새 비밀번호는 이렇게
+# 만든다 (앞이 salt, 뒤가 pw_hash):
+#
+#   python -c "import hashlib,secrets; s=secrets.token_hex(16); print(s,
+#     hashlib.pbkdf2_hmac('sha256', '새비번'.encode(), bytes.fromhex(s), 200_000).hex())"
+#
+# `key` 는 작품 소유를 판정하는 author_key 다. AUTHOR_KEY_RE 를 통과해야 하고
+# **한 번 정하면 바꾸지 않는다** — 바꾸면 그 계정이 쓴 작품이 전부 남의 것이 된다.
+
+PBKDF2_ROUNDS = 200_000
+
+
+class _Acct(NamedTuple):
+    id: int
+    key: str
+    salt: str
+    pw_hash: str
+
+
+BL_USERS: dict[str, _Acct] = {
+    '전상기': _Acct(
+        1, 'arca-user-000001',
+        '057aec5d8c25b04e82ddfdf61d3e18bd',
+        'a78f45fef9e747c92ef33601f47e9391c93bc13fc1bcd22e83bd2f2f4c1cca8c',
+    ),
+    '박지우': _Acct(
+        2, 'arca-user-000002',
+        'b8904f0f0ad313e43d3eea6f47c3c33c',
+        'af829397b91f8d3f50650d8716c7dd78613cbe5e1daf95e174087d3ca48e9535',
+    ),
+    '배지원': _Acct(
+        3, 'arca-user-000003',
+        'c922abe5ee5b62fc7d393fe063d7ba1f',
+        '7a6f52dc802b1fccfb52fda934f71d342cf1b2ab7e0e32bb0a362e9125dd6eeb',
+    ),
+}
+
+
+def _pw_ok(raw: str, acct: _Acct) -> bool:
+    got = hashlib.pbkdf2_hmac(
+        'sha256', raw.encode(), bytes.fromhex(acct.salt), PBKDF2_ROUNDS
+    ).hex()
+    return secrets.compare_digest(got, acct.pw_hash)
+
+
+def current_user(request: Request) -> str:
+    """로그인한 아이디. 비로그인이면 빈 문자열.
+
+    세션에 남아 있어도 `BL_USERS` 에서 지운 계정이면 로그아웃된 것으로 본다.
+    """
+    name = request.session.get(BL_SESSION_KEY) or ''
+    return name if name in BL_USERS else ''
 
 
 def author_key(request: Request) -> str:
-    """작가 키 — 형식이 맞지 않으면 빈 문자열(= 권한 없음).
-
-    테스트 중에는 헤더를 보지 않고 공용 키를 준다. 그래야 예전에 만들어 둔
-    localStorage 키가 남아 있는 브라우저에서도 남의 작품을 고칠 수 있다.
-    """
-    if OPEN_TEST:
-        return OPEN_TEST_KEY
-    key = (request.headers.get('x-author-key') or '').strip()
-    return key if AUTHOR_KEY_RE.match(key) else ''
+    """작가 키 = 로그인한 계정의 고정 키. 비로그인이면 빈 문자열(= 권한 없음)."""
+    name = current_user(request)
+    return BL_USERS[name].key if name else ''
 
 
 def owns(series, key: str) -> bool:
-    """이 작품을 고칠 수 있는가. 테스트 중에는 (예전 키로 만든 작품까지)
-    누구나 고칠 수 있다."""
-    if OPEN_TEST:
-        return True
+    """이 작품을 고칠 수 있는가.
+
+    공용 키로 쓰인 옛 작품(LEGACY_OPEN_KEY)은 어떤 계정의 키와도 같지 않으므로
+    저절로 읽기 전용이 된다 — 따로 분기하지 않는다.
+    """
     return bool(key) and series.author_key == key
 
 
 def mine_badge(series, key: str) -> bool:
-    """'내 작품' 배지를 달지 — 테스트 중에는 모두가 모두의 작가라 달지 않는다.
-    (권한 판정은 owns() 로 따로 한다.)"""
-    return False if OPEN_TEST else owns(series, key)
+    """'내 작품' 배지를 달지."""
+    return owns(series, key)
 
 
 def _publish_now(flag) -> datetime | None:
@@ -122,21 +179,70 @@ def _episode_json(e: BlEpisode, with_body: bool = False) -> dict:
     return data
 
 
+# ------------------------------------------------------------------ 로그인
+
+@router.get('/login', response_class=HTMLResponse)
+async def bl_login_page(request: Request):
+    if current_user(request):
+        return RedirectResponse(WRITE_URL, status_code=302)
+    return templates.TemplateResponse(request, 'bl/login.html', {'err': ''})
+
+
+@router.post('/login', response_class=HTMLResponse)
+async def bl_login_submit(
+    request: Request,
+    username: str = Form(''),
+    password: str = Form(''),
+    csrfmiddlewaretoken: str = Form(''),
+):
+    # 이 경로는 CSRF 미들웨어가 건너뛴다 (폼은 헤더를 못 붙인다) — 여기서 직접 본다.
+    verify_form_csrf(request, csrfmiddlewaretoken)
+
+    acct = BL_USERS.get(username.strip())
+    if acct is not None and _pw_ok(password, acct):
+        # 세션 쿠키는 TDM 과 공유한다 — clear() 하면 TDM 로그인까지 풀린다.
+        request.session[BL_SESSION_KEY] = username.strip()
+        logger.info('bl login ok user=%s ip=%s', username.strip(), client_ip(request))
+        return RedirectResponse(WRITE_URL, status_code=302)
+
+    logger.warning('bl login fail user=%r ip=%s', username.strip()[:32], client_ip(request))
+    return templates.TemplateResponse(
+        request,
+        'bl/login.html',
+        {'err': '아이디 또는 비밀번호가 올바르지 않습니다.'},
+        status_code=401,
+    )
+
+
+@router.get('/logout')
+async def bl_logout(request: Request):
+    request.session.pop(BL_SESSION_KEY, None)
+    return RedirectResponse(HOME_URL, status_code=302)
+
+
 # ------------------------------------------------------------------ 페이지
 
 @router.get('/', response_class=HTMLResponse)
 async def bl_home(request: Request):
-    return templates.TemplateResponse(request, 'bl/home.html', {})
+    return templates.TemplateResponse(
+        request, 'bl/home.html', {'user': current_user(request)}
+    )
 
 
 @router.get('/write', response_class=HTMLResponse)
 async def bl_write(request: Request):
-    return templates.TemplateResponse(request, 'bl/write.html', {})
+    user = current_user(request)
+    if not user:
+        return RedirectResponse(LOGIN_URL, status_code=302)
+    return templates.TemplateResponse(request, 'bl/write.html', {'user': user})
 
 
 @router.get('/s/{series_id}', response_class=HTMLResponse)
 async def bl_series_page(request: Request, series_id: int):
-    return templates.TemplateResponse(request, 'bl/series.html', {'series_id': series_id})
+    return templates.TemplateResponse(
+        request, 'bl/series.html',
+        {'series_id': series_id, 'user': current_user(request)},
+    )
 
 
 @router.get('/s/{series_id}/{no}', response_class=HTMLResponse)
@@ -157,11 +263,11 @@ async def api_series_list(
     mine: int = 0,
     session: AsyncSession = Depends(get_session),
 ):
-    """목록. `mine=1` 이면 내 작가 키의 작품만 (임시저장 포함)."""
+    """목록. `mine=1` 이면 로그인한 계정의 작품만 (임시저장 포함)."""
     key = author_key(request)
 
     stmt = select(BlSeries)
-    if mine and not OPEN_TEST:
+    if mine:
         if not key:
             return JSONResponse({'series': [], 'my_key': ''})
         stmt = stmt.where(BlSeries.author_key == key)
@@ -202,9 +308,10 @@ async def api_series_list(
 
 @router.post('/api/series/create/')
 async def api_series_create(request: Request, session: AsyncSession = Depends(get_session)):
-    key = author_key(request)
-    if not key:
-        return JSONResponse({'error': '작가 키가 없습니다.'}, status_code=400)
+    user = current_user(request)
+    if not user:
+        return JSONResponse({'error': '로그인이 필요합니다.'}, status_code=401)
+    key = BL_USERS[user].key
 
     try:
         data = await request.json()
@@ -230,7 +337,9 @@ async def api_series_create(request: Request, session: AsyncSession = Depends(ge
 
     item = BlSeries(
         author_key=key,
-        author_name=(data.get('author_name') or '익명').strip()[:32] or '익명',
+        author_user_id=BL_USERS[user].id,
+        # 필명은 계정 아이디와 별개다 — 비워 두면 아이디를 그대로 쓴다.
+        author_name=(data.get('author_name') or '').strip()[:32] or user,
         title=title,
         summary=(data.get('summary') or '')[:2000],
         tags=_clean_tags(data.get('tags')),
@@ -301,7 +410,8 @@ async def api_series_update(
         status = s.status
 
     s.title = title
-    s.author_name = (data.get('author_name') or '익명').strip()[:32] or '익명'
+    # 필명을 비우면 원래 필명을 지운 게 아니라 계정 아이디로 되돌린다.
+    s.author_name = (data.get('author_name') or '').strip()[:32] or current_user(request)
     s.summary = (data.get('summary') or '')[:2000]
     s.tags = _clean_tags(data.get('tags'))
     s.rating = rating
@@ -352,8 +462,7 @@ async def api_episode_detail(
         return JSONResponse({'error': '회차를 찾을 수 없습니다.'}, status_code=404)
 
     # 조회수는 경합을 피해 DB 에서 직접 증가시킨다 (작가 본인은 세지 않는다).
-    # 테스트 중에는 모두가 작가라서, 그대로 두면 조회수가 아예 늘지 않는다.
-    if (OPEN_TEST or not mine) and e.published_at is not None:
+    if not mine and e.published_at is not None:
         await session.execute(
             update(BlEpisode).where(BlEpisode.id == e.id)
             .values(views=BlEpisode.views + 1)

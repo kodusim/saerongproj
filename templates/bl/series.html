@@ -17,7 +17,13 @@
             </picture>
         </a>
         <span class="bl-spacer"></span>
+        {% if user %}
+        <span class="bl-user"><b>{{ user }}</b> 님</span>
         <a class="bl-btn" href="/bltest/write">작가 서재</a>
+        <a class="bl-btn small" href="/bltest/logout">로그아웃</a>
+        {% else %}
+        <a class="bl-btn" href="/bltest/login">로그인</a>
+        {% endif %}
     </div>
 
     <div id="content"></div>

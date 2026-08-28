@@ -3,9 +3,8 @@
    작품 카드를 펼치면 그 안에 회차 목록이 들어온다 (작품마다 상세를 따로
    부르지 않고, 펼칠 때 한 번만 가져온다).
 
-   공개 테스트 중이라 작가 키를 묻지 않는다 — 서버가 방문자 모두를 같은
-   작가로 취급하므로 이 화면에는 모든 작품이 뜬다 (app/routers/bl.py 의
-   OPEN_TEST 참고). */
+   이 화면은 로그인이 필요하다 — 서버가 비로그인이면 /bltest/login 으로
+   돌려보낸다. 목록(`?mine=1`)에는 로그인한 계정의 작품만 온다. */
 import { $, escapeHtml, formatDateTime } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { authorHeaders } from './key.js';

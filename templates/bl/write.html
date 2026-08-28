@@ -17,7 +17,9 @@
             </picture>
         </a>
         <span class="bl-spacer"></span>
+        <span class="bl-user"><b>{{ user }}</b> 님</span>
         <a class="bl-btn" href="/bltest/">둘러보기</a>
+        <a class="bl-btn small" href="/bltest/logout">로그아웃</a>
     </div>
 
     <!-- 운영 정책 -->
@@ -48,7 +50,8 @@
         </div>
         <div class="bl-field">
             <label class="bl-label" for="s-author">필명</label>
-            <input type="text" class="bl-input" id="s-author" maxlength="32" placeholder="익명">
+            <input type="text" class="bl-input" id="s-author" maxlength="32" placeholder="{{ user }}">
+            <p class="bl-help">비워 두면 계정 아이디({{ user }})가 필명이 됩니다.</p>
         </div>
         <div class="bl-field">
             <label class="bl-label" for="s-summary">작품 소개</label>
