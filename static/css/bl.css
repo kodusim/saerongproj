@@ -55,14 +55,18 @@ body {
     border-bottom: 1px solid var(--line);
     margin-bottom: 20px;
 }
+/* 로고는 이미지 자산이라 CSS 변수를 못 쓴다.
+   다크 대응은 <picture> + prefers-color-scheme 로 파일을 갈아끼운다 — DESIGN.md 4-6 */
 .bl-logo {
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
+    display: inline-flex;
+    align-items: center;
     text-decoration: none;
-    color: var(--fg);
 }
-.bl-logo span { color: var(--muted); }
+.bl-logo img {
+    display: block;      /* 인라인 baseline 여백 제거 */
+    height: 26px;
+    width: auto;
+}
 .bl-spacer { flex: 1; }
 
 /* ---------------- 버튼 · 입력 ---------------- */
@@ -362,6 +366,7 @@ body[data-theme='sepia'] { --bg: #f4ecd8; --panel: #f4ecd8; --tint: #eae0c8; --f
 
 @media (max-width: 480px) {
     .bl-wrap { padding: 16px 14px 50px; }
+    .bl-logo img { height: 22px; }
     .bl-hero h1 { font-size: 19px; }
     .bl-reader { padding: 16px 16px 70px; }
 }

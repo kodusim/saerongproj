@@ -34,7 +34,12 @@
 <body>
 <div class="bl-wrap">              <!-- 중앙 컨테이너 : 이 안에만 콘텐츠 -->
     <div class="bl-head">
-        <a class="bl-logo" href="/bltest/">bl<span>test</span></a>
+        <a class="bl-logo" href="/bltest/">          <!-- 로고 : 4-6 -->
+            <picture>
+                <source srcset="/static/img/logo-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="/static/img/logo.png" alt="ARCApost">
+            </picture>
+        </a>
         <span class="bl-spacer"></span>
         <!-- 우측 액션 -->
     </div>
@@ -175,7 +180,10 @@ bltest는 **흑백**이다. `--danger` 를 뺀 모든 축은 무채색(회색 �
 - 유일한 유색은 `--danger` — **삭제 · 경고 · 비공개**에만 쓴다. 이 셋 말고는 빨강을 쓰지 않는다.
 - 강조는 색이 아니라 **채움(`.bl-btn.primary`) · 테두리 굵기 · 글자 굵기**로 만든다.
 - 새 상태 색(성공 초록, 정보 파랑 등)을 추가하지 않는다. 필요하면 이 절을 먼저 고친다.
-- 예외는 뷰어의 세피아 테마뿐이다 (4-4 참고) — 브랜드 색이 아니라 눈 보호 옵션이라 남겼다.
+- 예외는 둘뿐이다:
+  1. **로고** — ARCApost 워드마크가 브랜드 레드를 갖는다 (4-6). 마침 `--danger` 와 같은 계열이라
+     화면은 여전히 "검정 · 흰색 · 빨강" 세 가지로만 읽힌다.
+  2. **뷰어 세피아 테마** (4-4) — 브랜드 색이 아니라 장시간 읽기용 눈 보호 옵션이라 남겼다.
 
 ### 4-3. 다크모드는 변수 재정의로만
 
@@ -203,6 +211,28 @@ body[data-theme='sepia'] { --bg: …; --panel: …; --fg: …; --line: …; --mu
 .bl-body { font-size: var(--reader-size, 16px); line-height: var(--reader-leading, 1.95); }
 ```
 **폴백을 반드시 둔다.** JS가 죽어도 읽히게.
+
+### 4-6. 이미지 자산은 파일을 갈아끼운다
+
+**이미지는 CSS 변수를 못 쓴다.** 그러니 다크모드 대응을 `filter: invert()` 같은 꼼수로 하지 말고
+**라이트용 · 다크용 파일을 각각 만들어** `<picture>` 로 고른다.
+
+```html
+<a class="bl-logo" href="/bltest/">
+    <picture>
+        <source srcset="/static/img/logo-dark.png" media="(prefers-color-scheme: dark)">
+        <img src="/static/img/logo.png" alt="ARCApost">
+    </picture>
+</a>
+```
+
+- 크기는 **CSS 로만** 정한다 (`.bl-logo img { height: 26px; width: auto }`).
+  `<img width>` 속성으로 박지 않는다 — 480px 미디어쿼리에서 못 줄인다.
+- `display: block` 을 준다. 인라인 이미지의 baseline 여백 때문에 헤더 정렬이 틀어진다.
+- **투명 배경 PNG** 로 만든다. 흰 배경이 박혀 있으면 다크모드에서 흰 사각형이 뜬다.
+- 표시 크기의 **2~3배 해상도**까지만. 원본 마스터를 그대로 올리지 않는다 (5-2).
+- `<picture>` 는 `prefers-color-scheme` 만 따라간다. **뷰어의 `data-theme` 은 못 따라가므로
+  읽기 화면에 이미지 자산을 쓰지 않는다.**
 
 ---
 
@@ -235,7 +265,12 @@ static/css/bl.css             1개. 화면별로 쪼개지 않는다.
 static/js/bl/<화면>.js        화면당 1개 (ES 모듈)
 static/js/bl/card.js          화면 간 공용 조각은 별도 모듈로
 static/js/bl/key.js
+static/img/logo.png           웹에 나가는 자산 — 표시 크기의 2~3배까지만
+static/img/logo-dark.png      다크모드용 (4-6)
+assets/logo-master.png        원본 마스터. nginx 가 서빙하지 않는 곳에 둔다
 ```
+
+`static/` 아래는 **nginx 가 그대로 서빙한다.** 고해상도 원본·작업 파일을 여기 두지 않는다.
 
 ### 5-3. `bl.css` 내부 순서
 
@@ -285,9 +320,12 @@ static/js/bl/key.js
 - `--accent` = `--fg`. 강조는 색이 아니라 검정 채움(`.bl-btn.primary`)으로 만든다.
 - `--line-strong` 은 hover에서 테두리를 **완전한 검정/흰색**으로 올린다. 테두리만으로 구분되는
   구조라 hover가 확실히 보여야 한다.
-- 로고 `bl<span>test</span>` 의 뒷글자는 `--muted` — accent가 fg와 같아져 두 톤이 죽으므로 회색으로 준다.
+- 로고는 텍스트가 아니라 **이미지**다 (4-6). 팔레트 변수의 영향을 받지 않는다.
 
 **뱃지** — `.teen`(15세) `--fg`+`--line-strong` · `.mine`(내 작품) `--accent` · `.draft`(비공개) `--danger`
+
+**로고** — `480x144` (투명 PNG) · 헤더 표시 높이 `26px` (≤480px: `22px`)
+원본 브랜드색 검정 `#201e1d` + 레드 `#e30613` / 다크 변형 `#ededed` + `#ff5c63`
 
 **뷰어 sepia 테마** — `--bg`·`--panel` `#f4ecd8` / `--tint #eae0c8` / `--fg #433422` / `--line #ddd0b4` / `--muted #8a7a5f`
 
@@ -318,6 +356,7 @@ static/js/bl/key.js
 - [ ] 길어질 수 있는 flex 자식에 `min-width: 0` 있는가
 - [ ] 색을 hex로 하드코딩하지 않고 변수를 썼는가 (무채색만 — 빨강은 삭제·경고·비공개만)
 - [ ] 면을 구분할 때 `--bg` 가 아니라 `--tint` 를 썼는가
+- [ ] 이미지를 넣었다면 다크용 파일도 만들고 `<picture>` 로 걸었는가 (4-6)
 - [ ] 새 부품을 만들기 전에 5-1 목록에서 재사용할 걸 찾아봤는가
 - [ ] `bl.css` 의 정해진 자리(5-3)에 섹션 주석과 함께 넣었는가
 - [ ] 480px 미디어쿼리를 새로 추가하지 않았는가
@@ -334,4 +373,5 @@ static/js/bl/key.js
 | 색 변수 축을 추가한다 | 4-1을 먼저 고치고 나서 CSS 수정 |
 | 상태 색(초록·파랑 등)을 추가하고 싶다 | **4-2 모노톤 원칙을 먼저 고친다** |
 | 공용 부품을 추가한다 | 5-1 목록에 등록 |
+| 이미지 자산을 추가한다 | 4-6 대로 라이트/다크 2벌 + 마스터는 `assets/` |
 | 멀티컬럼 · 사이드바 등 새 레이아웃 패턴이 필요하다 | **2장을 먼저 고친다.** 코드 먼저 짜지 않는다 |
