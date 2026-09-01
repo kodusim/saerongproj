@@ -8,7 +8,6 @@ saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 두 개의 독립�
 | `/tdmprediction/` | 반코마이신 혈중 농도 하이브리드(ML + DL) 예측 |
 | `/tdmprediction/logs/` | 예측 감사 로그 (읽기 전용) |
 | `/work/` | 실시간 채팅 · 자료실 · 공지사항 · 일정 달력 · 미니게임 |
-| `/bltest/` | **알카포스트** — BL 소설 연재 플랫폼 (프로토타입) — [기획](LB기획.md) · [디자인 규약](DESIGN.md) |
 | `/healthz` | 헬스체크 |
 
 ## 구성
@@ -84,6 +83,8 @@ uvicorn app.main:app --reload           # DEBUG=True 면 /api/docs 도 열린다
 과거에 있었으나 제거된 앱 — 필요하면 git 히스토리에서 복구한다.
 DB 테이블은 drop 하지 않고 남겨두었다.
 
+- `bl` / `/bltest/` (2026-09-01) — 알카포스트는 별도 저장소·별도 서버
+  ([arcatree](https://github.com/kodusim/arcatree), arcatree.com) 로 이전
 - `animal` (2026-06-08)
 - `moscom` / `/mosquito-test/` (2026-08-24) — moscom.ai 는 별도 서버·별도 저장소로 이전
 - `common`, `core`, `sources`, `collector`, `analytics`, `api`, `game_honey_alarm` (2026-08-24)
