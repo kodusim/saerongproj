@@ -245,7 +245,6 @@
 .gw-row.mine .col-no,
 .gw-row.mine .col-title { font-weight: 700; }
 .gw-table-head > span, .gw-row > span {
-    flex-shrink: 0;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
