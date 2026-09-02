@@ -56,14 +56,18 @@ function renderGroupware() {
         const author = escapeHtml(m.sender_name);
         return `
             <div class="gw-row${isMine(m.sender_ip) ? ' mine' : ''}">
-                <span class="col-chk"><input type="checkbox" disabled></span>
-                <span class="col-status">${m.image_url ? '🖼' : '📄'}</span>
-                <span class="col-type">등록</span>
-                <span class="col-no" title="${docNo}">${docNo}</span>
-                <span class="col-attach">${m.image_url ? 1 : 0}</span>
-                <span class="col-title" title="${titleText}">${titleText}${imgIcon}</span>
-                <span class="col-author" title="${author}">${author}</span>
-                <span class="col-datetime" title="${dateText}">${dateText}</span>
+                <div class="gw-row-meta">
+                    <span class="col-chk"><input type="checkbox" disabled></span>
+                    <span class="col-status">${m.image_url ? '🖼' : '📄'}</span>
+                    <span class="col-type">등록</span>
+                    <span class="col-no" title="${docNo}">${docNo}</span>
+                    <span class="col-attach">첨부 ${m.image_url ? 1 : 0}</span>
+                </div>
+                <div class="gw-row-main">
+                    <span class="col-title" title="${titleText}">${titleText}${imgIcon}</span>
+                    <span class="col-author" title="${author}">${author}</span>
+                    <span class="col-datetime" title="${dateText}">${dateText}</span>
+                </div>
             </div>
         `;
     }).reverse().join('');

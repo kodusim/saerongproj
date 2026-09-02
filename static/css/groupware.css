@@ -179,88 +179,95 @@
 .gw-toolbar-row .gw-refresh { color: #1B3A6B; cursor: pointer; font-weight: 700; }
 .gw-toolbar-row .gw-refresh:hover { text-decoration: underline; }
 
-/* 열 너비는 wrap 의 CSS 변수로 잡는다 — 헤더와 모든 행이 같은 값을 보므로
-   행을 다시 그려도 사용자가 조정한 너비가 그대로 유지된다.
-   합계가 넓어지면 wrap 이 가로로 스크롤되고 헤더와 본문이 같이 움직인다. */
+/* 표 = 채팅/게시글 목록. 컬럼을 옆으로 욱여넣는 대신 행마다 두 줄로 접어
+   둔다 — 위 줄(.gw-row-meta)은 짧고 고정된 부가정보, 아래 줄(.gw-row-main)
+   이 실제 내용(제목)과 작성자·일시다. 창 폭과 무관하게 항상 이 모양이라
+   가로 스크롤이 필요 없고, 제목이 길면 그냥 그 줄만 늘어난다.
+   헤더(.gw-table-head)도 본문 행과 같은 두 줄 구조를 그대로 써서 라벨이
+   실제로 그 아래 내용과 같은 자리에 온다. */
 .gw-table-wrap {
-    --w-chk: 24px;
-    --w-status: 40px;
-    --w-type: 64px;
-    --w-no: 116px;
-    --w-attach: 58px;
-    --w-title: 320px;
-    --w-author: 104px;
-    --w-datetime: 96px;
-
-    --w-bd-no: 54px;
-    --w-bd-cat: 62px;
-    --w-bd-title: 320px;
-    --w-bd-author: 104px;
-    --w-bd-views: 48px;
-    --w-bd-date: 96px;
-
-    --w-nt-no: 54px;
-    --w-nt-cat: 62px;
-    --w-nt-title: 320px;
-    --w-nt-author: 104px;
-    --w-nt-views: 48px;
-    --w-nt-date: 96px;
-
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow-x: auto;
     overflow-y: hidden;
-    container-type: inline-size;
-    container-name: gw-table;
 }
 .gw-table-head {
     flex: 0 0 auto;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: 3px;
     padding: 6px 12px;
     background: #f5f6f8;
     border-bottom: 1px solid #dfe3e8;
-    font-size: 11px;
     font-weight: 700;
     color: #5b6472;
-    min-width: max-content;
 }
 .gw-table-body {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
-    min-width: max-content;
 }
 
 .gw-row {
     display: flex;
-    align-items: center;
-    padding: 7px 12px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 12px;
     border-bottom: 1px solid #eef0f3;
-    font-size: 11.5px;
     color: #333;
 }
 .gw-row:hover { background: #f5f8ff; }
 .gw-row.mine .col-author,
 .gw-row.mine .col-no,
 .gw-row.mine .col-title { font-weight: 700; }
-.gw-table-head > span, .gw-row > span {
+
+/* 위 줄 — 상태/등록구분/문서번호/첨부번호(자료실·공지사항은 번호/분류/조회),
+   전부 짧은 고정 텍스트라 폭 걱정 없이 한 줄로 흐른다. */
+.gw-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10.5px;
+    color: #8a92a0;
+}
+.gw-row-meta > span { flex: 0 0 auto; white-space: nowrap; }
+.col-chk input { pointer-events: none; }
+.col-status { font-size: 12px; }
+.col-no, .col-bd-no, .col-nt-no { font-family: Consolas, 'Courier New', monospace; }
+
+/* 아래 줄 — 실제 내용(제목) + 작성자·일시. 제목만 유연한 폭으로 줄바꿈되고
+   (최대 3줄, 넘치면 말줄임 — ㅋㅋㅋ 처럼 공백 없는 글도 overflow-wrap 으로
+   반드시 줄 안에서 끊는다), 작성자·일시는 오른쪽에 고정으로 붙는다. */
+.gw-row-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12.5px;
+}
+.col-title, .col-bd-title, .col-nt-title {
+    flex: 1 1 auto;
     min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
     overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+.col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
+.col-author, .col-bd-author, .col-nt-author {
+    flex: 0 0 auto;
+    font-size: 11.5px;
+    color: #5b6472;
     white-space: nowrap;
 }
-.col-chk { flex: 0 0 var(--w-chk); padding-right: 4px; }
-.col-chk input { pointer-events: none; }
-.col-status { flex: 0 0 var(--w-status); text-align: center; font-size: 13px; padding-right: 8px; }
-.col-type { flex: 0 0 var(--w-type); color: #444; text-overflow: ellipsis; padding-right: 12px; }
-.col-no { flex: 0 0 var(--w-no); color: #7a8290; font-family: Consolas, 'Courier New', monospace; font-size: 10.5px; text-overflow: ellipsis; padding-right: 12px; }
-.col-attach { flex: 0 0 var(--w-attach); color: #999; text-align: center; padding-right: 8px; }
-.col-title { flex: 1 1 var(--w-title); text-overflow: ellipsis; }
-.col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
-.col-author { flex: 0 0 var(--w-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
-.col-datetime { flex: 0 0 var(--w-datetime); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+.col-datetime, .col-bd-date, .col-nt-date {
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: 11px;
+    color: #8a92a0;
+    white-space: nowrap;
+}
 .gw-empty {
     padding: 40px 20px;
     text-align: center;
@@ -406,53 +413,12 @@
 .bd-btn.danger:hover { background: #fdf0ee; }
 .bd-spacer { flex: 1; }
 
-.col-bd-no { flex: 0 0 var(--w-bd-no); color: #8a92a0; text-align: center; padding-right: 8px; }
-.col-bd-cat { flex: 0 0 var(--w-bd-cat); color: #1B3A6B; padding-right: 10px; }
-.col-bd-title { flex: 1 1 var(--w-bd-title); text-overflow: ellipsis; cursor: pointer; }
-.col-bd-title:hover { text-decoration: underline; color: #1B3A6B; }
-.col-bd-author { flex: 0 0 var(--w-bd-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
-.col-bd-views { flex: 0 0 var(--w-bd-views); color: #999; text-align: center; padding-right: 8px; }
-.col-bd-date { flex: 0 0 var(--w-bd-date); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+.col-bd-cat { color: #1B3A6B; }
+.col-bd-title, .col-nt-title { cursor: pointer; }
+.col-bd-title:hover, .col-nt-title:hover { text-decoration: underline; color: #1B3A6B; }
 
-/* ---- 공지사항 (결재 탭) — 자료실과 같은 표, 열 너비만 따로 기억한다 ---- */
-.col-nt-no { flex: 0 0 var(--w-nt-no); color: #8a92a0; text-align: center; padding-right: 8px; }
-.col-nt-cat { flex: 0 0 var(--w-nt-cat); color: #c0392b; font-weight: 700; padding-right: 10px; }
-.col-nt-title { flex: 1 1 var(--w-nt-title); text-overflow: ellipsis; cursor: pointer; }
-.col-nt-title:hover { text-decoration: underline; color: #1B3A6B; }
-.col-nt-author { flex: 0 0 var(--w-nt-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
-.col-nt-views { flex: 0 0 var(--w-nt-views); color: #999; text-align: center; padding-right: 8px; }
-.col-nt-date { flex: 0 0 var(--w-nt-date); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
-
-/* ---- 좁은 표 : 가로 스크롤 대신 행을 카드처럼 여러 줄로 접는다 ----
-   .gw-table-wrap 에 건 container query 라서 사이드바 유무와 무관하게
-   "표 자신의 실제 폭"만 보고 판단한다 (문서함/자료실/공지사항 공용). */
-@container gw-table (max-width: 860px) {
-    .gw-table-wrap { overflow-x: hidden; }
-    .gw-table-head { display: none; }
-    .gw-table-body { overflow-x: hidden; min-width: 0; }
-    .gw-row { flex-wrap: wrap; row-gap: 3px; padding: 8px 12px; min-width: 0; }
-
-    .col-chk { display: none; }
-    .col-status, .col-type, .col-no, .col-attach,
-    .col-bd-no, .col-bd-cat, .col-nt-no, .col-nt-cat { order: 0; flex: 0 0 auto; }
-
-    .col-title, .col-bd-title, .col-nt-title {
-        order: 1;
-        flex: 1 1 100%;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        margin: 2px 0;
-    }
-
-    .col-author, .col-datetime,
-    .col-bd-author, .col-bd-views, .col-bd-date,
-    .col-nt-author, .col-nt-views, .col-nt-date { order: 2; flex: 0 0 auto; }
-    .col-datetime, .col-bd-date, .col-nt-date { margin-left: auto; text-align: left; padding-left: 0; }
-}
+/* ---- 공지사항 (결재 탭) — 자료실과 같은 표, 분류 색만 다르다 ---- */
+.col-nt-cat { color: #c0392b; font-weight: 700; }
 
 /* ---- 일정 달력 (설비예약 탭) ---- */
 .sc-cal-toolbar { align-items: center; }

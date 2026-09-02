@@ -94,12 +94,16 @@ export function createBoard(cfg) {
             ? '<div class="gw-empty">등록된 글이 없습니다.</div>'
             : posts.map((p) => `
                 <div class="gw-row${isMine(p.author_ip) ? ' mine' : ''}">
-                    <span class="${C}-no">${p.id}</span>
-                    <span class="${C}-cat">${escapeHtml(p.category_label)}</span>
-                    <span class="${C}-title" data-id="${p.id}" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
-                    <span class="${C}-author" title="${escapeHtml(p.author_name)}">${escapeHtml(p.author_name)}</span>
-                    <span class="${C}-views">${p.views}</span>
-                    <span class="${C}-date">${formatDateTime(p.created_at)}</span>
+                    <div class="gw-row-meta">
+                        <span class="${C}-no">${p.id}</span>
+                        <span class="${C}-cat">${escapeHtml(p.category_label)}</span>
+                        <span class="${C}-views">조회 ${p.views}</span>
+                    </div>
+                    <div class="gw-row-main">
+                        <span class="${C}-title" data-id="${p.id}" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
+                        <span class="${C}-author" title="${escapeHtml(p.author_name)}">${escapeHtml(p.author_name)}</span>
+                        <span class="${C}-date">${formatDateTime(p.created_at)}</span>
+                    </div>
                 </div>
             `).join('');
 
