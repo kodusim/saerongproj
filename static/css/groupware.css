@@ -199,6 +199,7 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
+    gap: 8px;
     padding: 6px 12px;
     background: #f5f6f8;
     border-bottom: 1px solid #dfe3e8;
@@ -215,6 +216,7 @@
 .gw-row {
     display: flex;
     align-items: center;
+    gap: 8px;
     padding: 7px 12px;
     border-bottom: 1px solid #eef0f3;
     font-size: 11.5px;
@@ -229,12 +231,15 @@
     /* min-width: 0 이면 flex-basis: 0 짜리 열들이 진짜로 0px 까지 쪼그라들어서
        내용이 사라진다(그러면 위의 overflow-x: auto 안전망도 스크롤할 게 없어
        무용지물). 최소 폭을 조금 남겨야 열이 대신 표를 넘치게 만들고, 그걸
-       가로 스크롤로 볼 수 있다. */
+       가로 스크롤로 볼 수 있다. 열 사이 간격은 padding 이 아니라 위
+       .gw-table-head/.gw-row 의 gap 하나로만 준다 — 예전에 이 공통 규칙의
+       padding-right 가 명시도(specificity) 때문에 열별 padding-right 를
+       계속 덮어써서(체크박스 4px, 일시 0 이 다 10px 로 강제됐었다) 체크박스·
+       상태 열이 항상 이상하게 넓어 보이는 원인이었다. */
     min-width: 22px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    padding-right: 10px;
 }
 
 /* 열마다 글자 크기·정렬을 따로 주지 않는다 — 표 전체가 한 크기(헤더 11px /
@@ -243,7 +248,7 @@
    비율 칸으로 두면 넓은 창에서 아이콘 하나 찍고 뒤에 큰 빈 공간만 남는다.
    나머지는 비율(flex-grow) — 문서함 등록구분:문서번호:첨부번호:제목:작성자:일시
    = 1:2:1:10:2:1 (제목 위주로, 짧고 안 변하는 열은 최소로). */
-.col-chk { flex: 0 0 20px; padding-right: 4px; }
+.col-chk { flex: 0 0 20px; }
 .col-chk input { pointer-events: none; }
 .col-status { flex: 0 0 26px; }
 .col-type { flex: 1 1 0; color: #444; }
@@ -252,7 +257,7 @@
 .col-title { flex: 10 1 0; }
 .col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
 .col-author { flex: 2 1 0; color: #444; }
-.col-datetime { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
+.col-datetime { flex: 1 1 0; color: #8a92a0; }
 
 /* 자료실/공지사항 — 번호:분류:제목:작성자:조회:작성일 = 1:1:10:2:1:1 */
 .col-bd-no, .col-nt-no { flex: 1 1 0; color: #8a92a0; }
@@ -261,7 +266,7 @@
 .col-bd-title:hover, .col-nt-title:hover { text-decoration: underline; color: #1B3A6B; }
 .col-bd-author, .col-nt-author { flex: 2 1 0; color: #444; }
 .col-bd-views, .col-nt-views { flex: 1 1 0; color: #999; }
-.col-bd-date, .col-nt-date { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
+.col-bd-date, .col-nt-date { flex: 1 1 0; color: #8a92a0; }
 .col-bd-cat { color: #1B3A6B; }
 .col-nt-cat { color: #c0392b; font-weight: 700; }
 
