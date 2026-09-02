@@ -264,6 +264,18 @@
 .col-bd-date, .col-nt-date { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
 .col-bd-cat { color: #1B3A6B; }
 .col-nt-cat { color: #c0392b; font-weight: 700; }
+
+/* 진짜 좁은(폰 정도) 창에서는 비율을 아무리 조정해도 8개 열이 물리적으로
+   안 들어간다 — 체크박스+상태만 해도 46px, 나머지 6열이 못해도 한두 글자는
+   보여야 하는데 그 합만 130px+ 다. 이 폭에서는 장식성 열(등록구분/문서번호/
+   첨부번호/체크박스, 자료실·공지사항은 번호/분류/조회)을 통째로 숨겨서
+   제목·작성자·일시(진짜 내용)만 남긴다 — 그러면 그 셋은 비율 그대로,
+   스크롤 없이 항상 들어간다. */
+@media (max-width: 480px) {
+    .col-chk, .col-type, .col-no, .col-attach,
+    .col-bd-no, .col-bd-cat, .col-bd-views,
+    .col-nt-no, .col-nt-cat, .col-nt-views { display: none; }
+}
 .gw-empty {
     padding: 40px 20px;
     text-align: center;
