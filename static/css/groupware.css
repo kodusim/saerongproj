@@ -179,12 +179,10 @@
 .gw-toolbar-row .gw-refresh { color: #1B3A6B; cursor: pointer; font-weight: 700; }
 .gw-toolbar-row .gw-refresh:hover { text-decoration: underline; }
 
-/* 표 = 채팅/게시글 목록. 컬럼을 옆으로 욱여넣는 대신 행마다 두 줄로 접어
-   둔다 — 위 줄(.gw-row-meta)은 짧고 고정된 부가정보, 아래 줄(.gw-row-main)
-   이 실제 내용(제목)과 작성자·일시다. 창 폭과 무관하게 항상 이 모양이라
-   가로 스크롤이 필요 없고, 제목이 길면 그냥 그 줄만 늘어난다.
-   헤더(.gw-table-head)도 본문 행과 같은 두 줄 구조를 그대로 써서 라벨이
-   실제로 그 아래 내용과 같은 자리에 온다. */
+/* 표 = 채팅/게시글 목록. 픽셀 고정폭 대신 열마다 비율(flex-grow)만 정해서
+   폭을 나눈다 — flex-basis 를 0 으로 주면 열 폭의 합이 항상 표 폭 100% 로
+   딱 맞아떨어져서 창을 아무리 줄여도 넘치는 열이 생기지 않는다 (넘치던
+   내용은 줄어든 제 칸 안에서 말줄임표로 잘릴 뿐). 한 행 = 한 줄 그대로. */
 .gw-table-wrap {
     flex: 1;
     min-height: 0;
@@ -195,11 +193,11 @@
 .gw-table-head {
     flex: 0 0 auto;
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
     padding: 6px 12px;
     background: #f5f6f8;
     border-bottom: 1px solid #dfe3e8;
+    font-size: 11px;
     font-weight: 700;
     color: #5b6472;
 }
@@ -210,10 +208,10 @@
 
 .gw-row {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 8px 12px;
+    align-items: center;
+    padding: 7px 12px;
     border-bottom: 1px solid #eef0f3;
+    font-size: 11.5px;
     color: #333;
 }
 .gw-row:hover { background: #f5f8ff; }
@@ -221,53 +219,38 @@
 .gw-row.mine .col-no,
 .gw-row.mine .col-title { font-weight: 700; }
 
-/* 위 줄 — 상태/등록구분/문서번호/첨부번호(자료실·공지사항은 번호/분류/조회),
-   전부 짧은 고정 텍스트라 폭 걱정 없이 한 줄로 흐른다. */
-.gw-row-meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 10.5px;
-    color: #8a92a0;
-}
-.gw-row-meta > span { flex: 0 0 auto; white-space: nowrap; }
-.col-chk input { pointer-events: none; }
-.col-status { font-size: 12px; }
-.col-no, .col-bd-no, .col-nt-no { font-family: Consolas, 'Courier New', monospace; }
-
-/* 아래 줄 — 실제 내용(제목) + 작성자·일시. 제목만 유연한 폭으로 줄바꿈되고
-   (최대 3줄, 넘치면 말줄임 — ㅋㅋㅋ 처럼 공백 없는 글도 overflow-wrap 으로
-   반드시 줄 안에서 끊는다), 작성자·일시는 오른쪽에 고정으로 붙는다. */
-.gw-row-main {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 12.5px;
-}
-.col-title, .col-bd-title, .col-nt-title {
-    flex: 1 1 auto;
+.gw-table-head > span, .gw-row > span {
     min-width: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding-right: 10px;
 }
+
+/* 열마다 글자 크기·정렬을 따로 주지 않는다 — 표 전체가 한 크기(헤더 11px /
+   본문 11.5px), 전부 왼쪽 정렬. 구분은 오직 색으로만 한다(부가정보는 회색).
+   문서함 — 상태:등록구분:문서번호:첨부번호:제목:작성자:일시 = 1:1:2:1:5:1:1 */
+.col-chk { flex: 0 0 20px; padding-right: 4px; }
+.col-chk input { pointer-events: none; }
+.col-status { flex: 1 1 0; }
+.col-type { flex: 1 1 0; color: #444; }
+.col-no { flex: 2 1 0; color: #7a8290; }
+.col-attach { flex: 1 1 0; color: #999; }
+.col-title { flex: 5 1 0; }
 .col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
-.col-author, .col-bd-author, .col-nt-author {
-    flex: 0 0 auto;
-    font-size: 11.5px;
-    color: #5b6472;
-    white-space: nowrap;
-}
-.col-datetime, .col-bd-date, .col-nt-date {
-    flex: 0 0 auto;
-    margin-left: auto;
-    font-size: 11px;
-    color: #8a92a0;
-    white-space: nowrap;
-}
+.col-author { flex: 1 1 0; color: #444; }
+.col-datetime { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
+
+/* 자료실/공지사항 — 번호:분류:제목:작성자:조회:작성일 = 1:1:5:1:1:1 */
+.col-bd-no, .col-nt-no { flex: 1 1 0; color: #8a92a0; }
+.col-bd-cat, .col-nt-cat { flex: 1 1 0; }
+.col-bd-title, .col-nt-title { flex: 5 1 0; cursor: pointer; }
+.col-bd-title:hover, .col-nt-title:hover { text-decoration: underline; color: #1B3A6B; }
+.col-bd-author, .col-nt-author { flex: 1 1 0; color: #444; }
+.col-bd-views, .col-nt-views { flex: 1 1 0; color: #999; }
+.col-bd-date, .col-nt-date { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
+.col-bd-cat { color: #1B3A6B; }
+.col-nt-cat { color: #c0392b; font-weight: 700; }
 .gw-empty {
     padding: 40px 20px;
     text-align: center;
