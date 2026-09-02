@@ -229,24 +229,27 @@
 
 /* 열마다 글자 크기·정렬을 따로 주지 않는다 — 표 전체가 한 크기(헤더 11px /
    본문 11.5px), 전부 왼쪽 정렬. 구분은 오직 색으로만 한다(부가정보는 회색).
-   문서함 — 상태:등록구분:문서번호:첨부번호:제목:작성자:일시 = 1:1:2:1:5:1:1 */
+   상태는 아이콘 한 글자로 내용이 절대 안 변해서 체크박스처럼 고정폭 —
+   비율 칸으로 두면 넓은 창에서 아이콘 하나 찍고 뒤에 큰 빈 공간만 남는다.
+   나머지는 비율(flex-grow) — 문서함 등록구분:문서번호:첨부번호:제목:작성자:일시
+   = 1:2:1:10:2:1 (제목 위주로, 짧고 안 변하는 열은 최소로). */
 .col-chk { flex: 0 0 20px; padding-right: 4px; }
 .col-chk input { pointer-events: none; }
-.col-status { flex: 1 1 0; }
+.col-status { flex: 0 0 26px; }
 .col-type { flex: 1 1 0; color: #444; }
 .col-no { flex: 2 1 0; color: #7a8290; }
 .col-attach { flex: 1 1 0; color: #999; }
-.col-title { flex: 5 1 0; }
+.col-title { flex: 10 1 0; }
 .col-title .row-img-icon { margin-left: 6px; cursor: pointer; }
-.col-author { flex: 1 1 0; color: #444; }
+.col-author { flex: 2 1 0; color: #444; }
 .col-datetime { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
 
-/* 자료실/공지사항 — 번호:분류:제목:작성자:조회:작성일 = 1:1:5:1:1:1 */
+/* 자료실/공지사항 — 번호:분류:제목:작성자:조회:작성일 = 1:1:10:2:1:1 */
 .col-bd-no, .col-nt-no { flex: 1 1 0; color: #8a92a0; }
 .col-bd-cat, .col-nt-cat { flex: 1 1 0; }
-.col-bd-title, .col-nt-title { flex: 5 1 0; cursor: pointer; }
+.col-bd-title, .col-nt-title { flex: 10 1 0; cursor: pointer; }
 .col-bd-title:hover, .col-nt-title:hover { text-decoration: underline; color: #1B3A6B; }
-.col-bd-author, .col-nt-author { flex: 1 1 0; color: #444; }
+.col-bd-author, .col-nt-author { flex: 2 1 0; color: #444; }
 .col-bd-views, .col-nt-views { flex: 1 1 0; color: #999; }
 .col-bd-date, .col-nt-date { flex: 1 1 0; color: #8a92a0; padding-right: 0; }
 .col-bd-cat { color: #1B3A6B; }
