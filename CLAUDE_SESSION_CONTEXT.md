@@ -13,26 +13,50 @@
 
 ## 2. 서버 / 배포
 
-- 서버: **`saerong-instance`** (SSH 별칭, ~/.ssh/config)
-  - HostName 15.164.130.99, User ubuntu, AWS EC2
-  - Sudo 패스워드 없이 가능 (NOPASSWD 설정됨)
-- 프로젝트 경로: **`/srv/course-repo`**
-- 가상환경: **`/srv/venv/bin/python`** (sklearn 1.6.1, joblib 1.4.2, numpy 2.2.4, torch 2.7.0+cpu 설치됨)
-- DB: PostgreSQL, **`saerong`** DB, user `saerong_user`
-  - 접근: `sudo -u postgres psql -d saerong`
-- 웹서버: **uvicorn (systemd `saerong` 서비스, 워커 1개) + nginx**
-  - `gunicorn` 서비스는 disable 됨 (Django 시절 유물)
-  - nginx 설정은 저장소에서 관리: `deploy/nginx-saerong.conf`, `deploy/nginx-websocket.conf`
-  - `sites-enabled/default` 는 이제 `sites-available/default` 심볼릭 링크 (전에는 실제 파일이라
-    sites-available 만 고쳐도 반영이 안 됐다 — 함정)
-- **배포 패턴** (사용자가 별도 지시 없으면 매번 이 흐름):
+> ⚠️ **2026-09-02: `saerong.com` 은 AWS 계정 정지로 DNS 가 죽어 있다.**
+> 실제로 사용자가 보는 사이트는 **`saerong.arcatree.com`** (arcatree 서버에 동거) 이다.
+> `saerong-instance` 에만 배포하고 healthz 200 나온 걸 보고 "배포 끝났다"고 하면 틀린다 —
+> 그건 죽은 도메인에 떠 있는 옛날 인스턴스일 뿐, 사용자가 보는 화면과 무관하다.
+> **반드시 아래 두 서버 모두에 배포할 것.** 결제가 풀려 `saerong.com` DNS 가 살아나면
+> 이 경고와 "서버 B" 절은 지우고 `saerong-instance` 하나로 되돌린다.
+
+### 서버 A — `saerong-instance` (예전 단독 서버, 지금은 DNS 없음)
+- SSH 별칭 `saerong-instance` → HostName 15.164.130.99, User ubuntu, AWS EC2, sudo NOPASSWD
+- 프로젝트 경로: `/srv/course-repo`, venv `/srv/venv/bin/python`
+  (sklearn 1.6.1, joblib 1.4.2, numpy 2.2.4, torch 2.7.0+cpu 설치됨)
+- DB: PostgreSQL, `saerong` DB, user `saerong_user` (`sudo -u postgres psql -d saerong`)
+- uvicorn (systemd `saerong` 서비스, 워커 1개) + nginx, `deploy/nginx-saerong.conf`
+- 배포:
   ```bash
-  git add ... && git commit -m "..." && git push origin main
   ssh saerong-instance "cd /srv/course-repo && sudo git pull \
     && sudo /srv/venv/bin/python -c 'import app.main' \
     && sudo systemctl restart saerong && sleep 2 && systemctl is-active saerong"
-  curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.com/healthz
   ```
+- 확인은 `--resolve saerong.com:443:127.0.0.1` 로 강제해야 한다 — 이 서버 자체가 실제
+  `saerong.com` 을 DNS 로 못 찾는다(계정 정지). 이 확인은 **서버 A 배포 확인일 뿐,
+  사용자가 보는 사이트 확인이 아니다.**
+
+### 서버 B — `arcatree` (지금 실제 서비스 중인 곳)
+- SSH 별칭 `arcatree` → HostName 43.201.199.219, User ubuntu,
+  IdentityFile `~/.ssh/moscom_ai`, `IdentitiesOnly yes`
+- 프로젝트 경로: **`/home/ubuntu/saerong`** (서버 A 와 다름, `/srv/course-repo` 아님),
+  venv `.venv/bin/python` (경로 안에 있음, sudo 불필요 — 파일 소유자가 ubuntu)
+- 같은 서버에 `arcatree.service`(알카포스트 앱)도 같이 돈다 — 남남 아님, 한 EC2 를 나눠 쓴다.
+  `saerong.service` 는 `MemoryHigh=700M` 로 상한을 둬서 arcatree 를 안 밀어낸다.
+- uvicorn 127.0.0.1:**8001** (systemd `saerong` 서비스) + nginx `saerong.arcatree.com` vhost
+  (`/etc/nginx/sites-available/saerong`, 서버 자체에만 있음 — 이 저장소 `deploy/` 에는 없다)
+- 배포 (sudo 불필요, git pull 은 ubuntu 소유라 바로 됨 — 서비스 restart 만 sudo):
+  ```bash
+  ssh arcatree "cd /home/ubuntu/saerong && git pull \
+    && .venv/bin/python -c 'import app.main' \
+    && sudo systemctl restart saerong && sleep 2 && systemctl is-active saerong"
+  curl -sS -o /dev/null -w "%{http_code}\n" https://saerong.arcatree.com/healthz
+  ```
+- **사용자가 실제로 보는 화면을 확인하려면 이 서버 B 를 봐야 한다.**
+
+- **배포 패턴 (지금은 둘 다):** git push 한 번 → 서버 A 에 pull+restart → 서버 B 에 pull+restart →
+  마지막에 반드시 `https://saerong.arcatree.com/...` 로 실제 반영 확인 (서버 A 확인만 하고
+  끝냈다가 사용자에게 "안 바뀌었다" 지적받은 전례 있음, 2026-09-02).
 - **워커는 1개로 고정.** TDM 모델이 워커당 약 470MB (측정값: django 45 → +ML 330 → +torch 95)
   이고, 채팅 WebSocket 브로드캐스트가 프로세스 내부에서 일어난다. 늘리려면 Redis pub/sub 필요.
 - 호스트 라우팅: 없음. **`moscom.ai` 는 별도 서버(43.201.131.25) / 별도 저장소로 분리됨** — 이 저장소와 무관.
