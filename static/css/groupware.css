@@ -212,6 +212,8 @@
     flex-direction: column;
     overflow-x: auto;
     overflow-y: hidden;
+    container-type: inline-size;
+    container-name: gw-table;
 }
 .gw-table-head {
     flex: 0 0 auto;
@@ -420,6 +422,37 @@
 .col-nt-author { flex: 0 0 var(--w-nt-author); color: #444; text-overflow: ellipsis; padding-right: 10px; }
 .col-nt-views { flex: 0 0 var(--w-nt-views); color: #999; text-align: center; padding-right: 8px; }
 .col-nt-date { flex: 0 0 var(--w-nt-date); color: #8a92a0; font-size: 10.5px; text-align: right; padding-left: 8px; }
+
+/* ---- 좁은 표 : 가로 스크롤 대신 행을 카드처럼 여러 줄로 접는다 ----
+   .gw-table-wrap 에 건 container query 라서 사이드바 유무와 무관하게
+   "표 자신의 실제 폭"만 보고 판단한다 (문서함/자료실/공지사항 공용). */
+@container gw-table (max-width: 860px) {
+    .gw-table-wrap { overflow-x: hidden; }
+    .gw-table-head { display: none; }
+    .gw-table-body { overflow-x: hidden; min-width: 0; }
+    .gw-row { flex-wrap: wrap; row-gap: 3px; padding: 8px 12px; min-width: 0; }
+
+    .col-chk { display: none; }
+    .col-status, .col-type, .col-no, .col-attach,
+    .col-bd-no, .col-bd-cat, .col-nt-no, .col-nt-cat { order: 0; flex: 0 0 auto; }
+
+    .col-title, .col-bd-title, .col-nt-title {
+        order: 1;
+        flex: 1 1 100%;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin: 2px 0;
+    }
+
+    .col-author, .col-datetime,
+    .col-bd-author, .col-bd-views, .col-bd-date,
+    .col-nt-author, .col-nt-views, .col-nt-date { order: 2; flex: 0 0 auto; }
+    .col-datetime, .col-bd-date, .col-nt-date { margin-left: auto; text-align: left; padding-left: 0; }
+}
 
 /* ---- 일정 달력 (설비예약 탭) ---- */
 .sc-cal-toolbar { align-items: center; }
