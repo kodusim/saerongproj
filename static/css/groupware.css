@@ -189,6 +189,11 @@
     display: flex;
     flex-direction: column;
     overflow-y: hidden;
+    /* 비율 열이 감당 못 할 만큼 창이 극단적으로 좁아지면(고정폭인 체크박스+
+       상태만으로도 자리가 빠듯해지는 수준) flex-basis:0 짜리 열들은 그냥
+       0폭이 되면서 내용이 스크롤도 없이 화면 밖으로 사라져버린다. 평소엔
+       절대 안 뜨는 안전망으로만 가로 스크롤을 둔다 — 사라지는 것보단 낫다. */
+    overflow-x: auto;
 }
 .gw-table-head {
     flex: 0 0 auto;
@@ -204,6 +209,7 @@
 .gw-table-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .gw-row {
@@ -220,7 +226,11 @@
 .gw-row.mine .col-title { font-weight: 700; }
 
 .gw-table-head > span, .gw-row > span {
-    min-width: 0;
+    /* min-width: 0 이면 flex-basis: 0 짜리 열들이 진짜로 0px 까지 쪼그라들어서
+       내용이 사라진다(그러면 위의 overflow-x: auto 안전망도 스크롤할 게 없어
+       무용지물). 최소 폭을 조금 남겨야 열이 대신 표를 넘치게 만들고, 그걸
+       가로 스크롤로 볼 수 있다. */
+    min-width: 22px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
