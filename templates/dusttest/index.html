@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>도로 미세먼지 측정 모니터링 | saerong.com</title>
+  <link rel="stylesheet" href="/static/css/dusttest.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">S</span><div><strong>SAERONG</strong><small>FIELD DATA LAB</small></div></div>
+    <div class="topbar-right"><span class="demo-pill">DEMO DATA</span><span class="date-label">2026. 09. 14</span><button class="icon-btn" aria-label="설정">⚙</button></div>
+  </header>
+
+  <main class="shell">
+    <section class="page-intro">
+      <div><p class="eyebrow">ROAD AIR QUALITY MONITORING</p><h1>도로 미세먼지 측정 현황</h1><p class="intro-copy">현장 장치가 측정한 데이터를 한눈에 확인하고, 필요한 원시 데이터를 내려받을 수 있습니다.</p></div>
+      <div class="last-sync"><span class="live-dot"></span><div><b>정상 수신 중</b><small>마지막 전체 동기화 14:32:08</small></div><button id="refresh-btn" class="outline-btn">↻ 새로고침</button></div>
+    </section>
+
+    <section class="notice"><span>ⓘ</span><div><b>목업 화면입니다.</b> 현재 표시된 값은 실제 센서 데이터가 아닌 서비스 예시용 데이터입니다. 실제 연결 시 Raspberry Pi → HTTPS API → DB → 대시보드 순서로 데이터가 전달됩니다.</div></section>
+
+    <section class="summary-grid">
+      <article class="metric-card"><div class="metric-heading"><span class="metric-icon blue">PM</span><span>PM2.5 평균</span><em class="trend up">▲ 8.4%</em></div><strong>28.6 <small>㎍/㎥</small></strong><p>최근 24시간 · 보통</p></article>
+      <article class="metric-card"><div class="metric-heading"><span class="metric-icon orange">PM</span><span>PM10 평균</span><em class="trend down">▼ 3.1%</em></div><strong>43.8 <small>㎍/㎥</small></strong><p>최근 24시간 · 보통</p></article>
+      <article class="metric-card"><div class="metric-heading"><span class="metric-icon green">℃</span><span>현재 온도</span></div><strong>24.8 <small>℃</small></strong><p>습도 61.4%</p></article>
+      <article class="metric-card status-card"><div class="metric-heading"><span class="metric-icon violet">●</span><span>운영 장치</span></div><strong>3 <small>/ 3대</small></strong><p><i class="status-dot"></i> 모든 장치 정상</p></article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel chart-panel">
+        <div class="panel-head"><div><p class="eyebrow">MEASUREMENT TREND</p><h2>측정값 추이</h2></div><div class="chart-controls"><select id="device-filter"><option value="all">전체 장치</option><option value="ROAD-PM-001">1번 장치 · 북문</option><option value="ROAD-PM-002">2번 장치 · 중앙로</option><option value="ROAD-PM-003">3번 장치 · 남문</option></select><select id="period-filter"><option value="24">최근 24시간</option><option value="7">최근 7일</option></select></div></div>
+        <div class="legend"><span><i class="legend-line blue-line"></i>PM2.5</span><span><i class="legend-line orange-line"></i>PM10</span><span class="unit-note">단위: ㎍/㎥</span></div>
+        <div class="chart-wrap"><canvas id="dust-chart"></canvas></div>
+      </article>
+
+      <article class="panel device-panel"><div class="panel-head"><div><p class="eyebrow">DEVICE STATUS</p><h2>장치 상태</h2></div><span class="count-badge">3대</span></div><div id="device-list" class="device-list"></div><div class="panel-foot">장치별 최근 데이터 수신 시각을 표시합니다.</div></article>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-head table-head"><div><p class="eyebrow">RAW MEASUREMENTS</p><h2>측정 이력</h2><p class="panel-sub">조건에 맞는 측정 원본 데이터를 확인하고 내려받을 수 있습니다.</p></div><button id="download-btn" class="primary-btn">↓ CSV 다운로드</button></div>
+      <div class="filter-row"><label>장치 <select id="table-device"><option value="all">전체 장치</option><option value="ROAD-PM-001">1번 장치 · 북문</option><option value="ROAD-PM-002">2번 장치 · 중앙로</option><option value="ROAD-PM-003">3번 장치 · 남문</option></select></label><label>조회 기간 <select><option>최근 24시간</option><option>최근 7일</option></select></label><span class="result-count">총 <b id="result-count">10</b>건 표시</span></div>
+      <div class="table-scroll"><table><thead><tr><th>측정 시각</th><th>장치 ID</th><th>설치 위치</th><th>PM1.0</th><th>PM2.5</th><th>PM10</th><th>온도</th><th>습도</th><th>전송 상태</th></tr></thead><tbody id="measurement-body"></tbody></table></div>
+      <div class="pagination"><button disabled>‹</button><button class="active">1</button><button>2</button><button>3</button><span>...</span><button>12</button><button>›</button></div>
+    </section>
+    <footer><span>SAERONG FIELD DATA LAB</span><span>데이터 수집 서버 연결 전 미리보기 · v0.1</span></footer>
+  </main>
+  <script src="/static/js/dusttest.js"></script>
+</body>
+</html>
