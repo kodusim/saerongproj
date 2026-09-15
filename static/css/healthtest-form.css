@@ -1,0 +1,7 @@
+/* Keep the three input sections visually balanced on proposal screens. */
+@media (min-width: 851px) {
+  .form-layout { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .form-card:nth-child(2) { grid-column: auto; }
+  .form-card { min-width: 0; }
+  .form-card .field-grid { grid-template-columns: 1fr 1fr; }
+}
