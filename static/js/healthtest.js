@@ -1,4 +1,8 @@
 const $ = (s) => document.querySelector(s);
+document.addEventListener('DOMContentLoaded', () => {
+  const card = document.querySelector('#capabilities .cap-grid article:nth-child(3)');
+  if (card) card.innerHTML = '<span>03 · MOSCOM AI</span><h3>AI 모기 감시·예측</h3><p>관측 장비 데이터를 통합하고 모기지수·추세·AI 위험도 예보를 제공한 경험을 반영했습니다.</p>';
+});
 let lastPayload = null;
 let resultData = null;
 let trendChart = null;
