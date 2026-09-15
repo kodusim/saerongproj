@@ -29,6 +29,7 @@ CSRF_EXEMPT_PATHS = frozenset({
     '/tdmprediction/login/',       # 폼 전송 — 라우트에서 직접 검증
     '/tdmprediction/api/predict/',  # Django 에서도 csrf_exempt
 })
+CSRF_EXEMPT_PATHS = frozenset(set(CSRF_EXEMPT_PATHS) | {'/api/analyze'})
 
 TDM_SESSION_KEY = 'tdm_authed'
 TDM_LOGIN_ID_KEY = 'tdm_login_id'

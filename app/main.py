@@ -15,10 +15,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, settings
-from app.routers import dusttest, farm, tdm, work
+from app.routers import dusttest, farm, healthtest, tdm, work
 from app.security import CsrfMiddleware
 from app.templating import templates
 
@@ -38,6 +39,12 @@ app = FastAPI(
 # 미들웨어는 나중에 추가된 것이 먼저 실행된다 — 세션이 CSRF 보다 바깥이어야 한다.
 app.add_middleware(CsrfMiddleware)
 app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['GET', 'POST', 'OPTIONS'],
+    allow_headers=['*'],
+)
+app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
     session_cookie=settings.session_cookie,
@@ -50,6 +57,7 @@ app.include_router(tdm.router)
 app.include_router(work.router)
 app.include_router(farm.router)
 app.include_router(dusttest.router)
+app.include_router(healthtest.router)
 
 
 @app.get('/', response_class=HTMLResponse)
