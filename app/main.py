@@ -19,7 +19,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, settings
-from app.routers import dusttest, farm, healthtest, tdm, work
+from app.routers import farm, healthtest, tdm, work
 from app.security import CsrfMiddleware
 from app.templating import templates
 
@@ -56,7 +56,6 @@ app.add_middleware(
 app.include_router(tdm.router)
 app.include_router(work.router)
 app.include_router(farm.router)
-app.include_router(dusttest.router)
 app.include_router(healthtest.router)
 
 
