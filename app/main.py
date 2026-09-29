@@ -2,24 +2,25 @@
 
 라우트
   /                     랜딩
-  /tdmprediction/*      반코마이신 TDM 하이브리드 예측
-  /work/*               채팅 · 게시판
+  /tdm/*                반코마이신 TDM 하이브리드 예측
+  /tdmprediction/*      기존 TDM 링크 리디렉션
   /healthz              헬스체크
 
 정적/미디어 파일은 운영에서 nginx 가 직접 서빙한다 (`/static`, `/media`).
 DEBUG 일 때만 앱이 대신 마운트한다.
 """
 import logging
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, settings
-from app.routers import farm, healthtest, tdm, work
+from app.routers import healthtest, tdm
 from app.security import CsrfMiddleware
 from app.templating import templates
 
@@ -54,14 +55,22 @@ app.add_middleware(
 )
 
 app.include_router(tdm.router)
-app.include_router(work.router)
-app.include_router(farm.router)
 app.include_router(healthtest.router)
+
+
+@app.api_route('/tdmprediction', methods=['GET', 'HEAD', 'POST'], include_in_schema=False)
+@app.api_route('/tdmprediction/{path:path}', methods=['GET', 'HEAD', 'POST'], include_in_schema=False)
+async def legacy_tdm(request: Request, path: str = ''):
+    # 308 preserves POST bodies for existing login and prediction clients.
+    target = '/tdm/' + path
+    if request.url.query:
+        target += '?' + request.url.query
+    return RedirectResponse(target, status_code=308)
 
 
 @app.get('/', response_class=HTMLResponse)
 async def landing(request: Request):
-    return templates.TemplateResponse(request, 'landing.html', {})
+    return templates.TemplateResponse(request, 'landing.html', {'current_year': datetime.now(timezone.utc).year})
 
 
 @app.get('/healthz', response_class=PlainTextResponse)

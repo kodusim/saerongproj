@@ -1,4 +1,4 @@
-/* /tdmprediction — 하이브리드 ML+DL 농도 예측 화면.
+/* /tdm — 하이브리드 ML+DL 농도 예측 화면.
    ES 모듈이라 함수가 전역에 노출되지 않는다 — 실행 버튼은 아래에서 바인딩한다. */
 
 let CHART = null;
@@ -31,7 +31,7 @@ async function runPredict() {
   };
 
   try {
-    const res = await fetch('/tdmprediction/api/predict/', {
+    const res = await fetch('/tdm/api/predict/', {
       method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body),

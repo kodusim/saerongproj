@@ -4,7 +4,7 @@
 
 ```
 nginx (443/80)  →  uvicorn 127.0.0.1:8000  (systemd: saerong.service)
-                   /static  → /srv/staticfiles     (nginx alias)
+                   /static  → /srv/course-repo/static (실서버 nginx alias, 2026-09-29 확인)
                    /media   → /srv/course-repo/mediafiles (nginx alias)
 PostgreSQL 14 (DB saerong)
 ```
@@ -21,13 +21,11 @@ sudo systemctl enable --now saerong
 sudo systemctl status saerong
 ```
 
-**워커는 1개로 고정한다.** 이유는 유닛 파일 주석 참고 — TDM 모델이 워커당 약
-470MB 를 잡고, 채팅 WebSocket 브로드캐스트가 프로세스 내부에서 일어난다.
-워커를 늘리려면 먼저 Redis pub/sub 같은 프로세스 간 브로드캐스트가 필요하다.
+**워커는 1개를 유지한다.** TDM 모델이 워커당 약 470MB를 사용하므로 변경 전 메모리 예산을 확인한다. Work·농사 게임 HTTP/WebSocket 라우터는 현재 해제했다. 기존 데이터와 업로드는 보존한다.
 
 ## nginx — WebSocket
 
-채팅이 WebSocket 을 쓰므로 `location /` 블록에 업그레이드 헤더가 있어야 한다:
+아래는 기존 WebSocket 프록시 구성 참고다. 현재 Work 채팅은 공개하지 않으며, 이번 홈 배포에서는 nginx 설정을 바꾸지 않는다.
 
 ```nginx
 location / {
@@ -56,11 +54,13 @@ map $http_upgrade $connection_upgrade {
 
 ```bash
 git push origin main
-ssh saerong-instance "cd /srv/course-repo && sudo git pull \
+ssh saerong-instance "cd /srv/course-repo && sudo git pull --ff-only \
   && sudo /srv/venv/bin/python -c 'import app.main' \
   && sudo systemctl restart saerong && sleep 2 && systemctl is-active saerong"
 curl -sS -o /dev/null -w '%{http_code}\n' https://saerong.com/healthz
 ```
+
+Windows에서 SSH 별칭의 키 경로가 맞지 않으면 세션에서 확인한 키 파일을 `ssh -i`로 명시한다. 배포 전 DNS·서버 저장소 상태·실제 nginx alias·현재 커밋을 확인한다. 이번 홈 변경은 의존성 설치나 DB 마이그레이션이 필요 없다. 새 HTML과 `/static/css/landing.css?v=4`, `/static/js/landing.js?v=4`의 응답, `/tdm/` 인증 리디렉션, `/tdmprediction/*` 308, `/work/` 404를 확인한다.
 
 ## DB 마이그레이션
 

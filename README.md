@@ -1,13 +1,16 @@
 # saerongproj
 
-saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 두 개의 독립적인 기능만 있다.
+현재 새 제품 방향은 질문과 답변으로 고민을 좁혀가는 **AI 무당**이다. [기획·인계 문서](docs/ai-shaman/README.md), [디자인 기준](DESIGN.md), [에이전트 지침](AGENTS.md)을 따른다. 모바일 우선 브랜드 홈과 대화 예시는 구현했으며 실제 추론 엔진은 아직 없다. [과거 데이터 분석 서비스 기획](docs/data-service/README.md)은 비활성 참고 자료다.
+
+saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 현재 등록한 주요 페이지는 다음과 같다.
 
 | 경로 | 내용 |
 |---|---|
-| `/` | 랜딩 |
-| `/tdmprediction/` | 반코마이신 혈중 농도 하이브리드(ML + DL) 예측 |
-| `/tdmprediction/logs/` | 예측 감사 로그 (읽기 전용) |
-| `/work/` | 실시간 채팅 · 자료실 · 공지사항 · 일정 달력 · 미니게임 |
+| `/` | 모바일 우선 새롱 홈 · AI 무당 대화 예시 |
+| `/tdm/` | 반코마이신 혈중 농도 하이브리드(ML + DL) 예측 · 메인 미노출 |
+| `/tdm/logs/` | 예측 감사 로그 (읽기 전용) |
+| `/tdmprediction/*` | `/tdm/*`로 308 리디렉션 |
+| `/healthtest/` | 기존 건강 데이터 데모 |
 | `/healthz` | 헬스체크 |
 
 ## 구성
@@ -17,7 +20,7 @@ saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 두 개의 독립�
 - 세션: 서명된 쿠키 (Starlette `SessionMiddleware`)
 - CSRF: `csrftoken` 쿠키 + `X-CSRFToken` 헤더 double-submit
 - 프런트: 빌드 도구 없음 — 순수 ES 모듈 + CSS 를 nginx 가 그대로 서빙
-- 채팅: WebSocket (`/work/ws`), 끊기면 폴링으로 자동 강등
+- Work·농사 게임의 HTTP/WebSocket 라우터는 해제했다. 기존 소스와 저장 데이터는 보존한다.
 - 운영: nginx → uvicorn 127.0.0.1:8000, `/srv/course-repo`, venv `/srv/venv`
 
 ```
@@ -28,9 +31,9 @@ app/
   models.py            기존 테이블에 그대로 매핑
   security.py          세션 인증 + CSRF
   templating.py        Jinja2
-  routers/tdm.py       /tdmprediction
-  routers/work.py      /work
-  routers/farm.py      /work/api/farm (농사 게임)
+  routers/tdm.py       /tdm
+  routers/work.py      미등록 (기존 Work 소스)
+  routers/farm.py      미등록 (기존 농사 게임 소스)
   services/predictor.py  TDM 추론 (ML joblib + LSTM .pt)
   services/storage.py    업로드 이미지 저장
   services/farm.py       농사 게임 규칙 (작물·건물·성장 판정)
@@ -52,7 +55,7 @@ deploy/                systemd 유닛 · nginx 설정 · 배포 메모
 `onclick` 을 쓸 수 없다** (모듈 스코프는 전역에 노출되지 않는다) — 이벤트는 모듈
 안에서 `addEventListener` 로 바인딩한다.
 
-`/work` 은 그룹웨어 / VS Code 두 테마의 DOM 을 모두 문서에 두고 한쪽만 보여준다.
+아래는 보존된 기존 Work 소스에 대한 설명이며 현재 공개 경로는 없다. 그룹웨어 / VS Code 두 테마의 DOM 을 모두 문서에 두고 한쪽만 보여준다.
 상태는 `static/js/work/state.js` 에 한 벌만 있고 테마별 DOM 두 벌에 같은 내용을
 렌더링한다 — 그래서 테마를 바꿔도 보고 있던 화면과 내용이 유지된다.
 

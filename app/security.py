@@ -26,6 +26,8 @@ SAFE_METHODS = frozenset({'GET', 'HEAD', 'OPTIONS', 'TRACE'})
 
 # 헤더를 붙일 수 없거나 Django 에서 csrf_exempt 였던 경로
 CSRF_EXEMPT_PATHS = frozenset({
+    '/tdm/login/',                # 폼 전송 — 라우트에서 직접 검증
+    '/tdm/api/predict/',          # 기존 예측 API 동작 유지
     '/tdmprediction/login/',       # 폼 전송 — 라우트에서 직접 검증
     '/tdmprediction/api/predict/',  # Django 에서도 csrf_exempt
 })

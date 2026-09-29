@@ -1,4 +1,4 @@
-"""/tdmprediction — 반코마이신 하이브리드(ML+DL) 농도 예측."""
+"""/tdm — 반코마이신 하이브리드(ML+DL) 농도 예측."""
 import logging
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -21,10 +21,10 @@ from app.templating import templates
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix='/tdmprediction', tags=['tdm'])
+router = APIRouter(prefix='/tdm', tags=['tdm'])
 
-LOGIN_URL = '/tdmprediction/login/'
-PREDICT_URL = '/tdmprediction/'
+LOGIN_URL = '/tdm/login/'
+PREDICT_URL = '/tdm/'
 
 
 def _dl_log_label(meta: dict) -> str:

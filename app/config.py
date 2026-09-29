@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Django 시절 .env 의 DATABASE_URL 을 그대로 쓴다 (postgresql:// → asyncpg 로 변환).
     database_url: str = 'postgresql://postgres:postgres@localhost:5432/saerong'
 
-    # /tdmprediction 단일 계정
+    # /tdm 단일 계정
     tdm_auth_user: str = 'tdm'
     tdm_auth_password: str = 'tdm1234'
 
