@@ -82,10 +82,10 @@ function render() {
     if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
-  document.querySelector('.banner').hidden = view === 'saved';
-  document.querySelector('#section-title').textContent = view === 'saved' ? '보관한 이야기' : '어떤 마음으로 왔나요?';
-  document.querySelector('#list-description').textContent = view === 'saved' ? '다시 보고 싶은 대화 예시를 모아두세요.' : '궁금한 이야기를 골라 가볍게 둘러보세요.';
-  document.querySelector('#result-count').textContent = `대화 예시 ${visible}개`;
+  document.querySelector('.banner').hidden = view !== 'home';
+  document.querySelector('.page-heading').hidden = view !== 'home';
+  document.querySelector('#section-title').textContent = view === 'saved' ? '보관한 이야기' : '주제별 대화 예시';
+  document.querySelector('#result-count').textContent = `${visible}개`;
   document.querySelector('#empty-state').hidden = visible > 0;
   document.querySelector('#empty-message').textContent = view === 'saved' && saved.size === 0 ? '아직 보관한 이야기가 없어요. 카드의 보관 버튼을 눌러보세요.' : '이 조건에 맞는 이야기가 없어요.';
 }

@@ -1,5 +1,7 @@
 # saerongproj
 
+2026-09-30 브랜드 재정비: [브랜드 기획](BRAND.md)과 [화면 검토 보드](docs/brand/preview.html)를 작성했다. 사용자 요청으로 잉크·코랄 방향을 로컬 홈에 적용했다. 운영 배포는 아직 하지 않았다.
+
 현재 새 제품 방향은 질문과 답변으로 고민을 좁혀가는 **AI 무당**이다. [기획·인계 문서](docs/ai-shaman/README.md), [디자인 기준](DESIGN.md), [에이전트 지침](AGENTS.md)을 따른다. 모바일 우선 브랜드 홈과 대화 예시는 구현했으며 실제 추론 엔진은 아직 없다. [과거 데이터 분석 서비스 기획](docs/data-service/README.md)은 비활성 참고 자료다.
 
 saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 현재 등록한 주요 페이지는 다음과 같다.
