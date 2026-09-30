@@ -60,7 +60,7 @@ ssh saerong-instance "cd /srv/course-repo && sudo git pull --ff-only \
 curl -sS -o /dev/null -w '%{http_code}\n' https://saerong.com/healthz
 ```
 
-Windows에서 SSH 별칭의 키 경로가 맞지 않으면 세션에서 확인한 키 파일을 `ssh -i`로 명시한다. 배포 전 DNS·서버 저장소 상태·실제 nginx alias·현재 커밋을 확인한다. 이번 홈 변경은 의존성 설치나 DB 마이그레이션이 필요 없다. 새 HTML과 `/static/css/landing.css?v=4`, `/static/js/landing.js?v=4`의 응답, `/tdm/` 인증 리디렉션, `/tdmprediction/*` 308, `/work/` 404를 확인한다.
+Windows에서 SSH 별칭의 키 경로가 맞지 않으면 세션에서 확인한 키 파일을 `ssh -i`로 명시한다. 배포 전 DNS·서버 저장소 상태·실제 nginx alias·현재 커밋을 확인한다. 이번 홈 변경은 의존성 설치나 DB 마이그레이션이 필요 없다. 새 HTML과 `/static/css/landing.css?v=6`, `/static/js/landing.js?v=6`의 응답, `/tdm/` 인증 리디렉션, `/tdmprediction/*` 308, `/work/` 404를 확인한다.
 
 ## DB 마이그레이션
 
