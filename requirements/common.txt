@@ -20,6 +20,3 @@ numpy==2.2.4
 # CPU 빌드로 설치할 것:
 #   pip install --index-url https://download.pytorch.org/whl/cpu torch==2.7.0
 torch==2.7.0
-
-# Utilities
-pillow==10.2.0

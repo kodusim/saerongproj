@@ -16,7 +16,6 @@ import secrets
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import HTTPConnection
 
 from app.config import settings
 
@@ -31,7 +30,6 @@ CSRF_EXEMPT_PATHS = frozenset({
     '/tdmprediction/login/',       # 폼 전송 — 라우트에서 직접 검증
     '/tdmprediction/api/predict/',  # Django 에서도 csrf_exempt
 })
-CSRF_EXEMPT_PATHS = frozenset(set(CSRF_EXEMPT_PATHS) | {'/api/analyze'})
 
 TDM_SESSION_KEY = 'tdm_authed'
 TDM_LOGIN_ID_KEY = 'tdm_login_id'
@@ -87,14 +85,3 @@ def is_tdm_authed(request: Request) -> bool:
 
 def tdm_login_id(request: Request) -> str:
     return request.session.get(TDM_LOGIN_ID_KEY, '') or ''
-
-
-def client_ip(conn: HTTPConnection) -> str | None:
-    """nginx 뒤에 있으므로 X-Forwarded-For 를 먼저 본다.
-
-    Request 와 WebSocket 둘 다 받는다 (공통 상위 타입이 HTTPConnection).
-    """
-    xff = conn.headers.get('x-forwarded-for')
-    if xff:
-        return xff.split(',')[0].strip()
-    return conn.client.host if conn.client else None

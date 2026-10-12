@@ -1,96 +1,45 @@
-# saerongproj
+# saerongproj — TDM
 
-2026-09-30 브랜드 재정비: [브랜드 기획](BRAND.md)과 [화면 검토 보드](docs/brand/preview.html)를 작성했다. 사용자 요청으로 잉크·코랄 방향을 로컬 홈에 적용했다. 2026-09-30 사용자 요청으로 운영 배포했다.
+반코마이신 혈중 농도를 예측하는 FastAPI 애플리케이션이다. 2026-10-09 사용자 요청으로 TDM 외 서비스 코드와 제품·브랜드 문서를 정리했고, 2026-10-10 사용자 요청으로 saerong.com에 배포했다.
 
-현재 새 제품 방향은 질문과 답변으로 고민을 좁혀가는 **AI 무당**이다. [기획·인계 문서](docs/ai-shaman/README.md), [디자인 기준](DESIGN.md), [에이전트 지침](AGENTS.md)을 따른다. 모바일 우선 브랜드 홈과 대화 예시는 구현했으며 실제 추론 엔진은 아직 없다. [과거 데이터 분석 서비스 기획](docs/data-service/README.md)은 비활성 참고 자료다.
+## 경로
 
-saerong.com 을 서빙하는 **FastAPI** 애플리케이션. 현재 등록한 주요 페이지는 다음과 같다.
-
-| 경로 | 내용 |
+| 경로 | 기능 |
 |---|---|
-| `/` | 모바일 우선 새롱 홈 · AI 무당 대화 예시 |
-| `/tdm/` | 반코마이신 혈중 농도 하이브리드(ML + DL) 예측 · 메인 미노출 |
-| `/tdm/logs/` | 예측 감사 로그 (읽기 전용) |
-| `/tdmprediction/*` | `/tdm/*`로 308 리디렉션 |
-| `/healthtest/` | 기존 건강 데이터 데모 |
+| `/` | `/tdm/`으로 이동 |
+| `/tdm/` | 로그인 후 ML + DL 예측 화면 |
+| `/tdm/login/`, `/tdm/logout/` | 세션 인증 |
+| `/tdm/api/predict/` | 예측 API와 감사 로그 저장 |
+| `/tdm/logs/` | 최근 200개 감사 로그 조회 |
+| `/tdmprediction/*` | 요청 메서드를 유지하는 308 리디렉션 |
 | `/healthz` | 헬스체크 |
 
-## 구성
+## 구성과 실행
 
-- FastAPI + uvicorn (ASGI), Jinja2 템플릿
-- SQLAlchemy 2.0 (async, asyncpg) + Alembic, PostgreSQL 14
-- 세션: 서명된 쿠키 (Starlette `SessionMiddleware`)
-- CSRF: `csrftoken` 쿠키 + `X-CSRFToken` 헤더 double-submit
-- 프런트: 빌드 도구 없음 — 순수 ES 모듈 + CSS 를 nginx 가 그대로 서빙
-- Work·농사 게임의 HTTP/WebSocket 라우터는 해제했다. 기존 소스와 저장 데이터는 보존한다.
-- 운영: nginx → uvicorn 127.0.0.1:8000, `/srv/course-repo`, venv `/srv/venv`
+- `app/routers/tdm.py`: TDM 라우터
+- `app/services/predictor.py`: ML + DL 추론
+- `app/models.py`: 기존 `tdm_predictionlog` 테이블 매핑
+- `app/security.py`: 세션 인증과 CSRF
+- `templates/tdm/`, `static/css/tdm-*`, `static/js/tdm/`: TDM 화면
+- `ml_artifacts/`: 모델 파일과 메타데이터. 가중치는 Git 추적에서 제외한다.
 
-```
-app/
-  main.py              FastAPI 앱, 미들웨어, 라우터 등록
-  config.py            pydantic-settings (.env 를 읽는다)
-  db.py                async 엔진 / 세션
-  models.py            기존 테이블에 그대로 매핑
-  security.py          세션 인증 + CSRF
-  templating.py        Jinja2
-  routers/tdm.py       /tdm
-  routers/work.py      미등록 (기존 Work 소스)
-  routers/farm.py      미등록 (기존 농사 게임 소스)
-  services/predictor.py  TDM 추론 (ML joblib + LSTM .pt)
-  services/storage.py    업로드 이미지 저장
-  services/farm.py       농사 게임 규칙 (작물·건물·성장 판정)
-  ws.py                  채팅 WebSocket 허브 (프로세스 내 브로드캐스트)
-migrations/            Alembic
-templates/             마크업만 (CSS/JS 는 static/)
-static/css/            work-base · groupware · vscode · games · tdm-*
-static/js/lib/         dom.js (헬퍼) · api.js (CSRF 붙이는 fetch 래퍼)
-static/js/work/        main(엔트리) · state(공유 상태+구독) · chat
-                       board(자료실·공지 공용 팩토리) · schedule(월 달력)
-                       games/(미니게임 7종, stardew 는 캔버스)
-                       theme · nav · unread · lightbox
-static/js/tdm/         predict.js
-ml_artifacts/          모델 가중치 (git 제외 — 서버에 직접 업로드)
-deploy/                systemd 유닛 · nginx 설정 · 배포 메모
+Python 가상환경에서 다음 명령으로 설치하고 실행한다.
+
+```sh
+pip install -r requirements.txt
+pip install -r requirements/dev.txt
+uvicorn app.main:app --reload
 ```
 
-프런트는 빌드 단계가 없다. `<script type="module">` 로 바로 불러오므로 **인라인
-`onclick` 을 쓸 수 없다** (모듈 스코프는 전역에 노출되지 않는다) — 이벤트는 모듈
-안에서 `addEventListener` 로 바인딩한다.
+기존 `.env`에서 DB 연결·세션·TDM 인증 설정을 읽는다. 로컬 개발 시 `DEBUG=True`이면 정적 파일과 `/api/docs`를 앱이 제공한다. 운영에서는 nginx가 정적 파일을 제공한다. PyTorch CPU 빌드는 `requirements/common.txt`의 설치 안내를 참고한다.
 
-아래는 보존된 기존 Work 소스에 대한 설명이며 현재 공개 경로는 없다. 그룹웨어 / VS Code 두 테마의 DOM 을 모두 문서에 두고 한쪽만 보여준다.
-상태는 `static/js/work/state.js` 에 한 벌만 있고 테마별 DOM 두 벌에 같은 내용을
-렌더링한다 — 그래서 테마를 바꿔도 보고 있던 화면과 내용이 유지된다.
+## 데이터와 검증
 
-DB 테이블은 Django 시절 이름(`tdm_predictionlog`, `work_workchatmessage`,
-`work_workpost`)을 그대로 쓴다 — 데이터를 그대로 이어받기 위해 바꾸지 않았다.
+TDM 모델·인증 설정·DB·업로드 및 기존 로컬 데이터는 초기화하지 않았다. 기존 DB의 리비전 연결을 깨뜨리지 않도록 `migrations/versions/` 이력은 유지한다. 과거 비TDM 테이블은 현재 ORM에서 제외했으며 Alembic 자동 생성 시 삭제 대상으로 잡히지 않도록 필터링한다. 기존 마이그레이션에는 과거 테이블 생성 코드가 남아 있다.
 
-## 설치
-
-```bash
-python -m venv venv && . venv/bin/activate
-pip install -r requirements.txt        # prod
-pip install -r requirements/dev.txt    # dev
-pip install --index-url https://download.pytorch.org/whl/cpu torch==2.7.0
+```sh
+python -m pytest -q -p no:cacheprovider
+git diff --check
 ```
 
-## 실행
-
-```bash
-uvicorn app.main:app --reload           # DEBUG=True 면 /api/docs 도 열린다
-```
-
-## 배포
-
-[deploy/README.md](deploy/README.md) 참고.
-
-## 삭제된 것들
-
-과거에 있었으나 제거된 앱 — 필요하면 git 히스토리에서 복구한다.
-DB 테이블은 drop 하지 않고 남겨두었다.
-
-- `bl` / `/bltest/` (2026-09-01) — 알카포스트는 별도 저장소·별도 서버
-  ([arcatree](https://github.com/kodusim/arcatree), arcatree.com) 로 이전
-- `animal` (2026-06-08)
-- `moscom` / `/mosquito-test/` (2026-08-24) — moscom.ai 는 별도 서버·별도 저장소로 이전
-- `common`, `core`, `sources`, `collector`, `analytics`, `api`, `game_honey_alarm` (2026-08-24)
-- Django 자체 (2026-08-24) — FastAPI 로 이전
+라우트 테스트는 DB 의존성을 대체하며 실제 DB 연결이나 모델 추론을 실행하지 않는다. 운영 관련 사항은 [deploy/README.md](deploy/README.md), 작업 지침은 [AGENTS.md](AGENTS.md)를 참고한다.

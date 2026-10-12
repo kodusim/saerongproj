@@ -21,6 +21,13 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_name(name, type_, parent_names):
+    """관리 대상 밖의 기존 테이블을 자동 생성 삭제 대상에서 제외한다."""
+    if type_ == 'table':
+        return name == 'tdm_predictionlog'
+    return True
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=settings.async_database_url,
@@ -28,6 +35,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={'paramstyle': 'named'},
         compare_type=True,
+        include_name=include_name,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -38,6 +46,7 @@ def _do_run_migrations(connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
+        include_name=include_name,
     )
     with context.begin_transaction():
         context.run_migrations()

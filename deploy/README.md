@@ -1,86 +1,20 @@
-# 배포 메모
+# TDM 운영 구성
 
-## 구성
+2026-10-10 사용자 요청으로 TDM 전용 버전을 saerong.com에 배포했다. 이후 서버 접근·배포·DB 마이그레이션·재시작·푸시는 별도 요청이 필요하다.
 
-```
-nginx (443/80)  →  uvicorn 127.0.0.1:8000  (systemd: saerong.service)
-                   /static  → /srv/course-repo/static (실서버 nginx alias, 2026-09-29 확인)
-                   /media   → /srv/course-repo/mediafiles (nginx alias)
-PostgreSQL 14 (DB saerong)
-```
+- [saerong.service](saerong.service): uvicorn 서비스 설정. 저장된 경로는 `/srv/course-repo`, 가상환경은 `/srv/venv`이다.
+- [nginx-saerong.conf](nginx-saerong.conf): nginx에서 `127.0.0.1:8000`으로 전달하고 정적 파일을 제공한다.
+- 모델 가중치와 `.env`는 기존 파일을 보존하며 Git에 추가하지 않는다.
+- TDM은 `/tdm/`, 기존 `/tdmprediction/*` 요청은 308 리디렉션으로 유지한다.
 
-프로젝트 경로 `/srv/course-repo`, 가상환경 `/srv/venv`.
+이 파일들은 저장소의 구성 예시다. 실제 서버 설정과 동일한지는 다음 배포 전에 확인해야 한다. 기존 Alembic 리비전 이력을 보존하며, 현재 DB 상태를 확인하지 않고 `stamp`, `upgrade`, `downgrade`를 실행하지 않는다.
 
-## systemd
+## 2026-10-10 배포 기록
 
-[saerong.service](saerong.service) 를 `/etc/systemd/system/` 에 두고:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now saerong
-sudo systemctl status saerong
-```
-
-**워커는 1개를 유지한다.** TDM 모델이 워커당 약 470MB를 사용하므로 변경 전 메모리 예산을 확인한다. Work·농사 게임 HTTP/WebSocket 라우터는 현재 해제했다. 기존 데이터와 업로드는 보존한다.
-
-## nginx — WebSocket
-
-아래는 기존 WebSocket 프록시 구성 참고다. 현재 Work 채팅은 공개하지 않으며, 이번 홈 배포에서는 nginx 설정을 바꾸지 않는다.
-
-```nginx
-location / {
-    proxy_pass http://saerong_app;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_read_timeout 3600s;
-}
-```
-
-`http` 블록에 다음이 필요하다:
-
-```nginx
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
-}
-```
-
-## 배포
-
-```bash
-git push origin main
-ssh saerong-instance "cd /srv/course-repo && sudo git pull --ff-only \
-  && sudo /srv/venv/bin/python -c 'import app.main' \
-  && sudo systemctl restart saerong && sleep 2 && systemctl is-active saerong"
-curl -sS -o /dev/null -w '%{http_code}\n' https://saerong.com/healthz
-```
-
-Windows에서 SSH 별칭의 키 경로가 맞지 않으면 세션에서 확인한 키 파일을 `ssh -i`로 명시한다. 배포 전 DNS·서버 저장소 상태·실제 nginx alias·현재 커밋을 확인한다. 이번 홈 변경은 의존성 설치나 DB 마이그레이션이 필요 없다. 새 HTML과 `/static/css/landing.css?v=6`, `/static/js/landing.js?v=6`의 응답, `/tdm/` 인증 리디렉션, `/tdmprediction/*` 308, `/work/` 404를 확인한다.
-
-## DB 마이그레이션
-
-기존 테이블은 Django 가 만든 것이라 baseline 리비전을 **실행하지 않고 기록만** 했다:
-
-```bash
-sudo /srv/venv/bin/alembic stamp 0001     # 최초 1회 (이미 완료)
-sudo /srv/venv/bin/alembic upgrade head   # 이후 변경 적용
-```
-
-## 모델 가중치
-
-`ml_artifacts/` 는 용량 때문에 git 에서 제외한다. 서버에 직접 올린다:
-
-```bash
-scp ml_artifacts/random_forest.joblib saerong-instance:/srv/course-repo/ml_artifacts/
-```
-
-torch 는 CPU 빌드로:
-
-```bash
-sudo /srv/venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch==2.7.0
-```
+- 이 PC의 SSH 별칭은 `saerong`이다. 컴퓨터 전용 공개키를 서버에 추가했고 기존 키는 유지했다. 개인키는 저장소 밖의 SSH 폴더에 보관한다.
+- 배포 대상: `15.164.130.99`, `/srv/course-repo`, `saerong.service`, `/srv/venv`.
+- 로컬 작업 파일을 묶어 직접 반영했다. Git 커밋·푸시·서버 pull은 수행하지 않았으므로 서버 HEAD는 배포 파일 버전과 다르다. 다음 배포 전에 서버 변경을 확인해야 한다.
+- 반영 전 코드 백업: `/home/ubuntu/saerong-backup-20261010-200130.tar.gz`.
+- `.env`와 모델 가중치의 해시가 유지됨을 확인했다. DB 마이그레이션·데이터 삭제·모델 추론은 실행하지 않았다.
+- 앱을 재시작했고 실제 HTTPS에서 홈 이동·TDM 로그인·CSRF·로그아웃·미인증 API 차단·정적 파일·기존 URL 리디렉션·삭제 경로 404를 확인했다.
+- 실제 nginx와 systemd 설정 파일은 교체하지 않았다. 저장소의 설정 예시 정리만 배포 파일에 포함했다.
