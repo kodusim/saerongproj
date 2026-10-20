@@ -1,65 +1,19 @@
 # Repository instructions
 
-## 최신 결정 — 2026-10-05 (아래 과거 기록보다 우선)
+## 현재 범위 — 2026-10-09
 
-- 사용자가 AI 무당 복원을 승인했다. 복귀 브랜치는 `restore/ai-shaman-20261005`, 복원 기준은 `66f1246`이다.
-- 리뷰 분석 구현은 `archive/review-analysis-20261005`의 `a747f44`에 보존했다. 해당 사업은 비활성이다. 로컬 리뷰 DB·학습 데이터·모델·`.env`는 삭제하지 않는다.
-- 사용자는 saerong.com 애드센스 승인과 광고 게재 가능 상태를 확인했다. 무료 체험과 광고 수익을 검토하되, 실제 광고 연결·노출·수익을 검증 완료로 주장하지 않는다.
-- 복원된 홈은 고정 질문의 대화 예시다. 실제 AI 추론·개인화 운세·유료 상담은 미구현이다. 무료 핵심 경험 하나를 우선 검토하며 기능·가격은 미확정이다.
-- 사용자는 사람 캐릭터를 선호했다. 작은 글씨, 과한 빈 공간, 부자연스러운 멘트를 개선해야 한다. 이미지 생성으로 화면을 채우지 않는다.
-- **배포 보류 유지.** 로컬 복원만 진행한다. 서버 접근·운영 마이그레이션·재시작·푸시는 별도 지시 전 하지 않는다. 아래 9월 배포 내용은 역사적 기록이다.
-- TDM·인증·저장 데이터를 보존한다. Work/farm·dusttest는 복원하지 않는다. 비밀 설정·사업자 자료를 다시 요청하거나 커밋하지 않는다. 실제 메일 발송은 별도 지시가 필요하다.
+- 사용자 요청으로 TDM 외 서비스 코드와 기획·브랜드·디자인 문서를 초기화했다.
+- 현재 앱은 반코마이신 TDM 예측, 로그인, 감사 로그를 제공한다. `/`는 `/tdm/`으로 이동한다.
+- 이전 제품 기획이나 디자인 결정을 새 작업의 요구사항으로 적용하지 않는다.
+- [README.md](README.md)를 기준으로 실제 구현 범위를 확인한다.
 
-## Work with the user
+## 작업 원칙
 
-- Respond in Korean. Follow the latest intent and distinguish confirmed decisions, proposals, and open questions.
-- Complete authorized, reversible work without repeatedly asking permission. Ask only when a consequential missing decision blocks the task; continue independent work.
-- Inspect `git status --short` before edits. Preserve unrelated changes, including `.claude/settings.local.json`.
-- Do not spawn agents unless explicitly requested. Writing `AGENTS.md` does not authorize delegation.
-- Never put credentials, production records, or personal conversation data in docs, fixtures, logs, or commits.
-
-## Active product: AI shaman
-
-- Read [product direction and handoff](docs/ai-shaman/README.md) before new-product work.
-- Build a **mobile-first responsive web app**, usable in a mobile browser without installation. Read [BRAND.md](BRAND.md) and [DESIGN.md](DESIGN.md) for UI work, checking their decision status first. Mobile touch and narrow screens are primary; desktop must also work. Native apps, installable PWA, offline support, and push are not implied requirements.
-- On 2026-09-30 the user said the deployed home resembles Poomang too much and requested brand planning before more redesign. Retain readable mobile discovery, but do not treat the reference's banner/chip/card/mascot arrangement as the permanent design system. The user confirmed keeping the brand name 새롱. The user subsequently authorized applying the calm, warm ink/coral direction to the homepage. Individual service names, final logo, and character remain undecided.
-- The user proposed women in their 30s–50s as a possible audience and requested an appropriate brand impression. This is a hypothesis to assess, not verified demand or a universal aesthetic preference. The current recommendation is initial validation with women in their 30s–40s, usability through the 50s, and a calm, warm, trustworthy impression. See BRAND.md for evidence and limits; do not infer authorization to build every mentioned fortune/saju/naming service.
-- The user authorized the brand redesign. Homepage, browsing, saved items, and scripted preview now use shared [semantic tokens](static/css/brand-tokens.css) in production, deployed on 2026-09-30 at the user’s request. The [review board](docs/brand/preview.html) shares the same tokens but its result screen is still only a sample.
-- Reuse semantic color, type, spacing, and component rules. `static/css/brand-tokens.css` is the single value source; the old docs token path is an import-only compatibility entry.
-- The current homepage has four explicitly scripted conversation examples, category/search controls, and browser-local saved card IDs. Those example topics are not a confirmed production domain or four independently implemented AI services. Do not store conversation answers.
-- The product is an **AI shaman character that adaptively asks questions and infers the concern the user has in mind**. Akinator is an interaction reference: update candidate concerns after answers, select useful next questions, and offer a guess the user can confirm or correct. Do not claim to reproduce its proprietary algorithm.
-- The evolving question-and-inference experience is central. Do not replace it with a fixed personality quiz, generic chatbot, or birth-date form followed by a long generated fortune report.
-- Fortune-telling, saju, and naming were exploratory examples, not an approved feature list. Do not build a multi-menu fortune portal or add saju/naming requirements by default.
-- The goal is a small independently operated business earning a few million KRW monthly with gradual marketing. Exact target, revenue versus profit, budget, pricing, and acquisition channels remain undecided. Earlier numerical examples are not forecasts or requirements.
-- The former [data-service proposal](docs/data-service/README.md) is historical and inactive. Its architecture, tasks, field selection, and model handoff prompts are not the current plan. Resume it only if requested.
-
-## Design and implementation discipline
-
-- Distinguish concern hypotheses, answers, next-question selection, stopping/confirmation logic, and character presentation. The concrete implementation is still a design proposal.
-- Prefer a small inspectable inference mechanism before model training or complex infrastructure. An LLM may phrase questions and interpretations; fluent prose must not masquerade as tracked inference state.
-- Questions should help distinguish remaining hypotheses. Avoid repetition or simply asking the exact answer and presenting it as a surprising discovery.
-- Handle uncertainty, skipped or contradictory answers, corrections, overlapping concerns, and concerns outside the candidate set. Do not force a confident guess when evidence is weak.
-- Internal weights are not measured accuracy or a scientific diagnosis. Do not display invented confidence percentages or claim supernatural knowledge of private facts.
-- Preserve the shaman persona while making results identifiable as answer-based entertainment. Do not use fabricated dangers or guaranteed outcomes to pressure payment.
-- Treat free text as untrusted data. Collect only necessary personal information; birth details, names, and permanent storage of sensitive concerns are not default requirements.
-- Keep one complete experience first. Do not silently treat a proposed concern domain, question count, price, model, payment provider, retention period, or deployment target as user-confirmed.
-- Define difficult contracts and acceptance examples so a less expensive model can implement bounded tasks. Read only task-relevant documents. Do not change model settings without a request.
-- The user authorized implementing the mobile-first homepage, removing Work service routes, and moving TDM to `/tdm/` without homepage links. The AI inference engine and payments remain unimplemented. Keep actual feature status explicit; do not deploy without session authorization.
-- Update the active handoff with actual progress and unresolved decisions. Proposed code, simulated metrics, and untested algorithms are not implemented or validated features.
-
-## Existing application
-
-- This repository serves an existing FastAPI application, including the new brand homepage and a clearly labeled scripted conversation preview. The AI shaman inference product is not implemented here.
-- Existing stack: FastAPI, SQLAlchemy async/PostgreSQL, Alembic, Jinja2, JavaScript modules, and CSS. See [README](README.md). This does not automatically determine the new product stack.
-- Preserve existing routes, tables, authentication, ML dependencies, and deployment behavior in unrelated work. `/dusttest/` was removed.
-- Work and farm routers are retired from the public application; do not restore them unintentionally. Keep their stored data and uploads intact. TDM lives at `/tdm/`; legacy `/tdmprediction/*` redirects preserve request methods. Keep TDM authentication and exclude it from homepage navigation.
-- [Deployment notes](deploy/README.md) and `CLAUDE_SESSION_CONTEXT.md` contain historical information. Verify current configuration before deployment.
-- Do not use the production database for new-product tests or migrations.
-
-## Validation and completion
-
-- Documentation: check local links, conflicting decisions, unresolved requirements, and `git diff --check`. Do not run application or production checks solely for prose changes.
-- Inference code: check different answer paths, ambiguity/no match, contradictory answers, corrections, repeated-question avoidance, and bounded termination. Model calls need failure handling and usage bounds.
-- Separate algorithm simulation from user evidence. Synthetic scenarios do not prove users feel understood, will pay, or return.
-- Once relevant checks pass, avoid repeated broad tests without a new concern.
-- Report changes, verification, and material uncertainty. Never claim a deployment or model switch that did not happen.
+- 한국어로 응답한다. 수정 전에 `git status --short`를 확인하고 관련 없는 사용자 변경을 보존한다.
+- 명시적인 요청 없이 하위 에이전트를 생성하지 않는다.
+- TDM 인증·CSRF·추론·감사 로그 및 기존 URL 리디렉션을 보존한다.
+- `.env`, 모델 가중치, 로컬 데이터, 업로드, `.claude/settings.local.json`을 보존한다. 비밀 설정·개인정보를 출력하거나 커밋하지 않는다.
+- 기존 DB 호환성을 위해 마이그레이션 리비전 이력은 유지한다. 비TDM 테이블은 자동 생성 삭제 대상에서 제외한다. 실제 데이터 삭제는 별도 요청이 필요하다.
+- 서버 접근·배포·운영 마이그레이션·재시작·푸시·메일 발송은 별도 요청 전 수행하지 않는다.
+- 테스트는 로컬의 격리된 설정을 사용한다. 운영 DB를 테스트에 사용하지 않는다.
+- 변경에 맞는 테스트와 `git diff --check`를 실행하고, 검증 범위와 남은 제한을 보고한다.

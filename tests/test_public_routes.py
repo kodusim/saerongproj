@@ -28,12 +28,10 @@ def client(monkeypatch):
 
 
 def test_home_and_retired_routes(client):
-    response = client.get('/')
-    assert response.status_code == 200
-    assert 'AI 무당' in response.text
-    assert 'href="/tdm' not in response.text
-    assert 'href="/work' not in response.text
-    for path in ['/work', '/work/', '/work/api/farm/state/', '/dusttest/']:
+    response = client.get('/', follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers['location'] == '/tdm/'
+    for path in ['/work', '/work/', '/work/api/farm/state/', '/dusttest/', '/healthtest/', '/bltest/', '/api/analyze']:
         assert client.get(path).status_code == 404
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect('/work/ws'):
