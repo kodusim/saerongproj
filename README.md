@@ -1,12 +1,27 @@
-# saerongproj — TDM
+# saerongproj — 새롱 데이터 스튜디오 · TDM
+
+다른 PC에서 작업을 이어갈 때는 [인계 문서](docs/HANDOFF.md)와 [로컬 환경 설정 예시](deploy/local.env.example)를 먼저 확인한다. 비밀키·메일 설정·관리자 접속정보·원본 데이터는 GitHub에 포함하지 않는다.
 
 반코마이신 혈중 농도를 예측하는 FastAPI 애플리케이션이다. 2026-10-09 사용자 요청으로 TDM 외 서비스 코드와 제품·브랜드 문서를 정리했고, 2026-10-10 사용자 요청으로 saerong.com에 배포했다.
+
+2026-10-21 사업 소개, 여행 탐색 서비스, 포트폴리오와 비공개 문의 접수 기능을 saerong.com에 배포했다. 각 메뉴는 별도 URL에서 서버 렌더링한다. 포트폴리오는 제공된 작업 자료의 주제를 바탕으로 재구성했으며 화면은 합성 데이터를 사용한다. 문의는 먼저 비공개 SQLite에 저장하고 SMTP로 알린다. 관리자 인증은 TDM과 분리한다.
+
+여행 서비스는 네 권역의 AI허브 **공개 소개 통계**와 자체 작성한 여행 가이드를 제공한다. **원본 CSV는 아직 연결하지 않았다.** 여행 추천은 취향·교통·속도 태그의 규칙 비교이며 학습 모델의 예측이 아니다. API 다운로드 승인과 이용 범위 확인 후 원본 분석을 추가해야 한다.
 
 ## 경로
 
 | 경로 | 기능 |
 |---|---|
-| `/` | `/tdm/`으로 이동 |
+| `/` | 공개서비스 메인 |
+| `/portfolio/` | 외주 포트폴리오 |
+| `/services/` | 데이터 분석·웹서비스 개발 소개 |
+| `/travel` | 여행 취향 선택·권역 필터·저장·비교·공유 |
+| `/travel/{slug}` | 여행지별 가이드와 공식 정보 링크 |
+| `/portfolio/{slug}/` | 사례 설명과 합성 데이터 대시보드 |
+| `/contact/` | 문의 내용 확인 후 비공개 접수·메일 알림 |
+| `/admin/` | 전용 관리자 로그인 후 문의 조회·처리·삭제 |
+| `/privacy/`, `/terms/`, `/about/` | 정책·이용안내·소개 |
+| `/ads.txt`, `/robots.txt`, `/sitemap.xml` | 광고·검색 설정 |
 | `/tdm/` | 로그인 후 ML + DL 예측 화면 |
 | `/tdm/login/`, `/tdm/logout/` | 세션 인증 |
 | `/tdm/api/predict/` | 예측 API와 감사 로그 저장 |
@@ -15,6 +30,13 @@
 | `/healthz` | 헬스체크 |
 
 ## 구성과 실행
+
+- `app/routers/site.py`: 공개 페이지, 문의 API, 관리자 인증
+- `app/services/site_content.py`: 공개 여행 가이드·통계·포트폴리오 콘텐츠
+- `templates/site/`, `static/css/public.css`, `static/js/{public,travel,dashboard}.js`: 실제 배포 화면
+- `preview/`, `templates/home.html`, `static/css/site.css`, `static/js/site.js`: 초기 로컬 시안; 현재 라우트에서는 사용하지 않음
+- `app/services/inquiries.py`: 문의 보관·알림·남용 제한, TDM DB와 분리
+- `.site.env`, `private_data/`: 비공개 설정·런타임 데이터, Git/배포 아카이브 제외
 
 - `app/routers/tdm.py`: TDM 라우터
 - `app/services/predictor.py`: ML + DL 추론
@@ -43,3 +65,12 @@ git diff --check
 ```
 
 라우트 테스트는 DB 의존성을 대체하며 실제 DB 연결이나 모델 추론을 실행하지 않는다. 운영 관련 사항은 [deploy/README.md](deploy/README.md), 작업 지침은 [AGENTS.md](AGENTS.md)를 참고한다.
+
+문의 테스트는 임시 SQLite와 발송을 하지 않는 격리 설정을 사용한다. 문의 및 로그인 남용 제한, CSRF, 전용 관리자 인증, 입력 검증, 중복 접수 방지, HTML 이스케이프와 SMTP 실패 시 보존을 검증한다.
+
+## 광고와 원본 데이터 연결 상태
+
+- 공개서비스(`/`, `/travel`, 여행 상세)에는 제공받은 AdSense 스크립트와 소유권 메타 태그를 적용했다. 관리자·문의·포트폴리오에는 광고를 삽입하지 않는다.
+- AdSense 사이트 재검토, 자동광고 활성화와 Google 인증 CMP 메시지 게시 등 **계정 측 설정은 미완료**다. 광고 승인·노출·수익을 검증 완료로 주장하지 않는다.
+- AI허브는 실시간 추천 API가 아니라 승인 후 파일을 내려받는 API를 제공한다. `scripts/aihub_file_catalog.py`는 네 데이터셋 파일 목록만 조회하며 비밀키를 받거나 데이터를 다운로드하지 않는다.
+- AI허브 이용정책과 개별 데이터 이용 조건을 확인한 뒤 CSV 파일을 확보해야 실제 로그 분석·모델 학습을 진행할 수 있다. 공개 소개 통계를 개별 여행자 추천 근거로 해석하지 않는다.

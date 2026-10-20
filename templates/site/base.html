@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title><meta name="description" content="{{ description }}">
+  {% if noindex %}<meta name="robots" content="noindex,nofollow">{% endif %}
+  <link rel="canonical" href="{{ canonical }}">
+  <meta property="og:title" content="{{ title }}"><meta property="og:description" content="{{ description }}">
+  <meta property="og:type" content="website"><meta property="og:url" content="{{ canonical }}">
+  <meta property="og:image" content="https://saerong.com/static/images/travel-cover.png">
+  <meta name="twitter:card" content="summary_large_image">
+  {% if not noindex %}<script type="application/ld+json">{{ {'@context':'https://schema.org','@type':'WebPage','name':title,'description':description,'url':canonical,'inLanguage':'ko','isPartOf':{'@type':'WebSite','name':'새롱','url':'https://saerong.com'}}|tojson }}</script>{% endif %}
+  <meta name="theme-color" content="#3764e7">
+  <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/public.css?v=20261020-1">
+  {% if ads %}<meta name="google-adsense-account" content="ca-pub-7308084694640774">
+  {% if request.url.hostname in ['saerong.com', 'www.saerong.com'] %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7308084694640774" crossorigin="anonymous"></script>
+  {% endif %}{% endif %}
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <a class="skip" href="#main">본문 바로가기</a>
+  <header class="header"><a class="brand" href="/" aria-label="새롱 홈"><span class="brand-icon">s.</span> 새롱 <small>DATA STUDIO</small></a>
+    <nav aria-label="주 메뉴">{% for key, href, text in [('public','/','공개서비스'),('portfolio','/portfolio/','포트폴리오'),('services','/services/','서비스 소개'),('contact','/contact/','개발 문의')] %}<a href="{{ href }}"{% if page==key %} aria-current="page"{% endif %}>{{ text }}</a>{% endfor %}</nav>
+  </header>
+  <main id="main" class="container">{% block content %}{% endblock %}</main>
+  <footer class="footer"><div><a class="brand" href="/">새롱 <small>DATA STUDIO</small></a><p>데이터를 쓸모 있는 서비스로.</p></div><div class="footer-links"><a href="/about/">소개</a><a href="/privacy/">개인정보처리방침</a><a href="/terms/">이용안내</a><a href="/contact/">문의하기</a><small>© 2026 새롱</small></div></footer>
+  <script src="/static/js/public.js?v=20261020-1" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

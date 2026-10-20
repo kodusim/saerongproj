@@ -1,0 +1,4 @@
+{% extends 'site/base.html' %}
+{% block content %}
+<section class="login-panel card"><span class="eyebrow">PRIVATE INBOX</span><h1>관리자 로그인</h1><p>문의 내용은 인증된 관리자만 확인할 수 있습니다.</p><form id="admin-login"><label>아이디<input name="username" required maxlength="200" autocomplete="username"></label><label>비밀번호<input name="password" type="password" required maxlength="500" autocomplete="current-password"></label><button class="button primary full" type="submit" disabled>로그인</button><p id="login-status" role="status"></p></form></section>
+{% endblock %}

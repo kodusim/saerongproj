@@ -1,0 +1,12 @@
+{% extends 'site/base.html' %}
+{% block content %}
+<section class="contact-layout"><div class="page-intro"><span class="eyebrow">개발 문의</span><h1>데이터의 다음 쓰임,<br>함께 찾아볼까요?</h1><p>보유한 데이터와 해결하고 싶은 문제를 알려주세요. 구체적인 기획서가 없어도 괜찮습니다.</p><div class="notice"><h3>초기 문의에는 설명만 보내주세요.</h3><p>고객 명단, 환자 정보, 계정 비밀번호나 원본 파일은 입력하지 마세요. 필요한 자료는 상담 후 별도로 협의합니다.</p></div></div>
+<form class="card inquiry-form" id="inquiry-form"><input type="hidden" name="nonce" value="{{ nonce }}"><div class="form-row"><label>이름 또는 회사명 <b>*</b><input name="name" maxlength="100" required autocomplete="name" placeholder="어떻게 불러드릴까요?"></label><label>회신받을 이메일 <b>*</b><input name="email" type="email" maxlength="254" required autocomplete="email" placeholder="hello@example.com"></label></div>
+<label>어떤 데이터를 가지고 있나요? <b>*</b><textarea name="data" maxlength="3000" rows="4" required placeholder="예: 매달 쌓이는 매출 엑셀 24개가 있습니다. 데이터가 아직 없으면 없다고 적어주세요."></textarea></label>
+<label>어떤 문제를 해결하고 싶나요? <b>*</b><textarea name="service" maxlength="5000" rows="5" required placeholder="예: 매주 수작업으로 집계하는 매출을 자동으로 보고 매장별로 비교하고 싶습니다."></textarea></label>
+<div class="form-row"><label>희망 일정 <small>선택</small><input name="timeline" maxlength="100" placeholder="예: 2~3개월 이내"></label><label>예산 범위 <small>선택</small><select name="budget"><option>협의하고 싶어요</option>100만 원 미만</option>100~300만 원</option>300~1,000만 원</option>1,000만 원 이상</option></select></label></div>
+<div class="honeypot" aria-hidden="true"><label>홈페이지 주소<input name="website" tabindex="-1" autocomplete="off"></label></div>
+<label class="check-label"><input type="checkbox" name="consent" required> <span>문의 응대 목적의 개인정보 수집·이용에 동의합니다. <b>(필수)</b></span></label><p class="small">수집 항목: 이름/회사명, 이메일, 문의 내용과 선택 입력 항목. 보유 기간: 접수일로부터 180일. 동의를 거부할 수 있으나 문의 접수는 제한됩니다. <a href="/privacy/" target="_blank" rel="noopener">개인정보처리방침</a></p>
+<button class="button primary full" type="submit" disabled>문의 내용 확인하기 ↗</button><noscript><p>문의 접수에는 JavaScript가 필요합니다. 브라우저에서 활성화해주세요.</p></noscript><p id="form-status" role="status" tabindex="-1"></p></form></section>
+<dialog id="inquiry-dialog"><div class="section-heading"><h2>이 내용으로 접수할까요?</h2><button class="dialog-close" aria-label="닫기">✕</button></div><div id="inquiry-review"></div><div class="actions"><button id="send-inquiry" class="button primary">문의 접수하기</button><button class="button outline dialog-close">다시 수정하기</button></div><p id="submit-status" role="status"></p></dialog>
+{% endblock %}

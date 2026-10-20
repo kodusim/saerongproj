@@ -1,7 +1,8 @@
 """saerong.com — FastAPI 애플리케이션.
 
 라우트
-  /                     TDM으로 이동
+  /                     공개서비스 메인
+  /portfolio/, /services/, /contact/  사업 소개 페이지
   /tdm/*                반코마이신 TDM 하이브리드 예측
   /tdmprediction/*      기존 TDM 링크 리디렉션
   /healthz              헬스체크
@@ -19,7 +20,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, settings
-from app.routers import tdm
+from app.routers import site, tdm
 from app.security import CsrfMiddleware
 from app.templating import templates
 
@@ -54,6 +55,7 @@ app.add_middleware(
 )
 
 app.include_router(tdm.router)
+app.include_router(site.router)
 
 
 @app.api_route('/tdmprediction', methods=['GET', 'HEAD', 'POST'], include_in_schema=False)
@@ -64,11 +66,6 @@ async def legacy_tdm(request: Request, path: str = ''):
     if request.url.query:
         target += '?' + request.url.query
     return RedirectResponse(target, status_code=308)
-
-
-@app.get('/')
-async def home():
-    return RedirectResponse('/tdm/', status_code=302)
 
 
 @app.get('/healthz', response_class=PlainTextResponse)

@@ -1,0 +1,21 @@
+{% extends 'site/base.html' %}
+{% block content %}
+<section class="page-intro"><span class="eyebrow">서비스 소개</span><h1>데이터는 있는데,<br>어디서 시작할지 막막하다면.</h1><p>엑셀 정리부터 분석, 대시보드와 웹서비스 개발까지.<br>필요한 단계만 골라 시작할 수 있습니다.</p><a class="button primary" href="/contact/">내 프로젝트 상담하기 ↗</a></section>
+<section class="grid two service-offers">
+<article class="card guide-card"><span class="eyebrow">01 / 정리</span><h2>데이터 가공·정제</h2><p>파일마다 항목이 다르거나 누락과 중복 때문에 분석이 어려운 경우에 적합합니다.</p><ul><li>엑셀·CSV 통합과 형식 표준화</li><li>중복·결측·이상값 점검</li><li>정제 규칙과 데이터 설명서</li></ul><a href="/portfolio/research/" class="text-link">자료 정리 자동화 사례 →</a></article>
+<article class="card guide-card"><span class="eyebrow">02 / 분석</span><h2>데이터 분석·시각화</h2><p>지표를 비교하고 변화의 원인을 탐색해야 하는 팀을 위한 분석 작업입니다.</p><ul><li>질문에 맞는 지표와 비교 기준 정의</li><li>시계열·상품군·지역별 탐색</li><li>분석 보고서와 재현 가능한 결과</li></ul><a href="/portfolio/pricing/" class="text-link">가격 분석 사례 →</a></article>
+<article class="card guide-card"><span class="eyebrow">03 / 모델</span><h2>예측 모델·검증</h2><p>수요와 센서 변화 등 반복되는 패턴을 예측하고 싶은 경우 검토합니다.</p><ul><li>데이터 품질과 목표 적합성 진단</li><li>기준 모델과 후보 모델 비교</li><li>검증 구간·오차·적용 한계 정리</li></ul><a href="/portfolio/traffic/" class="text-link">교통량 분석 사례 →</a></article>
+<article class="card guide-card"><span class="eyebrow">04 / 제품</span><h2>대시보드·웹서비스 개발</h2><p>분석 파일을 담당자가 검색하고 비교하는 도구로 바꾸고 싶을 때 적합합니다.</p><ul><li>검색·필터·차트·내보내기</li><li>데이터 갱신과 권한에 맞춘 화면</li><li>배포와 운영 문서, 유지보수 범위 협의</li></ul><a href="/travel" class="text-link">공개 여행 서비스 체험 →</a></article>
+</section>
+<section class="section"><h2>이렇게 진행합니다.</h2><div class="grid four steps">{% for title,text in [('문의','보유 데이터와 원하는 사용 장면을 파악합니다.'),('범위 협의','산출물, 일정, 견적과 수정 범위를 함께 정합니다.'),('분석·개발','중간 결과를 공유하고 실제 사용 흐름을 확인합니다.'),('전달·운영','사용 방법과 운영·유지보수 범위를 안내합니다.')] %}<article class="card guide-card"><span>0{{ loop.index }}</span><h3>{{ title }}</h3><p>{{ text }}</p></article>{% endfor %}</div></section>
+<section class="section faq"><h2>의뢰 전에 많이 궁금한 것</h2>
+{% for q,a in [
+('데이터가 정리되지 않았어도 가능한가요?','가능합니다. 파일 형식과 대략적인 양, 해결하려는 문제를 알려주세요. 정제 범위부터 검토하고 필요한 작업을 나눠 안내합니다.'),
+('데이터 없이 아이디어만 있어도 문의할 수 있나요?','가능합니다. 공개데이터의 확보 가능성, 이용 조건, 갱신 주기와 구현 범위를 먼저 검토합니다. 데이터 확보가 보장되는 것은 아닙니다.'),
+('비용과 기간은 어떻게 정하나요?','데이터 상태, 기능, 보안·배포 조건에 따라 달라집니다. 작업 범위와 산출물을 합의한 뒤 견적과 일정을 정하며 유지보수는 별도로 협의합니다.'),
+('예측 정확도를 보장하나요?','보장하지 않습니다. 데이터와 목표에 따라 결과가 달라지므로 기준 모델과 검증 방법, 오류와 적용 한계를 함께 제공합니다.'),
+('민감한 데이터를 보내도 되나요?','초기 문의에는 개인정보와 비밀 데이터를 보내지 마세요. 계약과 보안 범위를 합의한 뒤 필요한 최소 자료만 별도 방식으로 전달합니다.'),
+('개발 후 관리도 가능한가요?','데이터 갱신, 서버 운영, 장애 대응, 기능 변경 중 필요한 항목을 별도로 협의합니다. 무제한 수정이나 상시 대응이 제작비에 자동 포함되지는 않습니다.')
+] %}<details><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}
+</section>
+{% endblock %}

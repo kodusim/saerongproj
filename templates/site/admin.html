@@ -1,0 +1,7 @@
+{% extends 'site/base.html' %}
+{% block content %}
+<section class="page-intro"><span class="eyebrow">PRIVATE INBOX</span><div class="section-heading"><div><h1>개발 문의</h1><p>총 {{ total }}건 · 접수일로부터 180일 보관</p></div><button class="button outline" id="admin-logout">로그아웃</button></div></section>
+<p id="admin-status" role="status"></p>
+{% for row in rows %}<article class="card inbox-item" data-reference="{{ row.id }}"><div class="section-heading"><div><span class="pill">{{ row.id }}</span><h2>{{ row.name }}</h2><p>{{ row.date }} · {{ row.email }}</p></div><label>처리 상태<select class="inquiry-state">{% for key,text in [('new','신규'),('read','확인'),('replied','회신 완료'),('closed','종료')] %}<option value="{{ key }}"{% if row.status==key %} selected{% endif %}>{{ text }}</option>{% endfor %}</select></label></div><dl><dt>보유 데이터</dt><dd>{{ row.data }}</dd><dt>원하는 서비스</dt><dd>{{ row.service }}</dd><dt>일정 · 예산</dt><dd>{{ row.timeline or '미정' }} · {{ row.budget or '미정' }}</dd><dt>메일 알림</dt><dd>{{ {'pending':'대기','sent':'발송됨','not_configured':'메일 설정 없음 — 이 보관함에서 확인','failed':'발송 실패 — 접수 내용은 정상 보관'}[row.mail] }}</dd></dl><button class="text-button danger delete-inquiry">이 문의 영구 삭제</button></article>{% else %}<div class="empty card">아직 접수된 문의가 없습니다.</div>{% endfor %}
+<div class="actions pagination">{% if current_page>1 %}<a class="button outline" href="?page={{ current_page-1 }}">이전</a>{% endif %}<span>{{ current_page }} 페이지</span>{% if current_page*20<total %}<a class="button outline" href="?page={{ current_page+1 }}">다음</a>{% endif %}</div>
+{% endblock %}

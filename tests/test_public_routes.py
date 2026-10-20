@@ -5,12 +5,15 @@ from starlette.websockets import WebSocketDisconnect
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client(monkeypatch, tmp_path):
     monkeypatch.setenv('DATABASE_URL', 'postgresql://test:test@127.0.0.1:1/unused')
     monkeypatch.setenv('DEBUG', 'true')
     from app.main import app
     from app.config import settings
     from app.db import get_session
+    from app.site_config import site_settings
+    monkeypatch.setattr(site_settings, 'site_store', tmp_path / 'inquiries.sqlite3')
+    monkeypatch.setattr(site_settings, 'smtp_host', '')
 
     monkeypatch.setattr(settings, 'debug', True)
     monkeypatch.setattr(settings, 'tdm_auth_user', 'route-test')
@@ -29,14 +32,29 @@ def client(monkeypatch):
 
 def test_home_and_retired_routes(client):
     response = client.get('/', follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers['location'] == '/tdm/'
+    assert response.status_code == 200
+    assert '이번엔 어디?' in response.text
+    assert '/static/css/public.css' in response.text
+    assert '/static/js/public.js' in response.text
     for path in ['/work', '/work/', '/work/api/farm/state/', '/dusttest/', '/healthtest/', '/bltest/', '/api/analyze']:
         assert client.get(path).status_code == 404
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect('/work/ws'):
             pytest.fail('Retired Work websocket accepted a connection')
     assert client.get('/healthz').text == 'ok'
+
+
+@pytest.mark.parametrize('path, page, title', [
+    ('/', 'public', '새롱 — 데이터를 쓸모 있는 서비스로'),
+    ('/portfolio/', 'portfolio', '데이터 분석·개발 포트폴리오 — 새롱'),
+    ('/services/', 'services', '데이터 분석·대시보드·웹서비스 개발 — 새롱'),
+    ('/contact/', 'contact', '개발 문의 — 새롱'),
+])
+def test_site_pages_render_without_javascript(client, path, page, title):
+    response = client.get(path)
+    assert response.status_code == 200
+    assert f'<title>{title}</title>' in response.text
+    assert f'href="{path}" aria-current="page"' in response.text
 
 
 def test_tdm_auth_and_csrf_survive_move(client):

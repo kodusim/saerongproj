@@ -1,6 +1,7 @@
 .idea
 .env*
 venv
+.venv/
 db.sqlite3
 __pycache__
 staticfiles
@@ -21,3 +22,9 @@ ml_artifacts/*.pt
 
 # 학습 작업 폴더 (커밋 금지 — 로컬/특허 전용)
 Hybrid_model_2cm_bs_pipet_수정/
+# Public-site private runtime data and SMTP settings
+private_data/
+.site.env
+
+# Local exports may contain private source material.
+/output/

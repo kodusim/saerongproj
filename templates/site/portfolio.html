@@ -1,0 +1,7 @@
+{% extends 'site/base.html' %}
+{% block content %}
+<section class="page-intro"><span class="eyebrow">포트폴리오</span><h1>문제를 풀고,<br>쓸 수 있는 화면으로.</h1><p>데이터 분석부터 대시보드와 업무 자동화까지.<br>보유 작업 자료를 바탕으로 공개용 사례를 재구성했습니다.</p></section>
+<div class="notice compact">개인·고객 정보를 보호하기 위해 화면은 합성 데이터로 새로 만들었습니다. 데모 수치는 고객의 실제 데이터나 검증된 성과를 의미하지 않습니다.</div>
+<section class="section"><div class="grid three">{% for p in projects %}<a class="card project-card" href="/portfolio/{{ p.id }}/"><div class="project-art {{ p.id }}"><span>{{ p.icon }}</span><div class="mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="card-body"><span class="eyebrow">{{ p.category }}</span><h2>{{ p.title }}</h2><p>{{ p.summary }}</p><span class="text-link">문제와 해결 과정 보기 ↗</span></div></a>{% endfor %}</div></section>
+<aside class="cta-banner"><div><h2>비슷한 문제가 있나요?</h2><p>사용 중인 파일과 원하는 결과를 알려주세요.</p></div><a class="button primary" href="/contact/">프로젝트 문의 ↗</a></aside>
+{% endblock %}

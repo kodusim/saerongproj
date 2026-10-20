@@ -1,0 +1,12 @@
+{% extends 'site/base.html' %}
+{% block content %}
+<div class="breadcrumb"><a href="/portfolio/">포트폴리오</a><span>/</span>{{ item.title }}</div>
+<section class="page-intro"><span class="eyebrow">{{ item.category }}</span><h1>{{ item.title }}</h1><p>{{ item.summary }}</p><div class="inline-tags"><span>{{ item.stack }}</span></div></section>
+<section class="dashboard card"><div class="section-heading"><div><span class="eyebrow">INTERACTIVE DEMO</span><h2>직접 살펴보는 분석 화면</h2></div><span class="pill">합성 데이터 · 공개용 재구성</span></div><div class="dashboard-controls"><label>비교 그룹<select id="demo-group"><option value="0">그룹 A</option><option value="1">그룹 B</option><option value="2">그룹 C</option></select></label><label>기간<select id="demo-period"><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30">최근 30일</option></select></label><button class="button outline" id="export-demo">데모 CSV 내려받기 ↓</button></div>
+<div class="grid three kpis"><div><span>선택 기간 평균</span><strong id="demo-average">—</strong></div><div><span>최대 {{ item.metric }}</span><strong id="demo-max">—</strong></div><div><span>표시된 시점</span><strong id="demo-count">—</strong></div></div>
+<div class="chart-wrap"><svg id="demo-chart" viewBox="0 0 900 260" role="img" aria-label="{{ item.metric }} 합성 데이터 시계열"><title>선택 그룹과 기간별 {{ item.metric }}</title></svg></div><p class="small">모든 값은 화면 기능을 설명하기 위한 합성 데이터입니다. 실제 예측 정확도나 운영 결과가 아닙니다.</p><details><summary>차트 데이터 표로 보기</summary><div class="table-wrap"><table><thead><tr><th>시점</th><th>{{ item.metric }} ({{ item.unit }})</th></tr></thead><tbody id="demo-table"></tbody></table></div></details></section>
+<section class="section case-story"><article><span class="eyebrow">01 / 문제</span><h2>어떤 불편을 해결하나요?</h2><p>{{ item.problem }}</p></article><article><span class="eyebrow">02 / 접근 방법</span><h2>데이터에서 화면까지</h2><ol>{% for step in item.approach %}<li>{{ step }}</li>{% endfor %}</ol></article><article><span class="eyebrow">03 / 제공 가치</span><h2>분석 결과를 활용하는 방식</h2><p>{{ item.outcome }}</p><p class="small">보유 포트폴리오의 해당 주제를 바탕으로 설명과 화면을 재작성했습니다. 고객명, 계약 여부, 금액과 성과 수치는 공개하지 않습니다.</p></article></section>
+<aside class="cta-banner"><div><h2>우리 데이터에도 적용할 수 있을까요?</h2><p>데이터 상태부터 함께 검토합니다.</p></div><a class="button primary" href="/contact/">개발 문의 ↗</a></aside>
+<script type="application/json" id="demo-data">{{ {'base':item.base,'unit':item.unit,'metric':item.metric,'color':item.color,'id':item.id}|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js?v=20261020-1" defer></script>{% endblock %}
