@@ -19,7 +19,7 @@
   {% endif %}{% endif %}
   {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <a class="skip" href="#main">본문 바로가기</a>
   <header class="header"><a class="brand" href="/" aria-label="새롱 홈"><span class="brand-icon">s.</span> 새롱 <small>DATA STUDIO</small></a>
     <nav aria-label="주 메뉴">{% for key, href, text in [('public','/','공개서비스'),('portfolio','/portfolio/','포트폴리오'),('services','/services/','서비스 소개'),('contact','/contact/','개발 문의')] %}<a href="{{ href }}"{% if page==key %} aria-current="page"{% endif %}>{{ text }}</a>{% endfor %}</nav>

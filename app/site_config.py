@@ -12,6 +12,7 @@ class SiteSettings(BaseSettings):
         env_file_encoding='utf-8', extra='ignore',
     )
     site_store: Path = BASE_DIR / 'private_data' / 'inquiries.sqlite3'
+    travel_catalog: Path = BASE_DIR / 'private_data' / 'travel' / 'catalog.json'
     site_origin: str = 'https://saerong.com'
     inquiry_to: str = ''
     smtp_host: str = ''

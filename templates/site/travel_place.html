@@ -1,0 +1,9 @@
+{% extends 'site/base.html' %}
+{% block body_class %}travel-page{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/travel.css?v=20261021-2">{% endblock %}
+{% block content %}
+<article class="place-full"><a class="back-explore" href="/travel">← 국내 여행 탐색</a><p class="travel-kicker">{{ item.province }} / {{ item.category_label }}</p><h1>{{ item.name }}</h1><p class="detail-address">{{ item.address }}</p>
+<div class="detail-kpis"><div><span>방문 표본</span><strong>{{ item.samples }}<small> 건</small></strong><small>여행자별 1회</small></div><div><span>만족도 평균</span><strong>{{ '%.2f'|format(item.rating) if item.rating is not none else '—' }}<small> / 5</small></strong><small>{{ item.rating_count }}건 응답</small></div><div><span>체류 중앙값</span><strong>{{ item.stay_minutes if item.stay_minutes is not none else '—' }}<small> 분</small></strong><small>{{ item.stay_count }}건 유효 기록</small></div></div>
+<div class="detail-chart"><h2>만족도 응답 분포</h2>{% if item.histogram %}{% for n in item.histogram|reverse %}<div class="rating-bar"><span style="height:auto;background:none">{{ 6-loop.index }}점</span><span><i style="width:{{ 100*n/item.rating_count }}%"></i></span><b>{{ n }}건</b></div>{% endfor %}{% else %}<p class="detail-note">유효 응답이 5건 미만이라 점수와 분포를 표시하지 않습니다.</p>{% endif %}</div>
+<p class="detail-note">출처: AI허브 국내 여행로그 2023. 같은 여행자가 남긴 장소 기록은 한 번만 집계했습니다. 참여자의 관측값으로, 전국 관광객을 대표하거나 개인의 만족도를 예측하지 않습니다. 체류 시간은 추천 소요 시간이 아닙니다.</p><div class="detail-actions"><a class="travel-btn solid" href="/travel?q={{ item.name|urlencode }}">이 장소 검색·저장하기</a><a class="travel-btn" href="https://map.naver.com/p/search/{{ (item.name ~ ' ' ~ item.address)|urlencode }}" target="_blank" rel="noopener">지도·운영 정보 ↗</a><a class="travel-btn" href="/travel#data-story">집계 방식 확인</a></div></article>
+{% endblock %}

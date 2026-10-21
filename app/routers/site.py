@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Query
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
 from itsdangerous import URLSafeTimedSerializer, BadSignature
@@ -17,11 +17,23 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from app.config import settings
 from app.site_config import site_settings
-from app.services import inquiries
+from app.services import inquiries, travel as travel_data
 from app.services.site_content import DESTINATIONS, PROJECTS, REGIONS
 from app.templating import templates
 
 router = APIRouter()
+
+
+def travel_bounds(value):
+    if not value:
+        return None
+    try:
+        box = [float(v) for v in value.split(',')]
+        if len(box) != 4 or not (124 <= box[0] < box[2] <= 132 and 32 <= box[1] < box[3] <= 40):
+            raise ValueError
+        return box
+    except ValueError:
+        raise HTTPException(422, '지도 검색 범위를 확인해주세요.')
 
 
 def render(request, name, title, description, page='public', ads=False, **context):
@@ -36,14 +48,50 @@ def render(request, name, title, description, page='public', ads=False, **contex
 @router.get('/')
 def index(request: Request):
     return render(request, 'index', '새롱 — 데이터를 쓸모 있는 서비스로',
-                  '국내 여행 취향 찾기와 데이터 분석 프로젝트. 데이터를 정리하고 분석해 누구나 쓰는 웹서비스로 만듭니다.', ads=True)
+                  '국내 여행 기록 탐색과 데이터 분석 프로젝트. 데이터를 정리하고 분석해 누구나 쓰는 웹서비스로 만듭니다.',
+                  ads=True, travel_overview=travel_data.search(per_page=3))
 
 
 @router.get('/travel')
-def travel(request: Request):
-    return render(request, 'travel', '이번엔 어디? — 국내 여행 취향 찾기 | 새롱',
-                  '바다, 골목, 자연, 먹거리. 여행 취향과 이동 방법으로 국내 여행 후보를 찾고 비교하고 공유하세요.',
-                  ads=True)
+def travel(request: Request, q: str = Query('', max_length=100), region: str = '',
+           province: str = '', category: str = '', minimum: int = Query(5, ge=5, le=1000),
+           sort: Literal['samples', 'rating', 'name'] = 'samples', page: int = Query(1, ge=1),
+           bounds: str = Query('', max_length=120)):
+    results = travel_data.search(q=q, region=region, province=province, category=category,
+                                 minimum=minimum, sort=sort, page=page, bounds=travel_bounds(bounds))
+    return render(request, 'travel', '이번엔 어디? — 여행 기록으로 찾는 국내 여행 | 새롱',
+                  '실제 여행 기록에서 장소를 찾고, 방문 표본과 만족도를 비교해 나만의 여행 후보를 정리하세요.',
+                  ads=True, results=results, filters=dict(q=q, region=region, province=province,
+                                                        category=category, minimum=minimum, sort=sort))
+
+
+@router.get('/api/travel/places')
+def travel_places(q: str = Query('', max_length=100), region: str = '', province: str = '',
+                  category: str = '', minimum: int = Query(5, ge=5, le=1000),
+                  sort: Literal['samples', 'rating', 'name'] = 'samples', page: int = Query(1, ge=1),
+                  ids: str | None = Query(None, max_length=1500), bounds: str = Query('', max_length=120)):
+    box = travel_bounds(bounds)
+    return travel_data.search(q=q, region=region, province=province, category=category,
+                              minimum=minimum, sort=sort, page=page,
+                              ids=ids.split(',') if ids is not None else None, bounds=box)
+
+
+@router.get('/api/travel/places/{place_id}')
+def travel_place(place_id: str):
+    item = travel_data.place(place_id)
+    if not item:
+        raise HTTPException(404, '장소를 찾을 수 없습니다.')
+    return item
+
+
+@router.get('/api/travel/export.csv')
+def travel_export(q: str = Query('', max_length=100), region: str = '', province: str = '',
+                  category: str = '', minimum: int = Query(5, ge=5, le=1000),
+                  sort: Literal['samples', 'rating', 'name'] = 'samples', bounds: str = Query('', max_length=120)):
+    results = travel_data.search(q=q, region=region, province=province, category=category,
+                                 minimum=minimum, sort=sort, per_page=10000, bounds=travel_bounds(bounds))
+    return Response(travel_data.csv_export(results['items']), media_type='text/csv',
+                    headers={'Content-Disposition': 'attachment; filename="travel-2023.csv"'})
 
 
 @router.get('/travel/')
@@ -53,6 +101,13 @@ def travel_slash():
 
 @router.get('/travel/{slug}')
 def destination(request: Request, slug: str):
+    if slug.startswith('p-'):
+        item = travel_data.place(slug)
+        if not item:
+            raise HTTPException(404, '장소를 찾을 수 없습니다.')
+        return render(request, 'travel_place', f"{item['name']} — 여행 기록 | 새롱",
+                      f"{item['name']}의 2023년 방문 표본과 만족도 기록을 확인하세요.",
+                      ads=True, item=item)
     item = next((d for d in DESTINATIONS if d['id'] == slug), None)
     if not item:
         raise HTTPException(404, '여행지를 찾을 수 없습니다.')

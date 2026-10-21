@@ -13,6 +13,7 @@ def client(monkeypatch, tmp_path):
     from app.db import get_session
     from app.site_config import site_settings
     monkeypatch.setattr(site_settings, 'site_store', tmp_path / 'inquiries.sqlite3')
+    monkeypatch.setattr(site_settings, 'travel_catalog', tmp_path / 'missing-catalog.json')
     monkeypatch.setattr(site_settings, 'smtp_host', '')
 
     monkeypatch.setattr(settings, 'debug', True)
