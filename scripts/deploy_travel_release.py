@@ -117,14 +117,19 @@ def main():
     parser.add_argument('--host', required=True)
     parser.add_argument('--identity', required=True, type=Path)
     parser.add_argument('--baseline', required=True)
+    parser.add_argument('--catalog-baseline-sha256', help='Reviewed checksum of an existing private catalog for subsequent releases')
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--check', action='store_true')
     mode.add_argument('--deploy', action='store_true')
     args = parser.parse_args()
+    if args.catalog_baseline_sha256 and (len(args.catalog_baseline_sha256) != 64 or any(c not in '0123456789abcdef' for c in args.catalog_baseline_sha256)):
+        parser.error('Catalog checksum must be a lowercase SHA256 hex digest')
     baseline = {}
     for name in FILES:
         result = subprocess.run(['git','show',f'{args.baseline}:{name}'],cwd=ROOT,capture_output=True)
         baseline[name] = hashlib.sha256(result.stdout.replace(b'\r\n',b'\n')).hexdigest() if result.returncode == 0 else None
+    if args.catalog_baseline_sha256:
+        baseline['private_data/travel/catalog.json'] = args.catalog_baseline_sha256
     data = {'baseline':baseline,'files':FILES,'deploy':args.deploy,
             'main_hash':hashlib.sha256((ROOT/'app/main.py').read_bytes().replace(b'\r\n',b'\n')).hexdigest(),
             'commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()}

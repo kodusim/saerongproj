@@ -42,3 +42,17 @@
 `scripts/deploy_public_site.py`는 대상 파일 체크섬, 보호 파일 해시, 기존 파일 백업, 앱 import, 재시작·헬스체크를 수행한다. 초기 배포는 `origin/main`의 TDM 메인 파일과 서버가 일치하는지 확인한다. `--update-public-release`는 현재 로컬 `app/main.py`가 서버와 일치할 때만 후속 반영한다. **main.py 자체를 수정한 후에는 서버 기준 파일을 별도로 검토해야 하며 검사를 임의로 우회하지 않는다.**
 
 실패 시 이전 파일을 백업에서 복구한다. 서버 자격 증명은 `.site.env`에 있고 서비스 사용자만 읽도록 0600 권한을 설정했다. 백업에도 비공개 설정이 포함될 수 있으므로 공개 디렉터리로 옮기지 않는다.
+
+## 2026-10-21 여행 탐색 재설계 배포
+
+- 사용자 요청으로 기능 커밋 `9c00d2c`를 GitHub `main`에 푸시하고 https://saerong.com 과 `/travel`에 배포했다.
+- 기존 서버 Git HEAD는 과거 상태이며 운영 수정사항이 많아 서버 `git pull`을 사용하지 않았다. 대상 파일은 이전 공개 릴리스 `cf133a4`와 정규화된 체크섬이 일치함을 확인한 뒤 교체했다.
+- `scripts/deploy_travel_release.py`로 코드·템플릿·정적 자산·집계 JSON 총 14개 파일을 반영했다. 원본 CSV와 API 키는 전송하지 않았다.
+- 집계 파일: `/srv/course-repo/private_data/travel/catalog.json`, 2,483개 장소. 서비스 사용자 `ubuntu` 소유, 파일 0600·디렉터리 0700.
+- 백업: `/home/ubuntu/saerong-travel-backup-20261021-095926.tar.gz` (UTC 명명, 0600).
+- `.env`, `.site.env`, TDM 라우터·인증·추론, 모델 가중치, DB 코드, 마이그레이션 등 보호 파일 32개가 배포 전후 동일함을 확인했다. nginx·SMTP·cron·DB는 변경하지 않았다.
+- 서비스 import와 집계 로드를 확인한 후 `saerong`을 재시작했다. 헬스체크와 2,483개 장소 조회를 확인했다.
+- 검증: 로컬 테스트 26개, JavaScript 구문 검사·diff 검사. 실제 HTTPS의 메인/여행/상세/기존 페이지, 검색 필터, 집계 CSV, 정적 파일 체크섬, 비공개 파일 차단, TDM 로그인 페이지·CSRF 차단·미인증 추론 차단·기존 URL 308. 운영 DB를 이용한 테스트·모델 추론·문의 접수·메일 발송은 하지 않았다.
+- Edge에서 운영 데스크톱·모바일 화면, 검색, 상세의 분포 표시를 확인했고 JavaScript 오류가 없었다. 광고 계정 승인·자동광고·CMP는 이번 검증 대상이 아니다.
+
+후속 여행 배포는 `deploy_travel_release.py --host <SSH대상> --identity <개인키경로> --baseline <현재배포코드커밋> --catalog-baseline-sha256 <검토한기존집계파일SHA256> --check`로 먼저 검증한다. 사용자 배포 요청이 있을 때 `--check`를 `--deploy`로 바꿔 수행한다. 기존 집계 파일은 Git에 없으므로 체크섬을 별도로 명시한다. 불일치하면 덮어쓰지 않고 중단하며, 교체 후 실패하면 백업 파일을 복구하고 새 파일을 제거한 뒤 재시작한다.
